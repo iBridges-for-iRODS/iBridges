@@ -47,7 +47,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 # PARAMETERS
-eLABKey = "wur.elabjournal.com;6d91b9e86f7016a195f326262100fe24"
+eLABKey = "wur.elabjournal.com;key"
 title = "New paragraph section."
 envFile = os.environ["HOME"]+"/.irods/irods_environment.json"
 webDav = "http://scomp1486.wurnet.nl"
