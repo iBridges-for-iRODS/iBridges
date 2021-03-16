@@ -13,7 +13,7 @@ def getSize(path):
             size += os.path.getsize(f)
     return float(size)/(1024**3)
 
-def iRODSupload(source, destination, resource = "bigstore"):
+def iRODSupload(source, destination, resource):
     """
     source: absolute path to file or folder
     destination: iRODS collection where data is uploaded to
@@ -26,6 +26,7 @@ def iRODSupload(source, destination, resource = "bigstore"):
                kw.REG_CHKSUM_KW: ''}
 
     if os.path.isfile(source):
+        print("CREATE", destination.path+"/"+os.path.basename(source))
         session.collections.create(destination.path)
         session.data_objects.put(source, destination.path+"/"+os.path.basename(source), **options)
     elif os.path.isdir(source):
@@ -63,13 +64,17 @@ print(eLAB.group().name())
 menu = input("Do you want to change your current group? (Y(es) or enter to skip)")
 while menu in ["Y", "y", "yes", "YES", "Yes"]:
     print(eLAB.groups().all(["name", "description"]))
-    groupID = input("For which groupID do you want to upload data: ")
-    if int(groupID) in eLAB.groups().all().index:
-        eLAB.set_group(groupID)
-        print(BLUE+"Group changed: "+eLAB.group().name()+DEFAULT)
-        menu = "N"
-    else:
-        print(YEL+"\nNot a valid groupID"+DEFAULT)
+    inVar = input("For which groupID do you want to upload data: ")
+    try:
+        groupID = int(inVar)
+        if int(inVar) in eLAB.groups().all().index:
+            eLAB.set_group(inVar)
+            print(BLUE+"Group changed: "+eLAB.group().name()+DEFAULT)
+            menu = "N"
+        else:
+            print(YEL+"\nNot a valid groupID"+DEFAULT)
+    except ValueError:
+        print(RED+'Not anumber'+DEFAULT)
 
 experiments = eLAB.experiments()
 expFrames = eLAB.experiments().all()
@@ -78,11 +83,15 @@ print(expFrames.loc[expFrames["userID"] == userID, ["name", "projectID"]])
 print("\n")
 print("Other experiments:")
 print(expFrames.loc[expFrames["userID"] != userID, ["name", "projectID"]])
-menu = input("To which experiment does the data belong? (experimentID):")
-while int(menu) not in expFrames.index:
-    print(YEL+"\nNot a valid experimentID"+DEFAULT)
-    menu = input("To which experiment does the data belong? (experimentID):")
-experimentID = int(menu)
+experimentID = ''
+while experimentID not in expFrames.index:
+    print(YEL+"\nExperiement not chosen or not a valid experimentID"+DEFAULT)
+    try:
+        menu = input("To which experiment does the data belong? (experimentID):")
+        experimentID = int(menu)
+    except ValueError:
+        print(RED+'Not a number'+DEFAULT)
+
 print(BLUE+"Data will be uploaded to:")
 print(expFrames.iloc[[expFrames.index.get_loc(int(experimentID))]][["studyID", "name"]])
 print(DEFAULT+"\n")
@@ -92,8 +101,22 @@ experiment = experiments.get(experimentID)
 # For the elabjournal instance we use PAM authentication
 # Authentication by irods_environment.json
 webDav = "http://scomp1486.wurnet.nl"
-session = iRODSSession(irods_env_file=envFile)
+iLogin = False
+while not iLogin:
+    try:
+        print(YEL+"Logging into irods"+DEFAULT)
+        session = iRODSSession(irods_env_file=envFile)
+        iLogin = True
+    except:
+        print(RED+"Please check your environment file and do an iinit"+DEFAULT)
+        menu = input(YEL+"\nPress enter when iinit was succesful"+DEFAULT)
+
+print(BLUE+"iRODS connection:"+DEFAULT)
+print(BLUE+"SERVER: "+session.host+DEFAULT)
+print(BLUE+"ZONE: "+session.zone+DEFAULT)
+print(BLUE+"USER: "+session.username+DEFAULT)
 homeColl = session.collections.get("/"+session.zone+"/home/"+session.username)
+print(BLUE+"Home Collection: "+homeColl.path+DEFAULT)
 
 # Ensure that the path ELN/groupname/experimentname is present
 #the create method ensures that the path exists andcreates folder if necessary
@@ -107,15 +130,16 @@ while not os.path.exists(menu):
     print(YEL+"\nNot a valid Path"+DEFAULT)
     menu = input("Upload data: (Path to file or folder)")
 size = getSize(menu)
-print(BLUE+"Uploading data in "+ menu)
+print(BLUE+"Uploading data in "+menu+DEFAULT)
 print(str(size)+"GB")
-iRODSupload(menu, uploadColl)
+iRODSupload(menu, uploadColl, "bigstore")
 
-metaValue = "https://"+eLABKey.split(";")[0]+"/members/experiments/browser/#view=experimentID="+str(experimentID)
+metaValue = "https://"+eLABKey.split(";")[0]+"/members/experiments/browser/#view=experiment&nodeID="+str(experimentID)
 metaKey = "PROVENANCE"
 uploadColl.metadata.add(metaKey, metaValue)
 
 #### Create new section in ELN with iRODS path
+menu = input("ELN Paragraph title to safe iRODS link:")
 webdavLink = webDav+uploadColl.path
-experiment.add("Data uploaded to iRODS: "+webdavLink, title)
+experiment.add("Data uploaded to iRODS: "+webdavLink, menu)
 
