@@ -17,7 +17,7 @@ pip install elabjournal
 pip install python-irodsclient
 ```
 
-## Usage
+## Configuration
 
 - Configuration file:
   - Default
@@ -34,6 +34,7 @@ webdav =
 
   - The iRODS instance is SSL encrypted to allow for interactions with LDAP, you can use your WUR-account and password to login.
   - You need an irods.crt file (contact iRODS admin)
+  - You need to be on the WUR-VPN
   - iRODS environment file:
 
   ```
@@ -73,11 +74,10 @@ webdav =
     - bigstore: ~300GB
     - demoResc: ~5GB
 
-## Usage
+  ## Usage
 
-```
-./iUpload -c </path/to/config> -d </path/to/folder/or/file/to/upload>
-```
+  ```
+  ./iUpload -c </path/to/config> -d </path/to/folder/or/file/to/upload>
+  ```
 
-
-
+  
