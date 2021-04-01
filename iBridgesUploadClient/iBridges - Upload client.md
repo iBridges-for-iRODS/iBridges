@@ -19,8 +19,7 @@ pip install python-irodsclient
 
 ## Configuration
 
-- Configuration file:
-  - Default
+- Minimal configuration file:
 
 ```
 [iRODS]
