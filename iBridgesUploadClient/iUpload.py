@@ -215,10 +215,6 @@ def main(argv):
                     str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
             else:
                 iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
-                print("DEBUG: "+config['iRODS']['irodscoll'])
-                print("DEBUG: "+dataPath)
-                print("DEBUG: "+os.path.basename(dataPath))
-                print("DEBUG: "+iPath)
             ic.ensureColl(iPath)
             print('DEBUG: Created iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)

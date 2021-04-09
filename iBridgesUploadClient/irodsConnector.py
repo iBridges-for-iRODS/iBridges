@@ -33,8 +33,6 @@ class irodsConnector():
         #Wrong password: PAM_AUTH_PASSWORD_FAILED
         if envFile == None:
             envFile = os.environ['HOME']+"/.irods/irods_environment.json"
-        print("DEBUG: envfile "+envFile)
-        print("DEBUG: password "+password)
 
         if password == None:
             print("DEBUG: get password.")
