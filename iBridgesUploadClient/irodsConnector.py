@@ -1,6 +1,7 @@
 from irods.session import iRODSSession
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 import irods.keywords as kw
+import json
 import os
 
 RED = '\x1b[1;31m'
@@ -32,8 +33,11 @@ class irodsConnector():
         #Wrong password: PAM_AUTH_PASSWORD_FAILED
         if envFile == None:
             envFile = os.environ['HOME']+"/.irods/irods_environment.json"
-    
+        print("DEBUG: envfile "+envFile)
+        print("DEBUG: password "+password)
+
         if password == None:
+            print("DEBUG: get password.")
             try:
                 self.session = iRODSSession(irods_env_file=envFile)
                 self.session.collections.get("/"+self.session.zone+"/home")
@@ -41,8 +45,11 @@ class irodsConnector():
                 print(RED+"No or wrong password cached"+DEFAULT)
                 raise
         else:
+            print("DEBUG: connect to iRODS")
             try:
-                self.session = iRODSSession(irods_env_file=envFile, password=password)
+                with open(envFile) as f:
+                    ienv = json.load(f)
+                self.session = iRODSSession(**ienv, password=password)
                 self.session.collections.get("/"+self.session.zone+"/home")
             except Exception as error:
                 print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)

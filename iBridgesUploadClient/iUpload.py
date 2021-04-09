@@ -188,7 +188,10 @@ def main(argv):
                     sys.exit(2)
         elif opt in ['-d', '--data']:
             operation = 'upload'
-            dataPath = arg
+            if arg.endswith("/"):
+                dataPath = arg[:-1]
+            else:
+                dataPath = arg
         else:
             print('Data upload client')
             print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
@@ -207,8 +210,15 @@ def main(argv):
     #check files for upload
     if operation == 'upload':
         if prepareUpload(dataPath, ic, config):
-            iPath = config['iRODS']['irodscoll']+'/ELN/'+ \
-                str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
+            if md != None:
+                iPath = config['iRODS']['irodscoll']+'/ELN/'+ \
+                    str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
+            else:
+                iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
+                print("DEBUG: "+config['iRODS']['irodscoll'])
+                print("DEBUG: "+dataPath)
+                print("DEBUG: "+os.path.basename(dataPath))
+                print("DEBUG: "+iPath)
             ic.ensureColl(iPath)
             print('DEBUG: Created iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
@@ -230,8 +240,6 @@ def main(argv):
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
         print(DEFAULT)
-
-
     else:
         print('Not an implemented operation.')
         sys.exit(2)
