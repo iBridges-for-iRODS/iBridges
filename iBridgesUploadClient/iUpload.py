@@ -12,6 +12,7 @@ Implemented for:
 
 from elabConnector import elabConnector
 from irodsConnector import irodsConnector
+from irodsConnectorIcommands import irodsConnectorIcommands
 from irods.exception import ResourceDoesNotExist
 
 import configparser
@@ -20,6 +21,7 @@ import sys
 import json
 import getopt
 import getpass
+import subprocess
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -44,7 +46,14 @@ def setupIRODS(config):
     """
     Connects to iRODS and sets up the environment.
     """
-    if config['iRODS']['irodsenv'] != '':
+    #icommands available and standard irods_environment file
+    if(subprocess.call(["which", "iinit"]) == 0 
+            and (config['iRODS']['irodsenv'] == '' 
+                or config['iRODS']['irodsenv'] == \
+                        os.environ['HOME']+'/.irods/irods_environment.json')):
+        ic = irodsConnectorIcommands()
+    #no icommands or not standard environment file --> python only
+    elif config['iRODS']['irodsenv'] != '':
         passwd = getpass.getpass('Password for '+config['iRODS']['irodsenv']+': ')
         ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
     elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
