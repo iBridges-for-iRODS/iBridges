@@ -38,7 +38,7 @@ def getConfig(path):
     if not 'iRODS' in args:
         raise AttributeError("iRODS environment not defined.")
     if len(args) == 1:
-        print("No metadata store configured. Only upload data to iRODS.")
+        print(BLUE+"INFO: No metadata store configured. Only upload data to iRODS."+DEFAULT)
     
     return args
 
@@ -52,11 +52,15 @@ def setupIRODS(config):
                 or config['iRODS']['irodsenv'] == \
                         os.environ['HOME']+'/.irods/irods_environment.json')):
         ic = irodsConnectorIcommands()
+        print(BLUE+"INFO: Icommands and standard environment file are present.")
+        print("INFO: Using icommands for data up and download."+DEFAULT)
     #no icommands or not standard environment file --> python only
     elif config['iRODS']['irodsenv'] != '':
         passwd = getpass.getpass('Password for '+config['iRODS']['irodsenv']+': ')
         ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
+        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
     elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
+        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
         if os.path.isfile(os.environ['HOME']+'/.irods/.irodsA'):
             ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json')
         else:
@@ -71,7 +75,7 @@ def setupIRODS(config):
         coll = ic.ensureColl(config['iRODS']['irodscoll'])
         print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
     except:
-        print(RED+"Collection path not valid: "+ config['iRODS']['irodscoll']+DEFAULT)
+        print(RED+"Collection path not set or invalid: "+ config['iRODS']['irodscoll']+DEFAULT)
         success = False
         print(''.join([coll.path+'\n' for coll
             in ic.getSubcollections("/"+ic.session.zone+"/home").subcollections]))
@@ -222,10 +226,12 @@ def main(argv):
             if md != None:
                 iPath = config['iRODS']['irodscoll']+'/ELN/'+ \
                     str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
-            else:
+            elif os.path.isdir(dataPath):
                 iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
+            else:
+                iPath = config['iRODS']['irodscoll']
             ic.ensureColl(iPath)
-            print('DEBUG: Created iRODS collection '+iPath)
+            print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
             ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize(dataPath))
         else:

@@ -47,7 +47,6 @@ class irodsConnectorIcommands():
         print("You have access to: ")
         print(''.join([coll.path+'\n' for coll 
             in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
-        print('Data up and down load by icommands.')
 
     def getPermissions(self, iPath):
         try:
@@ -131,7 +130,7 @@ class irodsConnectorIcommands():
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
             self.session.collections.create(destination.path)
-            p = Popen(['iput -f', source, destination], 
+            p = Popen(['iput -f', source, destination.path], 
                     stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         elif os.path.isdir(source):
