@@ -130,11 +130,11 @@ class irodsConnectorIcommands():
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
             self.session.collections.create(destination.path)
-            p = Popen(['iput -f', source, destination.path], 
+            p = Popen(['iput -fK', source, destination.path], 
                     stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         elif os.path.isdir(source):
-            p = Popen(['iput -brf '+source+' '+destination.path], 
+            p = Popen(['iput -brfK '+source+' '+destination.path], 
                     stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         else:
