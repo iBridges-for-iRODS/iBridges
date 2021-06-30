@@ -46,29 +46,30 @@ def setupIRODS(config):
     """
     Connects to iRODS and sets up the environment.
     """
+    try:
     #icommands available and standard irods_environment file
-    if(subprocess.call(["which", "iinit"]) == 0 
-            and (config['iRODS']['irodsenv'] == '' 
-                or config['iRODS']['irodsenv'] == \
-                        os.environ['HOME']+'/.irods/irods_environment.json')):
+        assert(subprocess.call(["which", "iinit"]) == 0 
+            and config['iRODS']['irodsenv'] == \
+                        os.environ['HOME']+'/.irods/irods_environment.json')
         ic = irodsConnectorIcommands()
         print(BLUE+"INFO: Icommands and standard environment file are present.")
         print("INFO: Using icommands for data up and download."+DEFAULT)
+    except:
     #no icommands or not standard environment file --> python only
-    elif config['iRODS']['irodsenv'] != '':
-        passwd = getpass.getpass('Password for '+config['iRODS']['irodsenv']+': ')
-        ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
-        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-    elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
-        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-        if os.path.isfile(os.environ['HOME']+'/.irods/.irodsA'):
-            ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json')
+        if config['iRODS']['irodsenv'] != '':
+            passwd = getpass.getpass('Password for '+config['iRODS']['irodsenv']+': ')
+            ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
+            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
+        elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
+            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
+            if os.path.isfile(os.environ['HOME']+'/.irods/.irodsA'):
+                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json')
+            else:
+                passwd = getpass.getpass(
+                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
+                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json', passwd)
         else:
-            passwd = getpass.getpass(
-                'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-            ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json', passwd)
-    else:
-        raise AttributeError('No valid iRODS environment file found')
+            raise AttributeError('No valid iRODS environment file found')
 
     # set iRODS path
     try:
