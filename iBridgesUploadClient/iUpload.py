@@ -57,7 +57,7 @@ def setupIRODS(config):
     except:
     #no icommands or not standard environment file --> python only
         if config['iRODS']['irodsenv'] != '':
-            passwd = getpass.getpass('Password for '+config['iRODS']['irodsenv']+': ')
+            passwd = getpass.getpass('Password for iRODS user in '+config['iRODS']['irodsenv']+': ')
             ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
             print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
         elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
@@ -225,7 +225,7 @@ def main(argv):
     if operation == 'upload':
         if prepareUpload(dataPath, ic, config):
             if md != None:
-                iPath = config['iRODS']['irodscoll']+'/ELN/'+ \
+                iPath = config['iRODS']['irodscoll']+'/'+md.__name__+'/'+ \
                     str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
             elif os.path.isdir(dataPath):
                 iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)

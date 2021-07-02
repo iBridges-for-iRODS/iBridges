@@ -6,8 +6,7 @@
 - Dependencies for elabJournal:
 
 ```
-sudo apt-get install build-essential libssl-dev libffi-dev python3-dev cargo
-pip install cryptography
+#sudo apt-get install build-essential libssl-dev libffi-dev python3-dev cargo
 pip install elabjournal
 ```
 
@@ -19,7 +18,7 @@ pip install python-irodsclient
 
 ## Configuration
 
-- Minimal configuration file:
+- Minimal configuration file (upload to iRODS only):
 
 ```
 [iRODS]
@@ -53,13 +52,13 @@ webdav =
   }
   ```
 
-  - Config file for the upload client
+  - Config file for the upload client (upload to iRODs and linking in ELN)
 
   ```
   [iRODS]
   irodsenv = /<path to>/irods_environment.json
   irodscoll = 
-  irodsresc = 
+  irodsresc = bigstore
   webdav = http://scomp1486.wurnet.nl
   
   [ELN]
