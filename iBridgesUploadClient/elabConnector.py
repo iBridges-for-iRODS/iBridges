@@ -98,7 +98,6 @@ class elabConnector():
         experiments = self.elab.experiments()
         expFrames = self.elab.experiments().all()
         if expId in expFrames.index:
-        if expId in expFrames.index:
             self.experiment = self.elab.experiments().get(expId)
             return True
         else:
