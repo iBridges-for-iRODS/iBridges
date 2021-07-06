@@ -19,6 +19,7 @@ class elabConnector():
         self.metadataUrl = "https://"+token.split(";")[0]+ \
                 "/members/experiments/browser/" + \
                 "#view=experiment&nodeID="+str(self.experiment.id())
+        self.__name__ = 'ELN'
         print("INFO: Data will be linked to: "+ self.metadataUrl)
 
     def showGroups(self):
@@ -97,6 +98,7 @@ class elabConnector():
         experiments = self.elab.experiments()
         expFrames = self.elab.experiments().all()
         if expId in expFrames.index:
+        if expId in expFrames.index:
             self.experiment = self.elab.experiments().get(expId)
             return True
         else:
@@ -134,4 +136,3 @@ class elabConnector():
     def addMetadata(self, info, title='Title'):
         self.experiment.add(info, title)
         return True
-
