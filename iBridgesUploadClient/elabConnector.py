@@ -19,6 +19,7 @@ class elabConnector():
         self.metadataUrl = "https://"+token.split(";")[0]+ \
                 "/members/experiments/browser/" + \
                 "#view=experiment&nodeID="+str(self.experiment.id())
+        self.__name__ = "ELN"
         print("INFO: Data will be linked to: "+ self.metadataUrl)
 
     def showGroups(self):
