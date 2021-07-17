@@ -14,6 +14,11 @@ from irodsConnector import irodsConnector
 from irodsConnectorIcommands import irodsConnectorIcommands
 from irods.exception import CAT_INVALID_AUTHENTICATION
 
+RED = '\x1b[1;31m'
+DEFAULT = '\x1b[0m'
+YEL = '\x1b[1;33m'
+BLUE = '\x1b[1;34m'
+
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
@@ -73,7 +78,9 @@ class irodsLogin(QDialog):
         except ConnectionRefusedError:
             self.passError.setText("ERROR: Wrong password.")
         except FileNotFoundError:
-            self.envError.setText("ERROR: iRODS environment file not found.")
+            self.envError.setText("ERROR: iRODS environment file or certificate reference not found.")
+        except IsADirectoryError:
+            self.envError.setText("ERROR: File expected.")
 
 
 class irodsBrowser(QDialog):
@@ -223,13 +230,17 @@ class irodsBrowser(QDialog):
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
             if mimetype in ['txt', 'json', 'csv']:
-                obj = self.ic.session.data_objects.get(
+                try:
+                    obj = self.ic.session.data_objects.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
-                with obj.open('r') as readObj:
-                    out = readObj.readlines()
-                previewString = ''.join([line.decode('utf-8') for line in out][:20])
-                self.previewBrowser.append(previewString)
+                    with obj.open('r') as readObj:
+                        out = readObj.readlines()
+                    previewString = ''.join([line.decode('utf-8') for line in out][:20])
+                    self.previewBrowser.append(previewString)
+                except:
+                    self.previewBrowser.append(
+			"No Preview for: " + "/"+self.pathInput.text().strip("/")+"/"+value.strip("/"))
                 
     
     @QtCore.pyqtSlot(QtCore.QModelIndex)
