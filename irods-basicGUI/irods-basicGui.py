@@ -51,7 +51,6 @@ class irodsLogin(QDialog):
             icommandsExist = False
             self.icommandsError.setText("")
             try:
-                print("setupIcommands")
                 icommandsExist = subprocess.call(["which", "iinit"]) == 0
                 if icommandsExist == False:
                     self.icommandsError.setText("ERROR: no icommands installed")
@@ -164,7 +163,7 @@ class irodsBrowser(QDialog):
         newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
-            self.resourceTable.setRowCount(len(resources))
+            self.resourceTable.setRowCount(len(resources)+1)
             obj = self.ic.session.data_objects.get(
                     "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                     )
@@ -192,6 +191,8 @@ class irodsBrowser(QDialog):
                     "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                     )
             acls = self.ic.session.permissions.get(item)
+        
+        self.aclTable.setRowCount(len(acls)+1)
         row = 0
         for acl in acls:
             self.aclTable.setItem(row, 0,
@@ -214,7 +215,7 @@ class irodsBrowser(QDialog):
                     "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                     )
             metadata = obj.metadata.items()
-        self.metadataTable.setRowCount(len(metadata))
+        self.metadataTable.setRowCount(len(metadata)+1)
         row = 0
         for item in metadata:
             self.metadataTable.setItem(row, 0,
@@ -229,7 +230,6 @@ class irodsBrowser(QDialog):
     def __fillPreview(self, value):
         newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
         if value.endswith("/") and self.ic.session.collections.exists(newPath): # collection
-            print("/"+self.pathInput.text().strip("/")+"/"+value.strip("/"))
             coll = self.ic.session.collections.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
@@ -268,7 +268,6 @@ class irodsBrowser(QDialog):
 
     def loadTable(self):
         newPath = "/"+self.pathInput.text().strip("/")
-        print("loadTable: "+newPath)
         if self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(newPath)
             self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
