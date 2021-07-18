@@ -13,6 +13,8 @@ from PyQt5 import QtGui
 from irodsConnector import irodsConnector
 from irodsConnectorIcommands import irodsConnectorIcommands
 from irods.exception import CAT_INVALID_AUTHENTICATION
+from irods.exception import NetworkException
+from irods.exception import CollectionDoesNotExist
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -81,6 +83,8 @@ class irodsLogin(QDialog):
             self.envError.setText("ERROR: iRODS environment file or certificate reference not found.")
         except IsADirectoryError:
             self.envError.setText("ERROR: File expected.")
+        except NetworkException:
+            self.envError.setText("Network ERROR: No connection to iRODS server.")
 
 
 class irodsBrowser(QDialog):
@@ -130,11 +134,11 @@ class irodsBrowser(QDialog):
         self.browse()
 
     def browse(self):
+   
         self.pathInput.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
-
 
     def resetPath(self):
         self.pathInput.setText(self.irodsRoot.path)
@@ -157,7 +161,8 @@ class irodsBrowser(QDialog):
             self.__fillResc(value)
 
     def __fillResc(self, value):
-        if not value.endswith("/"):
+        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
             self.resourceTable.setRowCount(len(resources))
             obj = self.ic.session.data_objects.get(
@@ -175,17 +180,20 @@ class irodsBrowser(QDialog):
 
 
     def __fillACLs(self, value):
-        if value.endswith("/"):
+        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        acls = []
+        if value.endswith("/") and self.ic.session.collections.exists(newPath):
             item = self.ic.session.collections.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
-        else:
+            acls = self.ic.session.permissions.get(item)
+        elif self.ic.session.data_objects.exists(newPath):
             item = self.ic.session.data_objects.get(
                     "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                     )
-        self.aclTable.setRowCount(len(self.ic.session.permissions.get(item)))
+            acls = self.ic.session.permissions.get(item)
         row = 0
-        for acl in self.ic.session.permissions.get(item):
+        for acl in acls:
             self.aclTable.setItem(row, 0,
                         QtWidgets.QTableWidgetItem(acl.user_name))
             self.aclTable.setItem(row, 1,
@@ -194,12 +202,14 @@ class irodsBrowser(QDialog):
 
 
     def __fillMetadata(self, value):
-        if value.endswith("/"):
+        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        metadata = []
+        if value.endswith("/") and self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
             metadata = coll.metadata.items()
-        else:
+        elif self.ic.session.data_objects.exists(newPath):
             obj = self.ic.session.data_objects.get(
                     "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                     )
@@ -217,7 +227,9 @@ class irodsBrowser(QDialog):
 
 
     def __fillPreview(self, value):
-        if value.endswith("/"): # collection
+        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        if value.endswith("/") and self.ic.session.collections.exists(newPath): # collection
+            print("/"+self.pathInput.text().strip("/")+"/"+value.strip("/"))
             coll = self.ic.session.collections.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
@@ -226,7 +238,7 @@ class irodsBrowser(QDialog):
 
             previewString = '\n'.join(content)
             self.previewBrowser.append(previewString)
-        else: # object
+        elif self.ic.session.data_objects.exists(newPath): # object
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
             if mimetype in ['txt', 'json', 'csv']:
@@ -255,21 +267,24 @@ class irodsBrowser(QDialog):
                 self.loadTable()
 
     def loadTable(self):
-        coll = self.ic.session.collections.get("/"+self.pathInput.text().strip("/"))
-        self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
-        row = 0
-        for subcoll in coll.subcollections:
-            self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
-            self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(""))
-            self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(""))
-            self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
-            row = row+1
-        for obj in coll.data_objects:
-            self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(obj.name))
-            self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(str(obj.size)))
-            self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.checksum)))
-            self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
-            row = row+1
+        newPath = "/"+self.pathInput.text().strip("/")
+        print("loadTable: "+newPath)
+        if self.ic.session.collections.exists(newPath):
+            coll = self.ic.session.collections.get(newPath)
+            self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
+            row = 0
+            for subcoll in coll.subcollections:
+                self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(""))
+                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(""))
+                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
+                row = row+1
+            for obj in coll.data_objects:
+                self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(obj.name))
+                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(str(obj.size)))
+                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
+                row = row+1
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
