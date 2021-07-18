@@ -246,9 +246,11 @@ class irodsBrowser(QDialog):
                     obj = self.ic.session.data_objects.get(
                         "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
                         )
+                    out = []
                     with obj.open('r') as readObj:
-                        out = readObj.readlines()
-                    previewString = ''.join([line.decode('utf-8') for line in out][:20])
+                        for i in range(20):
+                            out.append(readObj.readline())
+                    previewString = ''.join([line.decode('utf-8') for line in out])
                     self.previewBrowser.append(previewString)
                 except:
                     self.previewBrowser.append(
