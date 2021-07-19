@@ -1,12 +1,15 @@
-from irods.session import iRODSSession
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
-from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
+from irods.session      import iRODSSession
+from irods.access       import iRODSAccess
+from irods.exception    import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION
+from irods.exception    import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
+
+from irods.models       import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 import irods.keywords as kw
+
 import subprocess
-from subprocess import Popen, PIPE
+from subprocess         import Popen, PIPE
 import json
 import os
-from getpass import getpass
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -59,49 +62,47 @@ class irodsConnectorIcommands():
         print(''.join([coll.path+'\n' for coll 
             in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
 
+
     def getPermissions(self, iPath):
         '''
+        iPath: Can be a string or an iRODS collection/object
         Throws:
             irods.exception.CollectionDoesNotExist
         '''
         try:
-            coll = self.session.collections.get(iPath)
-            return self.session.permissions.get(coll)
+            return self.session.permissions.get(iPath)
         except:
             try:
-                obj = self.session.data_objects.get(iPath)
-                return self.session.permissions.get(obj)
+                coll = self.session.collections.get(iPath)
+                return self.session.permissions.get(coll)
             except:
-                raise
+                try:
+                    obj = self.session.data_objects.get(iPath)
+                    return self.session.permissions.get(obj)
+                except:
+                    raise
 
-    def getSubcollections(self, iPath):
-        return self.session.collections.get(iPath)
 
-    def getDataObj(self, objPath):
+    def setPermissions(self, rights, user, path, zone, recursive = False):
         '''
-        Raises:
-            irods.exception.CollectionDoesNotExist
-            irods.exception.DataObjectDoesNotExist
+        Sets permissions to an iRODS collection or data object.
+        path: string
+        rights: string, [own, read, write, null]
         '''
-        return self.session.data_objects.get(objPath)
+        acl = iRODSAccess(rights, path, user, zone)
 
-    def getDataObjs(self, collPath):
-        if self.session.collections.exists(collPath):
-            coll = self.session.collections.get(collPath)
-            return coll.data_objects
-        else:
-            raise Error('Not a valid collection path')
-
-    def ensureColl(self, collPath):
-        '''
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-        '''
         try:
-            self.session.collections.create(collPath)
-            return self.session.collections.get(collPath)
-        except:
+            if recursive and self.session.collections.exists(path):
+                self.session.permissions.set(acl, recursive=True)
+            else:
+                self.session.permissions.set(acl, recursive=False)
+        except CAT_INVALID_USER:
+            print(RED+"ACL ERROR: user unknown "+DEFAULT)
             raise
+        except CAT_INVALID_ARGUMENT:
+            print(RED+"ACL ERROR: rights or path not known"+DEFAULT)
+            raise
+
 
     def listResources(self):
         query = self.session.query(Resource.name)
@@ -176,21 +177,65 @@ class irodsConnectorIcommands():
         else:
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
 
-    def addMetadata(self, items, key, value):
+    def addMetadata(self, items, key, value, units = None):
         """
         Adds metadata to all items
         items: list of iRODS data objects or iRODS collections
         key: string
         value: string
+        units: (optional) string 
 
         Throws:
             AttributeError
         """
         for item in items:
             try:
-                item.metadata.add(key.upper(), value)
+                item.metadata.add(key.upper(), value, units)
             except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 print(RED+"METADATA ADD FAILED: Metadata already present"+DEFAULT)
+
+    def updateMetadata(self, items, key, value, units = None):
+        """
+        Updates a metadata entry to all items
+        items: list of iRODS data objects or iRODS collections
+        key: string
+        value: string
+        units: (optional) string
+
+        Throws:
+        """
+
+        for item in items:
+            if key in item.metadata.keys():
+                meta = item.metadata.get_all(key)
+                valuesUnits = [(m.value, m.units) for m in meta]
+                if (value, units) not in valuesUnits:
+                    #remove all iCAT entries with that key
+                    for m in meta:
+                        item.metadata.remove(m)
+                    #add key, value, units
+                    self.addMetadata(items, key, value, units)
+
+            else:
+                self.addMetadata(items, key, value, units)
                 
+
+    def deleteMetadata(self, items, key, value, units):
+        """
+        Deletes a metadata entry of all items
+        items: list of iRODS data objects or iRODS collections
+        key: string
+        value: string
+        units: (optional) string
+
+        Throws:
+            CAT_SUCCESS_BUT_WITH_NO_INFO: metadata did not exist
+        """
+        for item in items:
+            try:
+                item.metadata.remove(key, value, units)
+            except CAT_SUCCESS_BUT_WITH_NO_INFO:
+                print(RED+"METADATA ADD FAILED: Metadata never existed"+DEFAULT)
+
 
 
