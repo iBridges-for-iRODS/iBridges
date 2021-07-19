@@ -72,7 +72,8 @@ class irodsLogin(QDialog):
         try:
             ic = self.__irodsLogin(envFile, password, cipher)
             browser = irodsBrowser(ic)
-            widget.addWidget(browser)
+            if len(widget) == 1:
+                widget.addWidget(browser)
             widget.setCurrentIndex(widget.currentIndex()+1)
         except CAT_INVALID_AUTHENTICATION:
             self.passError.setText("ERROR: Wrong password.")
@@ -148,7 +149,10 @@ class irodsBrowser(QMainWindow):
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
             print("Session closing")
+            currentWidget = widget.currentWidget()
             widget.setCurrentIndex(widget.currentIndex()-1)
+            widget.removeWidget(currentWidget)
+            print(len(widget))
 
         else:
             pass
@@ -313,7 +317,5 @@ if __name__ == "__main__":
     loginWindow = irodsLogin()
     widget = QtWidgets.QStackedWidget()
     widget.addWidget(loginWindow)
-    #widget.setFixedHeight(300)
-    #widget.setFixedWidth()
     widget.show()
     app.exec_()
