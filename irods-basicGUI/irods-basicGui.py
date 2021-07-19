@@ -5,7 +5,7 @@ from cryptography.fernet import Fernet
 import subprocess
 
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication
+from PyQt5.QtWidgets import QDialog, QApplication, QMainWindow, QMessageBox
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -86,10 +86,12 @@ class irodsLogin(QDialog):
             self.envError.setText("Network ERROR: No connection to iRODS server.")
 
 
-class irodsBrowser(QDialog):
+#class irodsBrowser(QDialog):
+class irodsBrowser(QMainWindow):
     def __init__(self, ic):
         super(irodsBrowser, self).__init__()
-        loadUi("irodsBrowser.ui", self)
+        #loadUi("irodsBrowser.ui", self)
+        loadUi("irodsBrowserMain.ui", self)
         self.ic = ic
 
         #Main widget --> browser
@@ -130,17 +132,36 @@ class irodsBrowser(QDialog):
         self.resourceTable.setSelectionMode(
                 QtWidgets.QAbstractItemView.SingleSelection)
 
+        self.actionExit.triggered.connect(self.programExit)
+        self.actionCloseSession.triggered.connect(self.newSession)
         self.browse()
+
+    def programExit(self):
+        quit_msg = "Are you sure you want to exit the program?"
+        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            sys.exit()
+        else:
+            pass
+    def newSession(self):
+        quit_msg = "Are you sure you want to disconnect?"
+        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            print("Session closing")
+            widget.setCurrentIndex(widget.currentIndex()-1)
+
+        else:
+            pass
 
     def browse(self):
    
-        self.pathInput.returnPressed.connect(self.loadTable)
+        self.inputPath.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
 
     def resetPath(self):
-        self.pathInput.setText(self.irodsRoot.path)
+        self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
 
 
@@ -160,12 +181,12 @@ class irodsBrowser(QDialog):
             self.__fillResc(value)
 
     def __fillResc(self, value):
-        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
             self.resourceTable.setRowCount(len(resources)+1)
             obj = self.ic.session.data_objects.get(
-                    "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                     )
             replicas = [resc.resource_name for resc in obj.replicas]
             for i in range(len(resources)):
@@ -179,16 +200,16 @@ class irodsBrowser(QDialog):
 
 
     def __fillACLs(self, value):
-        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         acls = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
             item = self.ic.session.collections.get(
-                        "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                         )
             acls = self.ic.session.permissions.get(item)
         elif self.ic.session.data_objects.exists(newPath):
             item = self.ic.session.data_objects.get(
-                    "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                     )
             acls = self.ic.session.permissions.get(item)
         
@@ -203,16 +224,16 @@ class irodsBrowser(QDialog):
 
 
     def __fillMetadata(self, value):
-        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         metadata = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(
-                        "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                         )
             metadata = coll.metadata.items()
         elif self.ic.session.data_objects.exists(newPath):
             obj = self.ic.session.data_objects.get(
-                    "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                     )
             metadata = obj.metadata.items()
         self.metadataTable.setRowCount(len(metadata)+1)
@@ -228,10 +249,10 @@ class irodsBrowser(QDialog):
 
 
     def __fillPreview(self, value):
-        newPath = "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         if value.endswith("/") and self.ic.session.collections.exists(newPath): # collection
             coll = self.ic.session.collections.get(
-                        "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                         )
             content = [c.name+'/' for c in coll.subcollections] + \
                       [o.name for o in coll.data_objects]
@@ -244,7 +265,7 @@ class irodsBrowser(QDialog):
             if mimetype in ['txt', 'json', 'csv']:
                 try:
                     obj = self.ic.session.data_objects.get(
-                        "/"+self.pathInput.text().strip("/")+"/"+value.strip("/")
+                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                         )
                     out = []
                     with obj.open('r') as readObj:
@@ -254,22 +275,22 @@ class irodsBrowser(QDialog):
                     self.previewBrowser.append(previewString)
                 except:
                     self.previewBrowser.append(
-			"No Preview for: " + "/"+self.pathInput.text().strip("/")+"/"+value.strip("/"))
+			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
                 
     
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
         col = index.column()
         row = index.row()
-        parent = self.pathInput.text()
+        parent = self.inputPath.text()
         if col == 0:
             value = self.collTable.item(row, col).text()
             if value.endswith("/"): #collection
-                self.pathInput.setText("/"+parent.strip("/")+"/"+value.strip("/"))
+                self.inputPath.setText("/"+parent.strip("/")+"/"+value.strip("/"))
                 self.loadTable()
 
     def loadTable(self):
-        newPath = "/"+self.pathInput.text().strip("/")
+        newPath = "/"+self.inputPath.text().strip("/")
         if self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(newPath)
             self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
@@ -289,9 +310,9 @@ class irodsBrowser(QDialog):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    mainWindow = irodsLogin()
+    loginWindow = irodsLogin()
     widget = QtWidgets.QStackedWidget()
-    widget.addWidget(mainWindow)
+    widget.addWidget(loginWindow)
     #widget.setFixedHeight(300)
     #widget.setFixedWidth()
     widget.show()
