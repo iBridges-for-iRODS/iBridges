@@ -47,6 +47,7 @@ class irodsLogin(QDialog):
     def setupStandard(self):
         if self.standardButton.isChecked():
             self.envFileField.setEnabled(True)
+            self.icommands = False
 
     def setupIcommands(self):
         if self.selectIcommandsButton.isChecked():
@@ -73,7 +74,7 @@ class irodsLogin(QDialog):
         self.envError.setText("")
         try:
             ic = self.__irodsLogin(envFile, password, cipher)
-            browser = irodsBrowser(ic)
+            browser = irodsBrowser(widget, ic)
             if len(widget) == 1:
                 widget.addWidget(browser)
             widget.setCurrentIndex(widget.currentIndex()+1)

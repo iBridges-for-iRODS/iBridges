@@ -4,11 +4,17 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
+import sys
+
 class irodsBrowser(QMainWindow):
-    def __init__(self, ic):
+    def __init__(self, widget, ic):
         super(irodsBrowser, self).__init__()
         loadUi("irodsBrowserMain.ui", self)
         self.ic = ic
+        self.widget = widget
+
+        #some placeholder variables to catch information
+        self.currentBrowserRow = 0
 
         #Main widget --> browser
         self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
@@ -33,7 +39,7 @@ class irodsBrowser(QMainWindow):
         self.metadataTable.setColumnWidth(2,199)
         self.metadataTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.metadataTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.metadataTable.setSelectionMode(QtWidgets.QAbstractItemView.MultiSelection)
+        self.metadataTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.metadataTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         #ACL table
@@ -58,10 +64,19 @@ class irodsBrowser(QMainWindow):
     #Frame start
 
     def browse(self):
+        #update main table when iRODS paht is changed upon 'Enter'
         self.inputPath.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
+        #functionality to lower tabs for metadata, acls and resources
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
+        self.metadataTable.clicked.connect(self.editMetadata)
+        self.aclTable.clicked.connect(self.editACL)
+        #actions to update iCat entries of metadata and acls
+        self.metaAddButton.clicked.connect(self.addIcatMeta)
+        self.metaUpdateButton.clicked.connect(self.updateIcatMeta)
+        self.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
+        self.aclAddButton.clicked.connect(self.updateIcatAcl)
 
 
     #connect functions
@@ -80,9 +95,9 @@ class irodsBrowser(QMainWindow):
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
             self.ic.session.cleanup()
-            currentWidget = widget.currentWidget()
-            widget.setCurrentIndex(widget.currentIndex()-1)
-            widget.removeWidget(currentWidget)
+            currentWidget = self.widget.currentWidget()
+            self.widget.setCurrentIndex(self.widget.currentIndex()-1)
+            self.widget.removeWidget(currentWidget)
 
         else:
             pass
@@ -91,6 +106,67 @@ class irodsBrowser(QMainWindow):
     def resetPath(self):
         self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
+
+
+    def updateIcatAcl(self):
+        self.aclError.clear()
+        user = self.aclUserField.text()
+        rights = self.aclBox.currentText()
+        recursive = self.recurseBox.currentText() == 'True'
+        parent = self.inputPath.text()
+        cell = self.collTable.item(self.currentBrowserRow, 1).text()
+        zone = self.aclZoneField.text()
+        try:
+            self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
+            self.__fillACLs(cell)
+        except:
+            self.aclError.setText("ERROR: please check user name.")
+            raise
+
+
+    def updateIcatMeta(self):
+        newKey = self.metaKeyField.text()
+        newVal = self.metaValueField.text()
+        newUnits = self.metaUnitsField.text()
+        if not (newKey is "" or newVal is ""):
+            parent = self.inputPath.text()
+            cell = self.collTable.item(self.currentBrowserRow, 1).text()
+            if cell.endswith("/"):
+                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            else:
+                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            self.ic.updateMetadata([item], newKey, newVal, newUnits)
+            self.__fillMetadata(cell)
+
+
+    def addIcatMeta(self):
+        newKey = self.metaKeyField.text()
+        newVal = self.metaValueField.text()
+        newUnits = self.metaUnitsField.text()
+        if not (newKey is "" or newVal is ""):
+            parent = self.inputPath.text()
+            cell = self.collTable.item(self.currentBrowserRow, 1).text()
+            if cell.endswith("/"):
+                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            else:
+                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            self.ic.addMetadata([item], newKey, newVal, newUnits)
+            self.__fillMetadata(cell)
+
+
+    def deleteIcatMeta(self):
+        key = self.metaKeyField.text()
+        val = self.metaValueField.text()
+        units = self.metaUnitsField.text()
+        if not (key is "" or val is ""):
+            parent = self.inputPath.text()
+            cell = self.collTable.item(self.currentBrowserRow, 1).text()
+            if cell.endswith("/"):
+                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            else:
+                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+            self.ic.deleteMetadata([item], key, val, units)
+            self.__fillMetadata(cell)
 
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
@@ -107,16 +183,49 @@ class irodsBrowser(QMainWindow):
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def fillInfo(self, index):
         self.previewBrowser.clear()
+
         self.metadataTable.setRowCount(0);
         self.aclTable.setRowCount(0);
+
         self.resourceTable.setRowCount(0);
         col = index.column()
         row = index.row()
+        self.currentBrowserRow = row
         value = self.collTable.item(row, col).text()
         self.__fillPreview(value)
         self.__fillMetadata(value)
         self.__fillACLs(value)
         self.__fillResc(value)
+
+
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    def editMetadata(self, index):
+        self.metaKeyField.clear()
+        self.metaValueField.clear()
+        self.metaUnitsField.clear()
+        row = index.row()
+        key = self.metadataTable.item(row, 0).text()
+        value = self.metadataTable.item(row, 1).text() 
+        units = self.metadataTable.item(row, 2).text()
+        self.metaKeyField.setText(key)
+        self.metaValueField.setText(value)
+        self.metaUnitsField.setText(units)
+        self.currentMetadata = (key, value, units)
+
+
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    def editACL(self, index):
+        self.aclUserField.clear()
+        self.aclZoneField.clear()
+        self.aclBox.setCurrentText("----")
+        row = index.row()
+        user = self.aclTable.item(row, 0).text()
+        zone = self.aclTable.item(row, 1).text()
+        acl = self.aclTable.item(row, 2).text()
+        self.aclUserField.setText(user)
+        self.aclZoneField.setText(zone)
+        self.aclBox.setCurrentText(acl)
+        self.currentAcl = (user, acl)
 
 
     # Util functions
@@ -149,7 +258,7 @@ class irodsBrowser(QMainWindow):
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
-            self.resourceTable.setRowCount(len(resources)+1)
+            self.resourceTable.setRowCount(len(resources))
             obj = self.ic.session.data_objects.get(
                     "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                     )
@@ -166,6 +275,11 @@ class irodsBrowser(QMainWindow):
 
 
     def __fillACLs(self, value):
+        self.aclTable.setRowCount(0);
+        self.aclUserField.clear()
+        self.aclZoneField.clear()
+        self.aclBox.setCurrentText("----")
+
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         acls = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
@@ -179,19 +293,23 @@ class irodsBrowser(QMainWindow):
                     )
             acls = self.ic.session.permissions.get(item)
         
-        self.aclTable.setRowCount(len(acls)+1)
+        self.aclTable.setRowCount(len(acls))
         row = 0
         for acl in acls:
-            self.aclTable.setItem(row, 0,
-                        QtWidgets.QTableWidgetItem(acl.user_name))
-            self.aclTable.setItem(row, 1,
-                        QtWidgets.QTableWidgetItem(acl.access_name))
+            self.aclTable.setItem(row, 0, QtWidgets.QTableWidgetItem(acl.user_name))
+            self.aclTable.setItem(row, 1,QtWidgets.QTableWidgetItem(acl.user_zone))
+            self.aclTable.setItem(row, 2,
+                        QtWidgets.QTableWidgetItem(acl.access_name.split(' ')[0].replace('modify', 'write')))
             row = row+1
 
         self.aclTable.resizeColumnsToContents()
 
 
     def __fillMetadata(self, value):
+        self.metaKeyField.clear()
+        self.metaValueField.clear()
+        self.metaUnitsField.clear()
+
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         metadata = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
@@ -204,7 +322,7 @@ class irodsBrowser(QMainWindow):
                     "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                     )
             metadata = obj.metadata.items()
-        self.metadataTable.setRowCount(len(metadata)+1)
+        self.metadataTable.setRowCount(len(metadata))
         row = 0
         for item in metadata:
             self.metadataTable.setItem(row, 0,
