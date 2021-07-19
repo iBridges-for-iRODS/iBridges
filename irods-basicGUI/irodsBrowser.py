@@ -4,11 +4,9 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-#class irodsBrowser(QDialog):
 class irodsBrowser(QMainWindow):
     def __init__(self, ic):
         super(irodsBrowser, self).__init__()
-        #loadUi("irodsBrowser.ui", self)
         loadUi("irodsBrowserMain.ui", self)
         self.ic = ic
 
@@ -57,6 +55,16 @@ class irodsBrowser(QMainWindow):
         self.actionCloseSession.triggered.connect(self.newSession)
         self.browse()
 
+    #Frame start
+
+    def browse(self):
+        self.inputPath.returnPressed.connect(self.loadTable)
+        self.homeButton.clicked.connect(self.resetPath)
+        self.collTable.doubleClicked.connect(self.updatePath)
+        self.collTable.clicked.connect(self.fillInfo)
+
+
+    #connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
@@ -80,16 +88,20 @@ class irodsBrowser(QMainWindow):
             pass
 
 
-    def browse(self):
-        self.inputPath.returnPressed.connect(self.loadTable)
-        self.homeButton.clicked.connect(self.resetPath)
-        self.collTable.doubleClicked.connect(self.updatePath)
-        self.collTable.clicked.connect(self.fillInfo)
-
-
     def resetPath(self):
         self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
+
+
+    @QtCore.pyqtSlot(QtCore.QModelIndex)
+    def updatePath(self, index):
+        col = index.column()
+        row = index.row()
+        parent = self.inputPath.text()
+        value = self.collTable.item(row, 1).text()
+        if value.endswith("/"): #collection
+            self.inputPath.setText("/"+parent.strip("/")+"/"+value.strip("/"))
+            self.loadTable()
 
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
@@ -105,6 +117,33 @@ class irodsBrowser(QMainWindow):
         self.__fillMetadata(value)
         self.__fillACLs(value)
         self.__fillResc(value)
+
+
+    # Util functions
+    def loadTable(self):
+        newPath = "/"+self.inputPath.text().strip("/")
+        if self.ic.session.collections.exists(newPath):
+            coll = self.ic.session.collections.get(newPath)
+            self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
+            row = 0
+            for subcoll in coll.subcollections:
+                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(""))
+                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
+                self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(""))
+                row = row+1
+            for obj in coll.data_objects:
+                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
+                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
+                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                item = QtWidgets.QTableWidgetItem()
+                item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+                item.setCheckState(QtCore.Qt.Unchecked)
+                #self.collTable.itemClicked.connect(self.__gatherClicked)
+                self.collTable.setItem(row, 0, item)
+                row = row+1
+            self.collTable.resizeColumnsToContents()
+
 
     def __fillResc(self, value):
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
@@ -150,6 +189,7 @@ class irodsBrowser(QMainWindow):
             row = row+1
 
         self.aclTable.resizeColumnsToContents()
+
 
     def __fillMetadata(self, value):
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
@@ -205,41 +245,6 @@ class irodsBrowser(QMainWindow):
                 except:
                     self.previewBrowser.append(
 			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
-    
-
-    @QtCore.pyqtSlot(QtCore.QModelIndex)
-    def updatePath(self, index):
-        col = index.column()
-        row = index.row()
-        parent = self.inputPath.text()
-        value = self.collTable.item(row, 1).text()
-        if value.endswith("/"): #collection
-            self.inputPath.setText("/"+parent.strip("/")+"/"+value.strip("/"))
-            self.loadTable()
-
-    def loadTable(self):
-        newPath = "/"+self.inputPath.text().strip("/")
-        if self.ic.session.collections.exists(newPath):
-            coll = self.ic.session.collections.get(newPath)
-            self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
-            row = 0
-            for subcoll in coll.subcollections:
-                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
-                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(""))
-                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(""))
-                self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(""))
-                row = row+1
-            for obj in coll.data_objects:
-                self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
-                self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
-                self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
-                #item = QtWidgets.QTableWidgetItem()
-                #item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-                #item.setCheckState(QtCore.Qt.Unchecked)
-                #self.collTable.itemClicked.connect(self.__gatherClicked)
-                #self.collTable.setItem(row, 0, item)
-                row = row+1
-            self.collTable.resizeColumnsToContents()
 
 
     def __gatherClicked(self):
