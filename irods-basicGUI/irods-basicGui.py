@@ -141,6 +141,7 @@ class irodsBrowser(QMainWindow):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.ic.session.cleanup()
             sys.exit()
         else:
             pass
@@ -148,11 +149,10 @@ class irodsBrowser(QMainWindow):
         quit_msg = "Are you sure you want to disconnect?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            print("Session closing")
+            self.ic.session.cleanup()
             currentWidget = widget.currentWidget()
             widget.setCurrentIndex(widget.currentIndex()-1)
             widget.removeWidget(currentWidget)
-            print(len(widget))
 
         else:
             pass
