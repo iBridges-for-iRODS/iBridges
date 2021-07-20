@@ -83,7 +83,7 @@ class irodsLogin(QDialog):
         except ConnectionRefusedError:
             self.passError.setText("ERROR: Wrong password.")
         except FileNotFoundError:
-            self.envError.setText("ERROR: iRODS environment file or certificate reference not found.")
+            self.envError.setText("ERROR: iRODS environment file or certificate not found.")
         except IsADirectoryError:
             self.envError.setText("ERROR: File expected.")
         except NetworkException:
