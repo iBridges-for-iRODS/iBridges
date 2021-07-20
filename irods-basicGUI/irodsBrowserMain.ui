@@ -42,7 +42,7 @@ background-color: rgb(54, 54, 54);</string>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -160,7 +160,7 @@ background-color: rgb(54, 54, 54);</string>
            <string notr="true">background-color: rgb(85, 87, 83);</string>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>4</number>
           </property>
           <widget class="QWidget" name="preview">
            <property name="font">
@@ -506,6 +506,40 @@ background-color: rgb(54, 54, 54);</string>
                 <string/>
                </property>
               </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="delete">
+           <attribute name="title">
+            <string>Delete</string>
+           </attribute>
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <item>
+             <widget class="QTreeWidget" name="deleteTreeWidget">
+              <column>
+               <property name="text">
+                <string>Data to delete</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_3">
+              <property name="font">
+               <font>
+                <pointsize>13</pointsize>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">background-color: rgb(164, 0, 0);
+color: rgb(46, 52, 54);</string>
+              </property>
+              <property name="text">
+               <string>Delete</string>
+              </property>
              </widget>
             </item>
            </layout>

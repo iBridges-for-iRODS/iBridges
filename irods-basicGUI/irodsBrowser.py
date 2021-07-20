@@ -140,7 +140,7 @@ class irodsBrowser(QMainWindow):
             parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
             print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
             self.ic.uploadData(fileSelect[0], parentColl, 
-                    self.ic.defaultResc, size)
+                    self.ic.defaultResc, size, force=True)
             self.loadTable()
 
         else:

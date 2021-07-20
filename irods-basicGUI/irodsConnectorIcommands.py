@@ -156,7 +156,7 @@ class irodsConnectorIcommands():
         except:
             raise
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3):
+    def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
         """
         source: absolute path to file or folder
         destination: iRODS collection where data is uploaded to
@@ -173,15 +173,17 @@ class irodsConnectorIcommands():
         ValueError (if resource too small or buffer is too small)
         
         """
-        try:
-            space = self.session.resources.get(resource).free_space
-            if int(size) > (int(space)-buff):
-                raise ValueError('ERROR iRODS upload: Not enough space on resource.')
-            if buff < 0:
-                raise BufferError('ERROR iRODS upload: Negative resource buffer.')
-        except Exception as error:
-            print(RED+"ERROR iRODS upload: "+repr(error)+DEFAULT)
-            raise
+        
+        if not force:
+            try:
+                space = self.session.resources.get(resource).free_space
+                if int(size) > (int(space)-buff):
+                    raise ValueError('ERROR iRODS upload: Not enough space on resource.')
+                if buff < 0:
+                    raise BufferError('ERROR iRODS upload: Negative resource buffer.')
+            except Exception as error:
+                print(RED+"ERROR iRODS upload: "+repr(error)+DEFAULT)
+                raise
 
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
