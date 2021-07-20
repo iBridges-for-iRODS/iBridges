@@ -92,8 +92,7 @@ class irodsConnector():
             else:
                 self.session.permissions.set(acl, recursive=False)
         except CAT_INVALID_USER:
-            print(RED+"ACL ERROR: user unknown "+DEFAULT)
-            raise
+            raise CAT_INVALID_USER("ACL ERROR: user unknown ")
         except CAT_INVALID_ARGUMENT:
             print(RED+"ACL ERROR: rights or path not known"+DEFAULT)
             raise
@@ -140,8 +139,7 @@ class irodsConnector():
             else:
                 return size
         except Exception as error:
-            print(RED+"RESOURCE ERROR: Either resource does not exist or size not set.")
-            raise
+            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
         
 
     def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
@@ -175,8 +173,7 @@ class irodsConnector():
                 if buff < 0:
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
-                print(RED+"ERROR iRODS upload: "+repr(error)+DEFAULT)
-                raise
+                raise error()
         
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
@@ -302,13 +299,13 @@ class irodsConnector():
         units: (optional) string 
 
         Throws:
-            AttributeError
+            CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
         """
         for item in items:
             try:
                 item.metadata.add(key.upper(), value, units)
             except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                print(RED+"METADATA ADD FAILED: Metadata already present"+DEFAULT)
+                raise CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME("ERROR ADD META: Metadata already present")
 
     def updateMetadata(self, items, key, value, units = None):
         """
@@ -318,23 +315,24 @@ class irodsConnector():
         value: string
         units: (optional) string
 
-        Throws:
+        Throws: CAT_NO_ACCESS_PERMISSION
         """
+        try:
+            for item in items:
+                if key in item.metadata.keys():
+                    meta = item.metadata.get_all(key)
+                    valuesUnits = [(m.value, m.units) for m in meta]
+                    if (value, units) not in valuesUnits:
+                        #remove all iCAT entries with that key
+                        for m in meta:
+                            item.metadata.remove(m)
+                        #add key, value, units
+                        self.addMetadata(items, key, value, units)
 
-        for item in items:
-            if key in item.metadata.keys():
-                meta = item.metadata.get_all(key)
-                valuesUnits = [(m.value, m.units) for m in meta]
-                if (value, units) not in valuesUnits:
-                    #remove all iCAT entries with that key
-                    for m in meta:
-                        item.metadata.remove(m)
-                    #add key, value, units
+                else:
                     self.addMetadata(items, key, value, units)
-
-            else:
-                self.addMetadata(items, key, value, units)
-                
+        except CAT_NO_ACCESS_PERMISSION:
+            raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
 
 
     def deleteMetadata(self, items, key, value, units):
@@ -352,7 +350,24 @@ class irodsConnector():
             try:
                 item.metadata.remove(key, value, units)
             except CAT_SUCCESS_BUT_WITH_NO_INFO:
-                print(RED+"METADATA ADD FAILED: Metadata never existed"+DEFAULT)
+                raise CAT_SUCCESS_BUT_WITH_NO_INFO("ERROR DELETE META: Metadata never existed")
 
 
+
+    def deleteData(self, item):
+        """
+        Delete a data object or a collection recursively.
+        item: iRODS data object or collection
+        """
+
+        if self.session.collections.exists(item.path):
+            try:
+                item.remove(recurse = True, force = True)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+        elif self.session.data_objects.exists(item.path):
+            try:
+                item.unlink(force = True)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
 

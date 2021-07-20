@@ -108,11 +108,9 @@ class irodsConnectorIcommands():
             else:
                 self.session.permissions.set(acl, recursive=False)
         except CAT_INVALID_USER:
-            print(RED+"ACL ERROR: user unknown "+DEFAULT)
-            raise
+            raise CAT_INVALID_USER("ACL ERROR: user unknown ")
         except CAT_INVALID_ARGUMENT:
-            print(RED+"ACL ERROR: rights or path not known"+DEFAULT)
-            raise
+            raise CAT_INVALID_ARGUMENT("ACL ERROR: rights or path not known")
 
 
     def listResources(self):
@@ -144,8 +142,7 @@ class irodsConnectorIcommands():
             else:
                 return size
         except Exception as error:
-            print(RED+"RESOURCE ERROR: Either resource does not exist or size not set.")
-            raise
+            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
         
     def ensureColl(self, collPath):
         '''
@@ -184,7 +181,6 @@ class irodsConnectorIcommands():
                 if buff < 0:
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
-                print(RED+"ERROR iRODS upload: "+repr(error)+DEFAULT)
                 raise
 
         if os.path.isfile(source):

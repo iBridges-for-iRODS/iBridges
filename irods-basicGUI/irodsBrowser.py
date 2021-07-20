@@ -124,31 +124,26 @@ class irodsBrowser(QMainWindow):
     def fileUpload(self):
         from irodsUtils import getSize
         dialog = QFileDialog(self)
-        #resources = self.ic.listResources()
-        #resourceSize = []
-        #for resource in resources:
-        #    try:
-        #        resourceSize.append(str(round(int(self.ic.resourceSize(resource)/1024**3))+" GB"))
-        #    except:
-        #        resourceSize.append("0 GB")
-        #print([name+" "+size for name, size in zip(resources, resourceSize)])
         fileSelect = QFileDialog.getOpenFileName(self,"Open File", "","All Files (*);;Python Files (*.py)")
         size = getSize(fileSelect[0])
         buttonReply = QMessageBox.question(self, 'Message Box', "Upload " + fileSelect[0], 
                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if buttonReply == QMessageBox.Yes:
-            parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
-            print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
-            self.ic.uploadData(fileSelect[0], parentColl, 
-                    None, size, force=True)
-            self.loadTable()
+            try:
+                parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
+                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
+                self.ic.uploadData(fileSelect[0], parentColl, 
+                        None, size, force=True)
+                self.loadTable()
+            except Exception as error:
+                self.errorLabel.setText(repr(error))
 
         else:
             pass
 
 
     def updateIcatAcl(self):
-        self.aclError.clear()
+        self.errorLabel.clear()
         user = self.aclUserField.text()
         rights = self.aclBox.currentText()
         recursive = self.recurseBox.currentText() == 'True'
@@ -158,58 +153,71 @@ class irodsBrowser(QMainWindow):
         try:
             self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
             self.__fillACLs(cell)
-        except:
-            self.aclError.setText("ERROR: please check user name.")
-            raise
+        except Exception as error:
+            self.errorLabel.setText(repr(error))
 
 
     def updateIcatMeta(self):
+        self.errorLabel.clear()
         newKey = self.metaKeyField.text()
         newVal = self.metaValueField.text()
         newUnits = self.metaUnitsField.text()
-        if not (newKey is "" or newVal is ""):
-            parent = self.inputPath.text()
-            cell = self.collTable.item(self.currentBrowserRow, 1).text()
-            if cell.endswith("/"):
-                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            else:
-                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            self.ic.updateMetadata([item], newKey, newVal, newUnits)
-            self.__fillMetadata(cell)
+        try:
+            if not (newKey is "" or newVal is ""):
+                parent = self.inputPath.text()
+                cell = self.collTable.item(self.currentBrowserRow, 1).text()
+                if cell.endswith("/"):
+                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                else:
+                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                self.ic.updateMetadata([item], newKey, newVal, newUnits)
+                self.__fillMetadata(cell)
+        except Exception as error:
+            self.errorLabel.setText(repr(error))
 
 
     def addIcatMeta(self):
+        self.errorLabel.clear()
         newKey = self.metaKeyField.text()
         newVal = self.metaValueField.text()
         newUnits = self.metaUnitsField.text()
         if not (newKey is "" or newVal is ""):
-            parent = self.inputPath.text()
-            cell = self.collTable.item(self.currentBrowserRow, 1).text()
-            if cell.endswith("/"):
-                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            else:
-                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            self.ic.addMetadata([item], newKey, newVal, newUnits)
-            self.__fillMetadata(cell)
+            try:
+                parent = self.inputPath.text()
+                cell = self.collTable.item(self.currentBrowserRow, 1).text()
+                if cell.endswith("/"):
+                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                else:
+                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                self.ic.addMetadata([item], newKey, newVal, newUnits)
+                self.__fillMetadata(cell)
+            except Exception as error:
+                self.errorLabel.setText(repr(error))
+
 
 
     def deleteIcatMeta(self):
+        self.errorLabel.clear()
         key = self.metaKeyField.text()
         val = self.metaValueField.text()
         units = self.metaUnitsField.text()
-        if not (key is "" or val is ""):
-            parent = self.inputPath.text()
-            cell = self.collTable.item(self.currentBrowserRow, 1).text()
-            if cell.endswith("/"):
-                item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            else:
-                item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-            self.ic.deleteMetadata([item], key, val, units)
-            self.__fillMetadata(cell)
+        try:
+            if not (key is "" or val is ""):
+                parent = self.inputPath.text()
+                cell = self.collTable.item(self.currentBrowserRow, 1).text()
+                if cell.endswith("/"):
+                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                else:
+                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
+                self.ic.deleteMetadata([item], key, val, units)
+                self.__fillMetadata(cell)
+        except Exception as error:
+            self.errorLabel.setText(repr(error))
 
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
+        self.clearErrorLabel()
         col = index.column()
         row = index.row()
         parent = self.inputPath.text()
@@ -221,6 +229,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def fillInfo(self, index):
+        self.clearErrorLabel()
         self.previewBrowser.clear()
 
         self.metadataTable.setRowCount(0);
@@ -239,7 +248,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editMetadata(self, index):
-        self.metaKeyField.clear()
+        self.clearErrorLabel()
         self.metaValueField.clear()
         self.metaUnitsField.clear()
         row = index.row()
@@ -254,6 +263,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editACL(self, index):
+        self.clearErrorLabel()
         self.aclUserField.clear()
         self.aclZoneField.clear()
         self.aclBox.setCurrentText("----")
@@ -268,7 +278,12 @@ class irodsBrowser(QMainWindow):
 
 
     # Util functions
+    def clearErrorLabel(self):
+        self.errorLabel.clear()
+
+
     def loadTable(self):
+        self.clearErrorLabel()
         newPath = "/"+self.inputPath.text().strip("/")
         if self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(newPath)
@@ -291,6 +306,9 @@ class irodsBrowser(QMainWindow):
                 self.collTable.setItem(row, 0, item)
                 row = row+1
             self.collTable.resizeColumnsToContents()
+        else:
+            self.collTable.setRowCount(0)
+            self.errorLabel.setText("Collection does not exist.")
 
 
     def __fillResc(self, value):
@@ -384,8 +402,7 @@ class irodsBrowser(QMainWindow):
                       [o.name for o in coll.data_objects]
 
             previewString = '\n'.join(content)
-            #self.previewBrowser.append(previewString)
-            self.previewBrowser.setText(previewString)
+            self.previewBrowser.append(previewString)
         elif self.ic.session.data_objects.exists(newPath): # object
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
@@ -397,16 +414,15 @@ class irodsBrowser(QMainWindow):
                     out = []
                     with obj.open('r') as readObj:
                         for i in range(20):
-                            out.append(readObj.readline())
+                            out.append(readObj.read(50))
                     previewString = ''.join([line.decode('utf-8') for line in out])
-                    #self.previewBrowser.append(previewString)
-                    self.previewBrowser.setText(previewString)
+                    self.previewBrowser.append(previewString)
                 except:
                     self.previewBrowser.append(
 			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
+            else:
+                self.previewBrowser.append(
+                        "No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
 
 
-
-    def __gatherClicked(self):
-        print('Click')
 
