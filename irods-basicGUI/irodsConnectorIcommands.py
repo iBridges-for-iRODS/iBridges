@@ -10,6 +10,8 @@ import subprocess
 from subprocess         import Popen, PIPE
 import json
 import os
+from base64 import b64decode
+import hashlib
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -228,6 +230,62 @@ class irodsConnectorIcommands():
 
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
+
+
+    def diffIrodsLocalfs(self, collPath, dirPath, scope="size"):
+        '''
+        Compares and iRODS tree to a directory and lists files that are not in sync.
+        Syncing scope can be 'size' or 'checksum'
+        Returns: zip([dataObjects][files]) where ther is a difference
+        collection: collection path
+        '''
+
+        if not os.access(dirPath, os.R_OK):
+            raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
+        if not os.path.isdir(dirPath):
+            raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
+        if not self.session.collections.exists(collPath):
+            raise CollectionDoesNotExist("IRODS FS DIFF: collection path unknwn")
+
+        listDir = []
+        for root, dirs, files in os.walk(dirPath, topdown=False):
+            for name in files:
+                listDir.append(os.path.join(root.split(dirPath)[1], name).strip('/'))
+
+        listColl = []
+        for root, subcolls, obj in self.session.collections.get(collPath).walk():
+            for o in obj:
+                listColl.append(os.path.join(root.path.split(collPath)[1], o.name).strip('/'))
+
+        diff = []
+        for partialPath in set(listDir).intersection(listColl):
+            if scope == "size":
+                objSize = self.session.data_objects.get(collPath+'/'+partialPath).size
+                fSize = os.path.getsize(dirPath+'/'+partialPath)
+                if objSize != fSize:
+                    diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+            elif scope == "checksum":
+                objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
+                if objCheck.startswith("sha2"):
+                    sha2Obj = b64decode(objCheck.split('sha2:')[1])
+                    with open(dirPath+'/'+partialPath,"rb") as f:
+                        stream = f.read()
+                        sha2 = hashlib.sha256(stream).digest()
+                    if sha2Obj != sha2:
+                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                elif objCheck:
+                    #md5
+                    with open(dirPath+'/'+partialPath,"rb") as f:
+                        stream = f.read()
+                        md5 = hashlib.md5(stream).hexdigest();
+                    if objCheck != md5:
+                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                else: # no checksum
+                    diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+            else:
+                diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+
+        return diff
 
 
     def addMetadata(self, items, key, value, units = None):
