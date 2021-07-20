@@ -374,21 +374,23 @@ class irodsBrowser(QMainWindow):
                       [o.name for o in coll.data_objects]
 
             previewString = '\n'.join(content)
-            self.previewBrowser.append(previewString)
+            #self.previewBrowser.append(previewString)
+            self.previewBrowser.setText(previewString)
         elif self.ic.session.data_objects.exists(newPath): # object
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
+            obj = self.ic.session.data_objects.get(
+                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                    )
             if mimetype in ['txt', 'json', 'csv']:
                 try:
-                    obj = self.ic.session.data_objects.get(
-                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
-                        )
                     out = []
                     with obj.open('r') as readObj:
                         for i in range(20):
                             out.append(readObj.readline())
                     previewString = ''.join([line.decode('utf-8') for line in out])
-                    self.previewBrowser.append(previewString)
+                    #self.previewBrowser.append(previewString)
+                    self.previewBrowser.setText(previewString)
                 except:
                     self.previewBrowser.append(
 			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
