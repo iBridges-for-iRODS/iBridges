@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QApplication, QMainWindow, QMessageBox
+from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -67,6 +67,8 @@ class irodsBrowser(QMainWindow):
         #update main table when iRODS paht is changed upon 'Enter'
         self.inputPath.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
+        #quick dataa upload
+        self.UploadButton.clicked.connect(self.fileUpload)
         #functionality to lower tabs for metadata, acls and resources
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
@@ -98,6 +100,7 @@ class irodsBrowser(QMainWindow):
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
+            self.loadTable()
 
         else:
             pass
@@ -106,6 +109,32 @@ class irodsBrowser(QMainWindow):
     def resetPath(self):
         self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
+
+
+    def fileUpload(self):
+        from irodsUtils import getSize
+        dialog = QFileDialog(self)
+        resources = self.ic.listResources()
+        resourceSize = []
+        for resource in resources:
+            try:
+                resourceSize.append(str(round(int(self.ic.resourceSize(resource)/1024**3))+" GB"))
+            except:
+                resourceSize.append("0 GB")
+        print([name+" "+size for name, size in zip(resources, resourceSize)])
+        fileSelect = QFileDialog.getOpenFileName(self,"Open File", "","All Files (*);;Python Files (*.py)")
+        size = getSize(fileSelect[0])
+        buttonReply = QMessageBox.question(self, 'Message Box', "Upload " + fileSelect[0], 
+                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if buttonReply == QMessageBox.Yes:
+            parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
+            print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
+            self.ic.uploadData(fileSelect[0], parentColl, 
+                    self.ic.defaultResc, size)
+            self.loadTable()
+
+        else:
+            pass
 
 
     def updateIcatAcl(self):
@@ -363,6 +392,7 @@ class irodsBrowser(QMainWindow):
                 except:
                     self.previewBrowser.append(
 			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
+
 
 
     def __gatherClicked(self):

@@ -42,9 +42,15 @@ class irodsConnector():
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
             raise
 
+        if "default_resource_name" in ienv:
+            self.defaultResc = ienv["default_resource_name"]
+        else:
+            self.defaultResc = "demoResc"
+
         print("Welcome to iRODS:")
         print("iRODS Zone: "+self.session.zone)
         print("You are: "+self.session.username)
+        print("Default resource: "+self.defaultResc)
         print("You have access to: ")
         print(''.join([coll.path+'\n' for coll 
             in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))

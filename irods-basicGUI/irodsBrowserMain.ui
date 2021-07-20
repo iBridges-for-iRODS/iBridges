@@ -45,13 +45,6 @@ background-color: rgb(54, 54, 54);</string>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
          <layout class="QGridLayout" name="gridLayout">
-          <item row="0" column="3">
-           <widget class="QPushButton" name="UploadButton">
-            <property name="text">
-             <string>Up/Download</string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_2">
             <property name="font">
@@ -63,13 +56,6 @@ background-color: rgb(54, 54, 54);</string>
             </property>
             <property name="text">
              <string>iRODS path: </string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QPushButton" name="federationButton">
-            <property name="text">
-             <string>Federation</string>
             </property>
            </widget>
           </item>
@@ -101,6 +87,13 @@ background-color: rgb(54, 54, 54);</string>
            <widget class="QPushButton" name="homeButton">
             <property name="text">
              <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QPushButton" name="UploadButton">
+            <property name="text">
+             <string>Quick Upload</string>
             </property>
            </widget>
           </item>

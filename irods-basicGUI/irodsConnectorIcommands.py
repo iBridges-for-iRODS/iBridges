@@ -55,9 +55,18 @@ class irodsConnectorIcommands():
             else:
                 self.session = iRODSSession(irods_env_file=envFile)
 
+        with open(envFile) as f:
+                ienv = json.load(f)
+
+        if "default_resource_name" in ienv:
+            self.defaultResc = ienv["default_resource_name"]
+        else:
+            self.defaultResc = "demoResc"
+
         print("Welcome to iRODS (icommands):")
         print("iRODS Zone: "+self.session.zone)
         print("You are: "+self.session.username)
+        print("Default resource: "+self.defaultResc)
         print("You have access to: ")
         print(''.join([coll.path+'\n' for coll 
             in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
@@ -167,11 +176,12 @@ class irodsConnectorIcommands():
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
             self.session.collections.create(destination.path)
-            p = Popen(['iput -fK', source, destination.path], 
-                    stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+            cmd = 'iput -fK '+source+' '+destination.path+' -R '+resource
+            p = Popen([cmd],
+                stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         elif os.path.isdir(source):
-            p = Popen(['iput -brfK '+source+' '+destination.path], 
+            p = Popen(['iput -brfK '+source+' '+destination.path+' -R '+resource], 
                     stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         else:
