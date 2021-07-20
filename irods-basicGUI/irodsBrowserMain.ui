@@ -42,7 +42,7 @@ background-color: rgb(54, 54, 54);</string>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -103,6 +103,13 @@ background-color: rgb(54, 54, 54);</string>
             </property>
            </widget>
           </item>
+          <item row="0" column="4">
+           <widget class="QPushButton" name="createCollButton">
+            <property name="text">
+             <string>Create Collection</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
@@ -153,7 +160,7 @@ background-color: rgb(54, 54, 54);</string>
            <string notr="true">background-color: rgb(85, 87, 83);</string>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="preview">
            <property name="font">
@@ -511,6 +518,116 @@ background-color: rgb(54, 54, 54);</string>
        <attribute name="title">
         <string>Up and Download</string>
        </attribute>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QTreeWidget" name="localFsTreeWidget">
+          <column>
+           <property name="text">
+            <string>Local Files</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_6">
+          <item>
+           <widget class="QPushButton" name="tab2UploadButton">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="tab2DownloadButton">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="QTreeWidget" name="irodsFsTreeWidget">
+          <column>
+           <property name="text">
+            <string>iRODS objects</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tabFederations">
+       <attribute name="title">
+        <string>Federations</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_8">
+        <item>
+         <widget class="QTableWidget" name="tableWidget">
+          <column>
+           <property name="text">
+            <string>Federated Zones</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Minimum</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_5">
+          <item>
+           <widget class="QTreeWidget" name="treeWidget">
+            <column>
+             <property name="text">
+              <string>Home iRODS</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QPushButton" name="pushButton">
+              <property name="text">
+               <string>PushButton</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_2">
+              <property name="text">
+               <string>PushButton</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QTreeWidget" name="treeWidget_2">
+            <column>
+             <property name="text">
+              <string>Federated iRODS</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+         </layout>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>
