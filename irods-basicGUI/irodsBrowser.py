@@ -124,14 +124,14 @@ class irodsBrowser(QMainWindow):
     def fileUpload(self):
         from irodsUtils import getSize
         dialog = QFileDialog(self)
-        resources = self.ic.listResources()
-        resourceSize = []
-        for resource in resources:
-            try:
-                resourceSize.append(str(round(int(self.ic.resourceSize(resource)/1024**3))+" GB"))
-            except:
-                resourceSize.append("0 GB")
-        print([name+" "+size for name, size in zip(resources, resourceSize)])
+        #resources = self.ic.listResources()
+        #resourceSize = []
+        #for resource in resources:
+        #    try:
+        #        resourceSize.append(str(round(int(self.ic.resourceSize(resource)/1024**3))+" GB"))
+        #    except:
+        #        resourceSize.append("0 GB")
+        #print([name+" "+size for name, size in zip(resources, resourceSize)])
         fileSelect = QFileDialog.getOpenFileName(self,"Open File", "","All Files (*);;Python Files (*.py)")
         size = getSize(fileSelect[0])
         buttonReply = QMessageBox.question(self, 'Message Box', "Upload " + fileSelect[0], 
@@ -140,7 +140,7 @@ class irodsBrowser(QMainWindow):
             parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
             print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
             self.ic.uploadData(fileSelect[0], parentColl, 
-                    self.ic.defaultResc, size, force=True)
+                    None, size, force=True)
             self.loadTable()
 
         else:

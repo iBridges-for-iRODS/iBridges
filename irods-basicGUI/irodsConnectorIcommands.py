@@ -188,12 +188,19 @@ class irodsConnectorIcommands():
         if os.path.isfile(source):
             print("CREATE", destination.path+"/"+os.path.basename(source))
             self.session.collections.create(destination.path)
-            cmd = 'iput -fK '+source+' '+destination.path+' -R '+resource
+            if resource:
+                cmd = 'iput -fK '+source+' '+destination.path+' -R '+resource
+            else:
+                cmd = 'iput -fK '+source+' '+destination.path
             p = Popen([cmd],
                 stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         elif os.path.isdir(source):
-            p = Popen(['iput -brfK '+source+' '+destination.path+' -R '+resource], 
+            if resource:
+                cmd = 'iput -brfK '+source+' '+destination.path+' -R '+resource
+            else:
+                cmd = 'iput -brfK '+source+' '+destination.path
+            p = Popen([cmd], 
                     stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
         else:

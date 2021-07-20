@@ -157,8 +157,12 @@ class irodsConnector():
         ValueError (if resource too small or buffer is too small)
         
         """
-        options = {kw.RESC_NAME_KW: resource,
-               kw.REG_CHKSUM_KW: ''}
+        if resource:
+            options = {kw.RESC_NAME_KW: resource,
+                        kw.REG_CHKSUM_KW: ''}
+        else:
+            options = {kw.REG_CHKSUM_KW: ''}
+
         if not force:
             try:
                 space = self.session.resources.get(resource).free_space
