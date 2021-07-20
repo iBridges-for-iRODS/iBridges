@@ -287,9 +287,7 @@ class irodsConnector():
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
                         diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
-                else: # no checksum
-                    diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
-            else:
+            else: #same paths, no scope
                 diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
 
         return diff
