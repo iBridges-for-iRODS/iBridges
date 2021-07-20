@@ -145,6 +145,16 @@ class irodsConnectorIcommands():
             print(RED+"RESOURCE ERROR: Either resource does not exist or size not set.")
             raise
         
+    def ensureColl(self, collPath):
+        '''
+        Raises:
+            irods.exception.CAT_NO_ACCESS_PERMISSION
+        '''
+        try:
+            self.session.collections.create(collPath)
+            return self.session.collections.get(collPath)
+        except:
+            raise
 
     def uploadData(self, source, destination, resource, size, buff = 1024**3):
         """
