@@ -1,8 +1,10 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox
+from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
+
+from createCollectionWidget import createCollectionWidget
 
 import sys
 
@@ -67,8 +69,10 @@ class irodsBrowser(QMainWindow):
         #update main table when iRODS paht is changed upon 'Enter'
         self.inputPath.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
-        #quick dataa upload
+        #quick data upload
         self.UploadButton.clicked.connect(self.fileUpload)
+        #new collection
+        self.createCollButton.clicked.connect(self.createCollection)
         #functionality to lower tabs for metadata, acls and resources
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
@@ -110,6 +114,12 @@ class irodsBrowser(QMainWindow):
         self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
 
+
+    def createCollection(self):
+        parent = "/"+self.inputPath.text().strip("/")
+        creteCollWidget = createCollectionWidget(parent, self.ic)
+        creteCollWidget.exec_()
+        self.loadTable()
 
     def fileUpload(self):
         from irodsUtils import getSize

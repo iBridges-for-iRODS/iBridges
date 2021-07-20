@@ -42,7 +42,7 @@ background-color: rgb(54, 54, 54);</string>
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -521,6 +521,9 @@ background-color: rgb(54, 54, 54);</string>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
          <widget class="QTreeWidget" name="localFsTreeWidget">
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(85, 87, 83);</string>
+          </property>
           <column>
            <property name="text">
             <string>Local Files</string>
@@ -548,6 +551,9 @@ background-color: rgb(54, 54, 54);</string>
         </item>
         <item>
          <widget class="QTreeWidget" name="irodsFsTreeWidget">
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(85, 87, 83);</string>
+          </property>
           <column>
            <property name="text">
             <string>iRODS objects</string>
@@ -564,6 +570,9 @@ background-color: rgb(54, 54, 54);</string>
        <layout class="QVBoxLayout" name="verticalLayout_8">
         <item>
          <widget class="QTableWidget" name="tableWidget">
+          <property name="styleSheet">
+           <string notr="true">background-color: rgb(85, 87, 83);</string>
+          </property>
           <column>
            <property name="text">
             <string>Federated Zones</string>
@@ -591,6 +600,9 @@ background-color: rgb(54, 54, 54);</string>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <item>
            <widget class="QTreeWidget" name="treeWidget">
+            <property name="styleSheet">
+             <string notr="true">background-color: rgb(85, 87, 83);</string>
+            </property>
             <column>
              <property name="text">
               <string>Home iRODS</string>
@@ -603,14 +615,14 @@ background-color: rgb(54, 54, 54);</string>
             <item>
              <widget class="QPushButton" name="pushButton">
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QPushButton" name="pushButton_2">
               <property name="text">
-               <string>PushButton</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -618,6 +630,9 @@ background-color: rgb(54, 54, 54);</string>
           </item>
           <item>
            <widget class="QTreeWidget" name="treeWidget_2">
+            <property name="styleSheet">
+             <string notr="true">background-color: rgb(85, 87, 83);</string>
+            </property>
             <column>
              <property name="text">
               <string>Federated iRODS</string>
