@@ -191,7 +191,50 @@ class irodsConnector():
         else:
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
 
-               
+    
+    def downloadData(self, source, destination):
+        '''
+        Download object or collection.
+        source: iRODS collection or data object
+        destination: absolut path to download folder
+        '''
+        
+        options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
+        destination = '/'+destination.strip('/')
+
+        if not os.access(destination, os.W_OK):
+            raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
+        if not os.path.isdir(destination):
+            raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
+
+        if self.session.data_objects.exists(source.path):
+            try:
+                self.session.data_objects.get(source.path, 
+                            local_path=destination + '/' + source.name, **options)
+            except:
+                raise
+
+
+        elif self.session.collections.exists(source.path):
+            walk = [source]
+            while walk:
+                try:
+                    coll = walk.pop()
+                    suffix = '/'+(os.path.basename(source.path).strip('/')+\
+                            '/'+coll.path.split(source.path)[1].strip('/')).strip('/')+'/'
+                    directory = destination + suffix
+                    walk.extend(coll.subcollections)
+                    if not os.path.exists(directory):
+                        os.makedirs(directory)
+                    for obj in coll.data_objects:
+                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t"+directory+obj.name)
+                        self.session.data_objects.get(obj.path, local_path=directory+obj.name, **options)
+                except:
+                    raise 
+        else:
+            raise FileNotFoundError("IRODS DOWNLOAD: not a valid source path")
+            
+
     def addMetadata(self, items, key, value, units = None):
         """
         Adds metadata to all items

@@ -192,19 +192,43 @@ class irodsConnectorIcommands():
                 cmd = 'iput -fK '+source+' '+destination.path+' -R '+resource
             else:
                 cmd = 'iput -fK '+source+' '+destination.path
-            p = Popen([cmd],
-                stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
-            out, err = p.communicate()
         elif os.path.isdir(source):
             if resource:
                 cmd = 'iput -brfK '+source+' '+destination.path+' -R '+resource
             else:
                 cmd = 'iput -brfK '+source+' '+destination.path
-            p = Popen([cmd], 
-                    stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
-            out, err = p.communicate()
         else:
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+       
+        print(cmd)
+        p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+        out, err = p.communicate()
+
+
+    def downloadData(self, source, destination):
+        '''
+        Download object or collection.
+        source: iRODS collection or data object
+        destination: absolut path to download folder
+        '''
+
+        destination = '/'+destination.strip('/')
+        if not os.access(destination, os.W_OK):
+            raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
+        if not os.path.isdir(destination):
+            raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
+
+        if self.session.data_objects.exists(source.path):
+            #-f overwrite, -K control checksum, -r recursive (collections)
+            cmd = 'iget -fK '+source.path+' '+destination
+        elif self.session.collections.exists(source.path):
+            cmd = 'iget -fKr '+source.path+' '+destination
+        else:
+            raise FileNotFoundError("IRODS download: not a valid source.")
+
+        p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+        out, err = p.communicate()
+
 
     def addMetadata(self, items, key, value, units = None):
         """
