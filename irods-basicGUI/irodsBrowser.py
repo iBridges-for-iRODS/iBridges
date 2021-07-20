@@ -11,7 +11,7 @@ import sys
 class irodsBrowser(QMainWindow):
     def __init__(self, widget, ic):
         super(irodsBrowser, self).__init__()
-        loadUi("irodsBrowserMain.ui", self)
+        loadUi("ui-files/irodsBrowserMain.ui", self)
         self.ic = ic
         self.widget = widget
 
@@ -32,7 +32,7 @@ class irodsBrowser(QMainWindow):
 
         #Home button
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("home.png"))
+        icon.addPixmap(QtGui.QPixmap("icons/home.png"))
         self.homeButton.setIcon(icon)
 
         #Metadata table

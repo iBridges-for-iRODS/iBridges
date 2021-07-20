@@ -26,7 +26,7 @@ BLUE = '\x1b[1;34m'
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
-        loadUi("irodsLogin.ui", self)
+        loadUi("ui-files/irodsLogin.ui", self)
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)

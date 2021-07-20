@@ -9,7 +9,7 @@ import sys
 class createCollectionWidget(QDialog):
     def __init__(self, parent, ic):
         super(createCollectionWidget, self).__init__()
-        loadUi("createCollection.ui", self)
+        loadUi("ui-files/createCollection.ui", self)
         self.ic = ic
         self.parent = parent
         self.label.setText(self.parent+"/")
