@@ -175,25 +175,27 @@ class irodsConnector():
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
                 raise error()
-        
-        if os.path.isfile(source):
-            print("CREATE", destination.path+"/"+os.path.basename(source))
-            self.session.collections.create(destination.path)
-            self.session.data_objects.put(source, 
+        try: 
+            if os.path.isfile(source):
+                print("CREATE", destination.path+"/"+os.path.basename(source))
+                self.session.collections.create(destination.path)
+                self.session.data_objects.put(source, 
                     destination.path+"/"+os.path.basename(source), **options)
-        elif os.path.isdir(source):
-            for directory, _, files in os.walk(source):
-                subColl = directory.split(source)[1]
-                iColl = destination.path+subColl
-                self.session.collections.create(iColl)
-                for fname in files:
-                    print("CREATE", iColl+'/'+fname)
-                    self.session.data_objects.put(directory+'/'+fname, 
+            elif os.path.isdir(source):
+                for directory, _, files in os.walk(source):
+                    subColl = directory.split(source)[1]
+                    iColl = destination.path+subColl
+                    self.session.collections.create(iColl)
+                    for fname in files:
+                        print("CREATE", iColl+'/'+fname)
+                        self.session.data_objects.put(directory+'/'+fname, 
                             iColl+'/'+fname, **options)
-        else:
-            raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
-
+            else:
+                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+        except:
+            raise
     
+
     def downloadData(self, source, destination):
         '''
         Download object or collection.
@@ -230,7 +232,8 @@ class irodsConnector():
                         os.makedirs(directory)
                     for obj in coll.data_objects:
                         print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t"+directory+obj.name)
-                        self.session.data_objects.get(obj.path, local_path=directory+obj.name, **options)
+                        self.session.data_objects.get(obj.path, local_path=directory+obj.name, 
+                                                      **options)
                 except:
                     raise 
         else:

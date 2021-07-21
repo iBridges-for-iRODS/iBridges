@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>747</width>
-    <height>312</height>
+    <width>760</width>
+    <height>310</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>715</width>
-    <height>300</height>
+    <width>755</width>
+    <height>310</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@ color: rgb(86, 184, 139);
     <rect>
      <x>10</x>
      <y>10</y>
-     <width>731</width>
+     <width>741</width>
      <height>251</height>
     </rect>
    </property>
@@ -185,7 +185,7 @@ color: rgb(86, 184, 139);
   <widget class="QPushButton" name="connectButton">
    <property name="geometry">
     <rect>
-     <x>640</x>
+     <x>650</x>
      <y>270</y>
      <width>101</width>
      <height>31</height>

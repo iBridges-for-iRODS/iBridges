@@ -14,6 +14,8 @@ class irodsBrowser(QMainWindow):
         loadUi("ui-files/irodsBrowserMain.ui", self)
         self.ic = ic
         self.widget = widget
+        self.tabWidget.setCurrentIndex(0)
+        self.viewTabs.setCurrentIndex(0)
 
         #some placeholder variables to catch information
         self.currentBrowserRow = 0
@@ -217,7 +219,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
-        self.clearErrorLabel()
+        self.__clearErrorLabel()
         col = index.column()
         row = index.row()
         parent = self.inputPath.text()
@@ -229,8 +231,8 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def fillInfo(self, index):
-        self.clearErrorLabel()
-        self.previewBrowser.clear()
+        self.__clearErrorLabel()
+        self.__clearViewTabs()
 
         self.metadataTable.setRowCount(0);
         self.aclTable.setRowCount(0);
@@ -240,6 +242,7 @@ class irodsBrowser(QMainWindow):
         row = index.row()
         self.currentBrowserRow = row
         value = self.collTable.item(row, col).text()
+        self.__clearViewTabs()
         self.__fillPreview(value)
         self.__fillMetadata(value)
         self.__fillACLs(value)
@@ -248,7 +251,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editMetadata(self, index):
-        self.clearErrorLabel()
+        self.__clearErrorLabel()
         self.metaValueField.clear()
         self.metaUnitsField.clear()
         row = index.row()
@@ -278,12 +281,21 @@ class irodsBrowser(QMainWindow):
 
 
     # Util functions
-    def clearErrorLabel(self):
+    def __clearErrorLabel(self):
         self.errorLabel.clear()
 
 
+    def __clearViewTabs(self):
+        self.aclTable.setRowCount(0)
+        self.metadataTable.setRowCount(0)
+        self.resourceTable.setRowCount(0)
+        self.previewBrowser.clear()
+        #self.deleteTreeWidget
+
+
     def loadTable(self):
-        self.clearErrorLabel()
+        self.__clearErrorLabel()
+        self.__clearViewTabs()
         newPath = "/"+self.inputPath.text().strip("/")
         if self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(newPath)
@@ -332,7 +344,7 @@ class irodsBrowser(QMainWindow):
 
 
     def __fillACLs(self, value):
-        self.aclTable.setRowCount(0);
+        self.aclTable.setRowCount(0)
         self.aclUserField.clear()
         self.aclZoneField.clear()
         self.aclBox.setCurrentText("----")
@@ -398,7 +410,9 @@ class irodsBrowser(QMainWindow):
             coll = self.ic.session.collections.get(
                         "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
                         )
-            content = [c.name+'/' for c in coll.subcollections] + \
+            content = ['Collections:', '-----------------'] +\
+                      [c.name+'/' for c in coll.subcollections] + \
+                      ['\n', 'Data:', '-----------------']+\
                       [o.name for o in coll.data_objects]
 
             previewString = '\n'.join(content)

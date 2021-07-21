@@ -127,7 +127,8 @@ background-color: rgb(54, 54, 54);</string>
            </size>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(85, 87, 83);</string>
+           <string notr="true">background-color: rgb(85, 87, 83);
+selection-background-color: rgb(58, 152, 112);</string>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
@@ -166,7 +167,7 @@ background-color: rgb(54, 54, 54);</string>
            <string notr="true">background-color: rgb(85, 87, 83);</string>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>4</number>
           </property>
           <widget class="QWidget" name="preview">
            <property name="font">
@@ -199,6 +200,9 @@ background-color: rgb(54, 54, 54);</string>
                 <width>600</width>
                 <height>300</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
               </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
@@ -334,6 +338,9 @@ background-color: rgb(54, 54, 54);</string>
                 <width>600</width>
                 <height>0</height>
                </size>
+              </property>
+              <property name="styleSheet">
+               <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
               </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
@@ -485,6 +492,9 @@ background-color: rgb(54, 54, 54);</string>
            <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QTableWidget" name="resourceTable">
+              <property name="styleSheet">
+               <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
+              </property>
               <property name="editTriggers">
                <set>QAbstractItemView::NoEditTriggers</set>
               </property>
