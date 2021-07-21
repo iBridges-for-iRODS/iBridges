@@ -17,6 +17,8 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from irodsBrowser import irodsBrowser
+from irodsUtils import networkCheck
+import json
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -33,6 +35,7 @@ class irodsLogin(QDialog):
         self.passwordField.setEchoMode(QtWidgets.QLineEdit.Password)
         self.icommands = False
 
+
     def __encryption(self):
         salt = Fernet.generate_key()
         return Fernet(salt)
@@ -44,10 +47,17 @@ class irodsLogin(QDialog):
             ic = irodsConnector(envFile, cipher.decrypt(password).decode())
         return ic
 
+    def __resetErrorLabelsAndMouse(self):
+        self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.passError.clear()
+        self.envError.clear()
+
+
     def setupStandard(self):
         if self.standardButton.isChecked():
             self.envFileField.setEnabled(True)
             self.icommands = False
+
 
     def setupIcommands(self):
         if self.selectIcommandsButton.isChecked():
@@ -65,29 +75,56 @@ class irodsLogin(QDialog):
             except Exception:
                 self.icommandsError.setText("ERROR: no icommands installed")
                 self.standardButton.setChecked(True)
-    
+
     def loginfunction(self):
+        self.__resetErrorLabelsAndMouse()
         cipher = self.__encryption()
-        envFile = self.envFileField.text()
         password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
-        self.passError.setText("")
-        self.envError.setText("")
+        envFile = self.envFileField.text()
+        connect = False
+       
         try:
-            ic = self.__irodsLogin(envFile, password, cipher)
-            browser = irodsBrowser(widget, ic)
-            if len(widget) == 1:
-                widget.addWidget(browser)
-            widget.setCurrentIndex(widget.currentIndex()+1)
-        except CAT_INVALID_AUTHENTICATION:
-            self.passError.setText("ERROR: Wrong password.")
-        except ConnectionRefusedError:
-            self.passError.setText("ERROR: Wrong password.")
+            with open(envFile) as f:
+                ienv = json.load(f)
+            connect = networkCheck(ienv['irods_host'])
+            if not connect:
+                print("Network down")
+                raise Exception("No network connection to server")
         except FileNotFoundError:
             self.envError.setText("ERROR: iRODS environment file or certificate not found.")
-        except IsADirectoryError:
-            self.envError.setText("ERROR: File expected.")
-        except NetworkException:
-            self.envError.setText("Network ERROR: No connection to iRODS server.")
+            self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        except Exception as error:
+            print(repr(error))
+            self.envError.setText("No network connection to server")
+            self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            raise
+             
+        if connect:
+            try:
+                ic = self.__irodsLogin(envFile, password, cipher)
+                browser = irodsBrowser(widget, ic)
+                if len(widget) == 1:
+                    widget.addWidget(browser)
+                widget.setCurrentIndex(widget.currentIndex()+1)
+                self.__resetErrorLabelsAndMouse()
+            except CAT_INVALID_AUTHENTICATION:
+                self.passError.setText("ERROR: Wrong password.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except ConnectionRefusedError:
+                self.passError.setText("ERROR: Wrong password.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except FileNotFoundError:
+                self.envError.setText("ERROR: iRODS environment file or certificate not found.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except IsADirectoryError:
+                self.envError.setText("ERROR: File expected.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except NetworkException:
+                self.envError.setText("iRODS server ERROR: iRODS server down.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except Exception:
+                self.envError.setText("Something went wrong.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
 if __name__ == "__main__":
