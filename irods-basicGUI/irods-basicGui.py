@@ -78,6 +78,7 @@ class irodsLogin(QDialog):
 
     def loginfunction(self):
         self.__resetErrorLabelsAndMouse()
+        self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         cipher = self.__encryption()
         password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
         envFile = self.envFileField.text()
@@ -122,9 +123,9 @@ class irodsLogin(QDialog):
             except NetworkException:
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            except Exception:
-                self.envError.setText("Something went wrong.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #except Exception:
+            #    self.envError.setText("Something went wrong.")
+            #    self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
 if __name__ == "__main__":

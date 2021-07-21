@@ -344,3 +344,20 @@ class irodsConnectorIcommands():
 
 
 
+    def deleteData(self, item):
+        """
+        Delete a data object or a collection recursively.
+        item: iRODS data object or collection
+        """
+
+        if self.session.collections.exists(item.path):
+            try:
+                item.remove(recurse = True, force = True)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+        elif self.session.data_objects.exists(item.path):
+            try:
+                item.unlink(force = True)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+

@@ -5,6 +5,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 from createCollectionWidget import createCollectionWidget
+from irodsUtils import walkToDict 
 
 import sys
 
@@ -75,6 +76,8 @@ class irodsBrowser(QMainWindow):
         self.UploadButton.clicked.connect(self.fileUpload)
         #new collection
         self.createCollButton.clicked.connect(self.createCollection)
+        self.dataDeleteButton.clicked.connect(self.deleteData)
+        self.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
         #functionality to lower tabs for metadata, acls and resources
         self.collTable.doubleClicked.connect(self.updatePath)
         self.collTable.clicked.connect(self.fillInfo)
@@ -115,6 +118,47 @@ class irodsBrowser(QMainWindow):
     def resetPath(self):
         self.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
+
+
+    def loadSelection(self):
+        self.loadDeleteSelectionButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.deleteSelectionBrowser.clear()
+        parent = self.inputPath.text()
+        row = self.collTable.currentRow()
+        if row > -1:
+            cell = self.collTable.item(row, 1).text()
+            path = "/"+parent.strip("/")+"/"+cell.strip("/")
+            if self.ic.session.collections.exists(path):
+                irodsDict = walkToDict(self.ic.session.collections.get(path))
+            elif self.ic.session.data_objects.exists(path):
+                irodsDict = {self.ic.session.data_objects.get(path).path: []}
+            else:
+                errorLabel.setText("Load: nothing selected.")
+                pass
+
+            for key in irodsDict:
+                self.deleteSelectionBrowser.append(key)
+                if len(irodsDict[key]) > 0:
+                    for item in irodsDict[key]:
+                        self.deleteSelectionBrowser.append('\t'+item)
+        self.loadDeleteSelectionButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+
+    def deleteData(self):
+        #Deletes all data in the deleteSelectionBrowser
+        data = self.deleteSelectionBrowser.toPlainText().split('\n')
+        if not data[0] is '':
+            deleteItem = data[0].strip()
+            quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
+            reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
+            if reply == QMessageBox.Yes:
+                if self.ic.session.collections.exists(deleteItem):
+                    item = self.ic.session.collections.get(deleteItem)
+                else:
+                    item = self.ic.session.data_objects.get(deleteItem)
+                self.ic.deleteData(item)
+            self.deleteSelectionBrowser.clear()
+            self.loadTable()
 
 
     def createCollection(self):

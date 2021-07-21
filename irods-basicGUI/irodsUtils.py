@@ -25,3 +25,17 @@ def networkCheck(hostname):
         return False
 
     s.close()
+
+
+def walkToDict(root):
+    #irods collection
+    items = []
+    for collection, subcolls, _ in root.walk():
+        items.append(collection.path)
+        items.extend([s.path for s in subcolls])
+    walkDict = {key: None for key in sorted(set(items))}
+    for collection, _,  objs in root.walk():
+        walkDict[collection.path] = [o.name for o in objs]
+
+    return walkDict
+
