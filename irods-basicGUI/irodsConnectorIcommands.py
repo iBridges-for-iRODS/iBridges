@@ -64,6 +64,11 @@ class irodsConnectorIcommands():
             self.defaultResc = ienv["default_resource_name"]
         else:
             self.defaultResc = "demoResc"
+        if "davrods_server" in ienv:
+            self.davrods = ienv["davrods_server"]
+        else:
+            self.davrods = None
+
 
         print("Welcome to iRODS (icommands):")
         print("iRODS Zone: "+self.session.zone)

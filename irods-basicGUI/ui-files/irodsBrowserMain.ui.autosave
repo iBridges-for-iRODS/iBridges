@@ -51,7 +51,7 @@ background-color: rgb(54, 54, 54);</string>
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -60,6 +60,20 @@ background-color: rgb(54, 54, 54);</string>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
          <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="2">
+           <widget class="QPushButton" name="homeButton">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="5">
+           <widget class="QPushButton" name="createCollButton">
+            <property name="text">
+             <string>Create Collection</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_2">
             <property name="font">
@@ -98,24 +112,10 @@ background-color: rgb(54, 54, 54);</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="2">
-           <widget class="QPushButton" name="homeButton">
-            <property name="text">
-             <string/>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="3">
            <widget class="QPushButton" name="UploadButton">
             <property name="text">
              <string>Quick Upload</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="4">
-           <widget class="QPushButton" name="createCollButton">
-            <property name="text">
-             <string>Create Collection</string>
             </property>
            </widget>
           </item>
@@ -763,7 +763,11 @@ color: rgb(46, 52, 54);</string>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="elnTokenInput"/>
+           <widget class="QLineEdit" name="elnTokenInput">
+            <property name="styleSheet">
+             <string notr="true">background-color: rgb(85, 87, 83);</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -772,10 +776,13 @@ color: rgb(46, 52, 54);</string>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Minimum</enum>
+          </property>
           <property name="sizeHint" stdset="0">
            <size>
             <width>20</width>
-            <height>40</height>
+            <height>20</height>
            </size>
           </property>
          </spacer>
@@ -783,7 +790,7 @@ color: rgb(46, 52, 54);</string>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_8">
           <item>
-           <widget class="QTableWidget" name="elnProjectsTable">
+           <widget class="QTableWidget" name="elnGroupTable">
             <property name="minimumSize">
              <size>
               <width>200</width>
@@ -793,14 +800,20 @@ color: rgb(46, 52, 54);</string>
             <property name="styleSheet">
              <string notr="true">background-color: rgb(85, 87, 83);</string>
             </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
+            </property>
             <column>
              <property name="text">
-              <string>Project ID</string>
+              <string>Group ID</string>
              </property>
             </column>
             <column>
              <property name="text">
-              <string>Project Name</string>
+              <string>Group Name</string>
              </property>
             </column>
            </widget>
@@ -832,6 +845,12 @@ color: rgb(46, 52, 54);</string>
             <property name="styleSheet">
              <string notr="true">background-color: rgb(85, 87, 83);</string>
             </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
+            </property>
             <column>
              <property name="text">
               <string>Experiment ID</string>
@@ -850,83 +869,7 @@ color: rgb(46, 52, 54);</string>
            </widget>
           </item>
           <item>
-           <spacer name="horizontalSpacer_2">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeType">
-             <enum>QSizePolicy::Expanding</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_9">
-            <item>
-             <widget class="QLabel" name="label_16">
-              <property name="text">
-               <string>Selected:</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <layout class="QFormLayout" name="formLayout">
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_14">
-                <property name="text">
-                 <string>Project</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_15">
-                <property name="text">
-                 <string>Experiment</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="1">
-               <widget class="QLabel" name="projectIdLabel">
-                <property name="text">
-                 <string>12345</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QLabel" name="experimentIdLabel">
-                <property name="text">
-                 <string>54321</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <spacer name="verticalSpacer_8">
-                <property name="orientation">
-                 <enum>Qt::Vertical</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>40</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item row="2" column="0">
-               <widget class="QPushButton" name="elabOkButton">
-                <property name="text">
-                 <string>OK</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-           </layout>
+           <layout class="QVBoxLayout" name="verticalLayout_9"/>
           </item>
          </layout>
         </item>
@@ -935,32 +878,85 @@ color: rgb(46, 52, 54);</string>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Minimum</enum>
+          </property>
           <property name="sizeHint" stdset="0">
            <size>
             <width>20</width>
-            <height>40</height>
+            <height>10</height>
            </size>
           </property>
          </spacer>
         </item>
         <item>
+         <layout class="QFormLayout" name="formLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_14">
+            <property name="font">
+             <font>
+              <pointsize>13</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Project</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="groupIdLabel">
+            <property name="font">
+             <font>
+              <pointsize>13</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_15">
+            <property name="font">
+             <font>
+              <pointsize>13</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string>Experiment</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLabel" name="experimentIdLabel">
+            <property name="font">
+             <font>
+              <pointsize>13</pointsize>
+             </font>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <layout class="QHBoxLayout" name="horizontalLayout_9">
           <item>
-           <widget class="QTreeWidget" name="elnSelectionTree">
+           <widget class="QTreeView" name="localFsTable">
             <property name="minimumSize">
              <size>
-              <width>0</width>
-              <height>300</height>
+              <width>500</width>
+              <height>0</height>
              </size>
             </property>
             <property name="styleSheet">
              <string notr="true">background-color: rgb(85, 87, 83);</string>
             </property>
-            <column>
-             <property name="text">
-              <string>Select from local data:</string>
-             </property>
-            </column>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::MultiSelection</enum>
+            </property>
            </widget>
           </item>
           <item>
@@ -973,7 +969,7 @@ color: rgb(46, 52, 54);</string>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
+              <width>10</width>
               <height>20</height>
              </size>
             </property>
@@ -996,7 +992,7 @@ color: rgb(46, 52, 54);</string>
             </property>
             <property name="sizeHint" stdset="0">
              <size>
-              <width>40</width>
+              <width>10</width>
               <height>20</height>
              </size>
             </property>
@@ -1005,7 +1001,7 @@ color: rgb(46, 52, 54);</string>
           <item>
            <layout class="QVBoxLayout" name="elnPathLabel">
             <item>
-             <widget class="QLabel" name="label_17">
+             <widget class="QLabel" name="elnIrodsPath">
               <property name="font">
                <font>
                 <pointsize>13</pointsize>
@@ -1019,11 +1015,11 @@ color: rgb(46, 52, 54);</string>
              </widget>
             </item>
             <item>
-             <widget class="QTreeView" name="elnTreeView">
+             <widget class="QTextBrowser" name="elnPreviewBrowser">
               <property name="minimumSize">
                <size>
                 <width>0</width>
-                <height>300</height>
+                <height>200</height>
                </size>
               </property>
               <property name="styleSheet">
@@ -1141,6 +1137,16 @@ color: rgb(46, 52, 54);</string>
       </widget>
      </widget>
     </item>
+    <item>
+     <widget class="QLabel" name="globalErrorLabel">
+      <property name="styleSheet">
+       <string notr="true">color: rgb(164, 0, 0);</string>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -1159,7 +1165,14 @@ color: rgb(46, 52, 54);</string>
     <addaction name="actionCloseSession"/>
     <addaction name="actionExit"/>
    </widget>
+   <widget class="QMenu" name="menuOptions">
+    <property name="title">
+     <string>Edit</string>
+    </property>
+    <addaction name="actionSearch"/>
+   </widget>
    <addaction name="menuMenu"/>
+   <addaction name="menuOptions"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionCloseSession">
@@ -1170,6 +1183,11 @@ color: rgb(46, 52, 54);</string>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionSearch">
+   <property name="text">
+    <string>Search</string>
    </property>
   </action>
  </widget>

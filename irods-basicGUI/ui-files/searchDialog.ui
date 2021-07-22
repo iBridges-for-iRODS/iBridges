@@ -63,7 +63,7 @@ background-color: rgb(54, 54, 54);</string>
      <item row="3" column="1">
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Value</string>
+        <string>Value (optional)</string>
        </property>
       </widget>
      </item>

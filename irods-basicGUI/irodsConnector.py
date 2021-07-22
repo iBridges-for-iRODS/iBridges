@@ -51,6 +51,11 @@ class irodsConnector():
         else:
             self.defaultResc = "demoResc"
 
+        if "davrods_server" in ienv:
+            self.davrods = ienv["davrods_server"]
+        else:
+            self.davrods = None
+
         print("Welcome to iRODS:")
         print("iRODS Zone: "+self.session.zone)
         print("You are: "+self.session.username)
@@ -142,7 +147,7 @@ class irodsConnector():
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
         
 
-    def uploadData(self, source, destinationPath, resource, size, buff = 1024**3, force = False):
+    def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
         """
         source: absolute path to file or folder
         destination: iRODS collection where data is uploaded to
@@ -159,7 +164,6 @@ class irodsConnector():
         ValueError (if resource too small or buffer is too small)
         
         """
-        destination = self.ensureColl(destinationPath)
         if resource:
             options = {kw.RESC_NAME_KW: resource,
                         kw.REG_CHKSUM_KW: ''}
