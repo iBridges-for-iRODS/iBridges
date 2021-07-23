@@ -46,7 +46,7 @@ background-color: rgb(54, 54, 54);</string>
      <widget class="QTabWidget" name="tabWidget">
       <property name="minimumSize">
        <size>
-        <width>0</width>
+        <width>600</width>
         <height>300</height>
        </size>
       </property>
@@ -1001,18 +1001,34 @@ color: rgb(46, 52, 54);</string>
           <item>
            <layout class="QVBoxLayout" name="elnPathLabel">
             <item>
-             <widget class="QLabel" name="elnIrodsPath">
-              <property name="font">
-               <font>
-                <pointsize>13</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>iRODS Path: /zone/home/user/ELN:</string>
-              </property>
-             </widget>
+             <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <item>
+               <widget class="QLabel" name="label_16">
+                <property name="font">
+                 <font>
+                  <pointsize>13</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>iRODS Path</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="elnIrodsPath">
+                <property name="font">
+                 <font>
+                  <pointsize>13</pointsize>
+                 </font>
+                </property>
+                <property name="text">
+                 <string>/zone/home/user</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
              <widget class="QTextBrowser" name="elnPreviewBrowser">

@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
 import os
 from irodsUtils import getSize, walkToDict
 
-class elnUpload():
+class elabUpload():
     def __init__(self, ic, globalErrorLabel, elnTokenInput,
                  elnGroupTable, elnExperimentTable, groupIdLabel,
                  experimentIdLabel, localFsTable, 
@@ -45,6 +45,7 @@ class elnUpload():
         print(token)
         #ELN can potentially be offline
         try:
+            self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             self.elab = elabConnector(token)
             groups = self.elab.showGroups(get=True)
             self.elnGroupTable.setRowCount(len(groups))
@@ -55,19 +56,10 @@ class elnUpload():
                 row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
             self.loadLocalFileView()
-
+            self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as e:
             self.globalErrorLabel.setText("ELN ERROR: "+repr(e))
 
-    
-    def setElabConfig(self):
-        #Ensure that elab object has correct experiment ID
-        print("Todo setElabConfig")
-        self.loadLocalFileView()
-        #get group id and expid from tables
-        #params = {'group': id, 'experiment': id}
-        #self.elab.updateMetadataUrl(**params)
-    
     
     def selectExperiment(self, expId):
         #put exp id in self experimentIdLabel
@@ -155,9 +147,14 @@ class elnUpload():
 
         upload = buttonReply == QMessageBox.Yes
         if upload:
+            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             try:
-                collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+\
+                if self.elnIrodsPath.text() == '/zone/home/user':
+                    collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+\
                                    '/'+subcoll
+                else:
+                    collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
+                print(collPath)
                 coll = self.ic.ensureColl(collPath)
                 self.elnIrodsPath.setText(collPath)
                 for path in filePaths:
@@ -173,7 +170,8 @@ class elnUpload():
                     self.elab.addMetadata('{'+self.ic.session.host+', \n'\
                                              +self.ic.session.zone+', \n'\
                                              +self.ic.session.username+', \n'\
-                                             +str(self.ic.session.port)+'}', title='Data in iRODS')
+                                             +str(self.ic.session.port)+'}\n'+
+                                             coll.path, title='Data in iRODS')
                 irodsDict = walkToDict(coll)
                 for key in list(irodsDict.keys())[:20]:
                     self.elnPreviewBrowser.append(key)

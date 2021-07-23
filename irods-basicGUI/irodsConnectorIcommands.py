@@ -39,7 +39,7 @@ class irodsConnectorIcommands():
         envFileExists = os.path.exists(os.environ['HOME']+"/.irods/irods_environment.json")
         
         try:
-            passwordFileExists = os.path.exists(os.environ['HOME']+"/.irods/.irodsA")
+            #passwordFileExists = os.path.exists(os.environ['HOME']+"/.irods/.irodsA")
             icommandsExist = False
             icommandsExist = subprocess.call(["which", "iinit"]) == 0
             if icommandsExist == False:
@@ -155,7 +155,8 @@ class irodsConnectorIcommands():
             irods.exception.CAT_NO_ACCESS_PERMISSION
         '''
         try:
-            self.session.collections.create(collPath)
+            if not self.session.collections.exists(collPath):
+                self.session.collections.create(collPath)
             return self.session.collections.get(collPath)
         except:
             raise

@@ -19,7 +19,7 @@ def networkCheck(hostname):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         s.settimeout(10.0)
-        s.connect(('scomp1461.wur.nl', 22))
+        s.connect((hostname, 1247))
         return True
     except socket.error as e:
         return False

@@ -6,6 +6,7 @@ from PyQt5 import QtGui
 
 from createCollectionWidget import createCollectionWidget
 from irodsUtils import walkToDict 
+from elabUpload import elabUpload
 
 import sys
 
@@ -64,6 +65,16 @@ class irodsBrowser(QMainWindow):
 
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
+        self.actionSearch.triggered.connect(self.search)
+
+        #setup Elabjournal tab
+        self.elnTab = elabUpload(
+                    self.ic, self.globalErrorLabel, self.elnTokenInput,
+                    self.elnGroupTable, self.elnExperimentsTable, self.groupIdLabel,
+                    self.experimentIdLabel, self.localFsTable,
+                    self.elnUploadButton, self.elnPreviewBrowser, self.elnIrodsPath
+                    )
+
         self.browse()
 
     #Frame start
@@ -114,6 +125,9 @@ class irodsBrowser(QMainWindow):
         else:
             pass
 
+    def search(Self):
+        print("TODO: search")
+
 
     def resetPath(self):
         self.inputPath.setText(self.irodsRoot.path)
@@ -136,17 +150,19 @@ class irodsBrowser(QMainWindow):
                 errorLabel.setText("Load: nothing selected.")
                 pass
 
-            for key in irodsDict:
+            for key in list(irodsDict.keys())[:20]:
                 self.deleteSelectionBrowser.append(key)
                 if len(irodsDict[key]) > 0:
                     for item in irodsDict[key]:
                         self.deleteSelectionBrowser.append('\t'+item)
+            self.deleteSelectionBrowser.append('...')
         self.loadDeleteSelectionButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
     def deleteData(self):
         #Deletes all data in the deleteSelectionBrowser
         data = self.deleteSelectionBrowser.toPlainText().split('\n')
+        self.dataDeleteButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         if not data[0] is '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
@@ -159,6 +175,7 @@ class irodsBrowser(QMainWindow):
                 self.ic.deleteData(item)
             self.deleteSelectionBrowser.clear()
             self.loadTable()
+            self.dataDeleteButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
     def createCollection(self):
@@ -183,7 +200,6 @@ class irodsBrowser(QMainWindow):
                 self.loadTable()
             except Exception as error:
                 self.errorLabel.setText(repr(error))
-
         else:
             pass
 
