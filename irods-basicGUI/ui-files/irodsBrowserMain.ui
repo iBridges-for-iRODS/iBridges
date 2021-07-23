@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1012</width>
+    <width>1300</width>
     <height>800</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>1000</width>
+    <width>1300</width>
     <height>800</height>
    </size>
   </property>
@@ -1012,7 +1012,7 @@ color: rgb(46, 52, 54);</string>
                  </font>
                 </property>
                 <property name="text">
-                 <string>iRODS Path</string>
+                 <string>iRODS Path (adjust for YODA)</string>
                 </property>
                </widget>
               </item>
@@ -1170,7 +1170,7 @@ color: rgb(46, 52, 54);</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1012</width>
+     <width>1300</width>
      <height>22</height>
     </rect>
    </property>
@@ -1186,6 +1186,7 @@ color: rgb(46, 52, 54);</string>
      <string>Edit</string>
     </property>
     <addaction name="actionSearch"/>
+    <addaction name="actionExportMetadata"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuOptions"/>
@@ -1204,6 +1205,11 @@ color: rgb(46, 52, 54);</string>
   <action name="actionSearch">
    <property name="text">
     <string>Search</string>
+   </property>
+  </action>
+  <action name="actionExportMetadata">
+   <property name="text">
+    <string>Export Metadata as json</string>
    </property>
   </action>
  </widget>

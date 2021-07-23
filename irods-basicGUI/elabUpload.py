@@ -1,9 +1,11 @@
 from elabConnector import elabConnector
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import os
 from irodsUtils import getSize, walkToDict
+from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 class elabUpload():
     def __init__(self, ic, globalErrorLabel, elnTokenInput,
@@ -12,6 +14,7 @@ class elabUpload():
                  elnUploadButton, elnPreviewBrowser, elnIrodsPath):
 
         self.elab = None
+        self.coll = None
         self.ic = ic
         # Return errors to:
         self.globalErrorLabel = globalErrorLabel
@@ -45,7 +48,6 @@ class elabUpload():
         print(token)
         #ELN can potentially be offline
         try:
-            self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
             self.elab = elabConnector(token)
             groups = self.elab.showGroups(get=True)
             self.elnGroupTable.setRowCount(len(groups))
@@ -112,85 +114,139 @@ class elabUpload():
         self.localFsTable.setModel(model)
         self.localFsTable.setCurrentIndex(index)
         self.localFsTable.setIndentation(20)
-        self.localFsTable.setColumnWidth(0, 400) 
-    
+        self.localFsTable.setColumnWidth(0, 400)
+
+
+    def reportProgress(self, n):
+        self.globalErrorLabel.setText("ELN UPLOAD STATUS: Uploading ...")
+
+    def reportFinished(self):
+        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.globalErrorLabel.setText("ELN UPLOAD STATUS: Upload finished ...")
+        self.annotateElnAndShowPreview()
+        self.thread.quit()
+
+
     def uploadData(self):
-        #upload data to iRODS
-        # Upload to /ELN/projectID/ExperimentID
-        # Show new iRODS paths in self.elnPreviewBrouwser
         self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.elnPreviewBrowser.clear()
         self.globalErrorLabel.clear()
+
         groupId = self.groupIdLabel.text()
         expId = self.experimentIdLabel.text()
         print("Group and Experiment: ", groupId, expId)
+        
+        #preconfigure upload path prefix
         subcoll = 'ELN/'+groupId+'/'+expId
+        #stop if no exp and group is given
         if groupId == '' or expId == '':
             self.globalErrorLabel.setText('ERROR ELN Upload: No Experiment selected')
             pass
-
+        #get the url that will be uploaded as metadata to irods
         expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
-        print(expUrl)
+        print("ELN DATA UPLOAD experiment: \n"+expUrl)
 
+        #get all file and folder names from local fs
         indices = self.localFsTable.selectedIndexes()
         filePaths = set([idx.model().filePath(idx) for idx in indices])
-        #If folder is uploaded get all filenames to annotate
+        #Get all filenames to annotate later with url
         filenames = [os.path.basename(path) for path in filePaths]
         [filenames.extend(os.listdir(path)) for path in filePaths if os.path.isdir(path)]
         filenames = set(filenames)
-        size = round(sum([getSize(path) for path in filePaths])/1024**2)
-        
-        buttonReply = QMessageBox.question(self.elnUploadButton, 
-                                  'Message Box', "Upload\n" + '\n'.join(filePaths) + \
-                                          '\n'+str(size)+'MB',
-                                  QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
+        #get upload total size to inform user
+        size = round(sum([getSize(path) for path in filePaths])/1024**2)
+        #if user specifies a different path than standard home
+        if self.elnIrodsPath.text() == '/zone/home/user':
+            collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
+        else:
+            collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
+        self.coll = self.ic.ensureColl(collPath)
+        self.elnIrodsPath.setText(collPath)
+
+        buttonReply = QMessageBox.question(
+                        self.elnUploadButton,
+                        'Message Box', "Upload\n" + '\n'.join(filePaths) + '\n'+str(size)+'MB',
+                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         upload = buttonReply == QMessageBox.Yes
         if upload:
             self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-            try:
-                if self.elnIrodsPath.text() == '/zone/home/user':
-                    collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+\
-                                   '/'+subcoll
-                else:
-                    collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
-                print(collPath)
-                coll = self.ic.ensureColl(collPath)
-                self.elnIrodsPath.setText(collPath)
-                for path in filePaths:
-                    self.ic.uploadData(path, coll, None, size, force=True)
-                print("Upload complete.")
-                items = [item for sub in [[c]+objs for c, _, objs in coll.walk()] 
-                            for item in sub if item.name in filenames]
+            #start own thread for the upload 
+            self.thread = QThread()
+            self.worker = Worker(self.ic, self.coll, 
+                                size, filePaths, filenames, 
+                                expUrl, self.elnPreviewBrowser)
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.exit)
+            self.worker.progress.connect(self.reportProgress)
+            self.thread.start()
+            self.thread.finished.connect(self.reportFinished)
 
-                self.ic.addMetadata(items, 'ELN', expUrl)
-                if self.ic.davrods:
-                    self.elab.addMetadata(self.ic.davrods, title='Data in iRODS')
-                else:
-                    self.elab.addMetadata('{'+self.ic.session.host+', \n'\
-                                             +self.ic.session.zone+', \n'\
-                                             +self.ic.session.username+', \n'\
-                                             +str(self.ic.session.port)+'}\n'+
-                                             coll.path, title='Data in iRODS')
-                irodsDict = walkToDict(coll)
-                for key in list(irodsDict.keys())[:20]:
-                    self.elnPreviewBrowser.append(key)
-                    if len(irodsDict[key]) > 0:
-                        for item in irodsDict[key]:
-                            self.elnPreviewBrowser.append('\t'+item)
-                self.elnPreviewBrowser.append('...')
-                self.globalErrorLabel.setText("ELN upload success: "+coll.path)
-            except Exception as error:
-                self.globalErrorLabel.setText(repr(error))
-                raise
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+
+    def annotateElnAndShowPreview(self):
+        self.globalErrorLabel.setText("Linking data to Elabjournal experiment.")
+        if self.ic.davrods and "yoda" in self.ic.session.host:
+            self.elab.addMetadata(self.ic.davrods+'/'+self.coll.path.split('home/')[1],
+                    title='Data in iRODS')
+        elif self.ic.davrods:
+            self.elab.addMetadata(self.ic.davrods+'/'+self.coll.path, title='Data in iRODS')
         else:
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            pass
+            self.elab.addMetadata('{'+self.ic.session.host+', \n'\
+                                    +self.ic.session.zone+', \n'\
+                                    +self.ic.session.username+', \n'\
+                                    +str(self.ic.session.port)+'}\n'+
+                                    self.coll.path, title='Data in iRODS')
 
-    
-    
-    #elab.updateMetadataUrl(**{'group': 2518, 'experiment': 479738}) #string:int
+        irodsDict = walkToDict(self.coll)
+        for key in list(irodsDict.keys())[:50]:
+            self.elnPreviewBrowser.append(key)
+            if len(irodsDict[key]) > 0:
+                for item in irodsDict[key]:
+                    self.elnPreviewBrowser.append('\t'+item)
+        self.elnPreviewBrowser.append('\n\n<First 50 items printed>')
+        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.globalErrorLabel.setText("ELN upload success: "+self.coll.path)
+
+
+class Worker(QObject):
+    finished = pyqtSignal()
+    progress = pyqtSignal(int)
+
+    def __init__(self, ic, coll, size, filePaths, filenames, expUrl, elnPreviewBrowser):
+        super(Worker, self).__init__()
+        self.ic = ic
+        self.coll = coll
+        self.filePaths = filePaths
+        self.filenames = filenames
+        self.elnPreviewBrowser = elnPreviewBrowser
+        self.size = size
+        self.expUrl = expUrl
+
+        print("Start worker: ")
+
+
+    def run(self):
+        i = 1
+        try:
+            for path in self.filePaths:
+                self.progress.emit(i)
+                self.ic.uploadData(path, self.coll, None, self.size, force=True)
+                i = i+1
+            print("Upload complete.")
+            items = [item for sub in [[c]+objs for c, _, objs in self.coll.walk()] 
+                    for item in sub if item.name in self.filenames]
+            try:
+                self.ic.addMetadata(items, 'ELN', self.expUrl)
+            except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as e:
+                print(repr(e))
+            self.progress.emit(3)
+            self.finished.emit()
+        except Exception as e:
+            print(repr(e))
+
     
     
     

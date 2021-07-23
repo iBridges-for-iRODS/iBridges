@@ -66,6 +66,8 @@ class irodsBrowser(QMainWindow):
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
         self.actionSearch.triggered.connect(self.search)
+        self.actionExportMetadata.triggered.connect(self.exportMeta)
+
 
         #setup Elabjournal tab
         self.elnTab = elabUpload(
@@ -126,6 +128,10 @@ class irodsBrowser(QMainWindow):
             pass
 
     def search(Self):
+        print("TODO: search")
+
+
+    def exportMeta(Self):
         print("TODO: search")
 
 
@@ -234,6 +240,7 @@ class irodsBrowser(QMainWindow):
                     item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 self.ic.updateMetadata([item], newKey, newVal, newUnits)
                 self.__fillMetadata(cell)
+                self.__fillResc(cell)
         except Exception as error:
             self.errorLabel.setText(repr(error))
 
@@ -253,6 +260,7 @@ class irodsBrowser(QMainWindow):
                     item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 self.ic.addMetadata([item], newKey, newVal, newUnits)
                 self.__fillMetadata(cell)
+                self.__fillResc(cell)
             except Exception as error:
                 self.errorLabel.setText(repr(error))
 
@@ -384,6 +392,7 @@ class irodsBrowser(QMainWindow):
 
 
     def __fillResc(self, value):
+        self.resourceTable.setRowCount(0)
         newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
@@ -491,9 +500,11 @@ class irodsBrowser(QMainWindow):
                             out.append(readObj.read(50))
                     previewString = ''.join([line.decode('utf-8') for line in out])
                     self.previewBrowser.append(previewString)
-                except:
+                except Exception as e:
                     self.previewBrowser.append(
 			"No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))
+                    self.previewBrowser.append(repr(e))
+                    self.previewBrowser.append("Storage resource might be down.")
             else:
                 self.previewBrowser.append(
                         "No Preview for: " + "/"+self.inputPath.text().strip("/")+"/"+value.strip("/"))

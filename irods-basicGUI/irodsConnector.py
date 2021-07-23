@@ -313,7 +313,11 @@ class irodsConnector():
             try:
                 item.metadata.add(key.upper(), value, units)
             except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                raise CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME("ERROR ADD META: Metadata already present")
+                print(RED+"ERROR ADD META: Metadata already present"+DEFAULT)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
+
+            
 
     def updateMetadata(self, items, key, value, units = None):
         """
@@ -358,7 +362,9 @@ class irodsConnector():
             try:
                 item.metadata.remove(key, value, units)
             except CAT_SUCCESS_BUT_WITH_NO_INFO:
-                raise CAT_SUCCESS_BUT_WITH_NO_INFO("ERROR DELETE META: Metadata never existed")
+                print(RED+"ERROR DELETE META: Metadata never existed"+DEFAULT)
+            except CAT_NO_ACCESS_PERMISSION:
+                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
 
 
 
