@@ -29,18 +29,17 @@ background-color: rgb(54, 54, 54);</string>
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QLabel" name="label">
-      <property name="font">
-       <font>
-        <pointsize>20</pointsize>
-        <weight>75</weight>
-        <bold>true</bold>
-       </font>
+     <spacer name="verticalSpacer_8">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
       </property>
-      <property name="text">
-       <string>iRODS basic GUI</string>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
       </property>
-     </widget>
+     </spacer>
     </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
@@ -51,7 +50,7 @@ background-color: rgb(54, 54, 54);</string>
        </size>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -154,7 +153,7 @@ selection-background-color: rgb(58, 152, 112);</string>
           </property>
           <column>
            <property name="text">
-            <string notr="true"/>
+            <string notr="true">Path</string>
            </property>
            <property name="toolTip">
             <string notr="true"/>
@@ -1175,6 +1174,13 @@ color: rgb(46, 52, 54);</string>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
+    <property name="font">
+     <font>
+      <pointsize>13</pointsize>
+      <weight>50</weight>
+      <bold>false</bold>
+     </font>
+    </property>
     <property name="title">
      <string>Menu</string>
     </property>
@@ -1183,7 +1189,7 @@ color: rgb(46, 52, 54);</string>
    </widget>
    <widget class="QMenu" name="menuOptions">
     <property name="title">
-     <string>Edit</string>
+     <string>Options</string>
     </property>
     <addaction name="actionSearch"/>
     <addaction name="actionExportMetadata"/>
@@ -1196,20 +1202,40 @@ color: rgb(46, 52, 54);</string>
    <property name="text">
     <string>Close Session</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>13</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionExit">
    <property name="text">
     <string>Exit</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>13</pointsize>
+    </font>
    </property>
   </action>
   <action name="actionSearch">
    <property name="text">
     <string>Search</string>
    </property>
+   <property name="font">
+    <font>
+     <pointsize>13</pointsize>
+    </font>
+   </property>
   </action>
   <action name="actionExportMetadata">
    <property name="text">
     <string>Export Metadata as json</string>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>13</pointsize>
+    </font>
    </property>
   </action>
  </widget>

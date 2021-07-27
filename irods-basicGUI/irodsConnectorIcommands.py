@@ -161,6 +161,56 @@ class irodsConnectorIcommands():
         except:
             raise
 
+
+    def search(self, keyVals = None):
+        '''
+        Given a dictionary with keys and values, searches for colletions and 
+        data objects that fullfill the criteria.
+        The key 'checksum' will be mapped to DataObject.checksum, the key 'path'
+        will be mapped to Collection.name and the key 'object' will be mapped to DataObject.name.
+        Default: if no keyVals are given, all accessible colletcins and data objects will be returned
+
+        keyVals: dict; {'checksum': '', 'key1': 'val1', 'key2': 'val2', 'path': '', 'object': ''}
+
+        
+        Returns:
+        list: [[Collection name, Object name, checksum]]
+        '''
+
+        collQuery = self.session.query(Collection.name)
+        objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
+        if keyVals == None or keyVals == {}:
+            return collQuery, objQuery
+        else:
+            for key in keyVals:
+                if key == 'checksum' and keyVals[key]:
+                    objQuery.filter(DataObject.checksum == keyVals[key])
+                elif key == 'object' and keyVals[key]:
+                    objQuery.filter(DataObject.checksum == keyVals[key])
+                elif key == 'path' and keyVals[key]:
+                    objQuery.filter(Collection.name == keyVals[key])
+                    collQuery.filter(Collection.name == keyVals[key])
+                elif key:
+                    objQuery.filter(DataObjectMeta.name == key)
+                    collQuery.filter(CollectionMeta.name == key)
+                    if keyVals[key]:
+                        objQuery.filter(DataObjectMeta.value == keyVals[key])
+                        collQuery.filter(CollectionMeta.value == keyVals[key])
+
+        results = []
+        print(keyVals)
+        if not 'checksum' in keyVals and not 'object' in keyVals:
+            for res in collQuery.get_results():
+                results.append([res[list(res.keys())[0]], '', ''])
+
+        for res in objQuery.get_results():
+            results.append([res[list(res.keys())[0]],
+                            res[list(res.keys())[1]],
+                            res[list(res.keys())[2]]])
+
+        return results
+
+
     def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
         """
         source: absolute path to file or folder

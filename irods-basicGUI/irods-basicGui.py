@@ -123,9 +123,10 @@ class irodsLogin(QDialog):
             except NetworkException:
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            #except Exception:
-            #    self.envError.setText("Something went wrong.")
-            #    self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except Exception:
+                self.envError.setText("Something went wrong.")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                raise
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ from PyQt5 import QtGui
 from createCollectionWidget import createCollectionWidget
 from irodsUtils import walkToDict 
 from elabUpload import elabUpload
+from irodsSearch import irodsSearch
 
 import sys
 
@@ -77,6 +78,7 @@ class irodsBrowser(QMainWindow):
                     self.elnUploadButton, self.elnPreviewBrowser, self.elnIrodsPath
                     )
 
+
         self.browse()
 
     #Frame start
@@ -127,8 +129,10 @@ class irodsBrowser(QMainWindow):
         else:
             pass
 
-    def search(Self):
-        print("TODO: search")
+    def search(self):
+        search = irodsSearch(self.ic)
+        search.exec_()
+        #search.search()
 
 
     def exportMeta(Self):
@@ -215,12 +219,15 @@ class irodsBrowser(QMainWindow):
         user = self.aclUserField.text()
         rights = self.aclBox.currentText()
         recursive = self.recurseBox.currentText() == 'True'
-        parent = self.inputPath.text()
+        if self.collTable.item(self.currentBrowserRow, 0).text() == '':
+            parent = self.inputPath.text()
+        else:
+            parent = self.collTable.item(self.currentBrowserRow, 0).text()
         cell = self.collTable.item(self.currentBrowserRow, 1).text()
         zone = self.aclZoneField.text()
         try:
             self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
-            self.__fillACLs(cell)
+            self.__fillACLs(cell, parent)
         except Exception as error:
             self.errorLabel.setText(repr(error))
 
@@ -232,15 +239,19 @@ class irodsBrowser(QMainWindow):
         newUnits = self.metaUnitsField.text()
         try:
             if not (newKey is "" or newVal is ""):
-                parent = self.inputPath.text()
+                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
+                    parent = self.inputPath.text()
+                else:
+                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
+
                 cell = self.collTable.item(self.currentBrowserRow, 1).text()
                 if cell.endswith("/"):
                     item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 else:
                     item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 self.ic.updateMetadata([item], newKey, newVal, newUnits)
-                self.__fillMetadata(cell)
-                self.__fillResc(cell)
+                self.__fillMetadata(cell, parent)
+                self.__fillResc(cell, parent)
         except Exception as error:
             self.errorLabel.setText(repr(error))
 
@@ -252,15 +263,19 @@ class irodsBrowser(QMainWindow):
         newUnits = self.metaUnitsField.text()
         if not (newKey is "" or newVal is ""):
             try:
-                parent = self.inputPath.text()
+                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
+                    parent = self.inputPath.text()
+                else:
+                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
+
                 cell = self.collTable.item(self.currentBrowserRow, 1).text()
                 if cell.endswith("/"):
                     item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 else:
                     item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 self.ic.addMetadata([item], newKey, newVal, newUnits)
-                self.__fillMetadata(cell)
-                self.__fillResc(cell)
+                self.__fillMetadata(cell, parent)
+                self.__fillResc(cell, parent)
             except Exception as error:
                 self.errorLabel.setText(repr(error))
 
@@ -273,14 +288,18 @@ class irodsBrowser(QMainWindow):
         units = self.metaUnitsField.text()
         try:
             if not (key is "" or val is ""):
-                parent = self.inputPath.text()
+                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
+                    parent = self.inputPath.text()
+                else:
+                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
+
                 cell = self.collTable.item(self.currentBrowserRow, 1).text()
                 if cell.endswith("/"):
                     item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 else:
                     item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
                 self.ic.deleteMetadata([item], key, val, units)
-                self.__fillMetadata(cell)
+                self.__fillMetadata(cell, parent)
         except Exception as error:
             self.errorLabel.setText(repr(error))
 
@@ -310,11 +329,15 @@ class irodsBrowser(QMainWindow):
         row = index.row()
         self.currentBrowserRow = row
         value = self.collTable.item(row, col).text()
+        if self.collTable.item(row, 0).text() != '':
+            path = self.collTable.item(row, 0).text()
+        else:
+            path = self.inputPath.text()
         self.__clearViewTabs()
-        self.__fillPreview(value)
-        self.__fillMetadata(value)
-        self.__fillACLs(value)
-        self.__fillResc(value)
+        self.__fillPreview(value, path)
+        self.__fillMetadata(value, path)
+        self.__fillACLs(value, path)
+        self.__fillResc(value, path)
 
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
@@ -379,11 +402,6 @@ class irodsBrowser(QMainWindow):
                 self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
                 self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
                 self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
-                item = QtWidgets.QTableWidgetItem()
-                item.setFlags(QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-                item.setCheckState(QtCore.Qt.Unchecked)
-                #self.collTable.itemClicked.connect(self.__gatherClicked)
-                self.collTable.setItem(row, 0, item)
                 row = row+1
             self.collTable.resizeColumnsToContents()
         else:
@@ -391,14 +409,14 @@ class irodsBrowser(QMainWindow):
             self.errorLabel.setText("Collection does not exist.")
 
 
-    def __fillResc(self, value):
+    def __fillResc(self, value, path):
         self.resourceTable.setRowCount(0)
-        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+path.strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
             resources = self.ic.listResources()
             self.resourceTable.setRowCount(len(resources))
             obj = self.ic.session.data_objects.get(
-                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                    "/"+path.strip("/")+"/"+value.strip("/")
                     )
             replicas = [resc.resource_name for resc in obj.replicas]
             for i in range(len(resources)):
@@ -412,22 +430,22 @@ class irodsBrowser(QMainWindow):
         self.resourceTable.resizeColumnsToContents()
 
 
-    def __fillACLs(self, value):
+    def __fillACLs(self, value, path):
         self.aclTable.setRowCount(0)
         self.aclUserField.clear()
         self.aclZoneField.clear()
         self.aclBox.setCurrentText("----")
 
-        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+path.strip("/")+"/"+value.strip("/")
         acls = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
             item = self.ic.session.collections.get(
-                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                        "/"+path.strip("/")+"/"+value.strip("/")
                         )
             acls = self.ic.session.permissions.get(item)
         elif self.ic.session.data_objects.exists(newPath):
             item = self.ic.session.data_objects.get(
-                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                    "/"+path.strip("/")+"/"+value.strip("/")
                     )
             acls = self.ic.session.permissions.get(item)
         
@@ -443,21 +461,21 @@ class irodsBrowser(QMainWindow):
         self.aclTable.resizeColumnsToContents()
 
 
-    def __fillMetadata(self, value):
+    def __fillMetadata(self, value, path):
         self.metaKeyField.clear()
         self.metaValueField.clear()
         self.metaUnitsField.clear()
 
-        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+        newPath = "/"+path.strip("/")+"/"+value.strip("/")
         metadata = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(
-                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                        "/"+path.strip("/")+"/"+value.strip("/")
                         )
             metadata = coll.metadata.items()
         elif self.ic.session.data_objects.exists(newPath):
             obj = self.ic.session.data_objects.get(
-                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                    "/"+path.strip("/")+"/"+value.strip("/")
                     )
             metadata = obj.metadata.items()
         self.metadataTable.setRowCount(len(metadata))
@@ -473,11 +491,11 @@ class irodsBrowser(QMainWindow):
         self.metadataTable.resizeColumnsToContents()
 
 
-    def __fillPreview(self, value):
-        newPath = "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+    def __fillPreview(self, value, path):
+        newPath = "/"+path.strip("/")+"/"+value.strip("/")
         if value.endswith("/") and self.ic.session.collections.exists(newPath): # collection
             coll = self.ic.session.collections.get(
-                        "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                        "/"+path.strip("/")+"/"+value.strip("/")
                         )
             content = ['Collections:', '-----------------'] +\
                       [c.name+'/' for c in coll.subcollections] + \
@@ -490,7 +508,7 @@ class irodsBrowser(QMainWindow):
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
             obj = self.ic.session.data_objects.get(
-                    "/"+self.inputPath.text().strip("/")+"/"+value.strip("/")
+                    "/"+path.strip("/")+"/"+value.strip("/")
                     )
             if mimetype in ['txt', 'json', 'csv']:
                 try:
