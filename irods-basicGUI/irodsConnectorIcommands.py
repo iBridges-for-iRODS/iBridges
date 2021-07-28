@@ -198,7 +198,6 @@ class irodsConnectorIcommands():
                         collQuery.filter(CollectionMeta.value == keyVals[key])
 
         results = []
-        print(keyVals)
         if not 'checksum' in keyVals and not 'object' in keyVals:
             for res in collQuery.get_results():
                 results.append([res[list(res.keys())[0]], '', ''])

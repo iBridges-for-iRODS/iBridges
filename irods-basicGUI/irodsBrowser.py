@@ -130,7 +130,7 @@ class irodsBrowser(QMainWindow):
             pass
 
     def search(self):
-        search = irodsSearch(self.ic)
+        search = irodsSearch(self.ic, self.collTable)
         search.exec_()
         #search.search()
 
