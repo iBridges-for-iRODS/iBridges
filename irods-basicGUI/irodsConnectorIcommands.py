@@ -164,7 +164,7 @@ class irodsConnectorIcommands():
 
     def search(self, keyVals = None):
         '''
-        Given a dictionary with keys and values, searches for colletions and 
+        Given a dictionary with keys and values, searches for collections and 
         data objects that fullfill the criteria.
         The key 'checksum' will be mapped to DataObject.checksum, the key 'path'
         will be mapped to Collection.name and the key 'object' will be mapped to DataObject.name.
@@ -177,35 +177,51 @@ class irodsConnectorIcommands():
         list: [[Collection name, Object name, checksum]]
         '''
 
-        collQuery = self.session.query(Collection.name)
-        objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
-        if keyVals == None or keyVals == {}:
-            return collQuery, objQuery
-        else:
-            for key in keyVals:
-                if key == 'checksum' and keyVals[key]:
-                    objQuery.filter(DataObject.checksum == keyVals[key])
-                elif key == 'object' and keyVals[key]:
-                    objQuery.filter(DataObject.checksum == keyVals[key])
-                elif key == 'path' and keyVals[key]:
-                    objQuery.filter(Collection.name == keyVals[key])
-                    collQuery.filter(Collection.name == keyVals[key])
-                elif key:
+        collQuery = None
+        objQuery = None
+        if 'path' in keyVals:
+            collQuery = self.session.query(Collection.name).filter(Like(Collection.name,
+                                                        keyVals['path']))
+        if 'object' in keyVals:
+            objQuery = self.session.query(Collection.name,
+                                    DataObject.name,
+                                    DataObject.checksum).filter(Like(DataObject.name,
+                                                                keyVals['object']))
+        if 'checksum' in keyVals:
+             objQuery = self.session.query(Collection.name,
+                                    DataObject.name,
+                                    DataObject.checksum).filter(Like(DataObject.checksum,
+                                                                keyVals['checksum']))
+        for key in keyVals:
+            if key not in ['checksum', 'path', 'object']:
+                if objQuery:
                     objQuery.filter(DataObjectMeta.name == key)
+                if collQuery:
                     collQuery.filter(CollectionMeta.name == key)
-                    if keyVals[key]:
+                if keyVals[key]:
+                    if objQuery:
                         objQuery.filter(DataObjectMeta.value == keyVals[key])
+                    if collQuery:
                         collQuery.filter(CollectionMeta.value == keyVals[key])
 
-        results = []
-        if not 'checksum' in keyVals and not 'object' in keyVals:
-            for res in collQuery.get_results():
-                results.append([res[list(res.keys())[0]], '', ''])
+        results = [['', '', ''], ['', '', ''], ['', '', '']]
+        collBatch = []
+        objBatch = []
+        if collQuery:
+            results[0] = ["Collections found: "+str(sum(1 for _ in collQuery)),'', '']
+            collBatch = [b for b in collQuery.get_batches()]
+        if objQuery:
+            results[1] = ["Objects found: "+str(sum(1 for _ in objQuery)), '', '']
+            objBatch = [b for b in objQuery.get_batches()]
 
-        for res in objQuery.get_results():
-            results.append([res[list(res.keys())[0]],
-                            res[list(res.keys())[1]],
-                            res[list(res.keys())[2]]])
+        if 'checksum' in keyVals or 'object' in keyVals:
+            for res in objBatch[0][:50]:
+                results.append([res[list(res.keys())[0]],
+                                res[list(res.keys())[1]],
+                                res[list(res.keys())[2]]])
+        if 'path' in keyVals:
+            for res in collBatch[0][:50]:
+                results.append([res[list(res.keys())[0]], '', ''])
 
         return results
 

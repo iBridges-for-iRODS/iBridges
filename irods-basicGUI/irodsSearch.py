@@ -1,4 +1,4 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QDialog
 from PyQt5.uic import loadUi
 
@@ -20,6 +20,8 @@ class irodsSearch(QDialog):
 
 
     def search(self):
+        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.startSearchButton.setDisabled(True)
         self.searchResultTable.setRowCount(0)
         #gather all input from input fields in dictionary 'criteria'
         keyVals = dict(zip([key.text() for key in self.keys], [val.text() for val in self.vals]))
@@ -39,6 +41,7 @@ class irodsSearch(QDialog):
         
         #get search results as [[collname, objname, checksum]...[]]
         results = self.ic.search(criteria)
+        print(results)
         
         row = 0 
         if len(results) == 0:
@@ -53,22 +56,24 @@ class irodsSearch(QDialog):
                 self.searchResultTable.setItem(row, 2, QtWidgets.QTableWidgetItem(checksum))
                 row = row + 1
         self.searchResultTable.resizeColumnsToContents()
-
+        self.startSearchButton.setDisabled(False)
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
     def loadSearchResults(self):
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes()])
         i = 0
         self.collTable.setRowCount(len(rows))
         for row in rows:
-            self.collTable.setItem(i, 0, 
+            if row > 2:
+                self.collTable.setItem(i, 0, 
                     QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 0).text()))
-            self.collTable.setItem(i, 1,
+                self.collTable.setItem(i, 1,
                     QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 1).text()))
-            self.collTable.setItem(i, 2,
+                self.collTable.setItem(i, 2,
                     QtWidgets.QTableWidgetItem(""))
-            self.collTable.setItem(i, 3,
+                self.collTable.setItem(i, 3,
                     QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 2).text()))
-            i = i + 1
+                i = i + 1
         
         self.collTable.resizeColumnsToContents()
         self.close()

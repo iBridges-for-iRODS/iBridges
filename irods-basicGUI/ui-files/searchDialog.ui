@@ -33,7 +33,7 @@ background-color: rgb(54, 54, 54);</string>
       </font>
      </property>
      <property name="text">
-      <string>If nothing is set, you will get a list of all accesible data.</string>
+      <string>iRODS search.</string>
      </property>
     </widget>
    </item>
@@ -125,7 +125,7 @@ background-color: rgb(54, 54, 54);</string>
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>Collection name</string>
+      <string>Collection name (wildcard '%')</string>
      </property>
     </widget>
    </item>
@@ -142,7 +142,7 @@ background-color: rgb(54, 54, 54);</string>
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Object name</string>
+      <string>Object name (wildcard '%')</string>
      </property>
     </widget>
    </item>
@@ -156,7 +156,7 @@ background-color: rgb(54, 54, 54);</string>
    <item>
     <widget class="QLabel" name="label_5">
      <property name="text">
-      <string>Checksum</string>
+      <string>Checksum (wildcard '%')</string>
      </property>
     </widget>
    </item>
