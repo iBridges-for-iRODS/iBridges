@@ -402,6 +402,7 @@ class irodsBrowser(QMainWindow):
                 self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
                 self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
                 self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                self.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(""))
                 row = row+1
             self.collTable.resizeColumnsToContents()
         else:
