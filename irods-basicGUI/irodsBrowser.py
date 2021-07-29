@@ -357,7 +357,7 @@ class irodsBrowser(QMainWindow):
 
     @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editACL(self, index):
-        self.clearErrorLabel()
+        self.__clearErrorLabel()
         self.aclUserField.clear()
         self.aclZoneField.clear()
         self.aclBox.setCurrentText("----")
