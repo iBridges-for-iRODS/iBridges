@@ -40,6 +40,7 @@ class irodsSearch(QDialog):
                 criteria[key] = keyVals[key]
         
         #get search results as [[collname, objname, checksum]...[]]
+        print(criteria)
         results = self.ic.search(criteria)
         print(results)
         
