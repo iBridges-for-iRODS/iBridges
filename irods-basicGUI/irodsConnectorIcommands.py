@@ -176,22 +176,29 @@ class irodsConnectorIcommands():
         Returns:
         list: [[Collection name, Object name, checksum]]
         '''
-
         collQuery = None
         objQuery = None
-        if 'path' in keyVals:
-            collQuery = self.session.query(Collection.name).filter(Like(Collection.name,
-                                                        keyVals['path']))
-        if 'object' in keyVals:
+        if set(keyVals.keys()).intersection(['checksum', 'object', 'path']) == set():
+            collQuery = self.session.query(Collection.name)
             objQuery = self.session.query(Collection.name,
-                                    DataObject.name,
-                                    DataObject.checksum).filter(Like(DataObject.name,
-                                                                keyVals['object']))
-        if 'checksum' in keyVals:
-             objQuery = self.session.query(Collection.name,
-                                    DataObject.name,
-                                    DataObject.checksum).filter(Like(DataObject.checksum,
-                                                                keyVals['checksum']))
+                                          DataObject.name,
+                                          DataObject.checksum)
+        if 'path' in keyVals:
+            collQuery = self.session.query(Collection.name).\
+                                           filter(Like(Collection.name, keyVals['path']))
+        if 'object' in keyVals or 'checksum' in keyVals:
+            objQuery = self.session.query(Collection.name,
+                                DataObject.name,
+                                DataObject.checksum)
+            if 'object' in keyVals:
+                if keyVals['object']:
+                    objQuery = objQuery.filter(Like(DataObject.name,
+                                                keyVals['object']))
+            if 'checksum' in keyVals:
+                if keyVals['checksum']:
+                    objQuery = objQuery.filter(Like(DataObject.checksum,
+                                                keyVals['checksum']))
+
         for key in keyVals:
             if key not in ['checksum', 'path', 'object']:
                 if objQuery:

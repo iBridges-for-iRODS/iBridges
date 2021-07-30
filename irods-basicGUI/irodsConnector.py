@@ -126,25 +126,32 @@ class irodsConnector():
 
         keyVals: dict; {'checksum': '', 'key1': 'val1', 'key2': 'val2', 'path': '', 'object': ''}
 
-        
         Returns:
         list: [[Collection name, Object name, checksum]]
         '''
         collQuery = None
         objQuery = None
+        if set(keyVals.keys()).intersection(['checksum', 'object', 'path']) == set():
+            collQuery = self.session.query(Collection.name)
+            objQuery = self.session.query(Collection.name,
+                                          DataObject.name,
+                                          DataObject.checksum)
         if 'path' in keyVals: 
-            collQuery = self.session.query(Collection.name).filter(Like(Collection.name, 
-                                                        keyVals['path']))
-        if 'object' in keyVals:
-            objQuery = self.session.query(Collection.name, 
-                                    DataObject.name, 
-                                    DataObject.checksum).filter(Like(DataObject.name, 
-                                                                keyVals['object']))
-        if 'checksum' in keyVals:
-             objQuery = self.session.query(Collection.name,
-                                    DataObject.name, 
-                                    DataObject.checksum).filter(Like(DataObject.checksum, 
-                                                                keyVals['checksum']))
+            collQuery = self.session.query(Collection.name).\
+                                           filter(Like(Collection.name, keyVals['path']))
+        if 'object' in keyVals or 'checksum' in keyVals:
+            objQuery = self.session.query(Collection.name,
+                                DataObject.name,
+                                DataObject.checksum)
+            if 'object' in keyVals:
+                if keyVals['object']:
+            	    objQuery = objQuery.filter(Like(DataObject.name, 
+                                                keyVals['object']))
+            if 'checksum' in keyVals: 
+                if keyVals['checksum']:
+                    objQuery = objQuery.filter(Like(DataObject.checksum, 
+                                                keyVals['checksum']))
+        
         for key in keyVals:
             if key not in ['checksum', 'path', 'object']:
                 if objQuery:
@@ -158,8 +165,8 @@ class irodsConnector():
                         collQuery.filter(CollectionMeta.value == keyVals[key])
 
         results = [['', '', ''], ['', '', ''], ['', '', '']]
-        collBatch = []
-        objBatch = []
+        collBatch = [[]]
+        objBatch = [[]]
         #return only 100 results
         if collQuery:
             results[0] = ["Collections found: "+str(sum(1 for _ in collQuery)),'', '']
@@ -168,14 +175,12 @@ class irodsConnector():
             results[1] = ["Objects found: "+str(sum(1 for _ in objQuery)), '', '']
             objBatch = [b for b in objQuery.get_batches()]
        
-        if 'checksum' in keyVals or 'object' in keyVals:
-            for res in objBatch[0][:50]:
-                results.append([res[list(res.keys())[0]],
-                                res[list(res.keys())[1]],
-                                res[list(res.keys())[2]]])
-        if 'path' in keyVals:
-            for res in collBatch[0][:50]:
-                results.append([res[list(res.keys())[0]], '', ''])
+        for res in objBatch[0][:50]:
+            results.append([res[list(res.keys())[0]],
+                            res[list(res.keys())[1]],
+                            res[list(res.keys())[2]]])
+        for res in collBatch[0][:50]:
+            results.append([res[list(res.keys())[0]], '', ''])
 
         return results
 
