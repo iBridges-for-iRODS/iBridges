@@ -90,7 +90,8 @@ class irodsLogin(QDialog):
             connect = networkCheck(ienv['irods_host'])
             if not connect:
                 print("Network down")
-                raise Exception("No network connection to server")
+                self.envError.setText("No network connection to server")
+                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except FileNotFoundError:
             self.envError.setText("ERROR: iRODS environment file or certificate not found.")
             self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))

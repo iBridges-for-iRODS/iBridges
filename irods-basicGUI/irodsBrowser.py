@@ -173,7 +173,7 @@ class irodsBrowser(QMainWindow):
         #Deletes all data in the deleteSelectionBrowser
         data = self.deleteSelectionBrowser.toPlainText().split('\n')
         self.dataDeleteButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        if not data[0] is '':
+        if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
             reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
@@ -238,7 +238,7 @@ class irodsBrowser(QMainWindow):
         newVal = self.metaValueField.text()
         newUnits = self.metaUnitsField.text()
         try:
-            if not (newKey is "" or newVal is ""):
+            if not (newKey == "" or newVal == ""):
                 if self.collTable.item(self.currentBrowserRow, 0).text() == '':
                     parent = self.inputPath.text()
                 else:
@@ -261,7 +261,7 @@ class irodsBrowser(QMainWindow):
         newKey = self.metaKeyField.text()
         newVal = self.metaValueField.text()
         newUnits = self.metaUnitsField.text()
-        if not (newKey is "" or newVal is ""):
+        if not (newKey == "" or newVal == ""):
             try:
                 if self.collTable.item(self.currentBrowserRow, 0).text() == '':
                     parent = self.inputPath.text()
@@ -287,7 +287,7 @@ class irodsBrowser(QMainWindow):
         val = self.metaValueField.text()
         units = self.metaUnitsField.text()
         try:
-            if not (key is "" or val is ""):
+            if not (key == "" or val == ""):
                 if self.collTable.item(self.currentBrowserRow, 0).text() == '':
                     parent = self.inputPath.text()
                 else:
@@ -309,7 +309,10 @@ class irodsBrowser(QMainWindow):
         self.__clearErrorLabel()
         col = index.column()
         row = index.row()
-        parent = self.inputPath.text()
+        if self.collTable.item(row, 0).text() != '':
+            parent = self.collTable.item(row, 0).text()
+        else:
+            parent = self.inputPath.text()
         value = self.collTable.item(row, 1).text()
         if value.endswith("/"): #collection
             self.inputPath.setText("/"+parent.strip("/")+"/"+value.strip("/"))

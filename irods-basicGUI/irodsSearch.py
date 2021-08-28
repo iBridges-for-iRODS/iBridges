@@ -1,6 +1,7 @@
 from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QDialog
 from PyQt5.uic import loadUi
+import os
 
 
 class irodsSearch(QDialog):
@@ -60,17 +61,26 @@ class irodsSearch(QDialog):
         self.startSearchButton.setDisabled(False)
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
+
     def loadSearchResults(self):
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes()])
         i = 0
         self.collTable.setRowCount(len(rows))
         for row in rows:
             if row > 2:
-                self.collTable.setItem(i, 0, 
-                    QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 0).text()))
-                self.collTable.setItem(i, 1,
-                    QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 1).text()))
-                self.collTable.setItem(i, 2,
+                if self.searchResultTable.item(row, 1).text() == '':
+                    self.collTable.setItem(i, 0,
+                        QtWidgets.QTableWidgetItem(os.path.dirname( \
+                        self.searchResultTable.item(row, 0).text())))
+                    self.collTable.setItem(i, 1,
+                        QtWidgets.QTableWidgetItem(os.path.basename( \
+                        self.searchResultTable.item(row, 0).text())+'/'))
+                else:
+                    self.collTable.setItem(i, 0, 
+                        QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 0).text()))
+                    self.collTable.setItem(i, 1,
+                        QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 1).text()))
+                self.collTable.setItem(i, 2, 
                     QtWidgets.QTableWidgetItem(""))
                 self.collTable.setItem(i, 3,
                     QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 2).text()))
