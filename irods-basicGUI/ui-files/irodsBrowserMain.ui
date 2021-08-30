@@ -817,7 +817,7 @@ color: rgb(46, 52, 54);</string>
              </widget>
             </item>
             <item>
-             <widget class="QTreeView" name="irodsFsTreeView_2">
+             <widget class="QTreeView" name="irodsFsTreeView">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
                 <horstretch>0</horstretch>

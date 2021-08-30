@@ -8,6 +8,7 @@ from createCollectionWidget import createCollectionWidget
 from irodsUtils import walkToDict 
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
+from irodsUpDownload import irodsUpDownload
 
 import sys
 
@@ -70,7 +71,7 @@ class irodsBrowser(QMainWindow):
         self.actionExportMetadata.triggered.connect(self.exportMeta)
 
 
-        #setup Elabjournal tab
+        # setup Elabjournal tab
         self.elnTab = elabUpload(
                     self.ic, self.globalErrorLabel, self.elnTokenInput,
                     self.elnGroupTable, self.elnExperimentsTable, self.groupIdLabel,
@@ -78,6 +79,8 @@ class irodsBrowser(QMainWindow):
                     self.elnUploadButton, self.elnPreviewBrowser, self.elnIrodsPath
                     )
 
+        # Setup up/download tab
+        self.updownload = irodsUpDownload(self, ic)
 
         self.browse()
 
