@@ -369,6 +369,10 @@ class irodsConnector():
             else: #same paths, no scope
                 diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
 
+        #adding files that are not uploaded, only present on local FS
+        for partialPath in set(listDir).difference(listColl):
+            diff.append(('', dirPath+'/'+partialPath))
+
         return diff
 
 
