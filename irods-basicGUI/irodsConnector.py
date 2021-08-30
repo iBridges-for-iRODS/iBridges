@@ -251,15 +251,18 @@ class irodsConnector():
             except Exception as error:
                 raise error()
         try: 
+            if source.endswith(os.sep):
+                source = source[:len(source)-1]
             if os.path.isfile(source):
                 print("CREATE", destination.path+"/"+os.path.basename(source))
                 self.session.collections.create(destination.path)
                 self.session.data_objects.put(source, 
                     destination.path+"/"+os.path.basename(source), **options)
             elif os.path.isdir(source):
+                iPath = destination.path+'/'+os.path.basename(source)
                 for directory, _, files in os.walk(source):
-                    subColl = directory.split(source)[1]
-                    iColl = destination.path+subColl
+                    subColl = directory.split(source)[1].replace(os.sep, '/')
+                    iColl = iPath+subColl
                     self.session.collections.create(iColl)
                     for fname in files:
                         print("CREATE", iColl+'/'+fname)
@@ -275,11 +278,13 @@ class irodsConnector():
         '''
         Download object or collection.
         source: iRODS collection or data object
-        destination: absolut path to download folder
+        destination: absolute path to download folder
         '''
         
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
-        destination = '/'+destination.strip('/')
+        
+        if destination.endswith(os.sep):
+            destination = destination[:len(destination)-1]
 
         if not os.access(destination, os.W_OK):
             raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
@@ -289,7 +294,7 @@ class irodsConnector():
         if self.session.data_objects.exists(source.path):
             try:
                 self.session.data_objects.get(source.path, 
-                            local_path=destination + '/' + source.name, **options)
+                            local_path=os.path.join(destination, source.name), **options)
             except:
                 raise
 
@@ -299,15 +304,20 @@ class irodsConnector():
             while walk:
                 try:
                     coll = walk.pop()
-                    suffix = '/'+(os.path.basename(source.path).strip('/')+\
-                            '/'+coll.path.split(source.path)[1].strip('/')).strip('/')+'/'
-                    directory = destination + suffix
+                    print('coll', coll.path)
+                    suffix = os.path.join(os.path.basename(source.path), 
+                                          coll.path.split(source.path)[1].strip('/'))
+                    if suffix.endswith(os.sep):
+                        suffix = suffix[:len(suffix)-1]
+                    directory = os.path.join(destination, suffix)
                     walk.extend(coll.subcollections)
                     if not os.path.exists(directory):
                         os.makedirs(directory)
                     for obj in coll.data_objects:
-                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t"+directory+obj.name)
-                        self.session.data_objects.get(obj.path, local_path=directory+obj.name, 
+                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t", 
+                                os.path.join(directory, obj.name))
+                        self.session.data_objects.get(obj.path, 
+                                                      local_path=os.path.join(directory, obj.name), 
                                                       **options)
                 except:
                     raise 
