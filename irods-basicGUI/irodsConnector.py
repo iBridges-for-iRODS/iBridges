@@ -349,6 +349,9 @@ class irodsConnector():
                     diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
+                if objCheck == None:
+                    self.session.data_objects.get(collPath+'/'+partialPath).chksum()
+                    objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(dirPath+'/'+partialPath,"rb") as f:
