@@ -20,12 +20,23 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">color: rgb(86, 184, 139);
-background-color: rgb(54, 54, 54);</string>
+   <string notr="true">QPushButton#tab2ContUplBut
+{
+	image : url(icons/nosync.png) stretch stretch;
+}
+
+QWidget
+{
+	color: rgb(86, 184, 139);
+	background-color: rgb(54, 54, 54);
+	selection-background-color: rgb(58, 152, 112);
+}
+
+</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="styleSheet">
-    <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
+    <string notr="true"/>
    </property>
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
@@ -43,7 +54,7 @@ background-color: rgb(54, 54, 54);</string>
      </size>
     </property>
     <property name="currentIndex">
-     <number>0</number>
+     <number>1</number>
     </property>
     <widget class="QWidget" name="tabBrowser">
      <attribute name="title">
@@ -766,8 +777,20 @@ color: rgb(46, 52, 54);</string>
             </item>
             <item>
              <widget class="QPushButton" name="tab2ContUplBut">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>100</width>
+                <height>70</height>
+               </size>
+              </property>
               <property name="text">
-               <string>Cont upload</string>
+               <string/>
               </property>
              </widget>
             </item>
@@ -851,60 +874,38 @@ color: rgb(46, 52, 54);</string>
            </size>
           </property>
           <property name="title">
-           <string>GroupBox</string>
+           <string>Upload settings</string>
           </property>
-          <widget class="QRadioButton" name="radioButton">
-           <property name="geometry">
-            <rect>
-             <x>70</x>
-             <y>30</y>
-             <width>95</width>
-             <height>20</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>RadioButton</string>
-           </property>
-          </widget>
-          <widget class="QRadioButton" name="radioButton_2">
-           <property name="geometry">
-            <rect>
-             <x>200</x>
-             <y>30</y>
-             <width>95</width>
-             <height>20</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>RadioButton</string>
-           </property>
-          </widget>
-          <widget class="QRadioButton" name="radioButton_3">
-           <property name="geometry">
-            <rect>
-             <x>320</x>
-             <y>30</y>
-             <width>95</width>
-             <height>20</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>RadioButton</string>
-           </property>
-          </widget>
-          <widget class="QCheckBox" name="checkBox">
-           <property name="geometry">
-            <rect>
-             <x>60</x>
-             <y>80</y>
-             <width>81</width>
-             <height>20</height>
-            </rect>
-           </property>
-           <property name="text">
-            <string>CheckBox</string>
-           </property>
-          </widget>
+          <layout class="QGridLayout" name="gridLayout_3">
+           <item row="0" column="0">
+            <widget class="QRadioButton" name="uplAllRB">
+             <property name="text">
+              <string>All files</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QRadioButton" name="uplMetaRB">
+             <property name="text">
+              <string>Metadata based</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="2">
+            <widget class="QRadioButton" name="uplF500RB">
+             <property name="text">
+              <string>F500</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QCheckBox" name="rLocalcopyCB">
+             <property name="text">
+              <string>Remove  local copy</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
        </layout>

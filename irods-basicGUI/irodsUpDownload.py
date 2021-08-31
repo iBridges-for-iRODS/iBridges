@@ -16,10 +16,17 @@ import logging
 #tab2ContUplBut
 #tab2DownloadButton
 
+# Rest
+#uplAllRB
+#uplMetaRB
+#uplF500RB
+#rLocalcopyCB
+
 class irodsUpDownload():
     def __init__(self, widget, ic):
         self.ic = ic
         self.widget = widget
+        self.syncing = False # syncing or not
 
         # QTreeViews
         self.dirmodel = CheckableDirModel(self.widget.localFsTreeView)
@@ -40,7 +47,7 @@ class irodsUpDownload():
         # Buttons
         self.widget.tab2UploadButton.clicked.connect(self.upload)
         self.widget.tab2DownloadButton.clicked.connect(self.download)
-
+        self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
 
 
     # Upload a file/folder to IRODS and refresh the TreeView
@@ -69,16 +76,15 @@ class irodsUpDownload():
             return
         destination = self.dirmodel.get_checked()
         if destination == None:
-            message = "No Folder selected to upload to"
+            message = "No Folder selected to download to"
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return
         elif destination.find(".") != -1:
-            message = "Can only upload to folders, not files."
+            message = "Can only download to folders, not files."
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return      
-
         try:
             if self.ic.session.data_objects.exists(source_path):
                 sourceColl = self.ic.session.data_objects.get(source_path)
@@ -108,3 +114,11 @@ class irodsUpDownload():
             QMessageBox.information(self.widget, 'Error', message)
             logging.info("Fileupload:" + message)
             return False
+
+    def cont_upload(self):
+        if self.syncing == False:
+            self.syncing = True
+            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
+        else:
+            self.syncing = False
+            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
