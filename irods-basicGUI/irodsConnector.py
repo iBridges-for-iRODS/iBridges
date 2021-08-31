@@ -304,7 +304,6 @@ class irodsConnector():
             while walk:
                 try:
                     coll = walk.pop()
-                    print('coll', coll.path)
                     suffix = os.path.join(os.path.basename(source.path), 
                                           coll.path.split(source.path)[1].strip('/'))
                     if suffix.endswith(os.sep):

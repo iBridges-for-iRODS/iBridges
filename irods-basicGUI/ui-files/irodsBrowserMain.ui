@@ -50,7 +50,7 @@ background-color: rgb(54, 54, 54);</string>
        </size>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tabBrowser">
        <attribute name="title">
@@ -637,7 +637,7 @@ color: rgb(46, 52, 54);</string>
       </widget>
       <widget class="QWidget" name="tabUpload">
        <attribute name="title">
-        <string>Up and Download</string>
+        <string>Data Synchronisation</string>
        </attribute>
        <layout class="QHBoxLayout" name="horizontalLayout_4">
         <item>
