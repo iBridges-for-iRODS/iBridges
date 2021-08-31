@@ -43,7 +43,7 @@ background-color: rgb(54, 54, 54);</string>
      </size>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tabBrowser">
      <attribute name="title">
@@ -1330,9 +1330,9 @@ color: rgb(46, 52, 54);</string>
    <widget class="QLabel" name="globalErrorLabel">
     <property name="geometry">
      <rect>
-      <x>11</x>
-      <y>722</y>
-      <width>16</width>
+      <x>10</x>
+      <y>800</y>
+      <width>1231</width>
       <height>16</height>
      </rect>
     </property>

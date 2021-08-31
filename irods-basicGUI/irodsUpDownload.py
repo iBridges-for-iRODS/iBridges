@@ -48,17 +48,20 @@ class irodsUpDownload():
         source = self.dirmodel.get_checked()
         if self.upload_check_source(source) == False:
             return       
-        dest_ind, dest_collection = self.irodsmodel.get_checked()
-        if self.upload_check_dest(dest_ind, dest_collection) == False:
+        dest_ind, dest_path = self.irodsmodel.get_checked()
+        if self.upload_check_dest(dest_ind, dest_path) == False:
             return                    
-
-        self.ic.uploadData(source, dest_collection, None, None, force = True) #getSize(source))
-        self.irodsmodel.upload_refresh(dest_ind)
+        try:
+            destColl = self.ic.session.collections.get(dest_path)
+            self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
+            self.irodsmodel.upload_refresh(dest_ind)
+        except Exception as error:
+                self.form.globalErrorLabel.setText(repr(error))
 
 
     # Download a file/folder from IRODS to local disk
     def download(self):
-        source_ind, source_collection = self.irodsmodel.get_checked()
+        source_ind, source_path = self.irodsmodel.get_checked()
         if source_ind == None:
             message = "No file/folder selected for download"
             QMessageBox.information(self, 'Error', message)
@@ -75,7 +78,15 @@ class irodsUpDownload():
             QMessageBox.information(self, 'Error', message)
             #logging.info("Fileupload:" + message)
             return      
-        self.ic.downloadData(source_collection, destination)
+
+        try:
+            if self.ic.session.data_objects.exists(source_path):
+                sourceColl = self.ic.session.data_objects.get(source_path)
+            else:
+                sourceColl = self.ic.session.collections.get(source_path)
+            self.ic.downloadData(sourceColl, destination)
+        except Exception as error:
+                self.form.globalErrorLabel.setText(repr(error))
 
 
     # Helpers to check file paths before upload
