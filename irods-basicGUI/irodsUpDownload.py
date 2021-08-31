@@ -17,29 +17,29 @@ import logging
 #tab2DownloadButton
 
 class irodsUpDownload():
-    def __init__(self, form, ic):
+    def __init__(self, widget, ic):
         self.ic = ic
-        self.form = form
+        self.widget = widget
 
         # QTreeViews
-        self.dirmodel = CheckableDirModel(self.form.localFsTreeView)
-        self.form.localFsTreeView.setModel(self.dirmodel)
+        self.dirmodel = CheckableDirModel(self.widget.localFsTreeView)
+        self.widget.localFsTreeView.setModel(self.dirmodel)
         # Hide all columns except the Name
-        self.form.localFsTreeView.setColumnHidden(1, True)
-        self.form.localFsTreeView.setColumnHidden(2, True)
-        self.form.localFsTreeView.setColumnHidden(3, True)
-        self.form.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.widget.localFsTreeView.setColumnHidden(1, True)
+        self.widget.localFsTreeView.setColumnHidden(2, True)
+        self.widget.localFsTreeView.setColumnHidden(3, True)
+        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.dirmodel.inital_expand()
 
-        self.irodsmodel = IrodsModel(ic, self.form.irodsFsTreeView)
-        self.form.irodsFsTreeView.setModel(self.irodsmodel)
-        self.form.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
-        self.form.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
+        self.widget.irodsFsTreeView.setModel(self.irodsmodel)
+        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
+        self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.irodsmodel.inital_expand()
 
         # Buttons
-        self.form.tab2UploadButton.clicked.connect(self.upload)
-        self.form.tab2DownloadButton.clicked.connect(self.download)
+        self.widget.tab2UploadButton.clicked.connect(self.upload)
+        self.widget.tab2DownloadButton.clicked.connect(self.download)
 
 
 
@@ -56,7 +56,7 @@ class irodsUpDownload():
             self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
             self.irodsmodel.upload_refresh(dest_ind)
         except Exception as error:
-                self.form.globalErrorLabel.setText(repr(error))
+                self.widget.globalErrorLabel.setText(repr(error))
 
 
     # Download a file/folder from IRODS to local disk
@@ -64,18 +64,18 @@ class irodsUpDownload():
         source_ind, source_path = self.irodsmodel.get_checked()
         if source_ind == None:
             message = "No file/folder selected for download"
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Filedownload:" + message)
             return
         destination = self.dirmodel.get_checked()
         if destination == None:
             message = "No Folder selected to upload to"
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return
         elif destination.find(".") != -1:
             message = "Can only upload to folders, not files."
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return      
 
@@ -93,18 +93,18 @@ class irodsUpDownload():
     def upload_check_source(self, source):
         if source == None:
             message = "No file selected to upload"
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             logging.info("Fileupload:" + message)
             return False
 
     def upload_check_dest(self, dest_ind, dest_collection):
         if dest_ind == None:
             message = "No Folder selected to upload to"
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             logging.info("Fileupload:" + message)
             return False
         elif dest_collection.find(".") != -1:
             message = "Can only upload to folders, not files."
-            QMessageBox.information(self, 'Error', message)
+            QMessageBox.information(self.widget, 'Error', message)
             logging.info("Fileupload:" + message)
             return False
