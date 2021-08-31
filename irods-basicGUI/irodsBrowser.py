@@ -5,7 +5,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 from createCollectionWidget import createCollectionWidget
-from irodsUtils import walkToDict 
+from irodsUtils import walkToDict, getDownloadDir 
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
 
@@ -87,8 +87,9 @@ class irodsBrowser(QMainWindow):
         #update main table when iRODS paht is changed upon 'Enter'
         self.inputPath.returnPressed.connect(self.loadTable)
         self.homeButton.clicked.connect(self.resetPath)
-        #quick data upload
+        #quick data upload and download (files only)
         self.UploadButton.clicked.connect(self.fileUpload)
+        self.DownloadButton.clicked.connect(self.fileDownload)
         #new collection
         self.createCollButton.clicked.connect(self.createCollection)
         self.dataDeleteButton.clicked.connect(self.deleteData)
@@ -213,6 +214,23 @@ class irodsBrowser(QMainWindow):
         else:
             pass
 
+    def fileDownload(self):
+        #If table is filled
+        if self.collTable.item(self.currentBrowserRow, 1) != None:
+            objName = self.collTable.item(self.currentBrowserRow, 1).text()
+            if self.collTable.item(self.currentBrowserRow, 0).text() == '':
+                parent = self.inputPath.text()
+            else:
+                parent = self.collTable.item(self.currentBrowserRow, 0).text()
+            if self.ic.session.data_objects.exists(parent+'/'+objName):
+                downloadDir = getDownloadDir()
+                buttonReply = QMessageBox.question(self, 
+                                'Message Box', 
+                                'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
+                if buttonReply == QMessageBox.Yes:
+                    obj = self.ic.session.data_objects.get(parent+'/'+objName)
+                    self.ic.downloadData(obj, downloadDir)
+        
 
     def updateIcatAcl(self):
         self.errorLabel.clear()

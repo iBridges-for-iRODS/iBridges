@@ -66,27 +66,6 @@ background-color: rgb(54, 54, 54);</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="5">
-           <widget class="QPushButton" name="createCollButton">
-            <property name="text">
-             <string>Create Collection</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="font">
-             <font>
-              <pointsize>16</pointsize>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>iRODS path: </string>
-            </property>
-           </widget>
-          </item>
           <item row="0" column="1">
            <widget class="QLineEdit" name="inputPath">
             <property name="font">
@@ -111,12 +90,53 @@ background-color: rgb(54, 54, 54);</string>
             </property>
            </widget>
           </item>
-          <item row="0" column="3">
-           <widget class="QPushButton" name="UploadButton">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_2">
+            <property name="font">
+             <font>
+              <pointsize>16</pointsize>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
             <property name="text">
-             <string>Quick Upload</string>
+             <string>iRODS path: </string>
             </property>
            </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QPushButton" name="DownloadButton">
+            <property name="text">
+             <string>File Download</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QPushButton" name="createCollButton">
+            <property name="text">
+             <string>Create Collection</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QPushButton" name="UploadButton">
+            <property name="text">
+             <string>File Upload</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <spacer name="verticalSpacer_14">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
           </item>
          </layout>
         </item>
