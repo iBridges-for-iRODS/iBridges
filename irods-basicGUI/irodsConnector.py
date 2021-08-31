@@ -251,15 +251,18 @@ class irodsConnector():
             except Exception as error:
                 raise error()
         try: 
+            if source.endswith(os.sep):
+                source = source[:len(source)-1]
             if os.path.isfile(source):
                 print("CREATE", destination.path+"/"+os.path.basename(source))
                 self.session.collections.create(destination.path)
                 self.session.data_objects.put(source, 
                     destination.path+"/"+os.path.basename(source), **options)
             elif os.path.isdir(source):
+                iPath = destination.path+'/'+os.path.basename(source)
                 for directory, _, files in os.walk(source):
-                    subColl = directory.split(source)[1]
-                    iColl = destination.path+subColl
+                    subColl = directory.split(source)[1].replace(os.sep, '/')
+                    iColl = iPath+subColl
                     self.session.collections.create(iColl)
                     for fname in files:
                         print("CREATE", iColl+'/'+fname)
@@ -275,11 +278,13 @@ class irodsConnector():
         '''
         Download object or collection.
         source: iRODS collection or data object
-        destination: absolut path to download folder
+        destination: absolute path to download folder
         '''
         
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
-        destination = '/'+destination.strip('/')
+        
+        if destination.endswith(os.sep):
+            destination = destination[:len(destination)-1]
 
         if not os.access(destination, os.W_OK):
             raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
@@ -289,7 +294,7 @@ class irodsConnector():
         if self.session.data_objects.exists(source.path):
             try:
                 self.session.data_objects.get(source.path, 
-                            local_path=destination + '/' + source.name, **options)
+                            local_path=os.path.join(destination, source.name), **options)
             except:
                 raise
 
@@ -299,15 +304,20 @@ class irodsConnector():
             while walk:
                 try:
                     coll = walk.pop()
-                    suffix = '/'+(os.path.basename(source.path).strip('/')+\
-                            '/'+coll.path.split(source.path)[1].strip('/')).strip('/')+'/'
-                    directory = destination + suffix
+                    print('coll', coll.path)
+                    suffix = os.path.join(os.path.basename(source.path), 
+                                          coll.path.split(source.path)[1].strip('/'))
+                    if suffix.endswith(os.sep):
+                        suffix = suffix[:len(suffix)-1]
+                    directory = os.path.join(destination, suffix)
                     walk.extend(coll.subcollections)
                     if not os.path.exists(directory):
                         os.makedirs(directory)
                     for obj in coll.data_objects:
-                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t"+directory+obj.name)
-                        self.session.data_objects.get(obj.path, local_path=directory+obj.name, 
+                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t", 
+                                os.path.join(directory, obj.name))
+                        self.session.data_objects.get(obj.path, 
+                                                      local_path=os.path.join(directory, obj.name), 
                                                       **options)
                 except:
                     raise 
@@ -333,7 +343,7 @@ class irodsConnector():
         listDir = []
         for root, dirs, files in os.walk(dirPath, topdown=False):
             for name in files:
-                listDir.append(os.path.join(root.split(dirPath)[1], name).strip('/'))
+                listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
 
         listColl = []
         for root, subcolls, obj in self.session.collections.get(collPath).walk():
@@ -344,27 +354,38 @@ class irodsConnector():
         for partialPath in set(listDir).intersection(listColl):
             if scope == "size":
                 objSize = self.session.data_objects.get(collPath+'/'+partialPath).size
-                fSize = os.path.getsize(dirPath+'/'+partialPath)
+                fSize = os.path.getsize(os.path.join(dirPath, partialPath))
                 if objSize != fSize:
-                    diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                    diff.append((collPath+'/'+partialPath, os.path.join(dirPath, partialPath)))
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
+                if objCheck == None:
+                    self.session.data_objects.get(collPath+'/'+partialPath).chksum()
+                    objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
-                    with open(dirPath+'/'+partialPath,"rb") as f:
+                    with open(os.path.join(dirPath, partialPath), "rb") as f:
                         stream = f.read()
                         sha2 = hashlib.sha256(stream).digest()
                     if sha2Obj != sha2:
-                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                        diff.append((collPath+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 elif objCheck:
                     #md5
-                    with open(dirPath+'/'+partialPath,"rb") as f:
+                    with open(os.path.join(dirPath, partialPath), "rb") as f:
                         stream = f.read()
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
-                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                        diff.append((collPath+'/'+partialPath, os.path.join(dirPath, partialPath)))
             else: #same paths, no scope
-                diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                diff.append((collPath+'/'+partialPath, os.path.join(dirPath, partialPath)))
+
+        #adding files that are not on iRODS, only present on local FS
+        for partialPath in set(listDir).difference(listColl):
+            diff.append(('', os.path.join(dirPath, partialPath)))
+
+        #adding files that are not on local FS, only present in iRODS
+        for partialPath in set(listColl).difference(listDir):
+            diff.append((collPath+'/'+partialPath, ''))
 
         return diff
 
