@@ -42,36 +42,42 @@ def getConfig(path):
     
     return args
 
+def connectIRODS(config):
+
+    #icommands present and irods_environment file present and user wants to use standard envFile
+    standardEnv = os.path.expanduser('~' +os.sep+'.irods/irods_environment.json')
+    if os.path.exists(standardEnv) and \
+            (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
+        try:
+            ic = irodsConnectorIcommands()
+            print(BLUE+"INFO: Icommands and standard environment file are present.")
+            print("INFO: Using icommands for data up and download."+DEFAULT)
+        except ConnectionRefusedError:
+            raise
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+           raise
+
+    elif os.path.exists(config['iRODS']['irodsenv']):
+        passwd = getpass.getpass(
+                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
+        ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
+        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
+
+    else:
+        raise FileNotFoundError('Environment file not found: '+ envFile)
+
+    return ic
+
+
 def setupIRODS(config):
     """
     Connects to iRODS and sets up the environment.
     """
-    try:
-    #icommands available and standard irods_environment file
-        assert(subprocess.call(["which", "iinit"]) == 0 
-            and config['iRODS']['irodsenv'] == \
-                        os.environ['HOME']+'/.irods/irods_environment.json')
-        ic = irodsConnectorIcommands()
-        print(BLUE+"INFO: Icommands and standard environment file are present.")
-        print("INFO: Using icommands for data up and download."+DEFAULT)
-    except:
-    #no icommands or not standard environment file --> python only
-        if config['iRODS']['irodsenv'] != '':
-            passwd = getpass.getpass('Password for iRODS user in '+config['iRODS']['irodsenv']+': ')
-            ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
-            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-        elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
-            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-            if os.path.isfile(os.environ['HOME']+'/.irods/.irodsA'):
-                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json')
-            else:
-                passwd = getpass.getpass(
-                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json', passwd)
-        else:
-            raise AttributeError('No valid iRODS environment file found')
+    ic = connectIRODS(config)
 
-    # set iRODS path
+    #set iRODS path
     try:
         coll = ic.ensureColl(config['iRODS']['irodscoll'])
         print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
@@ -79,7 +85,7 @@ def setupIRODS(config):
         print(RED+"Collection path not set or invalid: "+ config['iRODS']['irodscoll']+DEFAULT)
         success = False
         print(''.join([coll.path+'\n' for coll
-            in ic.getSubcollections("/"+ic.session.zone+"/home").subcollections]))
+            in ic.session.collections.get("/"+ic.session.zone+"/home").subcollections]))
         while not success:
             iPath = input('Choose iRODS collection: ')
             try:
@@ -92,16 +98,18 @@ def setupIRODS(config):
 
     #set iRODS resource
     try:
-        ic.getResource(config['iRODS']['irodsresc'])
+        resource = ic.getResource(config['iRODS']['irodsresc'])
         print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
-                str(int(ic.resourceSize(config['iRODS']['irodsresc']))/1024**3)+'GB')
+                str(round(int(ic.resourceSize(resource.name))/1024**3))+'GB')
     except ResourceDoesNotExist:
         print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
-        resc = ic.getResource('demoResc')
-        menu = input('Set iRODS to demoResc ('\
-                +str(int(ic.resourceSize('demoResc'))/1024**3)+'GB free)? (Yes/No) ')
+        resources  = ic.listResources()
+        sizes = list(map(ic.resourceSize, resources))
+        largestResc = resources[sizes.index(max(sizes))]
+        menu = input('Choose '+largestResc+' ('\
+                +str(round(int(ic.resourceSize(largestResc))/1024**3))+'GB free)? (Yes/No) ')
         if menu in ['Yes', 'yes', 'Y', 'y']:
-            config['iRODS']['irodsresc'] = 'demoResc'
+            config['iRODS']['irodsresc'] = largestResc
         else:
             print("Aborted: no iRODS reosurce set.")
             sys.exit(2)
@@ -195,14 +203,14 @@ def main(argv):
             try:
                config  = getConfig(arg)
             except:
-                try:
-                    config = getConfig('iUpload.config')
-                except:
-                    print(RED+'No config file found.'+DEFAULT)
-                    sys.exit(2)
+                print(RED+'No config file found.'+DEFAULT)
+                sys.exit(2)
         elif opt in ['-d', '--data']:
             operation = 'upload'
-            if arg.endswith("/"):
+            if arg == '':
+                print(RED+'Data upload: No file or directory given.'+DEFAULT)
+                sys.exit(2)
+            if arg.endswith(os.sep):
                 dataPath = arg[:-1]
             else:
                 dataPath = arg
@@ -227,14 +235,19 @@ def main(argv):
             if md != None:
                 iPath = config['iRODS']['irodscoll']+'/'+md.__name__+'/'+ \
                     str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
-            elif os.path.isdir(dataPath):
-                iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
             else:
                 iPath = config['iRODS']['irodscoll']
-            ic.ensureColl(iPath)
+            iColl = ic.ensureColl(iPath)
             print('DEBUG: Created/Ensured iRODS collection '+iPath)
-            iColl = ic.session.collections.get(iPath)
             ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize(dataPath))
+            diff = ic.diffIrodsLocalfs(
+                    config['iRODS']['irodscoll']+os.sep+os.path.basename(dataPath), dataPath)
+            if diff == []:
+                print(YEL+'Upload complete and checked'+DEFAULT)
+            else:
+                print(RED+'Upload failed'+DEFAULT)
+                print(diff)
+
         else:
             sys.exit(2)
         #tag data in iRODS and metadata store
