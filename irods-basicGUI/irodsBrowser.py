@@ -92,7 +92,7 @@ class irodsBrowser(QMainWindow):
         self.homeButton.clicked.connect(self.resetPath)
         #quick data upload and download (files only)
         self.UploadButton.clicked.connect(self.fileUpload)
-        self.DownloadButton.clicked.connect(self.fileDownload)
+        #self.DownloadButton.clicked.connect(self.fileDownload)######################-- need new ui
         #new collection
         self.createCollButton.clicked.connect(self.createCollection)
         self.dataDeleteButton.clicked.connect(self.deleteData)
