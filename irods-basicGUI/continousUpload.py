@@ -48,7 +48,7 @@ class contUpload(Thread):
     def run(self):
         while self._running == True:
             new_file = new_files_queue.get()
-            if self.upload_mode == "upl_meta":
+            if self.upload_mode == "meta":
                 # Store files until metadata file appears, than upload. 
                 filepath, filename = path.split(new_file)
                 if filename == "metadata.json":
@@ -66,10 +66,9 @@ class contUpload(Thread):
                             self.tosync_dictionary[pathparts[0]] = [pathparts[1] + path.sep + filename]
                     else:
                         print("TODO, this should not happen? {filepath}  {filename}")
-            elif self.upload_mode == "upl_f500":
-                print("TODO")
+            elif self.upload_mode == "f500":
+                print("TODO figure out how to do the F500 upload")
                 
-
             else: # "all"
                 self.ic.uploadData(new_file, self.destColl, None, None, force = True)
             

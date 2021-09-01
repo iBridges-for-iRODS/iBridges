@@ -95,27 +95,37 @@ class irodsUpDownload():
                 self.form.globalErrorLabel.setText(repr(error))
 
 
-
-
     # Continous file upload
     def cont_upload(self):
+        (source, dest_ind, dest_path) = self.upload_get_paths()
+        if source == None: 
+            return
+
         if self.syncing == False:
             self.syncing = True
             self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
+            self.en_disable_controls(False)
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
-            
-            (source, dest_ind, dest_path) = self.upload_get_paths()
-            if source == None: 
-                return    
             destColl = self.ic.session.collections.get(dest_path)
-
             uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
             uploader.start()
         else:
             self.syncing = False
             self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
+            self.en_disable_controls(True)
 
+
+    def en_disable_controls(self, enable):
+        # Loop over all tabs enabling/disabling them
+        for i in range(0, self.widget.tabWidget.count()):
+            t = self.widget.tabWidget.tabText(i)
+            if self.widget.tabWidget.tabText(i) == "Up and Download":
+                continue
+            self.widget.tabWidget.setTabVisible(i, enable)
+        self.widget.tab2UploadButton.setEnabled(enable)
+        self.widget.tab2DownloadButton.setEnabled(enable)
+        self.widget.uplSetGB.setEnabled(enable)
 
 
     def get_upl_mode(self):
