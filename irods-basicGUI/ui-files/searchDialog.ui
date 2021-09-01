@@ -307,7 +307,30 @@ color: rgb(54, 54, 54);</string>
         </widget>
        </item>
        <item>
+        <widget class="QPushButton" name="downloadButton">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color: rgb(54, 54, 54);
+background-color: rgb(58, 152, 112);</string>
+         </property>
+         <property name="text">
+          <string>Download Selection</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QPushButton" name="searchExitButton">
+         <property name="font">
+          <font>
+           <weight>75</weight>
+           <bold>true</bold>
+          </font>
+         </property>
          <property name="text">
           <string>Close</string>
          </property>
