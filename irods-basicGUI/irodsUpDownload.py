@@ -1,7 +1,10 @@
 
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
-from customTreeViews import CheckableDirModel, IrodsModel
 import logging
+
+from customTreeViews import CheckableDirModel, IrodsModel
+from continousUpload import contUpload
+
 # Vaiables
 # localFsTreeWidget, irodsFsTreeWidget
 # tab2UploadButton, tab2DownloadButton
@@ -52,12 +55,9 @@ class irodsUpDownload():
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
-        source = self.dirmodel.get_checked()
-        if self.upload_check_source(source) == False:
-            return       
-        dest_ind, dest_path = self.irodsmodel.get_checked()
-        if self.upload_check_dest(dest_ind, dest_path) == False:
-            return                    
+        (source, dest_ind, dest_path) = self.upload_get_paths()
+        if source == None: 
+            return           
         try:
             destColl = self.ic.session.collections.get(dest_path)
             self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
@@ -95,30 +95,63 @@ class irodsUpDownload():
                 self.form.globalErrorLabel.setText(repr(error))
 
 
+
+
+    # Continous file upload
+    def cont_upload(self):
+        if self.syncing == False:
+            self.syncing = True
+            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
+            upl_mode = self.get_upl_mode()
+            r_local_copy = self.widget.rLocalcopyCB.isChecked()
+            
+            (source, dest_ind, dest_path) = self.upload_get_paths()
+            if source == None: 
+                return    
+            destColl = self.ic.session.collections.get(dest_path)
+
+            uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
+            uploader.start()
+        else:
+            self.syncing = False
+            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
+
+
+
+    def get_upl_mode(self):
+        if self.widget.uplF500RB.isChecked():
+            upl_mode = "f500"
+        elif self.widget.uplMetaRB.isChecked():
+            upl_mode = "meta"
+        else: # Default
+            upl_mode = "all"
+        return upl_mode
+
     # Helpers to check file paths before upload
+    def upload_get_paths(self):
+        source = self.dirmodel.get_checked()
+        if self.upload_check_source(source) == False:
+            return (None, None, None)     
+        dest_ind, dest_path = self.irodsmodel.get_checked()
+        if self.upload_check_dest(dest_ind, dest_path) == False:
+            return (None, None, None)     
+        return (source, dest_ind, dest_path)
+
     def upload_check_source(self, source):
         if source == None:
             message = "No file selected to upload"
             QMessageBox.information(self.widget, 'Error', message)
-            logging.info("Fileupload:" + message)
+            #logging.info("Fileupload:" + message)
             return False
 
     def upload_check_dest(self, dest_ind, dest_collection):
         if dest_ind == None:
             message = "No Folder selected to upload to"
             QMessageBox.information(self.widget, 'Error', message)
-            logging.info("Fileupload:" + message)
+            #logging.info("Fileupload:" + message)
             return False
         elif dest_collection.find(".") != -1:
             message = "Can only upload to folders, not files."
             QMessageBox.information(self.widget, 'Error', message)
-            logging.info("Fileupload:" + message)
+            #logging.info("Fileupload:" + message)
             return False
-
-    def cont_upload(self):
-        if self.syncing == False:
-            self.syncing = True
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
-        else:
-            self.syncing = False
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
