@@ -143,7 +143,7 @@ class IrodsModel(QStandardItemModel):
                 self._checked_indeces.discard(index)
             self.TreeView.repaint() # force refresh
             return True
-        return super(IrodsModel, self).setData(self, index, value, role)
+        return super(self).setData(self, index, value, role)
 
 
     # Use to create the tree one layer at a time (avoid retreiving all files at the start of the program)

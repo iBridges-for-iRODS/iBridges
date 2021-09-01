@@ -805,6 +805,32 @@ color: rgb(46, 52, 54);</string>
               <property name="sizeHint" stdset="0">
                <size>
                 <width>20</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="tab2ChecksumCheckBut">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="text">
+               <string>Checksum controle</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="verticalSpacer_4">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
                 <height>40</height>
                </size>
               </property>
@@ -881,6 +907,9 @@ color: rgb(46, 52, 54);</string>
             <widget class="QRadioButton" name="uplAllRB">
              <property name="text">
               <string>All files</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>

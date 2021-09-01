@@ -51,6 +51,12 @@ class irodsUpDownload():
         self.widget.tab2UploadButton.clicked.connect(self.upload)
         self.widget.tab2DownloadButton.clicked.connect(self.download)
         self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
+        self.widget.tab2ChecksumCheckBut.clicked.connect(self.check_checksum)
+
+
+    # Check checksums to confirm the upload
+    def check_checksum(self):
+        print("TODO")
 
 
     # Upload a file/folder to IRODS and refresh the TreeView
@@ -100,7 +106,6 @@ class irodsUpDownload():
         (source, dest_ind, dest_path) = self.upload_get_paths()
         if source == None: 
             return
-
         if self.syncing == False:
             self.syncing = True
             self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
@@ -108,9 +113,10 @@ class irodsUpDownload():
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
             destColl = self.ic.session.collections.get(dest_path)
-            uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
-            uploader.start()
+            #self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
+            #self.uploader.start()
         else:
+            #self.uploader.stop()
             self.syncing = False
             self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
             self.en_disable_controls(True)
