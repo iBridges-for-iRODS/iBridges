@@ -53,6 +53,10 @@ class irodsUpDownload():
         self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
         self.widget.tab2ChecksumCheckBut.clicked.connect(self.check_checksum)
 
+        # Resource selector
+        available_resources = self.ic.listResources()
+        self.widget.resourceBox_2.clear()
+        self.widget.resourceBox_2.addItems(available_resources)
 
     # Check checksums to confirm the upload
     def check_checksum(self):
