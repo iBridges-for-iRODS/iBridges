@@ -67,7 +67,7 @@ class irodsUpDownload():
         try:
             destColl = self.ic.session.collections.get(dest_path)
             self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
-            self.irodsmodel.upload_refresh(dest_ind)
+            self.irodsmodel.upload_refresh(dest_ind, source)
         except Exception as error:
                 self.widget.globalErrorLabel.setText(repr(error))
 

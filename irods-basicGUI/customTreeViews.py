@@ -3,8 +3,8 @@ from PyQt5.QtCore import QFile, Qt, QDir
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from sys import platform
 from time import sleep
-
 import logging
+import os
 
 # a class to put checkbox on the folders and record which ones are checked.
 class CheckableDirModel(QFileSystemModel):
@@ -193,12 +193,21 @@ class IrodsModel(QStandardItemModel):
 
 
     # Refresh a folder after uploading files
-    def upload_refresh(self, modelindex):
-        fullpath = self.create_fullpath(modelindex)
+    def upload_refresh(self, modelindex, new_path):
         item = self.itemFromIndex(modelindex)
-        # Remove children: rows
-        item.removeRows(0, item.rowCount())    
-        self.grow_tree(item, fullpath, "")
+        icon_provider = QFileIconProvider()
+        if os.path.isfile(new_path):
+            folder, filename = os.path.split(new_path)
+            file = QStandardItem(filename)
+            file.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
+            item.setChild(item.rowCount(), file)
+        else:
+            foldername = new_path.split('/')[-1]
+            it = QStandardItem(foldername)     
+            it.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
+            item.setChild(item.rowCount(), it)
+            self.grow_tree(it, self.create_fullpath(modelindex) + "/" + foldername, "")
+
 
 
     # Returns index & path pairs which can be used to update the tree after an upload
