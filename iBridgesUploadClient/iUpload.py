@@ -106,6 +106,7 @@ def setupIRODS(config):
         resources  = ic.listResources()
         sizes = list(map(ic.resourceSize, resources))
         largestResc = resources[sizes.index(max(sizes))]
+        menu = 'y'
         menu = input('Choose '+largestResc+' ('\
                 +str(round(int(ic.resourceSize(largestResc))/1024**3))+'GB free)? (Yes/No) ')
         if menu in ['Yes', 'yes', 'Y', 'y']:
