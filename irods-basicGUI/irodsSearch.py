@@ -18,7 +18,6 @@ class irodsSearch(QDialog):
         self.selectSearchButton.clicked.connect(self.loadSearchResults)
         self.downloadButton.clicked.connect(self.downloadData)
         self.searchExitButton.released.connect(self.close)
-        self.searchResultTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
 
 
     def search(self):

@@ -159,8 +159,20 @@ QWidget
          <string notr="true">background-color: rgb(85, 87, 83);
 selection-background-color: rgb(58, 152, 112);</string>
         </property>
+        <property name="sizeAdjustPolicy">
+         <enum>QAbstractScrollArea::AdjustToContents</enum>
+        </property>
         <property name="editTriggers">
          <set>QAbstractItemView::NoEditTriggers</set>
+        </property>
+        <property name="alternatingRowColors">
+         <bool>false</bool>
+        </property>
+        <property name="selectionMode">
+         <enum>QAbstractItemView::SingleSelection</enum>
+        </property>
+        <property name="selectionBehavior">
+         <enum>QAbstractItemView::SelectRows</enum>
         </property>
         <column>
          <property name="text">
@@ -212,7 +224,7 @@ selection-background-color: rgb(58, 152, 112);</string>
          <string notr="true">background-color: rgb(85, 87, 83);</string>
         </property>
         <property name="currentIndex">
-         <number>2</number>
+         <number>3</number>
         </property>
         <widget class="QWidget" name="preview">
          <property name="font">
@@ -249,8 +261,17 @@ selection-background-color: rgb(58, 152, 112);</string>
             <property name="styleSheet">
              <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QAbstractScrollArea::AdjustToContents</enum>
+            </property>
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
             </property>
             <column>
              <property name="text">
@@ -387,8 +408,17 @@ selection-background-color: rgb(58, 152, 112);</string>
             <property name="styleSheet">
              <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QAbstractScrollArea::AdjustToContents</enum>
+            </property>
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
             </property>
             <column>
              <property name="text">
@@ -540,8 +570,17 @@ selection-background-color: rgb(58, 152, 112);</string>
             <property name="styleSheet">
              <string notr="true">selection-background-color: rgb(58, 152, 112);</string>
             </property>
+            <property name="sizeAdjustPolicy">
+             <enum>QAbstractScrollArea::AdjustToContents</enum>
+            </property>
             <property name="editTriggers">
              <set>QAbstractItemView::NoEditTriggers</set>
+            </property>
+            <property name="selectionMode">
+             <enum>QAbstractItemView::SingleSelection</enum>
+            </property>
+            <property name="selectionBehavior">
+             <enum>QAbstractItemView::SelectRows</enum>
             </property>
             <column>
              <property name="text">

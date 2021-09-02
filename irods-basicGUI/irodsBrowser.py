@@ -4,7 +4,7 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from createCollectionWidget import createCollectionWidget
+from irodsCreateCollection import irodsCreateCollection
 from irodsUtils import walkToDict, getDownloadDir 
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
@@ -30,10 +30,6 @@ class irodsBrowser(QMainWindow):
         self.collTable.setColumnWidth(2,199)
         self.collTable.setColumnWidth(3,399)
         self.collTable.setColumnWidth(0,20)
-        self.collTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.collTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.collTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.collTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.resetPath() 
 
         #Home button
@@ -45,25 +41,14 @@ class irodsBrowser(QMainWindow):
         self.metadataTable.setColumnWidth(0,199)
         self.metadataTable.setColumnWidth(1,199)
         self.metadataTable.setColumnWidth(2,199)
-        self.metadataTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.metadataTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.metadataTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.metadataTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         #ACL table
         self.aclTable.setColumnWidth(0,299)
         self.aclTable.setColumnWidth(1,299)
-        self.aclTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.aclTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.aclTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-        self.metadataTable.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         #Resource table
         self.resourceTable.setColumnWidth(0,500)
         self.resourceTable.setColumnWidth(1,90)
-        self.resourceTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
-        self.resourceTable.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.resourceTable.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
 
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
@@ -92,7 +77,7 @@ class irodsBrowser(QMainWindow):
         self.homeButton.clicked.connect(self.resetPath)
         #quick data upload and download (files only)
         self.UploadButton.clicked.connect(self.fileUpload)
-        self.DownloadButton.clicked.connect(self.fileDownload)######################-- need new ui
+        self.DownloadButton.clicked.connect(self.fileDownload)
         #new collection
         self.createCollButton.clicked.connect(self.createCollection)
         self.dataDeleteButton.clicked.connect(self.deleteData)
@@ -194,7 +179,7 @@ class irodsBrowser(QMainWindow):
 
     def createCollection(self):
         parent = "/"+self.inputPath.text().strip("/")
-        creteCollWidget = createCollectionWidget(parent, self.ic)
+        creteCollWidget = irodsCreateCollection(parent, self.ic)
         creteCollWidget.exec_()
         self.loadTable()
 

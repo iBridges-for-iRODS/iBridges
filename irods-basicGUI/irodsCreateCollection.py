@@ -6,7 +6,7 @@ from PyQt5 import QtGui
 
 import sys
 
-class createCollectionWidget(QDialog):
+class irodsCreateCollection(QDialog):
     def __init__(self, parent, ic):
         super(createCollectionWidget, self).__init__()
         loadUi("ui-files/createCollection.ui", self)

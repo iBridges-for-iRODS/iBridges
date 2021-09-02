@@ -248,6 +248,9 @@ color: rgb(46, 52, 54);</string>
         <string notr="true">background-color: rgb(85, 87, 83);
 selection-background-color: rgb(58, 152, 112);</string>
        </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QAbstractScrollArea::AdjustToContents</enum>
+       </property>
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
