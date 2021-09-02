@@ -124,6 +124,12 @@ class irodsConnectorIcommands():
         for item in query.get_results():
             for key in item.keys():
                 resources.append(item[key])
+
+        if 'bundleResc' in resources:
+            resources.remove('bundleResc')
+        if 'demoResc' in resources:
+            resources.remove('demoResc')
+
         return resources
 
     def getResource(self, resource):
