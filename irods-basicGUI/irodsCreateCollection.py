@@ -1,5 +1,5 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
+from PyQt5.QtWidgets import QDialog
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -8,7 +8,7 @@ import sys
 
 class irodsCreateCollection(QDialog):
     def __init__(self, parent, ic):
-        super(createCollectionWidget, self).__init__()
+        super(irodsCreateCollection, self).__init__()
         loadUi("ui-files/createCollection.ui", self)
         self.ic = ic
         self.parent = parent
