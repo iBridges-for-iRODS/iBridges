@@ -201,6 +201,9 @@ color: rgb(46, 52, 54);</string>
      <property name="text">
       <string>Search</string>
      </property>
+     <property name="default">
+      <bool>true</bool>
+     </property>
     </widget>
    </item>
    <item>

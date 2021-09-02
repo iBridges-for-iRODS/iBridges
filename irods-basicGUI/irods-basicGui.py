@@ -19,6 +19,7 @@ from irods.exception import CollectionDoesNotExist
 from irodsBrowser import irodsBrowser
 from irodsUtils import networkCheck
 import json
+import os
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -29,6 +30,7 @@ class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
         loadUi("ui-files/irodsLogin.ui", self)
+        self.envFileField.setText(os.path.expanduser('~')+os.sep+".irods/irods_environment.json")
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)
