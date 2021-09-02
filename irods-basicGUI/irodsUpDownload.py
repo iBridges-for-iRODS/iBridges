@@ -5,6 +5,9 @@ import logging
 from customTreeViews import CheckableDirModel, IrodsModel
 from continousUpload import contUpload
 
+from irodsCreateCollection import irodsCreateCollection
+from createDirectory import createDirectory
+
 # Vaiables
 # localFsTreeWidget, irodsFsTreeWidget
 # tab2UploadButton, tab2DownloadButton
@@ -39,28 +42,48 @@ class irodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
         self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.dirmodel.inital_expand()
+        self.dirmodel.initial_expand()
 
         self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
         self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
         self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.irodsmodel.inital_expand()
+        self.irodsmodel.initial_expand()
 
         # Buttons
         self.widget.tab2UploadButton.clicked.connect(self.upload)
         self.widget.tab2DownloadButton.clicked.connect(self.download)
         self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
         self.widget.tab2ChecksumCheckBut.clicked.connect(self.check_checksum)
+        self.widget.createFolderButton.clicked.connect(self.createFolder)
+        self.widget.createCollButtonTab2.clicked.connect(self.createCollection)
 
         # Resource selector
         available_resources = self.ic.listResources()
         self.widget.resourceBox_2.clear()
         self.widget.resourceBox_2.addItems(available_resources)
 
+        #irods  zone info
+        self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
+
     # Check checksums to confirm the upload
     def check_checksum(self):
         print("TODO")
+
+
+    def createFolder(self):
+        parent = self.dirmodel.get_checked()
+        if parent != None:
+            createDirWidget = createDirectory(parent)
+            createDirWidget.exec_()
+            #self.dirmodel.initial_expand(previous_item = parent)
+
+
+    def createCollection(self):
+        idx, parent = self.irodsmodel.get_checked()
+        creteCollWidget = irodsCreateCollection(parent, self.ic)
+        creteCollWidget.exec_()
+        self.irodsmodel.initial_expand(parent)
 
 
     # Upload a file/folder to IRODS and refresh the TreeView

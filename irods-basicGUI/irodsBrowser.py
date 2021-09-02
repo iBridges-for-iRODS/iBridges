@@ -10,6 +10,8 @@ from elabUpload import elabUpload
 from irodsSearch import irodsSearch
 from irodsUpDownload import irodsUpDownload
 
+from testIrodsTree import testIrodsFS
+
 import sys
 
 class irodsBrowser(QMainWindow):
@@ -31,11 +33,6 @@ class irodsBrowser(QMainWindow):
         self.collTable.setColumnWidth(3,399)
         self.collTable.setColumnWidth(0,20)
         self.resetPath() 
-
-        #Home button
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icons/home.png"))
-        self.homeButton.setIcon(icon)
 
         #Metadata table
         self.metadataTable.setColumnWidth(0,199)
@@ -66,6 +63,10 @@ class irodsBrowser(QMainWindow):
 
         # Setup up/download tab
         self.updownload = irodsUpDownload(self, ic)
+
+
+        # Setup test tab
+        self.test = testIrodsFS(self, ic)
 
         self.browse()
 
