@@ -21,15 +21,12 @@ class elabUpload():
         #Gathering Eln configuration
         self.elnTokenInput = elnTokenInput
         self.elnGroupTable = elnGroupTable
-        self.elnGroupTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.elnExperimentTable = elnExperimentTable
-        self.elnExperimentTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         #Config ok check
         self.groupIdLabel = groupIdLabel
         self.experimentIdLabel = experimentIdLabel
         #Selecting and uploading local files and folders
         self.localFsTable = localFsTable
-        self.localFsTable.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.elnUploadButton = elnUploadButton
         #Showing result
         self.elnPreviewBrowser = elnPreviewBrowser

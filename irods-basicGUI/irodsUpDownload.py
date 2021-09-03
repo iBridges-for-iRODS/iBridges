@@ -2,7 +2,9 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 import logging
 
-from customTreeViews import CheckableDirModel, IrodsModel
+from checkableFsTree import checkableFsTreeModel
+from irodsTreeView  import IrodsModel
+
 from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
@@ -35,7 +37,7 @@ class irodsUpDownload():
         self.syncing = False # syncing or not
 
         # QTreeViews
-        self.dirmodel = CheckableDirModel(self.widget.localFsTreeView)
+        self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)
         self.widget.localFsTreeView.setModel(self.dirmodel)
         # Hide all columns except the Name
         self.widget.localFsTreeView.setColumnHidden(1, True)
@@ -43,12 +45,29 @@ class irodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(3, True)
         self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.dirmodel.initial_expand()
-
+        
+        #iRODS tree
         self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
-        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
-        self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.irodsmodel.initial_expand()
+        self.irodsRootColl = '/'+ic.session.zone
+        #self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
+        #self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        #self.irodsmodel.initial_expand()
+        self.irodsmodel.setHorizontalHeaderLabels([self.irodsRootColl,
+                                              'Level', 'iRODS ID',
+                                              'parent ID', 'type'])
+
+        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refreshSubTree)
+        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refreshSubTree)
+        self.irodsmodel.initTree()
+
+        self.widget.irodsFsTreeView.setHeaderHidden(True)
+        self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
+        self.widget.irodsFsTreeView.setColumnHidden(1, True)
+        self.widget.irodsFsTreeView.setColumnHidden(2, True)
+        self.widget.irodsFsTreeView.setColumnHidden(3, True)
+        self.widget.irodsFsTreeView.setColumnHidden(4, True)
+
 
         # Buttons
         self.widget.tab2UploadButton.clicked.connect(self.upload)
@@ -81,9 +100,10 @@ class irodsUpDownload():
 
     def createCollection(self):
         idx, parent = self.irodsmodel.get_checked()
+
         creteCollWidget = irodsCreateCollection(parent, self.ic)
         creteCollWidget.exec_()
-        self.irodsmodel.initial_expand(parent)
+        self.irodsmodel.refreshSubTree(idx)
 
 
     # Upload a file/folder to IRODS and refresh the TreeView
@@ -94,7 +114,7 @@ class irodsUpDownload():
         try:
             destColl = self.ic.session.collections.get(dest_path)
             self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
-            self.irodsmodel.upload_refresh(dest_ind, source)
+            self.irodsmodel.refreshSubTree(dest_ind)
         except Exception as error:
                 self.widget.globalErrorLabel.setText(repr(error))
 

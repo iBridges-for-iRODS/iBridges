@@ -1,10 +1,8 @@
-from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider
-from PyQt5.QtCore import QFile, Qt, QDir
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from sys import platform
-from time import sleep
-import logging
+from PyQt5.QtWidgets import QFileIconProvider
+from PyQt5.QtCore import Qt
 import os
+from collections import deque
 
 
 """
@@ -12,6 +10,7 @@ Tree model for IRODS collections.
 The IRODS database is huge and retreiving a complete tree of all files can take ages. 
 Too improve the loading time the tree is only grown as far as its shows. 
 """ 
+
 class IrodsModel(QStandardItemModel):
     def __init__(self, irods_session, TreeView, parent=None):
         """
@@ -20,39 +19,12 @@ class IrodsModel(QStandardItemModel):
         super(IrodsModel, self).__init__(parent)
         self._checked_indeces = set()
         self.ic = irods_session
-        self.basepath = "/" + self.ic.session.zone + "/"
+        self.irodsRootColl = "/" + self.ic.session.zone
         self.TreeView = TreeView
         self.clear() # Empty tree
         rootnode = self.invisibleRootItem()
-        self.grow_tree(rootnode, self.basepath, "home") 
 
 
-    # Grow Tree till 'previous_item' and select it.
-    def initial_expand(self, previous_item = None):
-        """
-        Grows the Tree untill 'previous_item' and selects it.
-        Input: filepath till previously selected file or folder
-        """
-        if previous_item != None:
-            folders = previous_item.split("/")
-            cur_path = ""
-            modelindex = None
-            for folder in folders[2:]:
-                cur_path = cur_path + "/" + folder
-                if modelindex == None: # Root
-                    modelindex = self.index(0, 0) 
-                else:  # Find right child and expand
-                    for row in range(self.rowCount(modelindex)):
-                        childindex = self.index(row, 0, modelindex)
-                        if childindex.data() == folder: # foldername
-                            modelindex = self.index(row, 0, modelindex)
-                self.expanded(modelindex)
-            self.TreeView.scrollTo(modelindex)
-            self._checked_indeces.add(modelindex)
-            self.setData(modelindex, Qt.Checked, Qt.CheckStateRole)
-
-
-    # Used to update the UI
     def data(self, index, role= Qt.DisplayRole):
         if role == Qt.CheckStateRole:
             if index in self._checked_indeces:
@@ -66,7 +38,6 @@ class IrodsModel(QStandardItemModel):
         return super(IrodsModel, self).flags(index) | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate
 
 
-    # Callback of the checkbox
     def setData(self, index, value, role=Qt.EditRole):
         if role == Qt.CheckStateRole:
             #filename = self.data(index)
@@ -84,83 +55,197 @@ class IrodsModel(QStandardItemModel):
         return super(self).setData(self, index, value, role)
 
 
-    # Use to create the tree one layer at a time (avoid retreiving all files at the start of the program)
-    def grow_tree(self, root, path, child):
-        icon_provider = QFileIconProvider()
-        fullpath = path + child
-        if "." in fullpath:
-            #logging.info(f"can't grow files: {fullpath}")
-            return
-        coll = self.ic.session.collections.get(fullpath)
-        if path[-1] != "/":
-            path = path + "/"
-        parent = root
-        for obj in coll.data_objects:
-            # Add file to Tree
-            file = QStandardItem(obj.name)
-            file.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
-            parent.setChild(parent.rowCount(), file)
-
-        # folders 
-        for srcColl in coll.subcollections:
-            parent = root
-            folders = srcColl.path.replace(path,'').split("/")
-            for folder in folders:
-                for i in range(parent.rowCount()):
-                    item = parent.child(i) 
-                    if item.text() == folder:
-                        it = item
-                        break
-                else:
-                    it = QStandardItem(folder)     
-                    it.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
-                    parent.setChild(parent.rowCount(), it)
-                parent = it
-
-
-    # Grow tree when a folder is opend.
-    def expanded(self, modelindex):#Qt.QtCore.Qmoddelindex
-        fullpath = self.create_fullpath(modelindex)
-        for row in range(self.rowCount(modelindex)):
-            childindex = self.index(row, 0, modelindex)
-            childname = childindex.data()
-            item = self.itemFromIndex(childindex)
-            temp = item.text()
-            if item.hasChildren() == False:
-                self.grow_tree(item, fullpath + "/" + childname, "")
-
-
-    # Refresh a folder after uploading files
-    def upload_refresh(self, modelindex, new_path):
-        item = self.itemFromIndex(modelindex)
-        icon_provider = QFileIconProvider()
-        if os.path.isfile(new_path):
-            folder, filename = os.path.split(new_path)
-            file = QStandardItem(filename)
-            file.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
-            item.setChild(item.rowCount(), file)
-        else:
-            foldername = new_path.split('/')[-1]
-            it = QStandardItem(foldername)     
-            it.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
-            item.setChild(item.rowCount(), it)
-            self.grow_tree(it, self.create_fullpath(modelindex) + "/" + foldername, "")
-
-
-
-    # Returns index & path pairs which can be used to update the tree after an upload
     def get_checked(self):
         if len(self._checked_indeces) < 1:
             return (None, None)
         checked_item = list(self._checked_indeces)[0]
-        return (checked_item, self.create_fullpath(checked_item))
+        return (checked_item, self.irodsPathFromTreeIdx(checked_item))
 
 
-    # Helper function to traverse the tree from the current index back to the root, storing the item names along the way
-    def create_fullpath(self, modelindex):
+    def initIrodsFsData(self):
+        """
+        Retrieves the first levels of an iRODS tree: /zone/home/*.
+        Returns the information as list of dictionaries:
+        [{'irodsID': 12345, 'level': 10, 'parentID': 54321, 'shortName': 'myColl', 'type': 'C'}, {}]
+        The level of 'home' is 0 and its parentID is -1.
+        'type' can take values 'C' (collection) or 'd' (dtaa object)
+        """
+        #initial tree information
+        parentId = -1
+        coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
+
+        #get the depth of the irods path, disregard irodsRootColl and its own depth
+        level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+        data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,
+                 'shortName': coll.name, 'type': 'C'}]
+        #get content of home
+        for subColl in coll.subcollections:
+            level = len(subColl.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            data.append({'level': level, 'irodsID': subColl.id,
+                         'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
+            if subColl.data_objects != [] or subColl.subcollections != []:
+                data.append({'level': level+1, 'irodsID': 'test',
+                             'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
+        for obj in coll.data_objects:
+            level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            data.append({'level': level, 'irodsID': obj.id,
+                         'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
+
+        return data
+
+
+    def initTree(self):
+        """
+        Draws the first levels of an iRODS filesystem as a tree.
+        """
+        icon_provider = QFileIconProvider()
+        self.setRowCount(0)
+        root = self.invisibleRootItem()
+
+        # First levels of iRODS data
+        irodsFsData = self.initIrodsFsData()
+
+        # Build Tree
+        seen = {} # nodes in the tree
+        values = deque(irodsFsData)
+        while values:
+            value = values.popleft()
+            if value['level'] == 0:
+                parent = root
+            else:
+                pid = value['parentID']
+                if pid not in seen:
+                    values.append(value)
+                    continue
+                parent = seen[pid]
+            irodsID = value['irodsID']
+            display = QStandardItem(value['shortName'])
+            if value['type'] == 'd':
+                 display.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
+            if value['type'] == 'C':
+                 display.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
+            parent.appendRow([
+                              display,
+                              QStandardItem(str(value['level'])),
+                              QStandardItem(str(value['irodsID'])),
+                              QStandardItem(str(value['parentID'])),
+                              QStandardItem(value['type'])
+                            ])
+            seen[irodsID] = parent.child(parent.rowCount() - 1)
+
+
+    def deletesubTree(self, treeItem):
+        """
+        treeItem: QStandardItem in the QTreeView
+        """
+        #Adjust treeview --> remove subtree
+        treeItem.removeRows(0, treeItem.rowCount())
+
+
+    def getCollData(self, coll):
+        """
+        Retrieves the subcollections and data objects of a collection.
+        Returns the information as list of dictionaries
+        [{'irodsID': 12345, 'level': 10, 'parentID': 54321, 'shortName': 'myColl', 'type': 'C'}, {}]
+        coll: irods collection
+        data: list of dictionaries
+        """
+
+        data = []
+
+        for subColl in coll.subcollections:
+            level = len(subColl.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            data.append({'level': level, 'irodsID': subColl.id,
+                         'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
+            if subColl.data_objects != [] or subColl.subcollections != []:
+                data.append({'level': level+1, 'irodsID': 'test',
+                             'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
+        for obj in coll.data_objects:
+            level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            data.append({'level': level, 'irodsID': obj.id,
+                         'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
+
+        return data
+
+
+    def addSubtree(self, treeItem, treeLevel, irodsFsSubtreeData):
+
+        #grow treeView from treeItem
+        icon_provider = QFileIconProvider()
+        values = deque(irodsFsSubtreeData)
+        seen = {}
+
+        while values:
+            value = values.popleft()
+            if value['level'] == treeLevel:
+                parent = treeItem
+            else:
+                pid = value['parentID']
+                if pid not in seen:
+                    values.append(value)
+                    continue
+                parent = seen[pid]
+            irodsID = value['irodsID']
+            display = QStandardItem(value['shortName'])
+            if value['type'] == 'd':
+                display.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
+            if value['type'] == 'C':
+                 display.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
+            parent.appendRow([
+                              display,
+                              QStandardItem(str(value['level'])),
+                              QStandardItem(str(value['irodsID'])),
+                              QStandardItem(str(value['parentID'])),
+                              QStandardItem(value['type'])
+                            ])
+            seen[irodsID] = parent.child(parent.rowCount() - 1)
+
+
+    def refreshSubTree(self, position):
+        try: #index when right mouse click
+            modelIndex = self.tree.indexAt(position)
+            if not modelIndex.isValid():
+                return
+        except: #index when expand is clicked
+            modelIndex = position
+
+        treeItem = self.itemFromIndex(modelIndex)
+        parent = treeItem.parent()
+        if parent == None:
+            return
+
+        row = treeItem.row()
+
+        treeItemData = []
+        for col in range(parent.columnCount()):
+            child = parent.child(row, col)
+            treeItemData.append(child.data(0))
+
+        irodsItemPath = self.irodsPathFromTreeIdx(modelIndex)
+
+        if treeItemData[4] == 'C': # collection
+            coll = self.ic.session.collections.get(irodsItemPath)
+        else:
+            return
+
+        #delete subtree in irodsFsdata and the TreeView
+        self.deletesubTree(treeItem)
+
+        #Retrieve updated data from the collection
+        coll = self.ic.session.collections.get(irodsItemPath)
+        recentCollData = self.getCollData(coll)
+
+        #update irodsFsData and the treeView
+        #Level of subcollections
+        level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/'))
+        self.addSubtree(treeItem, level, recentCollData)
+
+
+    def irodsPathFromTreeIdx(self, modelindex):
         fullpath = modelindex.data()
         parentmodel = modelindex.parent()
         while parentmodel.isValid():
             fullpath = parentmodel.data() + "/" + fullpath
             parentmodel = parentmodel.parent()
-        return self.basepath + fullpath
+        return self.irodsRootColl + "/" + fullpath
+

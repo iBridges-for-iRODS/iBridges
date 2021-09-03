@@ -65,8 +65,8 @@ class irodsBrowser(QMainWindow):
         self.updownload = irodsUpDownload(self, ic)
 
 
-        # Setup test tab
-        self.test = testIrodsFS(self, ic)
+#        # Setup test tab
+#        self.test = testIrodsFS(self, ic)
 
         self.browse()
 
