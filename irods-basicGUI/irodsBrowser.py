@@ -10,8 +10,6 @@ from elabUpload import elabUpload
 from irodsSearch import irodsSearch
 from irodsUpDownload import irodsUpDownload
 
-from testIrodsTree import testIrodsFS
-
 import sys
 
 class irodsBrowser(QMainWindow):
