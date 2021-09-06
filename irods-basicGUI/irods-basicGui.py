@@ -19,7 +19,7 @@ from irods.exception import CollectionDoesNotExist
 
 from irodsBrowser import irodsBrowser
 from irodsUtils import networkCheck
-import json
+from json import load
 import os
 
 RED = '\x1b[1;31m'
@@ -95,7 +95,7 @@ class irodsLogin(QDialog):
             if not os.path.isfile(envFile):
                 raise FileNotFoundError
             with open(envFile) as f:
-                ienv = json.load(f)
+                ienv = load(f)
             connect = networkCheck(ienv['irods_host'])
             if not connect:
                 print("Network down")
@@ -122,6 +122,7 @@ class irodsLogin(QDialog):
                         os.makedirs(irods_env_dir)
                     copyfile(envFile, self.default_irodsenv_path)
 
+                ienv["ui_ienvFilePath"] = self.default_irodsenv_path
                 browser = irodsBrowser(widget, ic, ienv)
                 if len(widget) == 1:
                     widget.addWidget(browser)

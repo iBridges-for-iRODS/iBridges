@@ -61,7 +61,7 @@ class irodsBrowser(QMainWindow):
                     )
 
         # Setup up/download tab
-        self.updownload = irodsUpDownload(self, ic)
+        self.updownload = irodsUpDownload(self, ic, self.ienv)
 
 
 #        # Setup test tab
