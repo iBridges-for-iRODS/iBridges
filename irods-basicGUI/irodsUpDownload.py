@@ -100,7 +100,6 @@ class irodsUpDownload():
 
     def createCollection(self):
         idx, parent = self.irodsmodel.get_checked()
-
         creteCollWidget = irodsCreateCollection(parent, self.ic)
         creteCollWidget.exec_()
         self.irodsmodel.refreshSubTree(idx)
@@ -160,7 +159,7 @@ class irodsUpDownload():
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
             destColl = self.ic.session.collections.get(dest_path)
-            #self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
+            self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
             #self.uploader.start()
         else:
             #self.uploader.stop()
