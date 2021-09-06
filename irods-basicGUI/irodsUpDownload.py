@@ -1,4 +1,3 @@
-
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 import logging
 

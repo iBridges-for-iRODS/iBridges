@@ -110,7 +110,7 @@ class irodsSearch(QDialog):
                         print("SEARCH widget: Downloading \t"+p+"\t to "+downloadDir)
                         self.ic.downloadData(item, downloadDir)
                     elif self.ic.session.data_objects.exists(p):
-                        item = self.ic.session.dtaa_objects.get(p)
+                        item = self.ic.session.data_objects.get(p)
                         print("SEARCH widget: Downloading \t"+p+"\t to "+downloadDir)
                         self.ic.downloadData(item, downloadDir)
                     else:

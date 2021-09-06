@@ -41,8 +41,8 @@ QWidget
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>0</y>
+      <x>20</x>
+      <y>10</y>
       <width>1234</width>
       <height>776</height>
      </rect>
@@ -54,7 +54,7 @@ QWidget
      </size>
     </property>
     <property name="currentIndex">
-     <number>1</number>
+     <number>0</number>
     </property>
     <widget class="QWidget" name="tabBrowser">
      <attribute name="title">
@@ -228,7 +228,7 @@ selection-background-color: rgb(58, 152, 112);</string>
          <string notr="true">background-color: rgb(85, 87, 83);</string>
         </property>
         <property name="currentIndex">
-         <number>3</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="preview">
          <property name="font">
@@ -660,7 +660,8 @@ color: rgb(46, 52, 54);</string>
       <item>
        <widget class="QLabel" name="errorLabel">
         <property name="styleSheet">
-         <string notr="true">color: rgb(164, 0, 0);</string>
+         <string notr="true">
+color: rgb(217, 174, 23);</string>
         </property>
         <property name="text">
          <string/>
@@ -816,7 +817,7 @@ color: rgb(46, 52, 54);</string>
                <enum>Qt::Vertical</enum>
               </property>
               <property name="sizeType">
-               <enum>QSizePolicy::Minimum</enum>
+               <enum>QSizePolicy::Expanding</enum>
               </property>
               <property name="sizeHint" stdset="0">
                <size>
@@ -1082,10 +1083,13 @@ color: rgb(46, 52, 54);</string>
           <property name="orientation">
            <enum>Qt::Vertical</enum>
           </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Minimum</enum>
+          </property>
           <property name="sizeHint" stdset="0">
            <size>
             <width>20</width>
-            <height>40</height>
+            <height>10</height>
            </size>
           </property>
          </spacer>
@@ -1521,7 +1525,7 @@ color: rgb(46, 52, 54);</string>
         <property name="sizeHint" stdset="0">
          <size>
           <width>20</width>
-          <height>40</height>
+          <height>10</height>
          </size>
         </property>
        </spacer>
@@ -1631,7 +1635,8 @@ color: rgb(46, 52, 54);</string>
      </rect>
     </property>
     <property name="styleSheet">
-     <string notr="true">color: rgb(164, 0, 0);</string>
+     <string notr="true">
+color: rgb(217, 174, 23);</string>
     </property>
     <property name="text">
      <string/>
@@ -1644,7 +1649,7 @@ color: rgb(46, 52, 54);</string>
      <x>0</x>
      <y>0</y>
      <width>1300</width>
-     <height>26</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
