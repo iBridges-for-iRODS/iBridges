@@ -13,11 +13,12 @@ from irodsUpDownload import irodsUpDownload
 import sys
 
 class irodsBrowser(QMainWindow):
-    def __init__(self, widget, ic):
+    def __init__(self, widget, ic, ienv):
         super(irodsBrowser, self).__init__()
         loadUi("ui-files/irodsBrowserMain.ui", self)
         self.ic = ic
         self.widget = widget
+        self.ienv = ienv
         self.tabWidget.setCurrentIndex(0)
         self.viewTabs.setCurrentIndex(0)
 

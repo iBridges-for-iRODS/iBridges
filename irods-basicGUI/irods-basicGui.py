@@ -31,7 +31,7 @@ class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
         loadUi("ui-files/irodsLogin.ui", self)
-        self.default_irodsenv_path = os.path.expanduser('~')+os.sep+".irods/irods_environment.json"
+        self.default_irodsenv_path = os.path.expanduser('~')+ os.sep +".irods" + os.sep + "irods_environment.json"
         self.envFileField.setText(self.default_irodsenv_path)
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
@@ -59,7 +59,7 @@ class irodsLogin(QDialog):
 
     def setupStandard(self):
         if self.standardButton.isChecked():
-            self.default_irodsenv_path = os.path.expanduser('~')+os.sep+".irods/irods_environment.json"
+            self.default_irodsenv_path = os.path.expanduser('~') + os.sep + ".irods" + os.sep + "irods_environment.json"
             self.envFileField.setText(self.default_irodsenv_path)
             self.envFileField.setEnabled(True)
             self.icommands = False
@@ -75,7 +75,7 @@ class irodsLogin(QDialog):
                     self.icommandsError.setText("ERROR: no icommands installed")
                     self.standardButton.setChecked(True)
                 else:
-                    self.default_irodsenv_path = os.environ['HOME'] + os.path.sep + ".irods" + os.path.sep + "irods_environment.json"
+                    self.default_irodsenv_path = os.environ['HOME'] + os.sep + ".irods" + os.sep + "irods_environment.json"
                     self.envFileField.setText(self.default_irodsenv_path)
                     self.envFileField.setEnabled(False)
                     self.icommands = True
@@ -114,17 +114,19 @@ class irodsLogin(QDialog):
         if connect:
             try:
                 ic = self.__irodsLogin(envFile, password, cipher)
-                browser = irodsBrowser(widget, ic)
+
+                # Move environment file to default location
+                if envFile != self.default_irodsenv_path:
+                    irods_env_dir = os.path.dirname(self.default_irodsenv_path)
+                    if not os.path.isdir(irods_env_dir):
+                        os.makedirs(irods_env_dir)
+                    copyfile(envFile, self.default_irodsenv_path)
+
+                browser = irodsBrowser(widget, ic, ienv)
                 if len(widget) == 1:
                     widget.addWidget(browser)
                 widget.setCurrentIndex(widget.currentIndex()+1)
                 self.__resetErrorLabelsAndMouse()
-
-                # Move environment file to default location
-                irods_env_dir = os.path.dirname(self.default_irodsenv_path)
-                if not os.path.isdir(irods_env_dir):
-                    os.makedirs(irods_env_dir)
-                copyfile(envFile, self.default_irodsenv_path)
 
             except CAT_INVALID_AUTHENTICATION:
                 self.passError.setText("ERROR: Wrong password.")

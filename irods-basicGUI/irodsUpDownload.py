@@ -31,9 +31,10 @@ from createDirectory import createDirectory
 #rLocalcopyCB
 
 class irodsUpDownload():
-    def __init__(self, widget, ic):
+    def __init__(self, widget, ic, ienv):
         self.ic = ic
         self.widget = widget
+        self.ienv = ienv
         self.syncing = False # syncing or not
 
         # QTreeViews
