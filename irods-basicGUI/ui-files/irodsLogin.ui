@@ -166,7 +166,7 @@ color: rgb(86, 184, 139);
        <string notr="true">background-color: rgb(85, 87, 83);</string>
       </property>
       <property name="text">
-       <string>/home/user/.irods/irods_environment.json</string>
+       <string/>
       </property>
      </widget>
     </item>
@@ -206,6 +206,9 @@ color: rgb(86, 184, 139);
    </property>
    <property name="text">
     <string>Connect</string>
+   </property>
+   <property name="default">
+    <bool>true</bool>
    </property>
   </widget>
  </widget>

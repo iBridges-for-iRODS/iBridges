@@ -191,6 +191,12 @@ class irodsConnector():
         for item in query.get_results():
             for key in item.keys():
                 resources.append(item[key])
+
+        if 'bundleResc' in resources:
+            resources.remove('bundleResc')
+        if 'demoResc' in resources:
+            resources.remove('demoResc')
+
         return resources
 
 
@@ -379,14 +385,8 @@ class irodsConnector():
                 diff.append((collPath+'/'+partialPath, os.path.join(dirPath, partialPath)))
 
         #adding files that are not on iRODS, only present on local FS
-        for partialPath in set(listDir).difference(listColl):
-            diff.append(('', os.path.join(dirPath, partialPath)))
-
         #adding files that are not on local FS, only present in iRODS
-        for partialPath in set(listColl).difference(listDir):
-            diff.append((collPath+'/'+partialPath, ''))
-
-        return diff
+        return (diff, set(listDir).difference(listColl), set(listColl).difference(listDir))
 
 
     def addMetadata(self, items, key, value, units = None):
