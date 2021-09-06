@@ -12,6 +12,7 @@ import json
 import os
 from base64 import b64decode
 import hashlib
+from getpass import getpass
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -19,7 +20,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 class irodsConnectorIcommands():
-    def __init__(self, password, logger = None):
+    def __init__(self, password = '', logger = None):
         """
         iRODS authentication.
         Input:
@@ -32,11 +33,9 @@ class irodsConnectorIcommands():
             All other errors refer to having the envFile not setup properly
         """
         self.logger = logger
-        if logger != None:
-            print("DEBUG: TODO Print all to file")
 
         envFile = os.environ['HOME']+"/.irods/irods_environment.json"
-        envFileExists = os.path.exists(os.environ['HOME']+"/.irods/irods_environment.json")
+        envFileExists = os.path.exists(envFile)
         
         try:
             #passwordFileExists = os.path.exists(os.environ['HOME']+"/.irods/.irodsA")
@@ -49,13 +48,13 @@ class irodsConnectorIcommands():
 
         if not envFileExists:
             raise FileNotFoundError('Environment file not found: '+ envFile)
+
         else:
-            p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+            p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate(input=(password+"\n").encode())
             if err != b'':
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
-            else:
-                self.session = iRODSSession(irods_env_file=envFile)
+            self.session = iRODSSession(irods_env_file=envFile)
 
         with open(envFile) as f:
                 ienv = json.load(f)
@@ -68,15 +67,6 @@ class irodsConnectorIcommands():
             self.davrods = ienv["davrods_server"]
         else:
             self.davrods = None
-
-
-        print("Welcome to iRODS (icommands):")
-        print("iRODS Zone: "+self.session.zone)
-        print("You are: "+self.session.username)
-        print("Default resource: "+self.defaultResc)
-        print("You have access to: ")
-        print(''.join([coll.path+'\n' for coll 
-            in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
 
 
     def getPermissions(self, iPath):

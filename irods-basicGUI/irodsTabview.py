@@ -12,14 +12,18 @@ from irodsUpDownload import irodsUpDownload
 
 import sys
 
-class irodsBrowser(QMainWindow):
-    def __init__(self, widget, ic):
-        super(irodsBrowser, self).__init__()
+class irodsTabview(QMainWindow):
+    def __init__(self, widget, ic, hideTabs = []):
+        super(irodsTabview, self).__init__()
         loadUi("ui-files/irodsBrowserMain.ui", self)
         self.ic = ic
         self.widget = widget
         self.tabWidget.setCurrentIndex(0)
         self.viewTabs.setCurrentIndex(0)
+        #hide tabs
+        for tab in hideTabs:
+            self.tabWidget.setTabVisible(tab, False)
+
 
         #some placeholder variables to catch information
         self.currentBrowserRow = 0
@@ -52,7 +56,8 @@ class irodsBrowser(QMainWindow):
 
 
         # setup Elabjournal tab
-        self.elnTab = elabUpload(
+        if 2 not in hideTabs:
+            self.elnTab = elabUpload(
                     self.ic, self.globalErrorLabel, self.elnTokenInput,
                     self.elnGroupTable, self.elnExperimentsTable, self.groupIdLabel,
                     self.experimentIdLabel, self.localFsTable,
@@ -60,11 +65,13 @@ class irodsBrowser(QMainWindow):
                     )
 
         # Setup up/download tab
-        self.updownload = irodsUpDownload(self, ic)
+        if 1 not in hideTabs:
+            self.updownload = irodsUpDownload(self, ic)
 
 
-#        # Setup test tab
-#        self.test = testIrodsFS(self, ic)
+        # Setup test tab
+        if 4 not in hideTabs:
+            self.test = testIrodsFS(self, ic)
 
         self.browse()
 
