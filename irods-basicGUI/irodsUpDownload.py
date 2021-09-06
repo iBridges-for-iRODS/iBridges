@@ -4,7 +4,7 @@ import logging
 
 from checkableFsTree import checkableFsTreeModel
 from irodsTreeView  import IrodsModel
-
+from irodsUtils import getSize
 from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
@@ -85,6 +85,11 @@ class irodsUpDownload():
         #irods  zone info
         self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
 
+
+    def get_resource(self):
+        return self.widget.resourceBox_2.currentText()
+
+
     # Check checksums to confirm the upload
     def check_checksum(self):
         print("TODO")
@@ -112,7 +117,7 @@ class irodsUpDownload():
             return           
         try:
             destColl = self.ic.session.collections.get(dest_path)
-            self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
+            self.ic.uploadData(source, destColl, self.get_resource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
             self.irodsmodel.refreshSubTree(dest_ind)
         except Exception as error:
                 self.widget.globalErrorLabel.setText(repr(error))
