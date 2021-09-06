@@ -1,5 +1,5 @@
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtWidgets import QFileIconProvider
+from PyQt5.QtWidgets import QFileIconProvider, QMessageBox
 from PyQt5.QtCore import Qt
 import os
 from collections import deque
@@ -42,6 +42,13 @@ class IrodsModel(QStandardItemModel):
         if role == Qt.CheckStateRole:
             #filename = self.data(index)
             if value == Qt.Checked:
+                # Block checking of home item (found no easy way to remove the checkbox)
+                if self.data(index) == "home":
+                    message = "Cannot up/download to home directory"
+                    QMessageBox.information(self.TreeView,'Error', message)
+                    #logging.info("Filedownload:" + message)
+                    return False
+
                 # Enforce single select
                 while self._checked_indeces:
                     selected_index = self._checked_indeces.pop()

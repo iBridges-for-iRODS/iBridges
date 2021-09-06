@@ -1062,6 +1062,9 @@ color: rgb(46, 52, 54);</string>
               <property name="sizeAdjustPolicy">
                <enum>QAbstractScrollArea::AdjustToContents</enum>
               </property>
+              <property name="editTriggers">
+               <set>QAbstractItemView::NoEditTriggers</set>
+              </property>
               <property name="selectionMode">
                <enum>QAbstractItemView::NoSelection</enum>
               </property>
@@ -1641,7 +1644,7 @@ color: rgb(46, 52, 54);</string>
      <x>0</x>
      <y>0</y>
      <width>1300</width>
-     <height>22</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
