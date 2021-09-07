@@ -20,18 +20,17 @@
    <string>MainWindow</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">QPushButton#tab2ContUplBut
-{
-	image : url(icons/nosync.png) stretch stretch;
-}
-
-QWidget
+   <string notr="true">QWidget
 {
 	color: rgb(86, 184, 139);
 	background-color: rgb(54, 54, 54);
 	selection-background-color: rgb(58, 152, 112);
 }
 
+QLabel#globalErrorLabel
+{
+	color: rgb(217, 174, 23);
+}
 </string>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -55,7 +54,7 @@ QWidget
     <item>
      <widget class="QLabel" name="globalErrorLabel">
       <property name="styleSheet">
-       <string notr="true">color: rgb(164, 0, 0);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string/>

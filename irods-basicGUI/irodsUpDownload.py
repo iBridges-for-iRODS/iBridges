@@ -217,12 +217,14 @@ class irodsUpDownload():
             return (None, None, None)     
         return (source, dest_ind, dest_path)
 
+
     def upload_check_source(self, source):
         if source == None:
             message = "No file selected to upload"
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return False
+
 
     def upload_check_dest(self, dest_ind, dest_collection):
         if dest_ind == None:

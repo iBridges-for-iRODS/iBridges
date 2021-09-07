@@ -13,6 +13,35 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget
+{
+	color: rgb(86, 184, 139);
+	background-color: rgb(54, 54, 54);
+	selection-background-color: rgb(58, 152, 112);
+}
+
+QGroupBox
+{
+	background-color: rgb(85, 87, 83);
+}
+
+QTreeView
+{
+	background-color: rgb(85, 87, 83);
+}
+
+
+QPushButton#ContUplBut
+{
+	image : url(icons/nosync.png) stretch stretch;
+}
+
+QRadioButton#uplAllRB, QRadioButton#uplMetaRB, QRadioButton#uplF500RB, QCheckBox#rLocalcopyCB
+{
+	background-color: rgb(85, 87, 83);
+}</string>
+  </property>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
@@ -92,7 +121,7 @@
            </sizepolicy>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(85, 87, 83);</string>
+           <string notr="true"/>
           </property>
           <property name="sizeAdjustPolicy">
            <enum>QAbstractScrollArea::AdjustIgnored</enum>
@@ -410,7 +439,7 @@
            </sizepolicy>
           </property>
           <property name="styleSheet">
-           <string notr="true">background-color: rgb(85, 87, 83);</string>
+           <string notr="true"/>
           </property>
           <property name="sizeAdjustPolicy">
            <enum>QAbstractScrollArea::AdjustToContents</enum>
@@ -461,7 +490,7 @@
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgb(85, 87, 83);</string>
+       <string notr="true"/>
       </property>
       <property name="title">
        <string>Upload settings</string>

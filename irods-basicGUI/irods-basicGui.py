@@ -82,6 +82,7 @@ class irodsLogin(QDialog):
                 self.icommandsError.setText("ERROR: no icommands installed")
                 self.standardButton.setChecked(True)
 
+
     def init_envbox(self):
         envJsons = []
         for file in os.listdir(self.irodsEnvPath):
@@ -112,7 +113,6 @@ class irodsLogin(QDialog):
         password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
         envFile = self.irodsEnvPath + os.sep + self.envbox.currentText()
         connect = False
-       
         try:
             if not os.path.isfile(envFile):
                 raise FileNotFoundError
