@@ -5,7 +5,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 from irodsCreateCollection import irodsCreateCollection
-from irodsUtils import walkToDict, getDownloadDir
+from utils import walkToDict, getDownloadDir
 
 import sys
 

@@ -1,6 +1,6 @@
 import os
-#from pathlib import Path
 import sys
+import logging
 from shutil import copyfile
 from cryptography.fernet import Fernet
 from json import load
@@ -18,11 +18,14 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from mainmenu import mainmenu
-from irodsUtils import networkCheck
+from utils import networkCheck, setup_logger
+
+
 
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
+        setup_logger()
         loadUi("ui-files/irodsLogin.ui", self)
         self.default_irodsenv_path = os.path.expanduser('~')+ os.sep +".irods" + os.sep + "irods_environment.json"
         self.envFileField.setText(self.default_irodsenv_path)
@@ -129,7 +132,7 @@ class irodsLogin(QDialog):
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except Exception as error:
-                print(repr(error))
+                logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import os
-from irodsUtils import getSize, walkToDict
+from utils import getSize, walkToDict
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 class elabUpload():

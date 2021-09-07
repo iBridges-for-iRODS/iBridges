@@ -15,7 +15,7 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from irodsBrowser import irodsBrowser
-from irodsUtils import networkCheck
+from utils import networkCheck
 
 
 class irodsLogin(QDialog):

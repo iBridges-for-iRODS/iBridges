@@ -3,7 +3,7 @@ import logging
 
 from checkableFsTree import checkableFsTreeModel
 from irodsTreeView  import IrodsModel
-from irodsUtils import getSize, saveIenv
+from utils import getSize, saveIenv
 from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
