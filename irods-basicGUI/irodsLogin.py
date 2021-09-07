@@ -1,12 +1,9 @@
 import os
-#from pathlib import Path
-import sys
-from shutil import copyfile
-from cryptography.fernet import Fernet
 import json
+from cryptography.fernet import Fernet
 import subprocess
 
-from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QStackedWidget
+from PyQt5.QtWidgets import QDialog, QLineEdit#, QApplication, QMainWindow, QMessageBox
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
@@ -17,20 +14,21 @@ from irods.exception import CAT_INVALID_AUTHENTICATION
 from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
-from irodsTabview import irodsTabview
+from irodsBrowser import irodsBrowser
 from irodsUtils import networkCheck
 
+
 class irodsLogin(QDialog):
-    def __init__(self):
+    def __init__(self, stackedWidget):
         super(irodsLogin, self).__init__()
         loadUi("ui-files/irodsLogin.ui", self)
-        self.default_irodsenv_path = os.path.expanduser('~')+ os.sep +".irods" + os.sep + "irods_environment.json"
-        self.envFileField.setText(self.default_irodsenv_path)
+        self.envFileField.setText(os.path.expanduser('~')+os.sep+".irods/irods_environment.json")
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)
         self.passwordField.setEchoMode(QLineEdit.Password)
         self.icommands = False
+        self.stackedWidget = stackedWidget
 
 
     def __encryption(self):
@@ -52,8 +50,6 @@ class irodsLogin(QDialog):
 
     def setupStandard(self):
         if self.standardButton.isChecked():
-            self.default_irodsenv_path = os.path.expanduser('~') + os.sep + ".irods" + os.sep + "irods_environment.json"
-            self.envFileField.setText(self.default_irodsenv_path)
             self.envFileField.setEnabled(True)
             self.icommands = False
 
@@ -68,8 +64,7 @@ class irodsLogin(QDialog):
                     self.icommandsError.setText("ERROR: no icommands installed")
                     self.standardButton.setChecked(True)
                 else:
-                    self.default_irodsenv_path = os.environ['HOME'] + os.sep + ".irods" + os.sep + "irods_environment.json"
-                    self.envFileField.setText(self.default_irodsenv_path)
+                    self.envFileField.setText(os.environ['HOME']+"/.irods/irods_environment.json")
                     self.envFileField.setEnabled(False)
                     self.icommands = True
             except Exception:
@@ -85,13 +80,11 @@ class irodsLogin(QDialog):
         connect = False
        
         try:
-            if not os.path.isfile(envFile):
-                raise FileNotFoundError
             with open(envFile) as f:
-                ienv = load(f)
+                ienv = json.load(f)
             connect = networkCheck(ienv['irods_host'])
             if not connect:
-                print("iRODS login: No network connection to server")
+                print("Network down")
                 self.envError.setText("No network connection to server")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return
@@ -100,19 +93,19 @@ class irodsLogin(QDialog):
             self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as error:
             print(repr(error))
-            self.envError.setText("iRODS login: No network connection to server")
+            self.envError.setText("No network connection to server")
             self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
              
         if connect:
             try:
+                #Connect to irods and add irods browser on stackedWidget
                 ic = self.__irodsLogin(envFile, password, cipher)
-                browser = irodsTabview(widget, ic, hideTabs = [1, 2, 3, 4])
-                if len(widget) == 1:
-                    widget.addWidget(browser)
-                widget.setCurrentIndex(widget.currentIndex()+1)
+                browser = irodsBrowser(self.stackedWidget, ic)
+                if len(self.stackedWidget) == 1:
+                    self.stackedWidget.addWidget(browser)
+                self.stackedWidget.setCurrentIndex(self.stackedWidget.currentIndex()+1)
                 self.__resetErrorLabelsAndMouse()
-
             except CAT_INVALID_AUTHENTICATION:
                 self.passError.setText("ERROR: Wrong password.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -131,14 +124,4 @@ class irodsLogin(QDialog):
             except Exception:
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                return
-
-
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    loginWindow = irodsLogin()
-    widget = QStackedWidget()
-    widget.addWidget(loginWindow)
-    widget.show()
-    app.exec_()
+                raise

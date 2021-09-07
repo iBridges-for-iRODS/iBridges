@@ -299,11 +299,11 @@ class irodsConnector():
 
         if self.session.data_objects.exists(source.path):
             try:
+                print("INFO Downloading:", source.path, "to \n\t", destination)
                 self.session.data_objects.get(source.path, 
                             local_path=os.path.join(destination, source.name), **options)
             except:
                 raise
-
 
         elif self.session.collections.exists(source.path):
             walk = [source]
