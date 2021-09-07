@@ -97,7 +97,6 @@ class IrodsModel(QStandardItemModel):
             level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
-
         return data
 
 
@@ -157,9 +156,7 @@ class IrodsModel(QStandardItemModel):
         coll: irods collection
         data: list of dictionaries
         """
-
         data = []
-
         for subColl in coll.subcollections:
             level = len(subColl.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
             data.append({'level': level, 'irodsID': subColl.id,
@@ -171,12 +168,10 @@ class IrodsModel(QStandardItemModel):
             level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
-
         return data
 
 
     def addSubtree(self, treeItem, treeLevel, irodsFsSubtreeData):
-
         #grow treeView from treeItem
         icon_provider = QFileIconProvider()
         values = deque(irodsFsSubtreeData)

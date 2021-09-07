@@ -3,7 +3,7 @@ import logging
 
 from checkableFsTree import checkableFsTreeModel
 from irodsTreeView  import IrodsModel
-
+from irodsUtils import getSize, saveIenv
 from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
@@ -30,9 +30,10 @@ from createDirectory import createDirectory
 #rLocalcopyCB
 
 class irodsUpDownload():
-    def __init__(self, widget, ic):
+    def __init__(self, widget, ic, ienv):
         self.ic = ic
         self.widget = widget
+        self.ienv = ienv
         self.syncing = False # syncing or not
 
         # QTreeViews
@@ -45,10 +46,13 @@ class irodsUpDownload():
         self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         self.dirmodel.initial_expand()
         
-        #iRODS tree
+         # iRODS  zone info
+        self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
+        # iRODS tree
         self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
         self.irodsRootColl = '/'+ic.session.zone
+       
         #self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
         #self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         #self.irodsmodel.initial_expand()
@@ -80,9 +84,52 @@ class irodsUpDownload():
         available_resources = self.ic.listResources()
         self.widget.resourceBox_2.clear()
         self.widget.resourceBox_2.addItems(available_resources)
+        if ("ui_resource" in ienv) and (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
+            index = self.widget.resourceBox_2.findText(ienv["ui_resource"])
+            self.widget.resourceBox_2.setCurrentIndex(index)
+        elif ("default_resource_name" in ienv) and (ienv["default_resource_name"] != "") and (ienv["default_resource_name"] in available_resources):
+            index = self.widget.resourceBox_2.findText(ienv["default_resource_name"])
+            self.widget.resourceBox_2.setCurrentIndex(index)
+        self.widget.resourceBox_2.currentIndexChanged.connect(self.saveUIset)
 
-        #irods  zone info
-        self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
+        # Continious upload settings
+        if ("ui_remLocalcopy" in ienv):
+            self.widget.rLocalcopyCB.setChecked(ienv["ui_remLocalcopy"])
+        if ("ui_uplMode" in ienv):
+            uplMode =  ienv["ui_uplMode"]
+            if uplMode == "f500":
+                self.widget.uplF500RB.setChecked(True)
+            elif uplMode == "meta":
+                self.widget.uplMetaRB.setChecked(True)
+            else:
+                self.widget.uplAllRB.setChecked(True)
+        self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
+        self.widget.uplF500RB.toggled.connect(self.saveUIset)
+        self.widget.uplMetaRB.toggled.connect(self.saveUIset)
+        self.widget.uplAllRB.toggled.connect(self.saveUIset)
+
+    def saveUIset(self):
+        self.ienv["ui_resource"] = self.getResource()
+        self.ienv["ui_remLocalcopy"] = self.getRemLocalCopy()
+        self.ienv["ui_uplMode"] = self.getUplMode()
+        saveIenv(self.ienv)
+
+
+    def getResource(self):
+        return self.widget.resourceBox_2.currentText()
+
+    def getRemLocalCopy(self):
+        return self.widget.rLocalcopyCB.isChecked()
+
+    def getUplMode(self):
+        if self.widget.uplF500RB.isChecked():
+            uplMode = "f500"
+        elif self.widget.uplMetaRB.isChecked():
+            uplMode = "meta"
+        else: # Default
+            uplMode = "all"
+        return uplMode
+
 
     # Check checksums to confirm the upload
     def check_checksum(self):
@@ -99,7 +146,6 @@ class irodsUpDownload():
 
     def createCollection(self):
         idx, parent = self.irodsmodel.get_checked()
-
         creteCollWidget = irodsCreateCollection(parent, self.ic)
         creteCollWidget.exec_()
         self.irodsmodel.refreshSubTree(idx)
@@ -112,7 +158,7 @@ class irodsUpDownload():
             return           
         try:
             destColl = self.ic.session.collections.get(dest_path)
-            self.ic.uploadData(source, destColl, None, None, force = True) #getSize(source))
+            self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
             self.irodsmodel.refreshSubTree(dest_ind)
         except Exception as error:
                 self.widget.globalErrorLabel.setText(repr(error))
@@ -159,7 +205,7 @@ class irodsUpDownload():
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
             destColl = self.ic.session.collections.get(dest_path)
-            #self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
+            self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
             #self.uploader.start()
         else:
             #self.uploader.stop()
@@ -179,15 +225,6 @@ class irodsUpDownload():
         self.widget.tab2DownloadButton.setEnabled(enable)
         self.widget.uplSetGB.setEnabled(enable)
 
-
-    def get_upl_mode(self):
-        if self.widget.uplF500RB.isChecked():
-            upl_mode = "f500"
-        elif self.widget.uplMetaRB.isChecked():
-            upl_mode = "meta"
-        else: # Default
-            upl_mode = "all"
-        return upl_mode
 
     # Helpers to check file paths before upload
     def upload_get_paths(self):

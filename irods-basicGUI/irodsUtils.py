@@ -1,6 +1,6 @@
 import os
 import socket
-
+from json import dump
 
 def getSize(path):
     size = 0
@@ -50,3 +50,9 @@ def getDownloadDir():
         return location
     else:
         return os.path.join(os.path.expanduser('~'), 'Downloads')
+
+def saveIenv(ienv):
+    envFile = ienv["ui_ienvFilePath"]
+    with open(envFile, 'w') as f:
+        dump(ienv, f)
+    
