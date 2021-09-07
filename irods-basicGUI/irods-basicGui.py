@@ -3,7 +3,7 @@ import os
 import sys
 from shutil import copyfile
 from cryptography.fernet import Fernet
-import json
+from json import load
 import subprocess
 
 from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QStackedWidget
@@ -17,7 +17,7 @@ from irods.exception import CAT_INVALID_AUTHENTICATION
 from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
-from irodsTabview import irodsTabview
+from mainmenu import mainmenu
 from irodsUtils import networkCheck
 
 class irodsLogin(QDialog):
@@ -107,7 +107,7 @@ class irodsLogin(QDialog):
         if connect:
             try:
                 ic = self.__irodsLogin(envFile, password, cipher)
-                browser = irodsTabview(widget, ic, hideTabs = [1, 2, 3, 4])
+                browser = mainmenu(widget, ic, ienv)
                 if len(widget) == 1:
                     widget.addWidget(browser)
                 widget.setCurrentIndex(widget.currentIndex()+1)
@@ -128,7 +128,8 @@ class irodsLogin(QDialog):
             except NetworkException:
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            except Exception:
+            except Exception as error:
+                print(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return

@@ -111,7 +111,7 @@
       </spacer>
      </item>
      <item>
-      <widget class="QTableWidget" name="elnExperimentsTable">
+      <widget class="QTableWidget" name="elnExperimentTable">
        <property name="minimumSize">
         <size>
          <width>400</width>

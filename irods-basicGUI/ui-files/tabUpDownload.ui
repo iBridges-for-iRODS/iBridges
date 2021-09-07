@@ -62,7 +62,7 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_13">
           <item>
-           <widget class="QPushButton" name="createFolderButton_2">
+           <widget class="QPushButton" name="createFolderButton">
             <property name="text">
              <string>Create Folder</string>
             </property>
@@ -84,7 +84,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTreeView" name="localFsTreeView_2">
+         <widget class="QTreeView" name="localFsTreeView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -146,7 +146,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QComboBox" name="resourceBox_3">
+         <widget class="QComboBox" name="resourceBox">
           <property name="layoutDirection">
            <enum>Qt::LeftToRight</enum>
           </property>
@@ -189,7 +189,7 @@
            </spacer>
           </item>
           <item row="5" column="1">
-           <widget class="QPushButton" name="tab2ContUplBut_2">
+           <widget class="QPushButton" name="ContUplBut">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
               <horstretch>0</horstretch>
@@ -214,7 +214,7 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="QPushButton" name="tab2UploadButton_2">
+           <widget class="QPushButton" name="UploadButton">
             <property name="text">
              <string/>
             </property>
@@ -225,7 +225,7 @@
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QPushButton" name="tab2DownloadButton_2">
+           <widget class="QPushButton" name="DownloadButton">
             <property name="text">
              <string/>
             </property>
@@ -296,7 +296,7 @@
          </spacer>
         </item>
         <item>
-         <widget class="QPushButton" name="tab2ChecksumCheckBut_2">
+         <widget class="QPushButton" name="ChecksumCheckBut">
           <property name="minimumSize">
            <size>
             <width>0</width>
@@ -367,7 +367,13 @@
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_15">
           <item>
-           <widget class="QLabel" name="irodsZoneLabel_2">
+           <widget class="QLabel" name="irodsZoneLabel">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="text">
              <string>Zone</string>
             </property>
@@ -387,7 +393,7 @@
            </spacer>
           </item>
           <item>
-           <widget class="QPushButton" name="createCollButtonTab2_2">
+           <widget class="QPushButton" name="createCollButton">
             <property name="text">
              <string>Create Collection</string>
             </property>
@@ -396,7 +402,7 @@
          </layout>
         </item>
         <item>
-         <widget class="QTreeView" name="irodsFsTreeView_2">
+         <widget class="QTreeView" name="irodsFsTreeView">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
             <horstretch>0</horstretch>
@@ -462,14 +468,14 @@
       </property>
       <layout class="QGridLayout" name="gridLayout_4">
        <item row="0" column="1">
-        <widget class="QRadioButton" name="uplMetaRB_2">
+        <widget class="QRadioButton" name="uplMetaRB">
          <property name="text">
           <string>Metadata based</string>
          </property>
         </widget>
        </item>
        <item row="0" column="2">
-        <widget class="QRadioButton" name="uplF500RB_2">
+        <widget class="QRadioButton" name="uplF500RB">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -479,7 +485,7 @@
         </widget>
        </item>
        <item row="1" column="0">
-        <widget class="QCheckBox" name="rLocalcopyCB_2">
+        <widget class="QCheckBox" name="rLocalcopyCB">
          <property name="enabled">
           <bool>false</bool>
          </property>
@@ -489,7 +495,7 @@
         </widget>
        </item>
        <item row="0" column="0">
-        <widget class="QRadioButton" name="uplAllRB_2">
+        <widget class="QRadioButton" name="uplAllRB">
          <property name="text">
           <string>All files</string>
          </property>

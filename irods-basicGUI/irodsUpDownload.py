@@ -9,25 +9,6 @@ from continousUpload import contUpload
 from irodsCreateCollection import irodsCreateCollection
 from createDirectory import createDirectory
 
-# Vaiables
-# localFsTreeWidget, irodsFsTreeWidget
-# tab2UploadButton, tab2DownloadButton
-# ic (irodsConnector)
-
-# Treeviews
-#localFsTreeView
-#irodsFsTreeView
-
-# Buttons
-#tab2UploadButton
-#tab2ContUplBut
-#tab2DownloadButton
-
-# Rest
-#uplAllRB
-#uplMetaRB
-#uplF500RB
-#rLocalcopyCB
 
 class irodsUpDownload():
     def __init__(self, widget, ic, ienv):
@@ -73,24 +54,24 @@ class irodsUpDownload():
 
 
         # Buttons
-        self.widget.tab2UploadButton.clicked.connect(self.upload)
-        self.widget.tab2DownloadButton.clicked.connect(self.download)
-        self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
-        self.widget.tab2ChecksumCheckBut.clicked.connect(self.check_checksum)
+        self.widget.UploadButton.clicked.connect(self.upload)
+        self.widget.DownloadButton.clicked.connect(self.download)
+        self.widget.ContUplBut.clicked.connect(self.cont_upload)
+        self.widget.ChecksumCheckBut.clicked.connect(self.check_checksum)
         self.widget.createFolderButton.clicked.connect(self.createFolder)
-        self.widget.createCollButtonTab2.clicked.connect(self.createCollection)
+        self.widget.createCollButton.clicked.connect(self.createCollection)
 
         # Resource selector
         available_resources = self.ic.listResources()
-        self.widget.resourceBox_2.clear()
-        self.widget.resourceBox_2.addItems(available_resources)
+        self.widget.resourceBox.clear()
+        self.widget.resourceBox.addItems(available_resources)
         if ("ui_resource" in ienv) and (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
-            index = self.widget.resourceBox_2.findText(ienv["ui_resource"])
-            self.widget.resourceBox_2.setCurrentIndex(index)
+            index = self.widget.resourceBox.findText(ienv["ui_resource"])
+            self.widget.resourceBox.setCurrentIndex(index)
         elif ("default_resource_name" in ienv) and (ienv["default_resource_name"] != "") and (ienv["default_resource_name"] in available_resources):
-            index = self.widget.resourceBox_2.findText(ienv["default_resource_name"])
-            self.widget.resourceBox_2.setCurrentIndex(index)
-        self.widget.resourceBox_2.currentIndexChanged.connect(self.saveUIset)
+            index = self.widget.resourceBox.findText(ienv["default_resource_name"])
+            self.widget.resourceBox.setCurrentIndex(index)
+        self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
 
         # Continious upload settings
         if ("ui_remLocalcopy" in ienv):
@@ -116,7 +97,7 @@ class irodsUpDownload():
 
 
     def getResource(self):
-        return self.widget.resourceBox_2.currentText()
+        return self.widget.resourceBox.currentText()
 
     def getRemLocalCopy(self):
         return self.widget.rLocalcopyCB.isChecked()
@@ -200,7 +181,7 @@ class irodsUpDownload():
             return
         if self.syncing == False:
             self.syncing = True
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
+            self.widget.ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
             self.en_disable_controls(False)
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
@@ -210,7 +191,7 @@ class irodsUpDownload():
         else:
             #self.uploader.stop()
             self.syncing = False
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
+            self.widget.ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
             self.en_disable_controls(True)
 
 
@@ -221,8 +202,8 @@ class irodsUpDownload():
             if self.widget.tabWidget.tabText(i) == "Up and Download":
                 continue
             self.widget.tabWidget.setTabVisible(i, enable)
-        self.widget.tab2UploadButton.setEnabled(enable)
-        self.widget.tab2DownloadButton.setEnabled(enable)
+        self.widget.UploadButton.setEnabled(enable)
+        self.widget.DownloadButton.setEnabled(enable)
         self.widget.uplSetGB.setEnabled(enable)
 
 

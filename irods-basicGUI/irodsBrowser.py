@@ -12,9 +12,9 @@ import sys
 
 class irodsBrowser():
     def __init__ (self, widget, ic):
+        
         self.ic = ic
         self.widget = widget
-
         self.widget.viewTabs.setCurrentIndex(0)
 
         #Browser table
@@ -284,7 +284,7 @@ class irodsBrowser():
             elif self.ic.session.data_objects.exists(path):
                 irodsDict = {self.ic.session.data_objects.get(path).path: []}
             else:
-                widget.errorLabel.setText("Load: nothing selected.")
+                self.widget.errorLabel.setText("Load: nothing selected.")
                 pass
 
             for key in list(irodsDict.keys())[:20]:

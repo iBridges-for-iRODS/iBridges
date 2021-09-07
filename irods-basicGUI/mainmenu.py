@@ -14,17 +14,12 @@ from irodsUpDownload import irodsUpDownload
 
 import sys
 
-class irodsTabview(QMainWindow):
-    def __init__(self, widget, ic, hideTabs = []):
-        super(irodsTabview, self).__init__()
-        loadUi("ui-files/irodsBrowserMain.ui", self)
+class mainmenu(QMainWindow):
+    def __init__(self, widget, ic, ienv):
+        super(mainmenu, self).__init__()
+        loadUi("ui-files/MainMenu.ui", self)
         self.ic = ic
         self.widget = widget #stackedWidget
-
-        self.tabWidget.setCurrentIndex(0)
-        #hide tabs
-        for tab in hideTabs:
-            self.tabWidget.setTabVisible(tab, False)
 
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
@@ -32,33 +27,40 @@ class irodsTabview(QMainWindow):
         self.actionSearch.triggered.connect(self.search)
         self.actionExportMetadata.triggered.connect(self.exportMeta)
 
+        
+        if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
+            # iRODS collection browser tab, index 0
+            if("tabBrowser" in ienv["ui_tabs"]):
+                browserWidget = loadUi("ui-files/tabBrowser.ui")
+                self.tabWidget.addTab(browserWidget, "Browser")
+                self.irodsBrowser = irodsBrowser(browserWidget, ic)
 
-        # iRODS collection browser tab, index 0
-        if 0 not in hideTabs:
-            self.irodsBrowser = irodsBrowser(self, ic)
-            self.tabWidget.setCurrentIndex(0)
+            # Setup up/download tab, index 1
+            if ("tabUpDownload" in ienv["ui_tabs"]):
+                updownloadWidget = loadUi("ui-files/tabUpDownload.ui")
+                self.tabWidget.addTab(updownloadWidget, "Up and Download")
+                self.updownload = irodsUpDownload(updownloadWidget, ic, ienv)
 
-        # Setup up/download tab, index 1
-        if 1 not in hideTabs:
-            self.updownload = irodsUpDownload(self, ic)
+            # Elabjournal tab, index 2
+            if ("tabELNData" in ienv["ui_tabs"]):
+                elabUploadWidget = loadUi("ui-files/tabELNData.ui")
+                self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
+                self.elnTab = elabUpload(elabUploadWidget, ic)
 
+            # iRODS federation tab, index 3
+            ## TODO
+            #if ("tabFederations" in ienv["ui_tabs"]):
+            #FederationsWidget = loadUi("ui-files/tabFederations.ui")
+            #self.tabWidget.addTab(FederationsWidget, "Federations")
+            #self.elnTab = Federations(FederationsWidget, ic)
 
-        # Elabjournal tab, index 2
-        if 2 not in hideTabs:
-            self.elnTab = elabUpload(
-                    self.ic, self.globalErrorLabel, self.elnTokenInput,
-                    self.elnGroupTable, self.elnExperimentsTable, self.groupIdLabel,
-                    self.experimentIdLabel, self.localFsTable,
-                    self.elnUploadButton, self.elnPreviewBrowser, self.elnIrodsPath
-                    )
-
-        # iRODS federation tab, index 3
-        #TODO
-
-        # Setup test tab 4
-        if 4 not in hideTabs:
-            self.test = testIrodsFS(self, ic)
-
+            ## TODO page, index 4
+            #if ("tabPage" in ienv["ui_tabs"]):
+            #PageWidget = loadUi("ui-files/tabPage.ui")
+            #self.tabWidget.addTab(FederationsWidget, "Federations")
+            #self.elnTab = Federations(FederationsWidget, ic)        
+        
+        self.tabWidget.setCurrentIndex(0)
 
     #connect functions
     def programExit(self):
