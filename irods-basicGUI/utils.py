@@ -76,12 +76,18 @@ def check_direxists(dir):
         return os.path.isdir(dir)
     return False
 
+def check_fileexists(file):
+    if _check_exists(file):
+        return os.path.isfile(file)
+    return False
+
 def _check_exists(fname):
     if fname is None:
         return False
     if not os.path.exists(fname):
         return False
     return True
+
 
 # Create logger, it is important to note that it either writes prints to the console or the logfile! 
 def setup_logger(log_stdout = False):
