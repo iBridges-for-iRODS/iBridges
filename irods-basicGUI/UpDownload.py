@@ -140,9 +140,9 @@ class irodsUpDownload():
             return           
         destColl = self.ic.session.collections.get(destPath)
         if os.path.isdir(source):
-            self.uploadWindow = UpDownloadCheck(self.ic, source, destColl, destInd, True, self.getResource())
+            self.uploadWindow = UpDownloadCheck(self.ic, True, source, destColl, destInd, self.getResource())
             self.uploadWindow.finished.connect(self.finishedUpDownload)
-        else:
+        else: # File
             try:
                 self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
                 QMessageBox.information(self.widget, "status", "File uploaded.")
@@ -178,15 +178,20 @@ class irodsUpDownload():
         elif not os.access(destination, os.R_OK):
             message = "No write permission on current folder"
             QMessageBox.information(self.widget, 'Error', message)
-            return            
-        try:
-            if self.ic.session.data_objects.exists(source_path):
-                sourceColl = self.ic.session.data_objects.get(source_path)
-            else:
-                sourceColl = self.ic.session.collections.get(source_path)
-            self.ic.downloadData(sourceColl, destination)
-        except Exception as error:
-                self.form.globalErrorLabel.setText(repr(error))
+            return 
+        # File           
+        if self.ic.session.data_objects.exists(source_path):
+            try:
+                sourceObj = self.ic.session.data_objects.get(source_path)
+                self.ic.downloadData(sourceObj, destination)
+                QMessageBox.information(self.widget, "status", "File downloaded.")
+            except Exception as error:
+                logging.info(repr(error))
+                QMessageBox.information(self.widget, "status", "Something went wrong.")
+        else:
+            sourceColl = self.ic.session.collections.get(source_path)
+            self.uploadWindow = UpDownloadCheck(self.ic, False, destination, sourceColl)
+            self.uploadWindow.finished.connect(self.finishedUpDownload)
 
 
     # Continous file upload
