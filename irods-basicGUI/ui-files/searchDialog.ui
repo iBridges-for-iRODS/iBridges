@@ -26,13 +26,24 @@
 	background-color: rgb(54, 54, 54);
 }
 
+QLabel{
+    color: rgb(58, 152, 112);
+}
+
 QTableWidget
 {
+   
+	color: rgb(54, 54, 54);
 	background-color: rgb(85, 87, 83);
 	selection-background-color: rgb(58, 152, 112);
 }
 
 QLineEdit#key1, QLineEdit#key2, QLineEdit#key3, QLineEdit#key4, QLineEdit#key5
+{
+	background-color: rgb(85, 87, 83);
+}
+
+QLineEdit#val1, QLineEdit#val2, QLineEdit#val3, QLineEdit#val4, QLineEdit#val5
 {
 	background-color: rgb(85, 87, 83);
 }
@@ -46,41 +57,15 @@ QPushButton#downloadButton, QPushButton#selectSearchButton, QPushButton#startSea
 {
 	color: rgb(54, 54, 54);
 	background-color: rgb(58, 152, 112);
+}
+
+QPushButton#searchExitButton
+{
+color: rgb(211, 215, 207);
+background-color: rgb(54, 54, 54);
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
-   <item>
-    <widget class="QLabel" name="label_7">
-     <property name="font">
-      <font>
-       <weight>75</weight>
-       <bold>true</bold>
-      </font>
-     </property>
-     <property name="styleSheet">
-      <string notr="true"/>
-     </property>
-     <property name="text">
-      <string>iRODS search.</string>
-     </property>
-    </widget>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Minimum</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
    <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="7" column="1">
@@ -359,6 +344,9 @@ QPushButton#downloadButton, QPushButton#selectSearchButton, QPushButton#startSea
            <weight>75</weight>
            <bold>true</bold>
           </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true"/>
          </property>
          <property name="text">
           <string>Close</string>
