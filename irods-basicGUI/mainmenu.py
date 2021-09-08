@@ -27,13 +27,13 @@ class mainmenu(QMainWindow):
         self.actionSearch.triggered.connect(self.search)
         self.actionExportMetadata.triggered.connect(self.exportMeta)
 
+        #needed for Search
+        self.browserWidget = loadUi("ui-files/tabBrowser.ui")
+        self.tabWidget.addTab(self.browserWidget, "Browser")
+        self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
+
         
         if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
-            # iRODS collection browser tab, index 0
-            if("tabBrowser" in ienv["ui_tabs"]):
-                browserWidget = loadUi("ui-files/tabBrowser.ui")
-                self.tabWidget.addTab(browserWidget, "Browser")
-                self.irodsBrowser = irodsBrowser(browserWidget, ic)
 
             # Setup up/download tab, index 1
             if ("tabUpDownload" in ienv["ui_tabs"]):
@@ -47,19 +47,24 @@ class mainmenu(QMainWindow):
                 self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
                 self.elnTab = elabUpload(elabUploadWidget, ic)
 
-            # iRODS federation tab, index 3
+            # Data compression tab, index 3
+            if ("tabDataCompression" in ienv["ui_tabs"]):
+                dataCompressWidget = loadUi("ui-files/tabDataCompression.ui")
+                self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
+
+            # iRODS federation tab, index 4
             ## TODO
             #if ("tabFederations" in ienv["ui_tabs"]):
             #FederationsWidget = loadUi("ui-files/tabFederations.ui")
             #self.tabWidget.addTab(FederationsWidget, "Federations")
             #self.elnTab = Federations(FederationsWidget, ic)
 
-            ## TODO page, index 4
+            ## TODO page, index 5
             #if ("tabPage" in ienv["ui_tabs"]):
             #PageWidget = loadUi("ui-files/tabPage.ui")
             #self.tabWidget.addTab(FederationsWidget, "Federations")
             #self.elnTab = Federations(FederationsWidget, ic)        
-        
+       
         self.tabWidget.setCurrentIndex(0)
 
     #connect functions
@@ -87,102 +92,12 @@ class mainmenu(QMainWindow):
             pass
 
     def search(self):
-        search = irodsSearch(self.ic, self.collTable)
+        search = irodsSearch(self.ic, self.browserWidget.collTable)
         search.exec_()
         #search.search()
 
 
     def exportMeta(Self):
         print("TODO: search")
-
-
-    def updateIcatAcl(self):
-        self.errorLabel.clear()
-        user = self.aclUserField.text()
-        rights = self.aclBox.currentText()
-        recursive = self.recurseBox.currentText() == 'True'
-        if self.collTable.item(self.currentBrowserRow, 0).text() == '':
-            parent = self.inputPath.text()
-        else:
-            parent = self.collTable.item(self.currentBrowserRow, 0).text()
-        cell = self.collTable.item(self.currentBrowserRow, 1).text()
-        zone = self.aclZoneField.text()
-        try:
-            self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
-            self.__fillACLs(cell, parent)
-        except Exception as error:
-            self.errorLabel.setText(repr(error))
-
-
-    def updateIcatMeta(self):
-        self.errorLabel.clear()
-        newKey = self.metaKeyField.text()
-        newVal = self.metaValueField.text()
-        newUnits = self.metaUnitsField.text()
-        try:
-            if not (newKey == "" or newVal == ""):
-                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
-                    parent = self.inputPath.text()
-                else:
-                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
-
-                cell = self.collTable.item(self.currentBrowserRow, 1).text()
-                if cell.endswith("/"):
-                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                else:
-                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                self.ic.updateMetadata([item], newKey, newVal, newUnits)
-                self.__fillMetadata(cell, parent)
-                self.__fillResc(cell, parent)
-        except Exception as error:
-            self.errorLabel.setText(repr(error))
-
-
-    def addIcatMeta(self):
-        self.errorLabel.clear()
-        newKey = self.metaKeyField.text()
-        newVal = self.metaValueField.text()
-        newUnits = self.metaUnitsField.text()
-        if not (newKey == "" or newVal == ""):
-            try:
-                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
-                    parent = self.inputPath.text()
-                else:
-                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
-
-                cell = self.collTable.item(self.currentBrowserRow, 1).text()
-                if cell.endswith("/"):
-                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                else:
-                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                self.ic.addMetadata([item], newKey, newVal, newUnits)
-                self.__fillMetadata(cell, parent)
-                self.__fillResc(cell, parent)
-            except Exception as error:
-                self.errorLabel.setText(repr(error))
-
-
-
-    def deleteIcatMeta(self):
-        self.errorLabel.clear()
-        key = self.metaKeyField.text()
-        val = self.metaValueField.text()
-        units = self.metaUnitsField.text()
-        try:
-            if not (key == "" or val == ""):
-                if self.collTable.item(self.currentBrowserRow, 0).text() == '':
-                    parent = self.inputPath.text()
-                else:
-                    parent = self.collTable.item(self.currentBrowserRow, 0).text()
-
-                cell = self.collTable.item(self.currentBrowserRow, 1).text()
-                if cell.endswith("/"):
-                    item = self.ic.session.collections.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                else:
-                    item = self.ic.session.data_objects.get("/"+parent.strip("/")+"/"+cell.strip("/"))
-                self.ic.deleteMetadata([item], key, val, units)
-                self.__fillMetadata(cell, parent)
-        except Exception as error:
-            self.errorLabel.setText(repr(error))
 
 
