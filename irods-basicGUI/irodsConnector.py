@@ -7,6 +7,7 @@ from irods.exception import CollectionDoesNotExist
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.column import Like, Between, In
 import irods.keywords as kw
+from irods.rule import Rule
 
 import json
 import os
@@ -475,4 +476,33 @@ class irodsConnector():
                 item.unlink(force = True)
             except CAT_NO_ACCESS_PERMISSION:
                 raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+
+
+    def executeRule(self, ruleFile, params, output='ruleExecOut'):
+        """
+        Executes and interactive rule. Returns stdout and stderr.
+        params: Depending on rule,
+                dictionary of variables for rule, will overwrite the default settings.
+        params format example:
+        params = {  # extra quotes for string literals
+            '*obj': '"/zone/home/user"',
+            '*name': '"attr_name"',
+            '*value': '"attr_value"'
+        }
+        """
+        rule = Rule(self.session, ruleFile, params=params, output=output)
+        out = rule.execute()
+        stdout = []
+        stderr = []
+        if len(out.MsParam_PI) > 0:
+            try:
+                stdout = [o.decode() 
+                    for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
+                stderr = [o.decode 
+                    for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
+            except AttributeError:
+                return stdout, stderr
+        
+        return stdout, stderr
+
 
