@@ -5,6 +5,8 @@ from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QMovie
 import logging
 
+from irods.keywords import NO_PARA_OP_KW
+
 from utils import getSizeList
 
 
@@ -15,10 +17,9 @@ from utils import getSizeList
 class UpDownloadCheck(QDialog):
     finished = pyqtSignal(bool ,QModelIndex)
 
-    def __init__(self, ic, localFS, Coll, TreeInd, upload = True):
+    def __init__(self, ic, localFS, Coll, TreeInd, upload = True, resource = None):
         super(UpDownloadCheck, self).__init__()
         loadUi("ui-files/upDownloadCheck.ui", self)
-        QMessageBox.information(self, "status", "test")
 
         self.ic = ic
         self.localFS = localFS
@@ -27,6 +28,7 @@ class UpDownloadCheck(QDialog):
         self.upload = upload
         self.newFiles = []
         self.checksumFiles = []
+        self.resource = resource
 
         self.cancelBtn.clicked.connect(self.cancel)
         self.confirmBtn.clicked.connect(self.confirm)
@@ -34,10 +36,8 @@ class UpDownloadCheck(QDialog):
         # Upload
         if self.upload == True:
             self.confirmBtn.setText("Upload")
-            self.newCB.setText("Upload")
         else:
-            self.confirmBtn.setText("Download")
-            self.newCB.setText("Download")           
+            self.confirmBtn.setText("Download")        
         self.confirmBtn.setEnabled(False)
 
         self.loading_movie = QMovie("icons/loading_circle.gif")
@@ -65,17 +65,13 @@ class UpDownloadCheck(QDialog):
 
 
     def confirm(self):
-        to_process = []
-        total_size = 0
-        if self.diffCB.isChecked():
-            to_process = self.checksumFiles
-            total_size = self.checksumSize
-        if self.newCB.isChecked():
-            to_process = to_process + self.newFiles
-            total_size = total_size + self.newSize
+        total_size = self.checksumSize + self.newSize
 
+        self.loading_movie.start()
+        self.loadingLbl.setHidden(False)
+        self.statusLbl = "Uploading... this might take a while"
         self.thread = QThread()
-        self.worker = UpDownload(self.ic, self.upload, self.localFS, self.Coll, to_process, total_size)
+        self.worker = UpDownload(self.ic, self.upload, self.localFS, self.Coll, total_size, self.resource)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.finished.connect(self.thread.quit)
@@ -112,18 +108,24 @@ class UpDownloadCheck(QDialog):
     def bytesToStr(self, bytes):
         bytes = bytes / (1024**3)
         if bytes < 1000:
-            bytesStr = f"{bytes} GB"
+            bytesStr = f"{round(bytes, 3)} GB"
         else:
             bytes = bytes / 1000
-            bytesStr = f"{bytes} TB"
+            bytesStr = f"{round(bytes, 3)} TB"
         return bytesStr
 
 
     def upDownLoadFinished(self, status, statusmessage):
-        QMessageBox(self, "status", statusmessage)
-        self.confirmBtn.disconnect() # remove callback
-        self.confirmBtn.setText("Close")
-        self.confirmBtn.clicked.connect(self.close)
+        self.loading_movie.stop()
+        self.loadingLbl.setHidden(True)
+        self.statusLbl = ""
+        QMessageBox.information(self, "status", statusmessage)
+        if status == True:
+            self.confirmBtn.disconnect() # remove callback
+            self.confirmBtn.setText("Close")
+            self.confirmBtn.clicked.connect(self.close)
+        else:
+            self.confirmBtn.setText("Retry")
 
 
 # Background worker to load the menu
@@ -160,25 +162,19 @@ class GetInfo(QObject):
 # Background worker for the up/download
 class UpDownload(QObject):
     finished = pyqtSignal(bool, str)
-    def __init__(self, ic, upload, localFS, Coll, toProcess, totalSize):
+    def __init__(self, ic, upload, localFS, Coll, totalSize, resource = None):
         super(UpDownload, self).__init__()
         self.ic = ic
         self.upload = upload
         self.localFS = localFS
         self.Coll = Coll
-        self.files = toProcess # files to up/download
         self.totalSize = totalSize
-
+        self.resource = resource
+        
     def run(self):    
         try:
             if self.upload:
-                for file in self.files:
-                        source = self.localFS + file
-                        #self.ic.uploadData(source, destColl, self.getResource(), self.totalSize, buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
-                        print(source)
-                         # could be subfolder, create these first if they dont exist... 
-                        print(self.Coll)
-                raise ValueError
+                self.ic.uploadData(self.localFS, self.Coll, self.resource, self.totalSize, buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
                 self.finished.emit(True, "Upload finished")
         except Exception as error:
             logging.info(repr(error))

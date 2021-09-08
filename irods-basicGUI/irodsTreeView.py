@@ -44,7 +44,7 @@ class IrodsModel(QStandardItemModel):
             if value == Qt.Checked:
                 # Block checking of home item (found no easy way to remove the checkbox)
                 if self.data(index) == "home":
-                    message = "Cannot up/download to home directory"
+                    message = "Cannot up/download to home collection"
                     QMessageBox.information(self.TreeView,'Error', message)
                     #logging.info("Filedownload:" + message)
                     return False

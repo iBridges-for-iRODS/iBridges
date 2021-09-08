@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 import logging
+import os
 
 from checkableFsTree import checkableFsTreeModel
 from irodsTreeView  import IrodsModel
@@ -138,9 +139,16 @@ class irodsUpDownload():
         if source == None: 
             return           
         destColl = self.ic.session.collections.get(destPath)
-        self.uploadWindow = UpDownloadCheck(self.ic, source, destColl, destInd, True)
-        self.uploadWindow.finished.connect(self.finishedUpDownload)
-
+        if os.path.isdir(source):
+            self.uploadWindow = UpDownloadCheck(self.ic, source, destColl, destInd, True, self.getResource())
+            self.uploadWindow.finished.connect(self.finishedUpDownload)
+        else:
+            try:
+                self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
+                QMessageBox.information(self.widget, "status", "File uploaded.")
+            except Exception as error:
+                logging.info(repr(error))
+                QMessageBox.information(self.widget, "status", "Something went wrong.")
 
     def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
         if succes == True:
@@ -162,11 +170,15 @@ class irodsUpDownload():
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return
-        elif destination.find(".") != -1:
+        elif not os.path.isdir(destination):
             message = "Can only download to folders, not files."
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
-            return      
+            return
+        elif not os.access(destination, os.R_OK):
+            message = "No write permission on current folder"
+            QMessageBox.information(self.widget, 'Error', message)
+            return            
         try:
             if self.ic.session.data_objects.exists(source_path):
                 sourceColl = self.ic.session.data_objects.get(source_path)
@@ -175,8 +187,6 @@ class irodsUpDownload():
             self.ic.downloadData(sourceColl, destination)
         except Exception as error:
                 self.form.globalErrorLabel.setText(repr(error))
-
-
 
 
     # Continous file upload
@@ -233,12 +243,12 @@ class irodsUpDownload():
 
     def upload_check_dest(self, dest_ind, dest_collection):
         if dest_ind == None:
-            message = "No Folder selected to upload to"
+            message = "No collection selected to upload to"
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return False
         elif dest_collection.find(".") != -1:
-            message = "Can only upload to folders, not files."
+            message = "Can only upload to collections, not objects."
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return False
