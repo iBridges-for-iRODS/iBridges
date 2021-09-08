@@ -86,7 +86,7 @@ class irodsLogin(QDialog):
     def init_envbox(self):
         envJsons = []
         for file in os.listdir(self.irodsEnvPath):
-            if file != "config.json" and (file.endswith('.json')):
+            if file != "config.json" and (file.endswith('.json') or file.startswith("irods_environment")):
                 envJsons.append(file)
         if len(envJsons) == 0: 
             self.envError.setText(f"ERROR: no iRODS environment files found in {self.irodsEnvPath}")
