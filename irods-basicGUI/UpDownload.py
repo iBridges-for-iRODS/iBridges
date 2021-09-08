@@ -8,7 +8,7 @@ from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
 from createDirectory import createDirectory
-
+from UpDownloadCheck import UpDownloadCheck
 
 class irodsUpDownload():
     def __init__(self, widget, ic, ienv):
@@ -114,7 +114,7 @@ class irodsUpDownload():
 
     # Check checksums to confirm the upload
     def check_checksum(self):
-        print("TODO")
+        print("TODO, or maybe skipp?")
 
 
     def createFolder(self):
@@ -134,15 +134,18 @@ class irodsUpDownload():
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
-        (source, dest_ind, dest_path) = self.upload_get_paths()
+        (source, destInd, destPath) = self.upload_get_paths()
         if source == None: 
             return           
-        try:
-            destColl = self.ic.session.collections.get(dest_path)
-            self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
-            self.irodsmodel.refreshSubTree(dest_ind)
-        except Exception as error:
-                self.widget.globalErrorLabel.setText(repr(error))
+        destColl = self.ic.session.collections.get(destPath)
+        self.uploadWindow = UpDownloadCheck(self.ic, source, destColl, destInd, True)
+        self.uploadWindow.finished.connect(self.finishedUpDownload)
+
+
+    def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
+        if succes == True:
+            self.irodsmodel.refreshSubTree(destInd)
+        self.uploadWindow = None # Release
 
 
     # Download a file/folder from IRODS to local disk
@@ -174,9 +177,11 @@ class irodsUpDownload():
                 self.form.globalErrorLabel.setText(repr(error))
 
 
+
+
     # Continous file upload
     def cont_upload(self):
-        (source, dest_ind, dest_path) = self.upload_get_paths()
+        (source, destInd, destPath) = self.upload_get_paths()
         if source == None: 
             return
         if self.syncing == False:
@@ -185,7 +190,7 @@ class irodsUpDownload():
             self.en_disable_controls(False)
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
-            destColl = self.ic.session.collections.get(dest_path)
+            destColl = self.ic.session.collections.get(destPath)
             self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
             #self.uploader.start()
         else:

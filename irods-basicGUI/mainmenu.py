@@ -10,7 +10,7 @@ from utils import walkToDict, getDownloadDir
 from irodsBrowser import irodsBrowser
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
-from irodsUpDownload import irodsUpDownload
+from UpDownload import irodsUpDownload
 
 import sys
 

@@ -15,7 +15,12 @@ def getSize(path):
                 size += os.path.getsize(f)
     elif os.path.isfile(path):
         size = os.path.getsize(path)
+    return size
 
+def getSizeList(folder, files):
+    size = 0
+    for file in files:
+        size += os.path.getsize(folder + os.sep + file)
     return size
 
 
@@ -94,8 +99,9 @@ def setup_logger(log_stdout = False):
     log_folder = get_filepath() + os.sep + "logs"
     if not check_direxists(log_folder):
         os.makedirs(log_folder)
-    current_imestamp = datetime.now().strftime("%y-%m-%dT%H_%M_%S")
-    file_path = log_folder + "/log_" + current_imestamp + ".log"
+    #current_imestamp = datetime.now().strftime("%y-%m-%dT%H_%M_%S")
+    #file_path = log_folder + "/log_" + current_imestamp + ".log"
+    file_path = log_folder + "/current_session.log"
 
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     handlers = [logging.FileHandler(file_path, 'a'), logging.StreamHandler(sys.stdout)]#, logging.StreamHandler()
