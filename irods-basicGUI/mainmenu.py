@@ -11,6 +11,7 @@ from irodsBrowser import irodsBrowser
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
 from UpDownload import irodsUpDownload
+from irodsDataCompression import irodsDataCompression
 
 import sys
 
@@ -51,6 +52,7 @@ class mainmenu(QMainWindow):
             if ("tabDataCompression" in ienv["ui_tabs"]):
                 dataCompressWidget = loadUi("ui-files/tabDataCompression.ui")
                 self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
+                self.compressionTab = irodsDataCompression(dataCompressWidget, ic, ienv)
 
             # iRODS federation tab, index 4
             ## TODO

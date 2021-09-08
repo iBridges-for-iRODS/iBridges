@@ -19,6 +19,9 @@ class IrodsModel(QStandardItemModel):
         super(IrodsModel, self).__init__(parent)
         self._checked_indeces = set()
         self.ic = irods_session
+        #Groups which the user id member of to check access rights on tree
+        self.userGroups = self.ic.getUserInfo()[1]
+
         self.irodsRootColl = "/" + self.ic.session.zone
         self.TreeView = TreeView
         self.clear() # Empty tree
@@ -39,12 +42,20 @@ class IrodsModel(QStandardItemModel):
 
 
     def setData(self, index, value, role=Qt.EditRole):
+
         if role == Qt.CheckStateRole:
-            #filename = self.data(index)
             if value == Qt.Checked:
+                #check irods ACLs for access rights
+                path = self.irodsPathFromTreeIdx(index)
+                reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
+                reqAcls.extend([('write', path, group, self.ic.session.zone) \
+                                    for group in self.userGroups])
+
+                acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
+                            for acl in self.ic.getPermissions(path)])
                 # Block checking of home item (found no easy way to remove the checkbox)
-                if self.data(index) == "home":
-                    message = "Cannot up/download to home collection"
+                if acls.intersection(reqAcls) == set():
+                    message = "ERROR, insufficient rights:\nCannot select "+path
                     QMessageBox.information(self.TreeView,'Error', message)
                     #logging.info("Filedownload:" + message)
                     return False

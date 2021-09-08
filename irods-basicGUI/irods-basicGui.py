@@ -64,6 +64,7 @@ class irodsLogin(QDialog):
 
     def setupStandard(self):
         if self.standardButton.isChecked():
+            self.init_envbox()
             self.icommands = False
 
 
@@ -78,6 +79,11 @@ class irodsLogin(QDialog):
                     self.standardButton.setChecked(True)
                 else:
                     self.icommands = True
+                    index = self.envbox.findText("irods_environment.json")
+                    self.envbox.clear()
+                    #freeze envbox
+                    self.envbox.addItems(["irods_environment.json"])
+                    
             except Exception:
                 self.icommandsError.setText("ERROR: no icommands installed")
                 self.standardButton.setChecked(True)
@@ -168,7 +174,7 @@ class irodsLogin(QDialog):
                 logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                return
+                raise
 
 
 

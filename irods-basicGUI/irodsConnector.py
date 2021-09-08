@@ -5,6 +5,7 @@ from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS
 from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
 from irods.exception import CollectionDoesNotExist
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
+from irods.models import User, UserGroup
 from irods.column import Like, Between, In
 import irods.keywords as kw
 from irods.rule import Rule
@@ -66,6 +67,21 @@ class irodsConnector():
         print(''.join([coll.path+'\n' for coll 
             in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
 
+
+    def getUserInfo(self):
+        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
+        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
+        
+        userType = []
+        for t in userTypeQuery.get_results():
+            userType.extend(list(t.values()))
+        userGroups = []
+        for g in userGroupQuery.get_results():
+            userGroups.extend(list(g.values()))
+
+        return(userType, userGroups)
+
+        
     def getPermissions(self, iPath):
         '''
         iPath: Can be a string or an iRODS collection/object
@@ -498,7 +514,7 @@ class irodsConnector():
             try:
                 stdout = [o.decode() 
                     for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
-                stderr = [o.decode 
+                stderr = [o.decode() 
                     for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
             except AttributeError:
                 return stdout, stderr

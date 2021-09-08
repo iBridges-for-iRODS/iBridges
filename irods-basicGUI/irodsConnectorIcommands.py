@@ -4,6 +4,8 @@ from irods.exception    import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACC
 from irods.exception    import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
 
 from irods.models       import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
+from irods.models       import User, UserGroup
+from irods.column import Like, Between, In
 import irods.keywords as kw
 
 import subprocess
@@ -156,6 +158,20 @@ class irodsConnectorIcommands():
             return self.session.collections.get(collPath)
         except:
             raise
+
+
+    def getUserInfo(self):
+        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
+        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
+
+        userType = []
+        for t in userTypeQuery.get_results():
+            userType.extend(list(t.values()))
+        userGroups = []
+        for g in userGroupQuery.get_results():
+            userGroups.extend(list(g.values()))
+
+        return(userType, userGroups)
 
 
     def search(self, keyVals = None):

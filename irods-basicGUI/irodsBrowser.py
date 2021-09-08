@@ -322,7 +322,7 @@ class irodsBrowser():
 
 
     def fileUpload(self):
-        from irodsUtils import getSize
+        from utils import getSize
         dialog = QFileDialog(self.widget)
         fileSelect = QFileDialog.getOpenFileName(self.widget,
                         "Open File", "","All Files (*);;Python Files (*.py)")
@@ -335,7 +335,7 @@ class irodsBrowser():
                 print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
                 self.ic.uploadData(fileSelect[0], parentColl,
                         None, size, force=True)
-                self.widget.loadTable()
+                self.loadTable()
             except Exception as error:
                 print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
