@@ -1,33 +1,15 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 import logging
+import os
 
 from checkableFsTree import checkableFsTreeModel
 from irodsTreeView  import IrodsModel
-from irodsUtils import getSize, saveIenv
+from utils import getSize, saveIenv
 from continousUpload import contUpload
 
 from irodsCreateCollection import irodsCreateCollection
 from createDirectory import createDirectory
-
-# Vaiables
-# localFsTreeWidget, irodsFsTreeWidget
-# tab2UploadButton, tab2DownloadButton
-# ic (irodsConnector)
-
-# Treeviews
-#localFsTreeView
-#irodsFsTreeView
-
-# Buttons
-#tab2UploadButton
-#tab2ContUplBut
-#tab2DownloadButton
-
-# Rest
-#uplAllRB
-#uplMetaRB
-#uplF500RB
-#rLocalcopyCB
+from UpDownloadCheck import UpDownloadCheck
 
 class irodsUpDownload():
     def __init__(self, widget, ic, ienv):
@@ -73,24 +55,24 @@ class irodsUpDownload():
 
 
         # Buttons
-        self.widget.tab2UploadButton.clicked.connect(self.upload)
-        self.widget.tab2DownloadButton.clicked.connect(self.download)
-        self.widget.tab2ContUplBut.clicked.connect(self.cont_upload)
-        self.widget.tab2ChecksumCheckBut.clicked.connect(self.check_checksum)
+        self.widget.UploadButton.clicked.connect(self.upload)
+        self.widget.DownloadButton.clicked.connect(self.download)
+        self.widget.ContUplBut.clicked.connect(self.cont_upload)
+        self.widget.ChecksumCheckBut.clicked.connect(self.check_checksum)
         self.widget.createFolderButton.clicked.connect(self.createFolder)
-        self.widget.createCollButtonTab2.clicked.connect(self.createCollection)
+        self.widget.createCollButton.clicked.connect(self.createCollection)
 
         # Resource selector
         available_resources = self.ic.listResources()
-        self.widget.resourceBox_2.clear()
-        self.widget.resourceBox_2.addItems(available_resources)
+        self.widget.resourceBox.clear()
+        self.widget.resourceBox.addItems(available_resources)
         if ("ui_resource" in ienv) and (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
-            index = self.widget.resourceBox_2.findText(ienv["ui_resource"])
-            self.widget.resourceBox_2.setCurrentIndex(index)
+            index = self.widget.resourceBox.findText(ienv["ui_resource"])
+            self.widget.resourceBox.setCurrentIndex(index)
         elif ("default_resource_name" in ienv) and (ienv["default_resource_name"] != "") and (ienv["default_resource_name"] in available_resources):
-            index = self.widget.resourceBox_2.findText(ienv["default_resource_name"])
-            self.widget.resourceBox_2.setCurrentIndex(index)
-        self.widget.resourceBox_2.currentIndexChanged.connect(self.saveUIset)
+            index = self.widget.resourceBox.findText(ienv["default_resource_name"])
+            self.widget.resourceBox.setCurrentIndex(index)
+        self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
 
         # Continious upload settings
         if ("ui_remLocalcopy" in ienv):
@@ -116,7 +98,7 @@ class irodsUpDownload():
 
 
     def getResource(self):
-        return self.widget.resourceBox_2.currentText()
+        return self.widget.resourceBox.currentText()
 
     def getRemLocalCopy(self):
         return self.widget.rLocalcopyCB.isChecked()
@@ -133,7 +115,7 @@ class irodsUpDownload():
 
     # Check checksums to confirm the upload
     def check_checksum(self):
-        print("TODO")
+        print("TODO, or maybe skipp?")
 
 
     def createFolder(self):
@@ -153,15 +135,25 @@ class irodsUpDownload():
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
-        (source, dest_ind, dest_path) = self.upload_get_paths()
+        (source, destInd, destPath) = self.upload_get_paths()
         if source == None: 
             return           
-        try:
-            destColl = self.ic.session.collections.get(dest_path)
-            self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
-            self.irodsmodel.refreshSubTree(dest_ind)
-        except Exception as error:
-                self.widget.globalErrorLabel.setText(repr(error))
+        destColl = self.ic.session.collections.get(destPath)
+        if os.path.isdir(source):
+            self.uploadWindow = UpDownloadCheck(self.ic, True, source, destColl, destInd, self.getResource())
+            self.uploadWindow.finished.connect(self.finishedUpDownload)
+        else: # File
+            try:
+                self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
+                QMessageBox.information(self.widget, "status", "File uploaded.")
+            except Exception as error:
+                logging.info(repr(error))
+                QMessageBox.information(self.widget, "status", "Something went wrong.")
+
+    def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
+        if succes == True:
+            self.irodsmodel.refreshSubTree(destInd)
+        self.uploadWindow = None # Release
 
 
     # Download a file/folder from IRODS to local disk
@@ -178,39 +170,48 @@ class irodsUpDownload():
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return
-        elif destination.find(".") != -1:
+        elif not os.path.isdir(destination):
             message = "Can only download to folders, not files."
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
-            return      
-        try:
-            if self.ic.session.data_objects.exists(source_path):
-                sourceColl = self.ic.session.data_objects.get(source_path)
-            else:
-                sourceColl = self.ic.session.collections.get(source_path)
-            self.ic.downloadData(sourceColl, destination)
-        except Exception as error:
-                self.form.globalErrorLabel.setText(repr(error))
+            return
+        elif not os.access(destination, os.R_OK):
+            message = "No write permission on current folder"
+            QMessageBox.information(self.widget, 'Error', message)
+            return 
+        # File           
+        if self.ic.session.data_objects.exists(source_path):
+            try:
+                sourceObj = self.ic.session.data_objects.get(source_path)
+                self.ic.downloadData(sourceObj, destination)
+                QMessageBox.information(self.widget, "status", "File downloaded.")
+            except Exception as error:
+                logging.info(repr(error))
+                QMessageBox.information(self.widget, "status", "Something went wrong.")
+        else:
+            sourceColl = self.ic.session.collections.get(source_path)
+            self.uploadWindow = UpDownloadCheck(self.ic, False, destination, sourceColl)
+            self.uploadWindow.finished.connect(self.finishedUpDownload)
 
 
     # Continous file upload
     def cont_upload(self):
-        (source, dest_ind, dest_path) = self.upload_get_paths()
+        (source, destInd, destPath) = self.upload_get_paths()
         if source == None: 
             return
         if self.syncing == False:
             self.syncing = True
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
+            self.widget.ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
             self.en_disable_controls(False)
             upl_mode = self.get_upl_mode()
             r_local_copy = self.widget.rLocalcopyCB.isChecked()
-            destColl = self.ic.session.collections.get(dest_path)
+            destColl = self.ic.session.collections.get(destPath)
             self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
             #self.uploader.start()
         else:
             #self.uploader.stop()
             self.syncing = False
-            self.widget.tab2ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
+            self.widget.ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
             self.en_disable_controls(True)
 
 
@@ -221,8 +222,8 @@ class irodsUpDownload():
             if self.widget.tabWidget.tabText(i) == "Up and Download":
                 continue
             self.widget.tabWidget.setTabVisible(i, enable)
-        self.widget.tab2UploadButton.setEnabled(enable)
-        self.widget.tab2DownloadButton.setEnabled(enable)
+        self.widget.UploadButton.setEnabled(enable)
+        self.widget.DownloadButton.setEnabled(enable)
         self.widget.uplSetGB.setEnabled(enable)
 
 
@@ -236,6 +237,7 @@ class irodsUpDownload():
             return (None, None, None)     
         return (source, dest_ind, dest_path)
 
+
     def upload_check_source(self, source):
         if source == None:
             message = "No file selected to upload"
@@ -243,14 +245,15 @@ class irodsUpDownload():
             #logging.info("Fileupload:" + message)
             return False
 
+
     def upload_check_dest(self, dest_ind, dest_collection):
         if dest_ind == None:
-            message = "No Folder selected to upload to"
+            message = "No collection selected to upload to"
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return False
         elif dest_collection.find(".") != -1:
-            message = "Can only upload to folders, not files."
+            message = "Can only upload to collections, not objects."
             QMessageBox.information(self.widget, 'Error', message)
             #logging.info("Fileupload:" + message)
             return False

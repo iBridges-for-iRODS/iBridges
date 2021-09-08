@@ -1,9 +1,10 @@
 import os
-#from pathlib import Path
 import sys
+import logging
 from shutil import copyfile
 from cryptography.fernet import Fernet
-import json
+from json import load, dump
+from platform import system
 import subprocess
 
 from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QStackedWidget
@@ -17,15 +18,26 @@ from irods.exception import CAT_INVALID_AUTHENTICATION
 from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
-from irodsTabview import irodsTabview
-from irodsUtils import networkCheck
+from mainmenu import mainmenu
+from utils import networkCheck, setup_logger, check_direxists, check_fileexists
+
+
 
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
+        setup_logger()
         loadUi("ui-files/irodsLogin.ui", self)
-        self.default_irodsenv_path = os.path.expanduser('~')+ os.sep +".irods" + os.sep + "irods_environment.json"
-        self.envFileField.setText(self.default_irodsenv_path)
+
+        if system() == "Linux":
+            self.irodsEnvPath = os.environ['HOME'] + os.sep + ".irods"
+        else:
+            self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods" #+ os.sep + "irods_environment.json"
+        if not check_direxists(self.irodsEnvPath):
+            os.makedirs(self.irodsEnvPath)
+        self.configFilePath = self.irodsEnvPath + os.sep + "config.json"
+        self.init_envbox()
+
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)
@@ -52,9 +64,6 @@ class irodsLogin(QDialog):
 
     def setupStandard(self):
         if self.standardButton.isChecked():
-            self.default_irodsenv_path = os.path.expanduser('~') + os.sep + ".irods" + os.sep + "irods_environment.json"
-            self.envFileField.setText(self.default_irodsenv_path)
-            self.envFileField.setEnabled(True)
             self.icommands = False
 
 
@@ -68,22 +77,42 @@ class irodsLogin(QDialog):
                     self.icommandsError.setText("ERROR: no icommands installed")
                     self.standardButton.setChecked(True)
                 else:
-                    self.default_irodsenv_path = os.environ['HOME'] + os.sep + ".irods" + os.sep + "irods_environment.json"
-                    self.envFileField.setText(self.default_irodsenv_path)
-                    self.envFileField.setEnabled(False)
                     self.icommands = True
             except Exception:
                 self.icommandsError.setText("ERROR: no icommands installed")
                 self.standardButton.setChecked(True)
+
+
+    def init_envbox(self):
+        envJsons = []
+        for file in os.listdir(self.irodsEnvPath):
+            if file != "config.json" and (file.endswith('.json') or file.startswith("irods_environment")):
+                envJsons.append(file)
+        if len(envJsons) == 0: 
+            self.envError.setText(f"ERROR: no iRODS environment files found in {self.irodsEnvPath}")
+        self.envbox.clear()
+        self.envbox.addItems(envJsons)
+        
+        # Read config
+        if check_fileexists(self.configFilePath):
+            with open(self.configFilePath) as f:
+                conf = load(f)
+            if ("last_ienv" in conf) and (conf["last_ienv"] != "") and (conf["last_ienv"] in envJsons):
+                index = self.envbox.findText(conf["last_ienv"])
+                self.envbox.setCurrentIndex(index)
+                return
+        if "irods_environment.json" in envJsons:
+            index = self.envbox.findText("irods_environment.json")
+            self.envbox.setCurrentIndex(index)                        
+
 
     def loginfunction(self):
         self.__resetErrorLabelsAndMouse()
         self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         cipher = self.__encryption()
         password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
-        envFile = self.envFileField.text()
+        envFile = self.irodsEnvPath + os.sep + self.envbox.currentText()
         connect = False
-       
         try:
             if not os.path.isfile(envFile):
                 raise FileNotFoundError
@@ -107,7 +136,14 @@ class irodsLogin(QDialog):
         if connect:
             try:
                 ic = self.__irodsLogin(envFile, password, cipher)
-                browser = irodsTabview(widget, ic, hideTabs = [1, 2, 3, 4])
+
+                # Add own filepath for easy saving
+                ienv["ui_ienvFilePath"] = self.irodsEnvPath + os.sep + self.envbox.currentText()
+                conf = {"last_ienv": self.envbox.currentText()}
+                with open(self.configFilePath, 'w') as f:
+                    dump(conf, f)
+
+                browser = mainmenu(widget, ic, ienv)
                 if len(widget) == 1:
                     widget.addWidget(browser)
                 widget.setCurrentIndex(widget.currentIndex()+1)
@@ -128,7 +164,8 @@ class irodsLogin(QDialog):
             except NetworkException:
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            except Exception:
+            except Exception as error:
+                logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return

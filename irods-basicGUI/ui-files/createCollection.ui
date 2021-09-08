@@ -26,8 +26,16 @@
    <string>New Collection</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">color: rgb(86, 184, 139);
-background-color: rgb(54, 54, 54);</string>
+   <string notr="true">QWidget
+{
+	color: rgb(86, 184, 139);
+	background-color: rgb(54, 54, 54);
+}
+
+QLabel#errorLabel
+{
+	color: rgb(164, 0, 0);
+}</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -63,7 +71,7 @@ background-color: rgb(54, 54, 54);</string>
    <item>
     <widget class="QLabel" name="errorLabel">
      <property name="styleSheet">
-      <string notr="true">color: rgb(164, 0, 0);</string>
+      <string notr="true"/>
      </property>
      <property name="text">
       <string/>

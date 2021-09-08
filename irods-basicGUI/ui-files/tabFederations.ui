@@ -13,11 +13,29 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">QWidget
+{
+	color: rgb(86, 184, 139);
+	background-color: rgb(54, 54, 54);
+	selection-background-color: rgb(58, 152, 112);
+}
+
+QTreewidget
+{
+	background-color: rgb(85, 87, 83);
+}
+
+QTableWidget
+{
+	background-color: rgb(85, 87, 83);
+}</string>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTableWidget" name="tableWidget">
      <property name="styleSheet">
-      <string notr="true">background-color: rgb(85, 87, 83);</string>
+      <string notr="true"/>
      </property>
      <column>
       <property name="text">
@@ -47,7 +65,7 @@
      <item>
       <widget class="QTreeWidget" name="treeWidget">
        <property name="styleSheet">
-        <string notr="true">background-color: rgb(85, 87, 83);</string>
+        <string notr="true"/>
        </property>
        <column>
         <property name="text">
@@ -77,7 +95,7 @@
      <item>
       <widget class="QTreeWidget" name="treeWidget_2">
        <property name="styleSheet">
-        <string notr="true">background-color: rgb(85, 87, 83);</string>
+        <string notr="true"/>
        </property>
        <column>
         <property name="text">

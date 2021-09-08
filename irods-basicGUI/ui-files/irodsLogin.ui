@@ -20,9 +20,26 @@
    <string>Dialog</string>
   </property>
   <property name="styleSheet">
-   <string notr="true">background-color: rgb(54, 54, 54);
-color: rgb(86, 184, 139);
-</string>
+   <string notr="true">QWidget
+{
+	background-color: rgb(54, 54, 54);
+	color: rgb(86, 184, 139);
+}
+
+QLineEdit
+{
+	background-color: rgb(85, 87, 83);
+}
+
+QRadioButton
+{
+	border-bottom-color: rgb(206, 92, 0);
+}
+
+QLabel#passError, QLabel#envError, QLabel#icommandsError
+{
+	color: rgb(217, 174, 23);
+}</string>
   </property>
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="geometry">
@@ -69,7 +86,7 @@ color: rgb(86, 184, 139);
        <cursorShape>PointingHandCursor</cursorShape>
       </property>
       <property name="styleSheet">
-       <string notr="true">border-bottom-color: rgb(206, 92, 0);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string>Up-/Download with icommands (linux only.):</string>
@@ -79,8 +96,7 @@ color: rgb(86, 184, 139);
     <item row="10" column="2">
      <widget class="QLabel" name="passError">
       <property name="styleSheet">
-       <string notr="true">
-color: rgb(217, 174, 23);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string/>
@@ -123,8 +139,7 @@ color: rgb(217, 174, 23);</string>
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">
-color: rgb(217, 174, 23);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string/>
@@ -142,7 +157,7 @@ color: rgb(217, 174, 23);</string>
        <cursorShape>PointingHandCursor</cursorShape>
       </property>
       <property name="styleSheet">
-       <string notr="true">border-color: rgb(58, 152, 112);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string>Standard Up-/Download</string>
@@ -155,18 +170,7 @@ color: rgb(217, 174, 23);</string>
     <item row="2" column="2">
      <widget class="QLabel" name="icommandsError">
       <property name="styleSheet">
-       <string notr="true">
-color: rgb(217, 174, 23);</string>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="2">
-     <widget class="QLineEdit" name="envFileField">
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(85, 87, 83);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string/>
@@ -188,6 +192,9 @@ color: rgb(217, 174, 23);</string>
        </size>
       </property>
      </spacer>
+    </item>
+    <item row="6" column="1" colspan="2">
+     <widget class="QComboBox" name="envbox"/>
     </item>
    </layout>
   </widget>

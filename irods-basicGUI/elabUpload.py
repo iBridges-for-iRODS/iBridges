@@ -4,33 +4,29 @@ from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 import os
-from irodsUtils import getSize, walkToDict
+from utils import getSize, walkToDict
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 class elabUpload():
-    def __init__(self, ic, globalErrorLabel, elnTokenInput,
-                 elnGroupTable, elnExperimentTable, groupIdLabel,
-                 experimentIdLabel, localFsTable, 
-                 elnUploadButton, elnPreviewBrowser, elnIrodsPath):
-
+    def __init__(self, widget, ic):
         self.elab = None
         self.coll = None
         self.ic = ic
         # Return errors to:
-        self.globalErrorLabel = globalErrorLabel
+        #self.globalErrorLabel = widget.globalErrorLabel
         #Gathering Eln configuration
-        self.elnTokenInput = elnTokenInput
-        self.elnGroupTable = elnGroupTable
-        self.elnExperimentTable = elnExperimentTable
+        self.elnTokenInput = widget.elnTokenInput
+        self.elnGroupTable = widget.elnGroupTable
+        self.elnExperimentTable = widget.elnExperimentTable
         #Config ok check
-        self.groupIdLabel = groupIdLabel
-        self.experimentIdLabel = experimentIdLabel
+        self.groupIdLabel = widget.groupIdLabel
+        self.experimentIdLabel = widget.experimentIdLabel
         #Selecting and uploading local files and folders
-        self.localFsTable = localFsTable
-        self.elnUploadButton = elnUploadButton
+        self.localFsTable = widget.localFsTable
+        self.elnUploadButton = widget.elnUploadButton
         #Showing result
-        self.elnPreviewBrowser = elnPreviewBrowser
-        self.elnIrodsPath = elnIrodsPath
+        self.elnPreviewBrowser = widget.elnPreviewBrowser
+        self.elnIrodsPath = widget.elnIrodsPath
 
         #defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
