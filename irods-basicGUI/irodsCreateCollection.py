@@ -28,5 +28,18 @@ class irodsCreateCollection(QDialog):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
+class irodsIndexPopup(QDialog):
+    def __init__(self, irodsTarIndexFileList, tarFilePath, statusLabel):
+        super(irodsIndexPopup, self).__init__()
+        loadUi("ui-files/irodsIndexPopup.ui", self)
+        self.indexLabel.setText("Index of " + tarFilePath + ":")
+        self.closeButton.clicked.connect(self.closeWindow)
+        self.textBrowser.clear()
+        self.statusLabel = statusLabel
+        for line in irodsTarIndexFileList:
+            self.textBrowser.append(line)
 
+    def closeWindow(self):
+        self.statusLabel.clear()
+        self.close()
 

@@ -1,6 +1,8 @@
 from irodsTreeView  import IrodsModel
+from irodsCreateCollection import irodsIndexPopup
 
 from PyQt5.QtWidgets import QMessageBox
+from PyQt5.uic import loadUi
 
 from os import path, getcwd
 
@@ -103,7 +105,6 @@ class irodsDataCompression():
                 '*compress': '"'+str(compress).lower()+'"',
                 '*delete': '"'+str(remove).lower()+'"'
                 }
-        print(params)
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
         stdout, stderr = self.ic.executeRule(ruleFile, params)
         if stderr == []:
@@ -120,8 +121,31 @@ class irodsDataCompression():
 
 
     def unpackDataBundle(self):
+        idx, source = self.collectionTreeModel.get_checked()
+        if not source.endswith(".irods.tar") or source.endswith(".irods.tar"):
+            self.widget.unpack.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+
         print("TODO")
 
 
     def getIndex(self):
-        print("TODO")
+        self.widget.unpackStatusLabel.clear()
+        ruleFile = path.join(getcwd(),'rules/tarReadIndex.r')
+
+        idx, source = self.compressionTreeModel.get_checked()
+        if source == None:
+            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+            return
+        if not source.endswith(".irods.tar") and not source.endswith(".irods.zip"):
+            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+            return
+
+        params = {
+                '*path': '"'+source+'"'
+                }
+        stdout, stderr = self.ic.executeRule(ruleFile, params)
+        self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
+        #self.infoPopup('\n'.join(stdout[1]))
+        indexPopup = irodsIndexPopup(stdout[1:], source, self.widget.unpackStatusLabel)
+        indexPopup.exec_()
+
