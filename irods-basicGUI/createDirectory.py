@@ -11,6 +11,7 @@ class createDirectory(QDialog):
     def __init__(self, parent):
         super(createDirectory, self).__init__()
         loadUi("ui-files/createCollection.ui", self)
+        self.setWindowTitle("Create directory")
         self.parent = parent
         self.label.setText(self.parent+os.sep)
         self.buttonBox.accepted.connect(self.accept)

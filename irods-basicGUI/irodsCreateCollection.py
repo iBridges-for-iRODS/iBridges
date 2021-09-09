@@ -10,6 +10,7 @@ class irodsCreateCollection(QDialog):
     def __init__(self, parent, ic):
         super(irodsCreateCollection, self).__init__()
         loadUi("ui-files/createCollection.ui", self)
+        self.setWindowTitle("Create iRODS collection")
         self.ic = ic
         self.parent = parent
         self.label.setText(self.parent+"/")
@@ -32,6 +33,7 @@ class irodsIndexPopup(QDialog):
     def __init__(self, irodsTarIndexFileList, tarFilePath, statusLabel):
         super(irodsIndexPopup, self).__init__()
         loadUi("ui-files/irodsIndexPopup.ui", self)
+        self.setWindowTitle("iRODS Tar/Zip index.")
         self.indexLabel.setText("Index of " + tarFilePath + ":")
         self.closeButton.clicked.connect(self.closeWindow)
         self.textBrowser.clear()
