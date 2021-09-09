@@ -53,15 +53,16 @@ tarCollection{
             *tarFile = "*parentColl/*collName.irods.zip"
         }
         else {*tarFile = "*parentColl/*collName.irods.tar"}
-        writeLine("stdout", "Create *tarFile");
+        writeLine("stdout", "*tarFile");
         msiArchiveCreate(*tarFile, *coll);
         if(bool(*delete)){
-            msiRmColl(*coll, "forceFlag=", *out);
-            writeLine("stdout", *out);
+            writeLine("stdout", "DEBUG tarCollection: Delete *coll")
+	    msiRmColl(*coll, "forceFlag=", *out);
+            #writeLine("stdout", *out);
         }
     }
     else{writeLine("stdout", "DEBUG tarCollection: no action.")}
 }
 
-input *coll="/npecZone/home/cstaiger/TEST", *resource="disk", *compress="false", *delete="false"
+input *coll="/npecZone/home/cstaiger/Uploads/ACES", *resource="disk", *compress="false", *delete="false"
 output ruleExecOut

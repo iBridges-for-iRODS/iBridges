@@ -1,10 +1,29 @@
 from irodsTreeView  import IrodsModel
 
+from PyQt5.QtWidgets import QMessageBox
+
+from os import path, getcwd
+
 class irodsDataCompression():
     def __init__(self, widget, ic, ienv):
         self.ic = ic
         self.widget = widget
         self.ienv = ienv
+        rescs = self.ic.listResources()
+        if ic.defaultResc not in rescs:
+
+            self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'\
+                           +ic.defaultResc \
+                           +'\nDataCompression view not setup.')
+            return
+
+        ruleFiles = [path.join(getcwd(),'rules/tarCollection.r'), 
+                     path.join(getcwd(),'rules/tarReadIndex.r')]
+        for rule in ruleFiles:
+            if not path.isfile(rule):
+                self.infoPopup('ERROR rules not configured:\n'+rule\
+                           +'\nDataCompression view not setup.')
+                return
 
         self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
         self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
@@ -23,6 +42,10 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
+
+
+    def infoPopup(self, message):
+        QMessageBox.information(self.widget, 'Error', message)
 
 
     def setupFsTree(self, treeView):
@@ -56,17 +79,44 @@ class irodsDataCompression():
 
 
     def createDataBundle(self):
-        source = self.collectionTreeModel.get_checked()
-        print(source)
-        #if source == None:
-        #    self.widget.createStatusLabel.setText("No collection selected.")
-        #    return
+        self.widget.createStatusLabel.clear()
+        ruleFile = path.join(getcwd(),'rules/tarCollection.r')
+
+        idx, source = self.collectionTreeModel.get_checked()
+
         if not self.ic.session.collections.exists(source):
-            self.widget.createStatusLabel.setText("No collection selected.")
+            self.widget.createStatusLabel.setText("ERROR: No collection selected.")
             return
 
+        #data bundling only allowed for collections in home/user
+        if len(source.split('/')) < 5:
+            self.widget.createStatusLabel.setText(
+                    "ERROR: Selected collection is not a user collection.")
+            return
 
-        print("TODO")
+        compress = self.widget.compressCheckBox.isChecked()
+        remove = self.widget.removeCheckBox.isChecked()
+        migrateResc = self.widget.compressRescButton.currentText()
+        params = {
+                '*coll': '"'+source+'"',
+                '*resource': '"'+self.ic.defaultResc+'"',
+                '*compress': '"'+str(compress).lower()+'"',
+                '*delete': '"'+str(remove).lower()+'"'
+                }
+        print(params)
+        self.widget.createStatusLabel.setText("STATUS: compressing "+source)
+        stdout, stderr = self.ic.executeRule(ruleFile, params)
+        if stderr == []:
+            self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
+            parentIdx = self.collectionTreeModel.getParentIdx(idx)
+            self.collectionTreeModel.refreshSubTree(parentIdx)
+            if migrateResc != self.ic.defaultResc:
+                obj = self.ic.session.data_objects.get(stdout[0])
+                self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout) +\
+                                                      "\n Migrate data bundle.")
+                self.ic.updateMetadata([obj], 'RESOURCE', 'archive')
+        else:
+            self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 
 
     def unpackDataBundle(self):

@@ -56,7 +56,7 @@ class IrodsModel(QStandardItemModel):
                 # Block checking of home item (found no easy way to remove the checkbox)
                 if acls.intersection(reqAcls) == set():
                     message = "ERROR, insufficient rights:\nCannot select "+path
-                    QMessageBox.information(self.TreeView,'Error', message)
+                    QMessageBox.information(self.TreeView, 'Error', message)
                     #logging.info("Filedownload:" + message)
                     return False
 
@@ -213,6 +213,20 @@ class IrodsModel(QStandardItemModel):
                             ])
             seen[irodsID] = parent.child(parent.rowCount() - 1)
 
+
+    def getParentIdx(self, position):
+        try: #index when right mouse click
+            modelIndex = self.tree.indexAt(position)
+            if not modelIndex.isValid():
+                return
+        except: #index when expand is clicked
+            modelIndex = position
+
+
+        treeItem = self.itemFromIndex(modelIndex)
+        parent = treeItem.parent()
+        
+        return parent.index()
 
     def refreshSubTree(self, position):
         try: #index when right mouse click

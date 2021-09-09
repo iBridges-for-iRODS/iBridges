@@ -76,6 +76,12 @@ color: rgb(217, 174, 23);
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QTreeView" name="irodsCollectionTree">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>150</height>
+        </size>
+       </property>
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
@@ -91,7 +97,7 @@ color: rgb(217, 174, 23);
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>Migrate to:</string>
+            <string>Migrate data bundle to:</string>
            </property>
           </widget>
          </item>
@@ -121,7 +127,7 @@ color: rgb(217, 174, 23);
         </widget>
        </item>
        <item>
-        <widget class="QCheckBox" name="checkBox">
+        <widget class="QCheckBox" name="removeCheckBox">
          <property name="text">
           <string>Remove collection</string>
          </property>
@@ -172,10 +178,29 @@ color: rgb(217, 174, 23);
    </item>
    <item>
     <widget class="QLabel" name="createStatusLabel">
+     <property name="styleSheet">
+      <string notr="true"/>
+     </property>
      <property name="text">
       <string/>
      </property>
     </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer_8">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Expanding</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
    </item>
    <item>
     <widget class="QLabel" name="label_3">
@@ -215,6 +240,12 @@ color: rgb(217, 174, 23);
     <layout class="QHBoxLayout" name="horizontalLayout_3">
      <item>
       <widget class="QTreeView" name="irodsCompressionTree">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>150</height>
+        </size>
+       </property>
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
@@ -230,7 +261,7 @@ color: rgb(217, 174, 23);
          <item>
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Migrate to:</string>
+            <string>Migrate extracted data to:</string>
            </property>
           </widget>
          </item>
