@@ -16,10 +16,10 @@ tarCollection{
     }
     else{
     	foreach(*row in SELECT sum(DATA_SIZE) where COLL_NAME like "*coll/%"){
-            *size1 = int(*row.DATA_SIZE);
+            *size1 = double(*row.DATA_SIZE);
         }
         foreach(*row in SELECT sum(DATA_SIZE) where COLL_NAME like "*coll"){
-            *size2 = int(*row.DATA_SIZE);
+            *size2 = double(*row.DATA_SIZE);
 	}
 	*size = *size1+*size2;
 	if(*size==0){
@@ -39,7 +39,7 @@ tarCollection{
     }
     else{
         foreach(*row in SELECT RESC_FREE_SPACE where RESC_NAME like *resource){
-            *rescSize = int(*row.RESC_FREE_SPACE);
+            *rescSize = double(*row.RESC_FREE_SPACE);
         }
         if(*rescSize < *size*2-*rescSize/10){
             writeLine("stderr", "ERROR tarCollection: Not enough space on *resource");

@@ -13,6 +13,7 @@ from irods.rule import Rule
 import json
 import os
 from base64 import b64decode
+from shutil import disk_usage
 import hashlib
 
 RED = '\x1b[1;31m'
@@ -297,11 +298,13 @@ class irodsConnector():
             raise
     
 
-    def downloadData(self, source, destination):
+    def downloadData(self, source, destination, size, buff = 1024**3, force = False):
         '''
         Download object or collection.
         source: iRODS collection or data object
         destination: absolute path to download folder
+        size: size of data to be downloaded in bytes
+        buf: buffer on the filesystem that should be left over
         '''
         
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
@@ -313,6 +316,16 @@ class irodsConnector():
             raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
         if not os.path.isdir(destination):
             raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
+
+        if not force:
+            try:
+                space = disk_usage(destination).free
+                if int(size) > (int(space)-buff):
+                    raise ValueError('ERROR iRODS download: Not enough space on disk.')
+                if buff < 0:
+                    raise BufferError('ERROR iRODS download: Negative disk buffer.')
+            except Exception as error:
+                raise error()
 
         if self.session.data_objects.exists(source.path):
             try:
@@ -373,12 +386,15 @@ class irodsConnector():
                 listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
 
         diff = []
+        same = []
         for partialPath in set(listDir).intersection(listColl):
             if scope == "size":
                 objSize = self.session.data_objects.get(coll.path+'/'+partialPath).size
                 fSize = os.path.getsize(os.path.join(dirPath, partialPath))
                 if objSize != fSize:
                     diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
+                else:
+                    same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
                 if objCheck == None:
@@ -391,6 +407,8 @@ class irodsConnector():
                         sha2 = hashlib.sha256(stream).digest()
                     if sha2Obj != sha2:
                         diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
+                    else:
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 elif objCheck:
                     #md5
                     with open(os.path.join(dirPath, partialPath), "rb") as f:
@@ -398,12 +416,15 @@ class irodsConnector():
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
                         diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
+                    else:
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             else: #same paths, no scope
                 diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
 
         #adding files that are not on iRODS, only present on local FS
         #adding files that are not on local FS, only present in iRODS
-        return (diff, list(set(listDir).difference(listColl)), list(set(listColl).difference(listDir)))
+        #adding files that are stored on both devices with the same checksum/size
+        return (diff, list(set(listDir).difference(listColl)), list(set(listColl).difference(listDir)), same)
 
 
     def addMetadata(self, items, key, value, units = None):
@@ -522,3 +543,43 @@ class irodsConnector():
         return stdout, stderr
 
 
+    def getSize(self, coll):
+        '''
+        Compute the size of the iRods dataobject or collection
+        Returns: size in bytes.
+        collection: iRODS collection
+        '''
+        if self.session.data_objects.exists(coll.path):
+            return coll.size
+
+        elif self.session.collections.exists(coll.path):
+            size = 0
+            walk = [coll]
+            while walk:
+                try:
+                    coll = walk.pop()
+                    walk.extend(coll.subcollections)
+                    for obj in coll.data_objects:
+                        size = size + obj.size
+                except:
+                    raise
+            return size
+        else:
+            raise FileNotFoundError("IRODS getSize: not a valid source path")
+
+
+    def getSizeList(self, coll, ojbList):
+        '''
+        Compute the size of a list of dataobjects in a collection
+        Returns: size in bytes.
+        collection: base iRODS collection
+        ojbList: list of object to get size off
+        '''
+        size = 0
+        for objpath in ojbList:
+            path = coll.path + '/' + objpath.replace("\\", "/")
+            if self.session.data_objects.exists(path):
+                size = size + self.session.data_objects.get(path).size
+            else:
+                raise FileNotFoundError("IRODS getSize: not a valid source path")
+        return size

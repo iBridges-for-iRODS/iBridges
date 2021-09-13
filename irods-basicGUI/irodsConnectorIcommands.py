@@ -13,8 +13,8 @@ from subprocess         import Popen, PIPE
 import json
 import os
 from base64 import b64decode
+from shutil import disk_usage
 import hashlib
-from getpass import getpass
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -71,6 +71,20 @@ class irodsConnectorIcommands():
             self.davrods = None
 
 
+    def getUserInfo(self):
+        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
+        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
+
+        userType = []
+        for t in userTypeQuery.get_results():
+            userType.extend(list(t.values()))
+        userGroups = []
+        for g in userGroupQuery.get_results():
+            userGroups.extend(list(g.values()))
+
+        return(userType, userGroups)
+
+
     def getPermissions(self, iPath):
         '''
         iPath: Can be a string or an iRODS collection/object
@@ -110,43 +124,6 @@ class irodsConnectorIcommands():
             raise CAT_INVALID_ARGUMENT("ACL ERROR: rights or path not known")
 
 
-    def listResources(self):
-        query = self.session.query(Resource.name)
-        resources = []
-        for item in query.get_results():
-            for key in item.keys():
-                resources.append(item[key])
-
-        if 'bundleResc' in resources:
-            resources.remove('bundleResc')
-        if 'demoResc' in resources:
-            resources.remove('demoResc')
-
-        return resources
-
-    def getResource(self, resource):
-        '''
-        Raises:
-            irods.exception.ResourceDoesNotExist
-        '''
-        return self.session.resources.get(resource)
-
-    def resourceSize(self, resource):
-        """
-        Returns the available space left on a resource in bytes
-        resource: Name of the resource
-        Throws: ResourceDoesNotExist if resource not known
-                TypeError if 'free_space' not set
-        """
-        try:
-            size = self.session.resources.get(resource).free_space
-            if size == None:
-                raise AttributeError("RESOURCE ERROR: size not set.")
-            else:
-                return size
-        except Exception as error:
-            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
-        
     def ensureColl(self, collPath):
         '''
         Raises:
@@ -158,20 +135,6 @@ class irodsConnectorIcommands():
             return self.session.collections.get(collPath)
         except:
             raise
-
-
-    def getUserInfo(self):
-        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
-        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
-
-        userType = []
-        for t in userTypeQuery.get_results():
-            userType.extend(list(t.values()))
-        userGroups = []
-        for g in userGroupQuery.get_results():
-            userGroups.extend(list(g.values()))
-
-        return(userType, userGroups)
 
 
     def search(self, keyVals = None):
@@ -245,6 +208,46 @@ class irodsConnectorIcommands():
         return results
 
 
+    def listResources(self):
+        query = self.session.query(Resource.name)
+        resources = []
+        for item in query.get_results():
+            for key in item.keys():
+                resources.append(item[key])
+
+        if 'bundleResc' in resources:
+            resources.remove('bundleResc')
+        if 'demoResc' in resources:
+            resources.remove('demoResc')
+
+        return resources
+
+
+    def getResource(self, resource):
+        '''
+        Raises:
+            irods.exception.ResourceDoesNotExist
+        '''
+        return self.session.resources.get(resource)
+
+
+    def resourceSize(self, resource):
+        """
+        Returns the available space left on a resource in bytes
+        resource: Name of the resource
+        Throws: ResourceDoesNotExist if resource not known
+                TypeError if 'free_space' not set
+        """
+        try:
+            size = self.session.resources.get(resource).free_space
+            if size == None:
+                raise AttributeError("RESOURCE ERROR: size not set.")
+            else:
+                return size
+        except Exception as error:
+            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
+
+
     def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
         """
         source: absolute path to file or folder
@@ -293,11 +296,13 @@ class irodsConnectorIcommands():
         out, err = p.communicate()
 
 
-    def downloadData(self, source, destination):
+    def downloadData(self, source, destination, size, buff = 1024**3, force = False):
         '''
         Download object or collection.
         source: iRODS collection or data object
         destination: absolut path to download folder
+        size: size of data to be downloaded in bytes
+        buff: buffer on the filesystem that should be left over
         '''
 
         destination = '/'+destination.strip('/')
@@ -305,6 +310,16 @@ class irodsConnectorIcommands():
             raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
         if not os.path.isdir(destination):
             raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
+
+        if not force:
+            try:
+                space = disk_usage(destination).free
+                if int(size) > (int(space)-buff):
+                    raise ValueError('ERROR iRODS download: Not enough space on disk.')
+                if buff < 0:
+                    raise BufferError('ERROR iRODS download: Negative disk buffer.')
+            except Exception as error:
+                raise error()
 
         if self.session.data_objects.exists(source.path):
             #-f overwrite, -K control checksum, -r recursive (collections)
@@ -344,12 +359,15 @@ class irodsConnectorIcommands():
                 listColl.append(os.path.join(root.path.split(collPath)[1], o.name).strip('/'))
 
         diff = []
+        same = []
         for partialPath in set(listDir).intersection(listColl):
             if scope == "size":
                 objSize = self.session.data_objects.get(collPath+'/'+partialPath).size
                 fSize = os.path.getsize(dirPath+'/'+partialPath)
                 if objSize != fSize:
                     diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                else:
+                    same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
                 if objCheck.startswith("sha2"):
@@ -359,6 +377,8 @@ class irodsConnectorIcommands():
                         sha2 = hashlib.sha256(stream).digest()
                     if sha2Obj != sha2:
                         diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                    else:
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 elif objCheck:
                     #md5
                     with open(dirPath+'/'+partialPath,"rb") as f:
@@ -366,12 +386,15 @@ class irodsConnectorIcommands():
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
                         diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                    else:
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             else: # same paths no scope
                 diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
 
         #adding files that are not on iRODS, only present on local FS
         #adding files that are not on local FS, only present in iRODS
-        return (diff, set(listDir).difference(listColl), set(listColl).difference(listDir))
+        #adding files that are stored on both devices with the same checksum/size
+        return (diff, list(set(listDir).difference(listColl)), list(set(listColl).difference(listDir)), same)
 
 
     def addMetadata(self, items, key, value, units = None):
@@ -487,3 +510,46 @@ class irodsConnectorIcommands():
                 return stdout, stderr
 
         return stdout, stderr
+
+
+    def getSize(self, coll):
+        '''
+        Compute the size of the iRods dataobject or collection
+        Returns: size in bytes.
+        collection: iRODS collection
+        '''
+        if self.session.data_objects.exists(coll.path):
+            return coll.size
+
+        elif self.session.collections.exists(coll.path):
+            size = 0
+            walk = [coll]
+            while walk:
+                try:
+                    coll = walk.pop()
+                    walk.extend(coll.subcollections)
+                    for obj in coll.data_objects:
+                        size = size + obj.size
+                except:
+                    raise
+            return size
+        else:
+            raise FileNotFoundError("IRODS getSize: not a valid source path")
+
+
+    def getSizeList(self, coll, ojbList):
+        '''
+        Compute the size of a list of dataobjects in a collection
+        Returns: size in bytes.
+        collection: base iRODS collection
+        ojbList: list of object to get size off
+        '''
+        size = 0
+        for objpath in ojbList:
+            path = coll.path + '/' + objpath.replace("\\", "/")
+            if self.session.data_objects.exists(path):
+                size = size + self.session.data_objects.get(path).size
+            else:
+                raise FileNotFoundError("IRODS getSize: not a valid source path")
+        return size
+
