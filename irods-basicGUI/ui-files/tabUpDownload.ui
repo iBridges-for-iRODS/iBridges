@@ -40,18 +40,22 @@ QPushButton#ContUplBut
 QRadioButton#uplAllRB, QRadioButton#uplMetaRB, QRadioButton#uplF500RB, QCheckBox#rLocalcopyCB
 {
 	background-color: rgb(85, 87, 83);
+}
+QLabel#errorLabel
+{
+	color: rgb(217, 174, 23);
 }</string>
   </property>
   <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>0</y>
+     <x>10</x>
+     <y>10</y>
      <width>1231</width>
      <height>771</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_11" stretch="2,0,1">
+   <layout class="QVBoxLayout" name="verticalLayout_11" stretch="2,0,0,0,1">
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
     </property>
@@ -251,6 +255,12 @@ QRadioButton#uplAllRB, QRadioButton#uplMetaRB, QRadioButton#uplF500RB, QCheckBox
              <iconset>
               <normaloff>../icons/arrow-right.png</normaloff>../icons/arrow-right.png</iconset>
             </property>
+            <property name="iconSize">
+             <size>
+              <width>50</width>
+              <height>50</height>
+             </size>
+            </property>
            </widget>
           </item>
           <item row="3" column="1">
@@ -261,6 +271,12 @@ QRadioButton#uplAllRB, QRadioButton#uplMetaRB, QRadioButton#uplF500RB, QCheckBox
             <property name="icon">
              <iconset>
               <normaloff>../icons/arrow-left.png</normaloff>../icons/arrow-left.png</iconset>
+            </property>
+            <property name="iconSize">
+             <size>
+              <width>50</width>
+              <height>50</height>
+             </size>
             </property>
            </widget>
           </item>
@@ -471,6 +487,26 @@ QRadioButton#uplAllRB, QRadioButton#uplMetaRB, QRadioButton#uplF500RB, QCheckBox
        <size>
         <width>20</width>
         <height>10</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item>
+     <widget class="QLabel" name="errorLabel">
+      <property name="text">
+       <string/>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
        </size>
       </property>
      </spacer>

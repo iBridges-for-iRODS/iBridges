@@ -152,7 +152,8 @@ class GetInfo(QObject):
 
     def run(self):
         # Diff 
-        (checksum, onlyFS, onlyIRods) = self.ic.diffIrodsLocalfs(self.Coll, self.localFS)
+        (checksum, onlyFS, onlyIRods, same) = self.ic.diffIrodsLocalfs(self.Coll, self.localFS)
+        print(checksum)
         if self.upload == True:
             self.updLabels.emit(len(onlyFS), len(checksum))
         else:
@@ -186,8 +187,9 @@ class UpDownload(QObject):
                 self.ic.uploadData(self.localFS, self.Coll, self.resource, self.totalSize, buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
                 self.finished.emit(True, "Upload finished")
             else:
-                self.ic.downloadData(self.Coll, self.localFS)
+                self.ic.downloadData(self.Coll, self.localFS, self.totalSize)
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
+            raise error
             logging.info(repr(error))
             self.finished.emit(False, "Something went wrong.")

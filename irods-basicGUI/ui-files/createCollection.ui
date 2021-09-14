@@ -34,7 +34,7 @@
 
 QLabel#errorLabel
 {
-	color: rgb(164, 0, 0);
+	color: rgb(217, 174, 23);
 }</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">

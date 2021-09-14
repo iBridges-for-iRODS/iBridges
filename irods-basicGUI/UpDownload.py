@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
+from PyQt5 import QtCore
 import logging
 import os
 
@@ -7,8 +8,7 @@ from irodsTreeView  import IrodsModel
 from utils import getSize, saveIenv
 from continousUpload import contUpload
 
-from irodsCreateCollection import irodsCreateCollection
-from createDirectory import createDirectory
+from popupWidgets import irodsCreateCollection, createDirectory
 from UpDownloadCheck import UpDownloadCheck
 
 class irodsUpDownload():
@@ -26,18 +26,18 @@ class irodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
         self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        home_location = QtCore.QStandardPaths.standardLocations(
+                               QtCore.QStandardPaths.HomeLocation)[0]
+        index = self.dirmodel.setRootPath(home_location)
+        self.widget.localFsTreeView.setCurrentIndex(index)
         self.dirmodel.initial_expand()
         
-         # iRODS  zone info
+        # iRODS  zone info
         self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
         # iRODS tree
         self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
         self.irodsRootColl = '/'+ic.session.zone
-       
-        #self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.expanded)
-        #self.widget.irodsFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
-        #self.irodsmodel.initial_expand()
         self.irodsmodel.setHorizontalHeaderLabels([self.irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -57,8 +57,8 @@ class irodsUpDownload():
         # Buttons
         self.widget.UploadButton.clicked.connect(self.upload)
         self.widget.DownloadButton.clicked.connect(self.download)
-        self.widget.ContUplBut.clicked.connect(self.cont_upload)
-        self.widget.ChecksumCheckBut.clicked.connect(self.check_checksum)
+        #self.widget.ContUplBut.clicked.connect(self.cont_upload)
+        #self.widget.ChecksumCheckBut.clicked.connect(self.check_checksum)
         self.widget.createFolderButton.clicked.connect(self.createFolder)
         self.widget.createCollButton.clicked.connect(self.createCollection)
 
@@ -66,29 +66,38 @@ class irodsUpDownload():
         available_resources = self.ic.listResources()
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(available_resources)
-        if ("ui_resource" in ienv) and (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
+        if ("ui_resource" in ienv) and \
+                (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
             index = self.widget.resourceBox.findText(ienv["ui_resource"])
             self.widget.resourceBox.setCurrentIndex(index)
-        elif ("default_resource_name" in ienv) and (ienv["default_resource_name"] != "") and (ienv["default_resource_name"] in available_resources):
+        elif ("default_resource_name" in ienv) and \
+                (ienv["default_resource_name"] != "") and \
+                (ienv["default_resource_name"] in available_resources):
             index = self.widget.resourceBox.findText(ienv["default_resource_name"])
             self.widget.resourceBox.setCurrentIndex(index)
-        self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
+        #self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
 
         # Continious upload settings
-        if ("ui_remLocalcopy" in ienv):
-            self.widget.rLocalcopyCB.setChecked(ienv["ui_remLocalcopy"])
-        if ("ui_uplMode" in ienv):
-            uplMode =  ienv["ui_uplMode"]
-            if uplMode == "f500":
-                self.widget.uplF500RB.setChecked(True)
-            elif uplMode == "meta":
-                self.widget.uplMetaRB.setChecked(True)
-            else:
-                self.widget.uplAllRB.setChecked(True)
-        self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
-        self.widget.uplF500RB.toggled.connect(self.saveUIset)
-        self.widget.uplMetaRB.toggled.connect(self.saveUIset)
-        self.widget.uplAllRB.toggled.connect(self.saveUIset)
+        if ienv["irods_host"] == "scomp1461.wur.nl":
+            #self.widget.uplSetGB_2.setVisible(True)
+            if ("ui_remLocalcopy" in ienv):
+                self.widget.rLocalcopyCB.setChecked(ienv["ui_remLocalcopy"])
+            if ("ui_uplMode" in ienv):
+                uplMode =  ienv["ui_uplMode"]
+                if uplMode == "f500":
+                    self.widget.uplF500RB.setChecked(True)
+                elif uplMode == "meta":
+                    self.widget.uplMetaRB.setChecked(True)
+                else:
+                    self.widget.uplAllRB.setChecked(True)
+            self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
+            self.widget.uplF500RB.toggled.connect(self.saveUIset)
+            self.widget.uplMetaRB.toggled.connect(self.saveUIset)
+            self.widget.uplAllRB.toggled.connect(self.saveUIset)
+        else:
+            self.widget.uplSetGB_2.hide()
+            self.widget.ContUplBut.hide()
+            self.widget.ChecksumCheckBut.hide()
 
     def saveUIset(self):
         self.ienv["ui_resource"] = self.getResource()
@@ -113,14 +122,11 @@ class irodsUpDownload():
         return uplMode
 
 
-    # Check checksums to confirm the upload
-    def check_checksum(self):
-        print("TODO, or maybe skipp?")
-
-
     def createFolder(self):
         parent = self.dirmodel.get_checked()
-        if parent != None:
+        if parent == None:
+            self.widget.errorLabel.setText("No parent folder selected.")
+        else:
             createDirWidget = createDirectory(parent)
             createDirWidget.exec_()
             #self.dirmodel.initial_expand(previous_item = parent)
@@ -128,9 +134,12 @@ class irodsUpDownload():
 
     def createCollection(self):
         idx, parent = self.irodsmodel.get_checked()
-        creteCollWidget = irodsCreateCollection(parent, self.ic)
-        creteCollWidget.exec_()
-        self.irodsmodel.refreshSubTree(idx)
+        if parent == None:
+            self.widget.errorLabel.setText("No parent collection selected.")
+        else:
+            creteCollWidget = irodsCreateCollection(parent, self.ic)
+            creteCollWidget.exec_()
+            self.irodsmodel.refreshSubTree(idx)
 
 
     # Upload a file/folder to IRODS and refresh the TreeView
@@ -146,9 +155,13 @@ class irodsUpDownload():
             try:
                 self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
                 QMessageBox.information(self.widget, "status", "File uploaded.")
+            except ValueError:
+                self.widget.errorLabel.setText(
+                        "ERROR upload data: not enough space left on resource.")
             except Exception as error:
+                #raise error
                 logging.info(repr(error))
-                QMessageBox.information(self.widget, "status", "Something went wrong.")
+                self.widget.errorLabel("ERROR: Something went wrong.")
 
     def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
         if succes == True:
@@ -160,25 +173,13 @@ class irodsUpDownload():
     def download(self):
         source_ind, source_path = self.irodsmodel.get_checked()
         if source_ind == None:
-            message = "No file/folder selected for download"
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Filedownload:" + message)
+            self.widget.errorLabel.setText("ERROR download data: No iRODS data selected.")
             return
         destination = self.dirmodel.get_checked()
-        if destination == None:
+        if destination == None or os.path.isfile(destination):
             message = "No Folder selected to download to"
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Fileupload:" + message)
+            self.widget.errorLabel.setText("ERROR download data: no destination folder selected.")
             return
-        elif not os.path.isdir(destination):
-            message = "Can only download to folders, not files."
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Fileupload:" + message)
-            return
-        elif not os.access(destination, os.R_OK):
-            message = "No write permission on current folder"
-            QMessageBox.information(self.widget, 'Error', message)
-            return 
         # File           
         if self.ic.session.data_objects.exists(source_path):
             try:
@@ -192,27 +193,6 @@ class irodsUpDownload():
             sourceColl = self.ic.session.collections.get(source_path)
             self.uploadWindow = UpDownloadCheck(self.ic, False, destination, sourceColl)
             self.uploadWindow.finished.connect(self.finishedUpDownload)
-
-
-    # Continous file upload
-    def cont_upload(self):
-        (source, destInd, destPath) = self.upload_get_paths()
-        if source == None: 
-            return
-        if self.syncing == False:
-            self.syncing = True
-            self.widget.ContUplBut.setStyleSheet("image : url(icons/syncing.png) stretch stretch;")
-            self.en_disable_controls(False)
-            upl_mode = self.get_upl_mode()
-            r_local_copy = self.widget.rLocalcopyCB.isChecked()
-            destColl = self.ic.session.collections.get(destPath)
-            self.uploader = contUpload(self.ic, source, destColl, upl_mode, r_local_copy)
-            #self.uploader.start()
-        else:
-            #self.uploader.stop()
-            self.syncing = False
-            self.widget.ContUplBut.setStyleSheet("image : url(icons/nosync.png) stretch stretch;")
-            self.en_disable_controls(True)
 
 
     def en_disable_controls(self, enable):

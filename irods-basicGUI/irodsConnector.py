@@ -45,9 +45,11 @@ class irodsConnector():
             with open(envFile) as f:
                 ienv = json.load(f)
             if password == "": # requires a valid .irods/.irodsA (linux/mac only)
+                print("EnvFile only")
                 self.session = iRODSSession(irods_env_file=envFile)
             else:
-                self.session = iRODSSession(irods_env_file=envFile, password=password)
+                print("EnvFile, password")
+                self.session = iRODSSession(**ienv, password=password)
             self.session.collections.get("/"+self.session.zone+"/home")
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
@@ -271,12 +273,14 @@ class irodsConnector():
         if not force:
             try:
                 space = self.session.resources.get(resource).free_space
+                if not space:
+                    space = 0
                 if int(size) > (int(space)-buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
-                raise error()
+                raise error
         try: 
             if source.endswith(os.sep):
                 source = source[:len(source)-1]

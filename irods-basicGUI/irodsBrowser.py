@@ -4,7 +4,7 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from irodsCreateCollection import irodsCreateCollection
+from popupWidgets import irodsCreateCollection
 from utils import walkToDict, getDownloadDir
 
 import sys

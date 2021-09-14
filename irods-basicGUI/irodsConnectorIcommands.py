@@ -269,6 +269,8 @@ class irodsConnectorIcommands():
         if not force:
             try:
                 space = self.session.resources.get(resource).free_space
+                if not space:
+                    space = 0
                 if int(size) > (int(space)-buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
