@@ -5,6 +5,7 @@ from PyQt5.QtWidgets import QMessageBox
 from PyQt5.uic import loadUi
 
 from os import path, getcwd
+import json
 
 class irodsDataCompression():
     def __init__(self, widget, ic, ienv):
@@ -106,6 +107,7 @@ class irodsDataCompression():
                 '*delete': '"'+str(remove).lower()+'"'
                 }
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
+        self.collectionTreeModel.uncheckTree()
         stdout, stderr = self.ic.executeRule(ruleFile, params)
         if stderr == []:
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
@@ -145,7 +147,6 @@ class irodsDataCompression():
                 }
         stdout, stderr = self.ic.executeRule(ruleFile, params)
         self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
-        #self.infoPopup('\n'.join(stdout[1]))
         indexPopup = irodsIndexPopup(stdout[1:], source, self.widget.unpackStatusLabel)
         indexPopup.exec_()
 

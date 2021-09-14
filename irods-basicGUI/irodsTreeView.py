@@ -37,6 +37,11 @@ class IrodsModel(QStandardItemModel):
         return super(IrodsModel, self).data(index, role)
 
 
+    def uncheckTree(self, role=Qt.DisplayRole):
+        for index in self._checked_indeces:
+            return Qt.Unchecked
+
+
     def flags(self, index):
         return super(IrodsModel, self).flags(index) | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate
 
@@ -221,7 +226,6 @@ class IrodsModel(QStandardItemModel):
                 return
         except: #index when expand is clicked
             modelIndex = position
-
 
         treeItem = self.itemFromIndex(modelIndex)
         parent = treeItem.parent()

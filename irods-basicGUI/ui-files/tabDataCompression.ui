@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>480</height>
+    <height>502</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -299,7 +299,7 @@ color: rgb(217, 174, 23);
           </font>
          </property>
          <property name="text">
-          <string>Unpack tar/zip</string>
+          <string>Extract tar/zip</string>
          </property>
         </widget>
        </item>

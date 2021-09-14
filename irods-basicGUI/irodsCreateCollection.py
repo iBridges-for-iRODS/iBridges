@@ -1,10 +1,12 @@
 from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog
+from PyQt5.QtWidgets import QDialog, QTableWidgetItem
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 import sys
+import json
+import datetime
 
 class irodsCreateCollection(QDialog):
     def __init__(self, parent, ic):
@@ -38,6 +40,7 @@ class irodsIndexPopup(QDialog):
         self.closeButton.clicked.connect(self.closeWindow)
         self.textBrowser.clear()
         self.statusLabel = statusLabel
+        self.formatJSON(irodsTarIndexFileList)
         for line in irodsTarIndexFileList:
             self.textBrowser.append(line)
 
@@ -45,3 +48,22 @@ class irodsIndexPopup(QDialog):
         self.statusLabel.clear()
         self.close()
 
+    def formatJSON(self, irodsTarIndexFileList):
+        index = json.loads('\n'.join(irodsTarIndexFileList))
+        self.collLabel.setText("Data objects of: "+ index['collection'])
+        objs = [obj for obj in index['items'] if obj['type'] == 'dataObj']
+        table = [[obj['name'], obj['owner'], obj['size'], 
+                    datetime.datetime.fromtimestamp(obj['created'])] for obj in objs]
+
+        #self.dataObjectTable.clear()
+        self.dataObjectTable.setRowCount(0)
+        self.dataObjectTable.setRowCount(len(table))
+        row = 0
+        for item in table:
+            self.dataObjectTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item[0]))
+            self.dataObjectTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item[1]))
+            self.dataObjectTable.setItem(row, 2,  QtWidgets.QTableWidgetItem(str(item[2])))
+            self.dataObjectTable.setItem(row, 3,  QtWidgets.QTableWidgetItem(str(item[3])))
+            row = row + 1
+
+        self.dataObjectTable.resizeColumnsToContents()
