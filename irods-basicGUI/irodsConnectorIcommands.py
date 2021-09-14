@@ -2,6 +2,7 @@ from irods.session      import iRODSSession
 from irods.access       import iRODSAccess
 from irods.exception    import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION
 from irods.exception    import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
+from irods.exception    import CollectionDoesNotExist
 
 from irods.models       import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.models       import User, UserGroup
@@ -58,9 +59,18 @@ class irodsConnectorIcommands():
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
 
+        try:
+            colls = self.session.collections.get("/"+self.session.zone+"/home").subcollections
+        except CollectionDoesNotExist:
+            colls = self.session.collections.get(
+                    "/"+self.session.zone+"/home/"+self.session.username).subcollections
+        except:
+            raise
+
+        collnames = [c.path for c in colls]
+
         with open(envFile) as f:
             ienv = json.load(f)
-
         if "default_resource_name" in ienv:
             self.defaultResc = ienv["default_resource_name"]
         else:
@@ -69,6 +79,13 @@ class irodsConnectorIcommands():
             self.davrods = ienv["davrods_server"]
         else:
             self.davrods = None
+
+        print("Welcome to iRODS:")
+        print("iRODS Zone: "+self.session.zone)
+        print("You are: "+self.session.username)
+        print("Default resource: "+self.defaultResc)
+        print("You have access to: \n")
+        print('\n'.join(collnames))
 
 
     def getUserInfo(self):

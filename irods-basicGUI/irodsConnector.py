@@ -50,10 +50,20 @@ class irodsConnector():
             else:
                 print("EnvFile, password")
                 self.session = iRODSSession(**ienv, password=password)
-            self.session.collections.get("/"+self.session.zone+"/home")
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
             raise
+
+        try:
+            colls = self.session.collections.get("/"+self.session.zone+"/home").subcollections
+        except CollectionDoesNotExist:
+            colls = self.session.collections.get(
+                    "/"+self.session.zone+"/home/"+self.session.username).subcollections
+        except:
+            raise
+
+        collnames = [c.path for c in colls]
+
 
         if "default_resource_name" in ienv:
             self.defaultResc = ienv["default_resource_name"]
@@ -69,9 +79,8 @@ class irodsConnector():
         print("iRODS Zone: "+self.session.zone)
         print("You are: "+self.session.username)
         print("Default resource: "+self.defaultResc)
-        print("You have access to: ")
-        print(''.join([coll.path+'\n' for coll 
-            in self.session.collections.get("/"+self.session.zone+"/home").subcollections]))
+        print("You have access to: \n")
+        print('\n'.join(collnames))
 
 
     def getUserInfo(self):
