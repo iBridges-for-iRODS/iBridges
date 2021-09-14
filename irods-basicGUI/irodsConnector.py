@@ -1,4 +1,3 @@
-import irods
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
@@ -22,7 +21,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 class irodsConnector():
-    def __init__(self, envFile, password, logger = None):
+    def __init__(self, envFile, password = "", logger = None):
         """
         iRODS authentication with python.
         Input:
@@ -38,13 +37,17 @@ class irodsConnector():
             All other errors refer to having the envFile not setup properly
         """
         self.logger = logger
+
         if logger != None:
             print("DEBUG: TODO Print all to file")
         
         try:
             with open(envFile) as f:
                 ienv = json.load(f)
-            self.session = iRODSSession(**ienv, password=password)
+            if password == "": # requires a valid .irods/.irodsA (linux/mac only)
+                self.session = iRODSSession(irods_env_file=envFile)
+            else:
+                self.session = iRODSSession(irods_env_file=envFile, password=password)
             self.session.collections.get("/"+self.session.zone+"/home")
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)

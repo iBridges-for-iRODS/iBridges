@@ -59,7 +59,7 @@ class irodsConnectorIcommands():
             self.session = iRODSSession(irods_env_file=envFile)
 
         with open(envFile) as f:
-                ienv = json.load(f)
+            ienv = json.load(f)
 
         if "default_resource_name" in ienv:
             self.defaultResc = ienv["default_resource_name"]

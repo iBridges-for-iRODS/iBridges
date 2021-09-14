@@ -357,7 +357,8 @@ class irodsBrowser():
                                 'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                 if buttonReply == QMessageBox.Yes:
                     obj = self.ic.session.data_objects.get(parent+'/'+objName)
-                    self.ic.downloadData(obj, downloadDir)
+                    self.ic.downloadData(obj, downloadDir, obj.size)
+        self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
 
 
     #@QtCore.pyqtSlot(QtCore.QModelIndex)
