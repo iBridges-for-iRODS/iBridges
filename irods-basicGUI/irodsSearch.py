@@ -20,6 +20,13 @@ class irodsSearch(QDialog):
         self.searchExitButton.released.connect(self.close)
 
 
+    def enableButtons(self, enabled=True):
+        self.startSearchButton.setEnabled(enabled)
+        self.selectSearchButton.setEnabled(enabled)
+        self.downloadButton.setEnabled(enabled)
+        self.searchExitButton.setEnabled(enabled)
+
+
     def search(self):
         self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.startSearchButton.setDisabled(True)
@@ -88,6 +95,7 @@ class irodsSearch(QDialog):
 
 
     def downloadData(self):
+        self.enableButtons(enabled=False)
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes() if idx.row() > 2])
         irodsPaths = []
         for row in rows:
@@ -104,17 +112,20 @@ class irodsSearch(QDialog):
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)
 
             if buttonReply == QMessageBox.Yes:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
                 for p in irodsPaths:
                     if self.ic.session.collections.exists(p):
                         item = self.ic.session.collections.get(p)
-                        print("SEARCH widget: Downloading \t"+p+"\t to "+downloadDir)
-                        self.ic.downloadData(item, downloadDir)
+                        self.ic.downloadData(item, downloadDir, 0, force=True)
+                        self.errorLabel.setText("Download complete")
                     elif self.ic.session.data_objects.exists(p):
                         item = self.ic.session.data_objects.get(p)
-                        print("SEARCH widget: Downloading \t"+p+"\t to "+downloadDir)
-                        self.ic.downloadData(item, downloadDir)
+                        self.ic.downloadData(item, downloadDir, 0, force=True)
+                        self.errorLabel.setText("Download complete")
                     else:
-                        print("SEARCH widget ERROR: "+p+" not an irods item.")
-                
+                        self.errorLabel.setText(
+                                "SEARCH widget ERROR: "+p+" not an irods item.")
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.enableButtons()
 
 
