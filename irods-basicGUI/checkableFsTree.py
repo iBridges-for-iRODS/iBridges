@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider
+from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider, QMessageBox
 from PyQt5.QtCore import QFile, Qt, QDir
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from sys import platform
@@ -47,8 +47,13 @@ class checkableFsTreeModel(QFileSystemModel):
     # Callback of the checkbox
     def setData(self, index, value, role=Qt.EditRole):
         if role == Qt.CheckStateRole:
-            #filename = self.data(index, QFileSystemModel.FileNameRole)
             if value == Qt.Checked:
+                path = self.data(index, QFileSystemModel.FilePathRole)
+                if not os.access(path, os.W_OK):
+                    message = "ERROR, insufficient rights:\nCannot select "+path
+                    QMessageBox.information(self.TreeView, 'Error', message)
+                    return False
+
                 # Enforce single select
                 while self._checked_indeces:
                     selected_index = self._checked_indeces.pop()
