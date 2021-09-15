@@ -78,7 +78,7 @@ class irodsUpDownload():
         #self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
 
         # Continious upload settings
-        if ienv["irods_host"] == "scomp1461.wur.nl":
+        if ienv["irods_host"] in ["scomp1461.wur.nl", "npec-icat.irods.surfsara.nl"]:
             #self.widget.uplSetGB_2.setVisible(True)
             if ("ui_remLocalcopy" in ienv):
                 self.widget.rLocalcopyCB.setChecked(ienv["ui_remLocalcopy"])
@@ -90,10 +90,10 @@ class irodsUpDownload():
                     self.widget.uplMetaRB.setChecked(True)
                 else:
                     self.widget.uplAllRB.setChecked(True)
-            self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
-            self.widget.uplF500RB.toggled.connect(self.saveUIset)
-            self.widget.uplMetaRB.toggled.connect(self.saveUIset)
-            self.widget.uplAllRB.toggled.connect(self.saveUIset)
+            #self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
+            #self.widget.uplF500RB.toggled.connect(self.saveUIset)
+            #self.widget.uplMetaRB.toggled.connect(self.saveUIset)
+            #self.widget.uplAllRB.toggled.connect(self.saveUIset)
         else:
             self.widget.uplSetGB_2.hide()
             self.widget.ContUplBut.hide()
@@ -144,17 +144,22 @@ class irodsUpDownload():
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
-        (source, destInd, destPath) = self.upload_get_paths()
-        if source == None: 
+        self.widget.errorLabel.clear()
+        (fsSource, irodsDestIdx, irodsDestPath) = self.getPathsFromTrees()
+        if fsSource == None or irodsDestPath == None: 
+            self.widget.errorLabel.setText(
+                    "ERROR Up/Download: Please select source and destination.")
             return           
-        destColl = self.ic.session.collections.get(destPath)
-        if os.path.isdir(source):
-            self.uploadWindow = UpDownloadCheck(self.ic, True, source, destColl, destInd, self.getResource())
+        destColl = self.ic.session.collections.get(irodsDestPath)
+        if os.path.isdir(fsSource):
+            self.uploadWindow = UpDownloadCheck(self.ic, True, fsSource, destColl, 
+                                                irodsDestIdx, self.getResource())
             self.uploadWindow.finished.connect(self.finishedUpDownload)
         else: # File
             try:
-                self.ic.uploadData(source, destColl, self.getResource(), getSize(source), buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
-                QMessageBox.information(self.widget, "status", "File uploaded.")
+                self.ic.uploadData(fsSource, destColl, self.getResource(), 
+                                   getSize(fsSource), buff = 1024**3)
+                self.finishedUpDownload(True, irodsDestIdx)
             except ValueError:
                 self.widget.errorLabel.setText(
                         "ERROR upload data: not enough space left on resource.")
@@ -162,11 +167,15 @@ class irodsUpDownload():
                 #raise error
                 #logging.info(repr(error))
                 print(error)
-                self.widget.errorLabel("ERROR: Something went wrong.")
+                self.widget.errorLabel.setText("ERROR: Something went wrong.")
 
     def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
         if succes == True:
             self.irodsmodel.refreshSubTree(destInd)
+            if self.widget.saveSettings.isChecked():
+                print("FINISH UPLOAD: saving ui parameters.")
+                self.saveUIset()
+            self.widget.errorLabel.setText("INFO UPLOAD: Upload completed.")
         self.uploadWindow = None # Release
 
 
@@ -210,32 +219,12 @@ class irodsUpDownload():
 
 
     # Helpers to check file paths before upload
-    def upload_get_paths(self):
+    def getPathsFromTrees(self):
         source = self.dirmodel.get_checked()
-        if self.upload_check_source(source) == False:
-            return (None, None, None)     
-        dest_ind, dest_path = self.irodsmodel.get_checked()
-        if self.upload_check_dest(dest_ind, dest_path) == False:
-            return (None, None, None)     
-        return (source, dest_ind, dest_path)
-
-
-    def upload_check_source(self, source):
         if source == None:
-            message = "No file selected to upload"
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Fileupload:" + message)
-            return False
+            return (None, None, None)     
+        destIdx, destPath = self.irodsmodel.get_checked()
+        if destIdx == None or os.path.isfile(destPath):
+            return (None, None, None)     
+        return (source, destIdx, destPath)
 
-
-    def upload_check_dest(self, dest_ind, dest_collection):
-        if dest_ind == None:
-            message = "No collection selected to upload to"
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Fileupload:" + message)
-            return False
-        elif dest_collection.find(".") != -1:
-            message = "Can only upload to collections, not objects."
-            QMessageBox.information(self.widget, 'Error', message)
-            #logging.info("Fileupload:" + message)
-            return False
