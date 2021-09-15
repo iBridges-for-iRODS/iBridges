@@ -103,6 +103,10 @@ class dataTransfer(QDialog):
             self.statusLbl.setText("Update complete.")
             self.loading_movie.stop()
             self.loadingLbl.setHidden(True)
+            self.confirmBtn.disconnect() # remove callback
+            self.confirmBtn.setText("Close")
+            self.confirmBtn.clicked.connect(self.closeAfterUpDownl)
+
         elif len(self.addFiles) > 0:
             self.worker = UpDownload(self.ic, self.upload, 
                                      self.localFsPath, self.coll, 

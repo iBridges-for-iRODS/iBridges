@@ -9,7 +9,7 @@ from utils import getSize, saveIenv
 from continousUpload import contUpload
 
 from popupWidgets import irodsCreateCollection, createDirectory
-from UpDownloadCheck import UpDownloadCheck
+from dataTransfer import dataTransfer
 
 class irodsUpDownload():
     def __init__(self, widget, ic, ienv):
@@ -52,7 +52,6 @@ class irodsUpDownload():
         self.widget.irodsFsTreeView.setColumnHidden(2, True)
         self.widget.irodsFsTreeView.setColumnHidden(3, True)
         self.widget.irodsFsTreeView.setColumnHidden(4, True)
-
 
         # Buttons
         self.widget.UploadButton.clicked.connect(self.upload)
@@ -149,73 +148,68 @@ class irodsUpDownload():
         if fsSource == None or irodsDestPath == None: 
             self.widget.errorLabel.setText(
                     "ERROR Up/Download: Please select source and destination.")
-            return           
+            return
+        if not self.ic.session.collections.exists(irodsDestPath):
+            self.widget.errorLabel.setText(
+                    "ERROR UPLOAD: iRODS destination is file, must be collection.")
+            return
         destColl = self.ic.session.collections.get(irodsDestPath)
         if os.path.isdir(fsSource):
-            self.uploadWindow = UpDownloadCheck(self.ic, True, fsSource, destColl, 
+            self.uploadWindow = dataTransfer(self.ic, True, fsSource, destColl, 
                                                 irodsDestIdx, self.getResource())
             self.uploadWindow.finished.connect(self.finishedUpDownload)
         else: # File
             try:
                 self.ic.uploadData(fsSource, destColl, self.getResource(), 
-                                   getSize(fsSource), buff = 1024**3)
+                                   getSize([fsSource]), buff = 1024**3)
                 self.finishedUpDownload(True, irodsDestIdx)
             except ValueError:
                 self.widget.errorLabel.setText(
                         "ERROR upload data: not enough space left on resource.")
             except Exception as error:
-                #raise error
                 #logging.info(repr(error))
                 print(error)
                 self.widget.errorLabel.setText("ERROR: Something went wrong.")
 
-    def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
+
+    def finishedUpDownload(self, succes, irodsIdx):
+        #Refreshes iRODS sub tree ad irodsIdx (set "None" if to skip)
+        #Saves upload parameters if check box is set
         if succes == True:
-            self.irodsmodel.refreshSubTree(destInd)
+            if irodsIdx != None:
+                self.irodsmodel.refreshSubTree(irodsIdx)
             if self.widget.saveSettings.isChecked():
-                print("FINISH UPLOAD: saving ui parameters.")
+                print("FINISH UPLOAD/DOWNLOAD: saving ui parameters.")
                 self.saveUIset()
-            self.widget.errorLabel.setText("INFO UPLOAD: Upload completed.")
+            self.widget.errorLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
         self.uploadWindow = None # Release
 
 
-    # Download a file/folder from IRODS to local disk
     def download(self):
-        source_ind, source_path = self.irodsmodel.get_checked()
-        if source_ind == None:
-            self.widget.errorLabel.setText("ERROR download data: No iRODS data selected.")
+        self.widget.errorLabel.clear()
+        (fsDest, irodsSourceIdx, irodsSourcePath) = self.getPathsFromTrees()
+        if fsDest == None or irodsSourcePath == None:
+            self.widget.errorLabel.setText(
+                    "ERROR Up/Download: Please select source and destination.")
             return
-        destination = self.dirmodel.get_checked()
-        if destination == None or os.path.isfile(destination):
-            message = "No Folder selected to download to"
-            self.widget.errorLabel.setText("ERROR download data: no destination folder selected.")
+        if os.path.isfile(fsDest):
+            self.widget.errorLabel.setText(
+                    "ERROR DOWNLOAD: Local Destination is file, must be folder.")
             return
         # File           
-        if self.ic.session.data_objects.exists(source_path):
+        if self.ic.session.data_objects.exists(irodsSourcePath):
             try:
-                sourceObj = self.ic.session.data_objects.get(source_path)
-                self.ic.downloadData(sourceObj, destination)
-                QMessageBox.information(self.widget, "status", "File downloaded.")
+                sourceObj = self.ic.session.data_objects.get(irodsSourcePath)
+                self.ic.downloadData(sourceObj, fsDest, sourceObj.size)
+                self.finishedUpDownload(True, None)
             except Exception as error:
                 #logging.info(repr(error))
                 print(error)
-                QMessageBox.information(self.widget, "status", "Something went wrong.")
+                self.widget.errorLabel.setText("ERROR: Something went wrong.")
         else:
-            sourceColl = self.ic.session.collections.get(source_path)
-            self.uploadWindow = UpDownloadCheck(self.ic, False, destination, sourceColl)
+            sourceColl = self.ic.session.collections.get(irodsSourcePath)
+            self.uploadWindow = dataTransfer(self.ic, False, fsDest, sourceColl)
             self.uploadWindow.finished.connect(self.finishedUpDownload)
-
-
-    def en_disable_controls(self, enable):
-        # Loop over all tabs enabling/disabling them
-        for i in range(0, self.widget.tabWidget.count()):
-            t = self.widget.tabWidget.tabText(i)
-            if self.widget.tabWidget.tabText(i) == "Up and Download":
-                continue
-            self.widget.tabWidget.setTabVisible(i, enable)
-        self.widget.UploadButton.setEnabled(enable)
-        self.widget.DownloadButton.setEnabled(enable)
-        self.widget.uplSetGB.setEnabled(enable)
 
 
     # Helpers to check file paths before upload
