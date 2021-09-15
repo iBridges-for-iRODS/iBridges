@@ -352,6 +352,48 @@ class irodsConnectorIcommands():
         out, err = p.communicate()
 
 
+    def diffObjFile(self, objPath, fsPath, scope="size"):
+        """
+        Compares and iRODS object to a file system file.
+        returns ([diff], [onlyIrods], [onlyFs], [same])
+        """
+
+        if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
+            raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
+        if self.session.collections.exists(objPath):
+            raise IsADirectoryError("IRODS FS DIFF: object is a collection.")
+
+        if not os.path.isfile(fsPath) and self.session.data_objects.exists(objPath):
+            return ([], [objPath], [], [])
+
+        elif not self.session.data_objects.exists(objPath) and os.path.isfile(fsPath):
+            return ([], [], [fsPath], [])
+
+        #both, file and object exist
+        obj = self.session.data_objects.get(objPath)
+        if scope == "size":
+            objSize = obj.size
+            fSize = os.path.getsize(fsPath)
+            if objSize != fSize:
+                return ([objPath, fsPath], [], [], [])
+            else:
+                return ([], [], [], [objPath, fsPath])
+        elif scope == "checksum":
+            objCheck = obj.checksum
+            if objCheck == None:
+                obj.chksum()
+                objCheck = obj.checksum
+            if objCheck.startswith("sha2"):
+                sha2Obj = b64decode(objCheck.split('sha2:')[1])
+                with open(fsPath) as f:
+                    stream = f.read()
+                    sha2 = hashlib.sha256(stream).digest()
+                if sha2Obj != sha2:
+                    return([objPath, fsPath], [], [], [])
+                else:
+                    return ([], [], [], [objPath, fsPath])
+
+
     def diffIrodsLocalfs(self, collPath, dirPath, scope="size"):
         '''
         Compares and iRODS tree to a directory and lists files that are not in sync.
