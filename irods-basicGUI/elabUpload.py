@@ -182,7 +182,7 @@ class elabUpload():
             #filenames = set(filenames)
     
             #get upload total size to inform user
-            size = round(getSize(path)/1024**2)
+            size = round(getSize([path])/1024**2)
             #if user specifies a different path than standard home
             if self.elnIrodsPath.text() == '/zone/home/user':
                 collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
@@ -219,6 +219,7 @@ class elabUpload():
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
             self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            raise
 
 class Worker(QObject):
     finished = pyqtSignal()
