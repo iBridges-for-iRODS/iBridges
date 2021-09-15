@@ -32,6 +32,17 @@ class irodsBrowser():
         self.widget.aclTable.setColumnWidth(0,299)
         self.widget.aclTable.setColumnWidth(1,299)
 
+        #if user is not admin nor datasteward, hide ACL buttons
+        userType, userGroups = self.ic.getUserInfo()
+
+        if "rodsadmin" not in userType and \
+           "datastewards" not in userGroups and \
+           "training" not in userGroups:
+
+            self.widget.aclAddButton.hide()
+            self.widget.aclBox.setEnabled(False)
+            self.widget.recurseBox.setEnabled(False)
+
         #Resource table
         self.widget.resourceTable.setColumnWidth(0,500)
         self.widget.resourceTable.setColumnWidth(1,90)
@@ -326,7 +337,7 @@ class irodsBrowser():
         dialog = QFileDialog(self.widget)
         fileSelect = QFileDialog.getOpenFileName(self.widget,
                         "Open File", "","All Files (*);;Python Files (*.py)")
-        size = getSize(fileSelect[0])
+        size = getSize([fileSelect[0]])
         buttonReply = QMessageBox.question(self.widget, 'Message Box', "Upload " + fileSelect[0],
                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if buttonReply == QMessageBox.Yes:
@@ -358,7 +369,7 @@ class irodsBrowser():
                 if buttonReply == QMessageBox.Yes:
                     obj = self.ic.session.data_objects.get(parent+'/'+objName)
                     self.ic.downloadData(obj, downloadDir, obj.size)
-        self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
+                    self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
 
 
     #@QtCore.pyqtSlot(QtCore.QModelIndex)

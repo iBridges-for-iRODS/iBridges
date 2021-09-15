@@ -7,28 +7,30 @@ from PyQt5.QtGui import QMovie
 
 from irods.keywords import NO_PARA_OP_KW
 
-from utils import getSizeList
+from utils import getSize
+import os
 
 
 # Loading symbol generator
 # http://www.ajaxload.info/#preview
 
 
-class UpDownloadCheck(QDialog):
+class dataTransfer(QDialog):
     finished = pyqtSignal(bool, object)
 
-    def __init__(self, ic, upload, localFS, Coll, TreeInd = None, resource = None):
-        super(UpDownloadCheck, self).__init__()
-        loadUi("ui-files/upDownloadCheck.ui", self)
+    def __init__(self, ic, upload, localFsPath, irodsColl, irodsTreeIdx = None, resource = None):
+        super(dataTransfer, self).__init__()
+        loadUi("ui-files/dataTransferState.ui", self)
 
         self.ic = ic
-        self.localFS = localFS
-        self.Coll = Coll
-        self.TreeInd = TreeInd
+        self.localFsPath = localFsPath
+        self.coll = irodsColl
+        self.TreeInd = irodsTreeIdx
         self.upload = upload
-        self.newFiles = []
-        self.checksumFiles = []
+        self.addFiles = []
+        self.updateFiles = []
         self.resource = resource
+        self.statusLbl.setText("Loading")
 
         self.cancelBtn.clicked.connect(self.cancel)
         self.confirmBtn.clicked.connect(self.confirm)
@@ -47,12 +49,12 @@ class UpDownloadCheck(QDialog):
 
         # Get information in seperate thread
         self.thread = QThread()
-        self.worker = GetInfo(self.ic, localFS, Coll, upload)
+        self.worker = getDataState(self.ic, localFsPath, irodsColl, upload)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.updLabels.connect(self.updLabels)
         self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.updateUIFinished)
+        self.worker.finished.connect(self.updateUiWithDataState)
         self.worker.finished.connect(self.worker.deleteLater)
         self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
@@ -63,16 +65,14 @@ class UpDownloadCheck(QDialog):
         self.finished.emit(False, None)
         self.close()
 
+
     def closeAfterUpDownl(self):
-        if self.upload:
-            self.finished.emit(True, self.TreeInd)
-        else:
-            self.finished.emit(False, None)
+        self.finished.emit(True, self.TreeInd)
         self.close() 
 
 
     def confirm(self):
-        total_size = self.checksumSize + self.newSize
+        total_size = self.updateSize + self.addSize
         self.loading_movie.start()
         self.loadingLbl.setHidden(False)
         if self.upload:
@@ -80,33 +80,59 @@ class UpDownloadCheck(QDialog):
         else:
             self.statusLbl.setText("Downloading... this might take a while")
         self.thread = QThread()
-        self.worker = UpDownload(self.ic, self.upload, self.localFS, self.Coll, total_size, self.resource)
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.finished.connect(self.upDownLoadFinished)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        if len(self.diff)+len(self.addFiles) == 0:
+            self.statusLbl.setText("Nothing to update.")
+            self.loading_movie.stop()
+            self.loadingLbl.setHidden(True)
+        elif len(self.diff) > 0:
+            if self.upload:
+                for d in self.diff:
+                    osPath = d[1]
+                    irodsPath = d[0]
+                    coll = self.ic.session.collections.get(os.path.dirname(irodsPath))
+                    self.ic.uploadData(osPath, coll, self.resource, total_size)
+            else:
+                for d in self.diff:
+                    osPath = d[1]
+                    irodsPath = d[0]
+                    if self.ic.session.collections.exists(irodsPath):
+                        item = self.ic.collections.get(irodsPath)
+                    else:
+                        item = self.ic.session.data_objects.get(irodsPath)
+                    self.ic.downloadData(item, os.path.dirname(osPath), total_size)
+            self.statusLbl.setText("Update complete.")
+            self.loading_movie.stop()
+            self.loadingLbl.setHidden(True)
+        elif len(self.addFiles) > 0:
+            self.worker = UpDownload(self.ic, self.upload, 
+                                     self.localFsPath, self.coll, 
+                                     total_size, self.resource)
+            self.worker.moveToThread(self.thread)
+            self.thread.started.connect(self.worker.run)
+            self.worker.finished.connect(self.thread.quit)
+            self.worker.finished.connect(self.upDownLoadFinished)
+            self.worker.finished.connect(self.worker.deleteLater)
+            self.thread.finished.connect(self.thread.deleteLater)
+            self.thread.start()
 
 
-    # Callback for the GetInfo worker
-    def updLabels(self, newFiles, checksumFiles):
-        self.checksumLbl.setText(f"{checksumFiles}")
-        self.newFLbl.setText(f"{newFiles}")
+    # Callback for the getDataSize worker
+    def updLabels(self, numAdd, numDiff):
+        self.numDiffLabel.setText(f"{numDiff}")
+        self.numAddLabel.setText(f"{numAdd}")
 
 
-    # Callback for the GetInfo worker
-    def updateUIFinished(self, newFiles, checksumFiles, newSize, checksumSize):
-        self.checksumSize = checksumSize
-        checksumSizeStr = self.bytesToStr(checksumSize)
-        self.ChecksumSizeLbl.setText(checksumSizeStr)
-        self.checksumFiles = checksumFiles
+    # Callback for the getDataSize worker
+    def updateUiWithDataState(self, addFiles, diff, addSize, updateSize):
+        self.updateSize = updateSize
+        #checksumSizeStr = self.bytesToStr(updateSize)
+        self.ChecksumSizeLbl.setText(self.bytesToStr(updateSize))
+        self.diff = diff
 
-        self.newSize = newSize
-        newSizeStr = self.bytesToStr(newSize)
-        self.newFSizeLbl.setText(newSizeStr)
-        self.newFiles = newFiles
+        self.addSize = addSize
+        #newSizeStr = self.bytesToStr(addSize)
+        self.newFSizeLbl.setText(self.bytesToStr(addSize))
+        self.addFiles = addFiles
 
         self.loading_movie.stop()
         self.loadingLbl.setHidden(True)
@@ -138,34 +164,74 @@ class UpDownloadCheck(QDialog):
 
 
 # Background worker to load the menu
-class GetInfo(QObject):
+class getDataState(QObject):
     # Signals
     updLabels = pyqtSignal(int, int) # Num files
     finished = pyqtSignal(list, list, int, int) # Lists with size in bytes
 
-    def __init__(self, ic, localFS, Coll, upload):
-        super(GetInfo, self).__init__()
+    def __init__(self, ic, localFsPath, coll, upload):
+        super(getDataState, self).__init__()
         self.ic = ic
-        self.localFS =localFS
-        self.Coll = Coll
+        self.localFsPath = localFsPath
+        self.coll = coll
         self.upload = upload
 
     def run(self):
-        # Diff 
-        (checksum, onlyFS, onlyIRods, same) = self.ic.diffIrodsLocalfs(self.Coll, self.localFS)
-        print(checksum)
+        # Diff
+        diff, onlyFS, onlyIrods, same = [], [], [], []
         if self.upload == True:
-            self.updLabels.emit(len(onlyFS), len(checksum))
+            #data is placed inside of coll, check is dir or file is inside
+            subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
+            if self.ic.session.collections.exists(subItemPath):
+                subColl = self.ic.session.collections.get(subItemPath)
+                (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                                                  subColl, self.localFsPath, scope="checksum")
+            elif self.ic.session.data_objects.exists(subItemPath):
+                (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                                                  subItemPath, self.localFsPath, scope="checksum")
+            else:
+                onlyFS = [self.localFsPath]
+            self.updLabels.emit(len(onlyFS), len(diff))
         else:
-            self.updLabels.emit(len(onlyIRods), len(checksum))
+            #data is placed inside fsDir, check if obj or coll is inside
+            subFsPath = self.localFsPath + os.sep + self.coll.name
+            if os.path.isdir(subFsPath):
+                (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                                                  self.coll, subFsPath, scope="checksum")
+            elif os.path.isfile(subFsPath):
+                 (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                                                   self.coll.path, subFsPath, scope="checksum")
+            else:
+                onlyIrods = [self.coll.path]
+            self.updLabels.emit(len(onlyIrods), len(diff))
 
         # Get size 
         if self.upload == True:
-            checksumFSize = getSizeList(self.localFS, checksum)
-            newFSize = getSizeList(self.localFS, onlyFS)
-            self.finished.emit(onlyFS, checksum, newFSize, checksumFSize)
+            fsDiffFiles = [d[1] for d in diff]
+            updateSize = getSize(fsDiffFiles)
+            addSize = getSize(onlyFS)
+            self.finished.emit(onlyFS, diff, addSize, updateSize)
         else:
-            self.finished.emit(onlyIRods, checksum, 0, 0)# TODO
+            irodsDiffFiles = [d[0] for d in diff]
+            updateSize = 0
+            for itemPath in irodsDiffFiles:
+                if self.ic.session.collections.exists(itemPath):
+                    c = self.ic.session.collections.get(itemPath)
+                    updateSize = updateSize + self.ic.getSize(c)
+                elif self.ic.session.data_objects.exists(itemPath):
+                    o = self.ic.session.data_objects.get(itemPath)
+                    updateSize = updateSize + self.ic.getSize(o)
+
+            addSize = 0
+            for itemPath in onlyIrods:
+                if self.ic.session.collections.exists(itemPath):
+                    c = self.ic.session.collections.get(itemPath)
+                    addSize = updateSize + self.ic.getSize(c)
+                elif self.ic.session.data_objects.exists(itemPath):
+                    o = self.ic.session.data_objects.get(itemPath)
+                    addSize = updateSize + self.ic.getSize(o)
+
+            self.finished.emit(onlyIrods, diff, addSize, updateSize)
 
 
 
@@ -184,7 +250,8 @@ class UpDownload(QObject):
     def run(self):    
         try:
             if self.upload:
-                self.ic.uploadData(self.localFS, self.Coll, self.resource, self.totalSize, buff = 1024**3)# TODO keep 500GB free to avoid locking irods!
+                self.ic.uploadData(self.localFS, self.Coll, 
+                                   self.resource, self.totalSize, buff = 1024**3)
                 self.finished.emit(True, "Upload finished")
             else:
                 self.ic.downloadData(self.Coll, self.localFS, self.totalSize)

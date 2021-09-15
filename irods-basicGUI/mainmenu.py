@@ -9,7 +9,7 @@ from popupWidgets import irodsCreateCollection
 from irodsBrowser import irodsBrowser
 from elabUpload import elabUpload
 from irodsSearch import irodsSearch
-from UpDownload import irodsUpDownload
+from irodsUpDownload import irodsUpDownload
 from irodsDataCompression import irodsDataCompression
 
 import sys

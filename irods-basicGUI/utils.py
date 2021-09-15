@@ -6,21 +6,16 @@ from datetime import datetime
 from json import dump
 
 
-def getSize(path):
+def getSize(pathList):
     size = 0
-    if os.path.isdir(path):
-        for dirpath, dirnames, filenames in os.walk(path):
-            for i in filenames:
-                f = os.path.join(dirpath, i)
-                size += os.path.getsize(f)
-    elif os.path.isfile(path):
-        size = os.path.getsize(path)
-    return size
-
-def getSizeList(folder, files):
-    size = 0
-    for file in files:
-        size += os.path.getsize(folder + os.sep + file)
+    for p in pathList:
+        if os.path.isdir(p):
+            for dirpath, dirnames, filenames in os.walk(p):
+                for i in filenames:
+                    f = os.path.join(dirpath, i)
+                    size += os.path.getsize(f)
+        elif os.path.isfile(p):
+            size = size + os.path.getsize(p)
     return size
 
 

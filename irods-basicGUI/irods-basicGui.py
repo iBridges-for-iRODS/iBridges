@@ -26,7 +26,7 @@ from utils import networkCheck, check_direxists, check_fileexists
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
-        setup_logger()
+        #setup_logger()
         loadUi("ui-files/irodsLogin.ui", self)
         
         self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"

@@ -72,7 +72,7 @@
    <item row="0" column="0" rowspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="checksumLbl">
+      <widget class="QLabel" name="numDiffLabel">
        <property name="text">
         <string>0</string>
        </property>
@@ -84,14 +84,27 @@
         <enum>QFrame::NoFrame</enum>
        </property>
        <property name="text">
-        <string>Files with different Checksum</string>
+        <string>Items to update (overwrite)</string>
        </property>
       </widget>
      </item>
      <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
       <widget class="QLabel" name="ChecksumSizeLbl">
        <property name="text">
-        <string/>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -101,7 +114,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeType">
-        <enum>QSizePolicy::Expanding</enum>
+        <enum>QSizePolicy::Fixed</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
@@ -116,7 +129,7 @@
    <item row="2" column="0" rowspan="2">
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
-      <widget class="QLabel" name="newFLbl">
+      <widget class="QLabel" name="numAddLabel">
        <property name="text">
         <string>0</string>
        </property>
@@ -125,14 +138,27 @@
      <item>
       <widget class="QLabel" name="newFiles">
        <property name="text">
-        <string>New Files   </string>
+        <string>New items   </string>
        </property>
       </widget>
      </item>
      <item>
+      <spacer name="horizontalSpacer_4">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
       <widget class="QLabel" name="newFSizeLbl">
        <property name="text">
-        <string/>
+        <string>0</string>
        </property>
       </widget>
      </item>
@@ -142,7 +168,7 @@
         <enum>Qt::Horizontal</enum>
        </property>
        <property name="sizeType">
-        <enum>QSizePolicy::Expanding</enum>
+        <enum>QSizePolicy::Fixed</enum>
        </property>
        <property name="sizeHint" stdset="0">
         <size>
