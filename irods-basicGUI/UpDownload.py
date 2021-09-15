@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 from PyQt5 import QtCore
-import logging
+#import logging
 import os
 
 from checkableFsTree import checkableFsTreeModel
@@ -160,7 +160,8 @@ class irodsUpDownload():
                         "ERROR upload data: not enough space left on resource.")
             except Exception as error:
                 #raise error
-                logging.info(repr(error))
+                #logging.info(repr(error))
+                print(error)
                 self.widget.errorLabel("ERROR: Something went wrong.")
 
     def finishedUpDownload(self, succes, destInd):# slot for uploadcheck
@@ -187,7 +188,8 @@ class irodsUpDownload():
                 self.ic.downloadData(sourceObj, destination)
                 QMessageBox.information(self.widget, "status", "File downloaded.")
             except Exception as error:
-                logging.info(repr(error))
+                #logging.info(repr(error))
+                print(error)
                 QMessageBox.information(self.widget, "status", "Something went wrong.")
         else:
             sourceColl = self.ic.session.collections.get(source_path)

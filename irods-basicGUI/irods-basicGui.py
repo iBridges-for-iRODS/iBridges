@@ -1,10 +1,10 @@
 import os
 import sys
-import logging
-from shutil import copyfile
+#import logging
+#from shutil import copyfile
 from cryptography.fernet import Fernet
 from json import load, dump
-from platform import system
+#from platform import system
 import subprocess
 
 from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QStackedWidget
@@ -19,7 +19,7 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from mainmenu import mainmenu
-from utils import networkCheck, setup_logger, check_direxists, check_fileexists
+from utils import networkCheck, check_direxists, check_fileexists
 
 
 
@@ -28,12 +28,9 @@ class irodsLogin(QDialog):
         super(irodsLogin, self).__init__()
         setup_logger()
         loadUi("ui-files/irodsLogin.ui", self)
-
-        if system() == "Linux":
-            self.irodsEnvPath = os.environ['HOME'] + os.sep + ".irods"
-        else:
-            self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods" #+ os.sep + "irods_environment.json"
-        if not check_direxists(self.irodsEnvPath):
+        
+        self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
+        if not os.path.isdir(self.irodsEnvPath):
             os.makedirs(self.irodsEnvPath)
         self.configFilePath = self.irodsEnvPath + os.sep + "config.json"
         self.init_envbox()
@@ -100,7 +97,7 @@ class irodsLogin(QDialog):
         self.envbox.addItems(envJsons)
         
         # Read config
-        if check_fileexists(self.configFilePath):
+        if os.path.isfile(self.configFilePath):
             with open(self.configFilePath) as f:
                 conf = load(f)
             if ("last_ienv" in conf) and (conf["last_ienv"] != "") and (conf["last_ienv"] in envJsons):
@@ -171,7 +168,7 @@ class irodsLogin(QDialog):
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except Exception as error:
-                logging.info(repr(error))
+                #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 raise

@@ -5,7 +5,6 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 
 from popupWidgets import irodsCreateCollection
-from utils import walkToDict, getDownloadDir 
 
 from irodsBrowser import irodsBrowser
 from elabUpload import elabUpload
@@ -89,7 +88,6 @@ class mainmenu(QMainWindow):
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
             #self.loadTable()
-
         else:
             pass
 

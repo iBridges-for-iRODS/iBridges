@@ -48,7 +48,7 @@ class irodsDataCompression():
 
 
     def infoPopup(self, message):
-        QMessageBox.information(self.widget, 'Error', message)
+        QMessageBox.information(self.widget, 'Information', message)
 
 
     def setupFsTree(self, treeView):

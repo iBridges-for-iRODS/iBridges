@@ -3,7 +3,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QMovie
-import logging
+#import logging
 
 from irods.keywords import NO_PARA_OP_KW
 
@@ -191,5 +191,5 @@ class UpDownload(QObject):
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
             raise error
-            logging.info(repr(error))
+            #logging.info(repr(error))
             self.finished.emit(False, "Something went wrong.")
