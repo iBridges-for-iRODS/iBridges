@@ -22,7 +22,12 @@ class IrodsModel(QStandardItemModel):
         #Groups which the user id member of to check access rights on tree
         self.userGroups = self.ic.getUserInfo()[1]
 
-        self.irodsRootColl = "/" + self.ic.session.zone
+        try:
+            coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
+            self.irodsRootColl = "/" + self.ic.session.zone
+        except:
+            self.irodsRootColl = "/" + self.ic.session.zone + "/home"
+
         self.TreeView = TreeView
         self.clear() # Empty tree
         rootnode = self.invisibleRootItem()
@@ -95,8 +100,12 @@ class IrodsModel(QStandardItemModel):
         """
         #initial tree information
         parentId = -1
-        coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
-
+        try:
+            coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
+        except:
+            coll = self.ic.session.collections.get(
+                    self.irodsRootColl+'/'+self.ic.session.username)
+        print(coll.name)
         #get the depth of the irods path, disregard irodsRootColl and its own depth
         level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
         data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,

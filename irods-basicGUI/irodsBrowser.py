@@ -48,7 +48,11 @@ class irodsBrowser():
         self.widget.resourceTable.setColumnWidth(1,90)
 
         #iRODS defaults
-        self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
+        try:
+            self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
+        except:
+            self.irodsRoot = self.ic.session.collections.get(
+                    "/"+ic.session.zone+"/home/"+ic.session.username)
         self.resetPath()
 
         self.currentBrowserRow = 0

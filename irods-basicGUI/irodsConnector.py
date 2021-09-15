@@ -439,7 +439,7 @@ class irodsConnector():
                 listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
 
         listColl = []
-        for root, subcolls, obj in self.session.collections.get(coll.path).walk():
+        for root, subcolls, obj in coll.walk():
             for o in obj:
                 listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
 

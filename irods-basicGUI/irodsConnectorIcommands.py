@@ -299,14 +299,17 @@ class irodsConnectorIcommands():
             print("CREATE", destination.path+"/"+os.path.basename(source))
             self.session.collections.create(destination.path)
             if resource:
-                cmd = 'iput -fK '+source+' '+destination.path+' -R '+resource
+                cmd = 'irsync -aK '+source+' i:'+destination.path+' -R '+resource
             else:
-                cmd = 'iput -fK '+source+' '+destination.path
+                cmd = 'irsync -aK '+source+' i:'+destination.path
         elif os.path.isdir(source):
+            self.session.collections.create(destination.path+'/'+os.path.basename(source))
+            subColl = self.session.collections.get(destination.path+'/'+os.path.basename(source))
+            print(subColl.path)
             if resource:
-                cmd = 'iput -brfK '+source+' '+destination.path+' -R '+resource
+                cmd = 'irsync -aKr '+source+' i:'+subColl.path+' -R '+resource
             else:
-                cmd = 'iput -brfK '+source+' '+destination.path
+                cmd = 'irsync -aKr '+source+' i:'+subColl.path
         else:
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
        
@@ -342,12 +345,13 @@ class irodsConnectorIcommands():
 
         if self.session.data_objects.exists(source.path):
             #-f overwrite, -K control checksum, -r recursive (collections)
-            cmd = 'iget -fK '+source.path+' '+destination
+            cmd = 'irsync -K i:'+source.path+' '+destination+os.sep+os.path.basename(source.path)
         elif self.session.collections.exists(source.path):
-            cmd = 'iget -fKr '+source.path+' '+destination
+            cmd = 'irsync -Kr i:'+source.path+' '+destination+os.sep+os.path.basename(source.path)
         else:
             raise FileNotFoundError("IRODS download: not a valid source.")
-
+        
+        print("DOWNLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
 
@@ -394,7 +398,7 @@ class irodsConnectorIcommands():
                     return ([], [], [], [objPath, fsPath])
 
 
-    def diffIrodsLocalfs(self, collPath, dirPath, scope="size"):
+    def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
         '''
         Compares and iRODS tree to a directory and lists files that are not in sync.
         Syncing scope can be 'size' or 'checksum'
@@ -406,7 +410,7 @@ class irodsConnectorIcommands():
             raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
         if not os.path.isdir(dirPath):
             raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
-        if not self.session.collections.exists(collPath):
+        if not self.session.collections.exists(coll.path):
             raise CollectionDoesNotExist("IRODS FS DIFF: collection path unknwn")
 
         listDir = []
@@ -415,29 +419,32 @@ class irodsConnectorIcommands():
                 listDir.append(os.path.join(root.split(dirPath)[1], name).strip('/'))
 
         listColl = []
-        for root, subcolls, obj in self.session.collections.get(collPath).walk():
+        for root, subcolls, obj in coll.walk():
             for o in obj:
-                listColl.append(os.path.join(root.path.split(collPath)[1], o.name).strip('/'))
+                listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
 
         diff = []
         same = []
         for partialPath in set(listDir).intersection(listColl):
             if scope == "size":
-                objSize = self.session.data_objects.get(collPath+'/'+partialPath).size
+                objSize = self.session.data_objects.get(coll.path+'/'+partialPath).size
                 fSize = os.path.getsize(dirPath+'/'+partialPath)
                 if objSize != fSize:
-                    diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                    diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
                 else:
                     same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             elif scope == "checksum":
-                objCheck = self.session.data_objects.get(collPath+'/'+partialPath).checksum
+                objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
+                if objCheck == None:
+                    self.session.data_objects.get(coll.path+'/'+partialPath).chksum()
+                    objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(dirPath+'/'+partialPath,"rb") as f:
                         stream = f.read()
                         sha2 = hashlib.sha256(stream).digest()
                     if sha2Obj != sha2:
-                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                        diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
                     else:
                         same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 elif objCheck:
@@ -446,11 +453,11 @@ class irodsConnectorIcommands():
                         stream = f.read()
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
-                        diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                        diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
                     else:
                         same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             else: # same paths no scope
-                diff.append((collPath+'/'+partialPath, dirPath+'/'+partialPath))
+                diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
 
         #adding files that are not on iRODS, only present on local FS
         #adding files that are not on local FS, only present in iRODS

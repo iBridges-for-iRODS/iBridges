@@ -84,7 +84,7 @@ class dataTransfer(QDialog):
             self.statusLbl.setText("Nothing to update.")
             self.loading_movie.stop()
             self.loadingLbl.setHidden(True)
-        elif len(self.diff) > 0:
+        elif len(self.diff) > 0 and len(self.addFiles) == 0:
             if self.upload:
                 for d in self.diff:
                     osPath = d[1]
@@ -100,6 +100,7 @@ class dataTransfer(QDialog):
                     else:
                         item = self.ic.session.data_objects.get(irodsPath)
                     self.ic.downloadData(item, os.path.dirname(osPath), total_size)
+
             self.statusLbl.setText("Update complete.")
             self.loading_movie.stop()
             self.loadingLbl.setHidden(True)
@@ -157,8 +158,7 @@ class dataTransfer(QDialog):
     def upDownLoadFinished(self, status, statusmessage):
         self.loading_movie.stop()
         self.loadingLbl.setHidden(True)
-        self.statusLbl.setText("")
-        QMessageBox.information(self, "status", statusmessage)
+        self.statusLbl.setText("Update complete.")
         if status == True:
             self.confirmBtn.disconnect() # remove callback
             self.confirmBtn.setText("Close")
@@ -188,6 +188,7 @@ class getDataState(QObject):
             subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
             if self.ic.session.collections.exists(subItemPath):
                 subColl = self.ic.session.collections.get(subItemPath)
+                print(subColl.path)
                 (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   subColl, self.localFsPath, scope="checksum")
             elif self.ic.session.data_objects.exists(subItemPath):
