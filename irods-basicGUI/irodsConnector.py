@@ -45,10 +45,8 @@ class irodsConnector():
             with open(envFile) as f:
                 ienv = json.load(f)
             if password == "": # requires a valid .irods/.irodsA (linux/mac only)
-                print("EnvFile only")
                 self.session = iRODSSession(irods_env_file=envFile)
             else:
-                print("EnvFile, password")
                 self.session = iRODSSession(**ienv, password=password)
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
@@ -132,7 +130,7 @@ class irodsConnector():
         except CAT_INVALID_USER:
             raise CAT_INVALID_USER("ACL ERROR: user unknown ")
         except CAT_INVALID_ARGUMENT:
-            print(RED+"ACL ERROR: rights or path not known"+DEFAULT)
+            print(RED+"ACL ERROR: rights or path not known "+path+DEFAULT)
             raise
 
 
@@ -283,7 +281,8 @@ class irodsConnector():
             try:
                 space = self.session.resources.get(resource).free_space
                 if not space:
-                    space = 0
+                    raise ValueError(
+                        'ERROR iRODS upload: No size set on iRODS resource. Refuse to upload.')
                 if int(size) > (int(space)-buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
@@ -531,7 +530,7 @@ class irodsConnector():
                 else:
                     self.addMetadata(items, key, value, units)
         except CAT_NO_ACCESS_PERMISSION:
-            raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
+            raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
 
 
     def deleteMetadata(self, items, key, value, units):
@@ -551,7 +550,7 @@ class irodsConnector():
             except CAT_SUCCESS_BUT_WITH_NO_INFO:
                 print(RED+"ERROR DELETE META: Metadata never existed"+DEFAULT)
             except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
+                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
 
 
 
@@ -570,7 +569,7 @@ class irodsConnector():
             try:
                 item.unlink(force = True)
             except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions "+item.path)
 
 
     def executeRule(self, ruleFile, params, output='ruleExecOut'):

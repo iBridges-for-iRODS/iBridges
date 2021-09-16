@@ -18,6 +18,13 @@ class irodsUpDownload():
         self.ienv = ienv
         self.syncing = False # syncing or not
 
+        rescs = self.ic.listResources()
+        #if ic.defaultResc not in rescs:
+        #    self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'\
+        #                   +ic.defaultResc \
+        #                   +'\nData Up and Download view not setup.')
+        #    return
+
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)
         self.widget.localFsTreeView.setModel(self.dirmodel)
@@ -98,8 +105,12 @@ class irodsUpDownload():
             self.widget.ContUplBut.hide()
             self.widget.ChecksumCheckBut.hide()
 
+
+    def infoPopup(self, message):
+        QMessageBox.information(self.widget, 'Information', message)
+
+
     def saveUIset(self):
-        self.ienv["ui_resource"] = self.getResource()
         self.ienv["ui_remLocalcopy"] = self.getRemLocalCopy()
         self.ienv["ui_uplMode"] = self.getUplMode()
         saveIenv(self.ienv)

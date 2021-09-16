@@ -158,12 +158,13 @@ class dataTransfer(QDialog):
     def upDownLoadFinished(self, status, statusmessage):
         self.loading_movie.stop()
         self.loadingLbl.setHidden(True)
-        self.statusLbl.setText("Update complete.")
         if status == True:
             self.confirmBtn.disconnect() # remove callback
             self.confirmBtn.setText("Close")
             self.confirmBtn.clicked.connect(self.closeAfterUpDownl)
+            self.statusLbl.setText("Update complete.")
         else:
+            self.statusLbl.setText(statusmessage)
             self.confirmBtn.setText("Retry")
 
 
@@ -183,32 +184,34 @@ class getDataState(QObject):
     def run(self):
         # Diff
         diff, onlyFS, onlyIrods, same = [], [], [], []
-        if self.upload == True:
+        try:
+            if self.upload == True:
             #data is placed inside of coll, check is dir or file is inside
-            subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
-            if self.ic.session.collections.exists(subItemPath):
-                subColl = self.ic.session.collections.get(subItemPath)
-                print(subColl.path)
-                (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
+                if self.ic.session.collections.exists(subItemPath):
+                    subColl = self.ic.session.collections.get(subItemPath)
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   subColl, self.localFsPath, scope="checksum")
-            elif self.ic.session.data_objects.exists(subItemPath):
-                (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                elif self.ic.session.data_objects.exists(subItemPath):
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                   subItemPath, self.localFsPath, scope="checksum")
+                else:
+                    onlyFS = [self.localFsPath]
+                self.updLabels.emit(len(onlyFS), len(diff))
             else:
-                onlyFS = [self.localFsPath]
-            self.updLabels.emit(len(onlyFS), len(diff))
-        else:
-            #data is placed inside fsDir, check if obj or coll is inside
-            subFsPath = self.localFsPath + os.sep + self.coll.name
-            if os.path.isdir(subFsPath):
-                (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                #data is placed inside fsDir, check if obj or coll is inside
+                subFsPath = self.localFsPath + os.sep + self.coll.name
+                if os.path.isdir(subFsPath):
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, subFsPath, scope="checksum")
-            elif os.path.isfile(subFsPath):
-                 (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                elif os.path.isfile(subFsPath):
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, subFsPath, scope="checksum")
-            else:
-                onlyIrods = [self.coll.path]
-            self.updLabels.emit(len(onlyIrods), len(diff))
+                else:
+                    onlyIrods = [self.coll.path]
+                self.updLabels.emit(len(onlyIrods), len(diff))
+        except Exception as error:
+            print(error)
 
         # Get size 
         if self.upload == True:
@@ -245,6 +248,6 @@ class UpDownload(QObject):
                 self.ic.downloadData(self.Coll, self.localFS, self.totalSize)
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
-            raise error
+            print(error)
             #logging.info(repr(error))
-            self.finished.emit(False, "Something went wrong.")
+            self.finished.emit(False, str(error))

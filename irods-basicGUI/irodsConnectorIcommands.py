@@ -305,7 +305,6 @@ class irodsConnectorIcommands():
         elif os.path.isdir(source):
             self.session.collections.create(destination.path+'/'+os.path.basename(source))
             subColl = self.session.collections.get(destination.path+'/'+os.path.basename(source))
-            print(subColl.path)
             if resource:
                 cmd = 'irsync -aKr '+source+' i:'+subColl.path+' -R '+resource
             else:
@@ -313,7 +312,7 @@ class irodsConnectorIcommands():
         else:
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
        
-        print(cmd)
+        print("IRODS UPLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
 
@@ -351,7 +350,7 @@ class irodsConnectorIcommands():
         else:
             raise FileNotFoundError("IRODS download: not a valid source.")
         
-        print("DOWNLOAD: "+cmd)
+        print("IRODS DOWNLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
 
@@ -482,7 +481,7 @@ class irodsConnectorIcommands():
             except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 print(RED+"METADATA ADD FAILED: Metadata already present"+DEFAULT)
             except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
+                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions: "+item.path)
 
 
     def updateMetadata(self, items, key, value, units = None):
@@ -528,7 +527,7 @@ class irodsConnectorIcommands():
             except CAT_SUCCESS_BUT_WITH_NO_INFO:
                 print(RED+"METADATA ADD FAILED: Metadata never existed"+DEFAULT)
             except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
+                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
 
 
 
@@ -586,7 +585,6 @@ class irodsConnectorIcommands():
         Returns: size in bytes.
         itemPaths: list of irods paths pointing to collection or object
         '''
-        print("Get Size")
         size = 0
         for path in itemPaths:
             #remove possible leftovers of windows fs separators
@@ -606,6 +604,7 @@ class irodsConnectorIcommands():
                     except:
                         raise
             else:
-                print("Not known "+path)
+                pass
+
         return size
 

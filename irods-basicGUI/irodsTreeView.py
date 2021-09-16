@@ -105,7 +105,6 @@ class IrodsModel(QStandardItemModel):
         except:
             coll = self.ic.session.collections.get(
                     self.irodsRootColl+'/'+self.ic.session.username)
-        print(coll.name)
         #get the depth of the irods path, disregard irodsRootColl and its own depth
         level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
         data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,

@@ -94,10 +94,9 @@ class mainmenu(QMainWindow):
     def search(self):
         search = irodsSearch(self.ic, self.browserWidget.collTable)
         search.exec_()
-        #search.search()
 
 
     def exportMeta(Self):
-        print("TODO: search")
+        print("TODO: Metadata export")
 
 

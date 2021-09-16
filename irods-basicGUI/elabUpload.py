@@ -42,7 +42,7 @@ class elabUpload():
     def connectElab(self):
         self.errorLabel.clear()
         token = self.elnTokenInput.text()
-        print(token)
+        print("ELAB INFO token: "+token)
         #ELN can potentially be offline
         try:
             self.elab = elabConnector(token)
@@ -146,7 +146,6 @@ class elabUpload():
         groupId = self.groupIdLabel.text()
         expId = self.experimentIdLabel.text()
         path = self.dirmodel.get_checked()
-        print(path)
 
         if groupId == "":
             self.errorLabel.setText("ERROR: No group selected.")
