@@ -154,22 +154,10 @@ class irodsUpDownload():
                     "ERROR UPLOAD: iRODS destination is file, must be collection.")
             return
         destColl = self.ic.session.collections.get(irodsDestPath)
-        if os.path.isdir(fsSource):
-            self.uploadWindow = dataTransfer(self.ic, True, fsSource, destColl, 
+        #if os.path.isdir(fsSource):
+        self.uploadWindow = dataTransfer(self.ic, True, fsSource, destColl, 
                                                 irodsDestIdx, self.getResource())
-            self.uploadWindow.finished.connect(self.finishedUpDownload)
-        else: # File
-            try:
-                self.ic.uploadData(fsSource, destColl, self.getResource(), 
-                                   getSize([fsSource]), buff = 1024**3)
-                self.finishedUpDownload(True, irodsDestIdx)
-            except ValueError:
-                self.widget.errorLabel.setText(
-                        "ERROR upload data: not enough space left on resource.")
-            except Exception as error:
-                #logging.info(repr(error))
-                print(error)
-                self.widget.errorLabel.setText("ERROR: Something went wrong.")
+        self.uploadWindow.finished.connect(self.finishedUpDownload)
 
 
     def finishedUpDownload(self, succes, irodsIdx):
@@ -198,18 +186,11 @@ class irodsUpDownload():
             return
         # File           
         if self.ic.session.data_objects.exists(irodsSourcePath):
-            try:
-                sourceObj = self.ic.session.data_objects.get(irodsSourcePath)
-                self.ic.downloadData(sourceObj, fsDest, sourceObj.size)
-                self.finishedUpDownload(True, None)
-            except Exception as error:
-                #logging.info(repr(error))
-                print(error)
-                self.widget.errorLabel.setText("ERROR: Something went wrong.")
+            irodsItem = self.ic.session.data_objects.get(irodsSourcePath)
         else:
-            sourceColl = self.ic.session.collections.get(irodsSourcePath)
-            self.uploadWindow = dataTransfer(self.ic, False, fsDest, sourceColl)
-            self.uploadWindow.finished.connect(self.finishedUpDownload)
+            irodsItem = self.ic.session.collections.get(irodsSourcePath)
+        self.uploadWindow = dataTransfer(self.ic, False, fsDest, irodsItem)
+        self.uploadWindow.finished.connect(self.finishedUpDownload)
 
 
     # Helpers to check file paths before upload

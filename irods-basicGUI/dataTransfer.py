@@ -223,7 +223,6 @@ class getDataState(QObject):
             self.finished.emit(onlyIrods, diff, addSize, updateSize)
 
 
-
 # Background worker for the up/download
 class UpDownload(QObject):
     finished = pyqtSignal(bool, str)
