@@ -218,24 +218,8 @@ class getDataState(QObject):
             self.finished.emit(onlyFS, diff, addSize, updateSize)
         else:
             irodsDiffFiles = [d[0] for d in diff]
-            updateSize = 0
-            for itemPath in irodsDiffFiles:
-                if self.ic.session.collections.exists(itemPath):
-                    c = self.ic.session.collections.get(itemPath)
-                    updateSize = updateSize + self.ic.getSize(c)
-                elif self.ic.session.data_objects.exists(itemPath):
-                    o = self.ic.session.data_objects.get(itemPath)
-                    updateSize = updateSize + self.ic.getSize(o)
-
-            addSize = 0
-            for itemPath in onlyIrods:
-                if self.ic.session.collections.exists(itemPath):
-                    c = self.ic.session.collections.get(itemPath)
-                    addSize = updateSize + self.ic.getSize(c)
-                elif self.ic.session.data_objects.exists(itemPath):
-                    o = self.ic.session.data_objects.get(itemPath)
-                    addSize = updateSize + self.ic.getSize(o)
-
+            updateSize =  self.ic.getSize(irodsDiffFiles)
+            addSize = self.ic.getSize(onlyIrods)
             self.finished.emit(onlyIrods, diff, addSize, updateSize)
 
 

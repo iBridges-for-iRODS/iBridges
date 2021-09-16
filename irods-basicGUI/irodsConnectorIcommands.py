@@ -580,44 +580,32 @@ class irodsConnectorIcommands():
         return stdout, stderr
 
 
-    def getSize(self, coll):
+    def getSize(self, itemPaths):
         '''
         Compute the size of the iRods dataobject or collection
         Returns: size in bytes.
-        collection: iRODS collection
+        itemPaths: list of irods paths pointing to collection or object
         '''
-        if self.session.data_objects.exists(coll.path):
-            return coll.size
-
-        elif self.session.collections.exists(coll.path):
-            size = 0
-            walk = [coll]
-            while walk:
-                try:
-                    coll = walk.pop()
-                    walk.extend(coll.subcollections)
-                    for obj in coll.data_objects:
-                        size = size + obj.size
-                except:
-                    raise
-            return size
-        else:
-            raise FileNotFoundError("IRODS getSize: not a valid source path")
-
-
-    def getSizeList(self, coll, ojbList):
-        '''
-        Compute the size of a list of dataobjects in a collection
-        Returns: size in bytes.
-        collection: base iRODS collection
-        ojbList: list of object to get size off
-        '''
+        print("Get Size")
         size = 0
-        for objpath in ojbList:
-            path = coll.path + '/' + objpath.replace("\\", "/")
+        for path in itemPaths:
+            #remove possible leftovers of windows fs separators
+            path = path.replace("\\", "/")
             if self.session.data_objects.exists(path):
                 size = size + self.session.data_objects.get(path).size
+
+            elif self.session.collections.exists(path):
+                coll = self.session.collections.get(path)
+                walk = [coll]
+                while walk:
+                    try:
+                        coll = walk.pop()
+                        walk.extend(coll.subcollections)
+                        for obj in coll.data_objects:
+                            size = size + obj.size
+                    except:
+                        raise
             else:
-                raise FileNotFoundError("IRODS getSize: not a valid source path")
+                print("Not known "+path)
         return size
 
