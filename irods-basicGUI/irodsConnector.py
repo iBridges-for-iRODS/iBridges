@@ -268,13 +268,15 @@ class irodsConnector():
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
         
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
+    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
+                         force = False, diffs = []):
         """
         source: absolute path to file or folder
         destination: iRODS collection where data is uploaded to
         resource: name of the iRODS storage resource to use
         size: size of data to be uploaded in bytes
         buf: buffer on resource that should be left over
+        diffs: output of diff functions
 
         The function uploads the contents of a folder with all subfolders to 
         an iRODS collection.
@@ -285,11 +287,28 @@ class irodsConnector():
         ValueError (if resource too small or buffer is too small)
         
         """
-        if resource:
+        if resource != None and resource != "":
             options = {kw.RESC_NAME_KW: resource,
-                        kw.REG_CHKSUM_KW: ''}
+                       kw.REG_CHKSUM_KW: '', kw.ALL_KW: '',
+                       kw.VERIFY_CHKSUM_KW: ''}
         else:
-            options = {kw.REG_CHKSUM_KW: ''}
+            options = {kw.REG_CHKSUM_KW: '', kw.ALL_KW: '', 
+                       kw.VERIFY_CHKSUM_KW: ''}
+
+        if diffs == []:
+            if os.path.isfile(source):
+                (diff, onlyFS, onlyIrods, same) = self.diffObjFile(
+                                                  destination.path+'/'+os.path.basename(source), 
+                                                  source, scope="checksum")
+            elif os.path.isdir(source):
+                print("calculate diffs")
+                subcoll = self.session.collections.create(
+                          destination.path+'/'+os.path.basename(source))
+                (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(subcoll, source)
+            else:
+                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+        else:
+            (diff, onlyFS, onlyIrods, same) = diffs
 
         if not force:
             try:
@@ -303,29 +322,42 @@ class irodsConnector():
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
                 raise error
-        try: 
-            if source.endswith(os.sep):
-                source = source[:len(source)-1]
-            if os.path.isfile(source):
-                print("CREATE", destination.path+"/"+os.path.basename(source))
-                self.session.collections.create(destination.path)
-                self.session.data_objects.put(source, 
-                    destination.path+"/"+os.path.basename(source), **options)
-            elif os.path.isdir(source):
-                iPath = destination.path+'/'+os.path.basename(source)
-                for directory, _, files in os.walk(source):
-                    subColl = directory.split(source)[1].replace(os.sep, '/')
-                    iColl = iPath+subColl
-                    self.session.collections.create(iColl)
-                    for fname in files:
-                        print("CREATE", iColl+'/'+fname)
-                        self.session.data_objects.put(directory+'/'+fname, 
-                            iColl+'/'+fname, **options)
-            else:
-                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+
+        if os.path.isfile(source) and len(diff+onlyFS) > 0:
+            try:
+                print("CREATE FILE", destination.path+"/"+os.path.basename(source))
+                self.session.data_objects.put(
+                        source, destination.path+"/"+os.path.basename(source), **options)
+                return
+            except IsADirectoryError:
+                print("UPLOAD ERROR: There exists a collection of same name as "+source)
+                raise
+            
+        try: #collections/folders
+            for d in diff:
+                #upload files to distinct data objects
+                destColl = self.session.collections.create(os.path.dirname(d[0]))
+                sourceFile = d[1]
+                print("REPLACE: "+sourceFile+": "+destColl.path+'/'+os.path.basename(sourceFile))
+                self.session.data_objects.put(
+                    sourceFile, destColl.path+'/'+os.path.basename(sourceFile), **options)
+
+            for o in onlyFS: #can contain files and folders
+                #Create subcollections and upload
+                sourcePath = os.path.join(source, o)
+                if len(o.split('/')) > 1:
+                    subColl = self.session.collections.create(
+                                destination.path+'/'+os.path.basename(source)+'/'+os.path.dirname(o))
+                else:
+                    subColl = self.session.collections.create(
+                            destination.path+'/'+os.path.basename(source))
+                print("UPLOAD: "+sourcePath+" to "+subColl.path)
+                print("CREATE", subColl.path+"/"+os.path.basename(sourcePath))
+                self.session.data_objects.put(
+                    sourcePath, subColl.path+"/"+os.path.basename(sourcePath), **options)
         except:
             raise
-    
+ 
 
     def downloadData(self, source, destination, size, buff = 1024**3, force = False):
         '''
@@ -394,17 +426,16 @@ class irodsConnector():
         Compares and iRODS object to a file system file.
         returns ([diff], [onlyIrods], [onlyFs], [same])
         """
-
         if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
         if self.session.collections.exists(objPath):
-            raise IsADirectoryError("IRODS FS DIFF: object is a collection.")
+            raise IsADirectoryError("IRODS FS DIFF: object exists already as collection. "+objPath)
 
         if not os.path.isfile(fsPath) and self.session.data_objects.exists(objPath):
-            return ([], [objPath], [], [])
+            return ([], [], [objPath], [])
 
         elif not self.session.data_objects.exists(objPath) and os.path.isfile(fsPath):
-            return ([], [], [fsPath], [])
+            return ([], [fsPath], [], [])
 
         #both, file and object exist
         obj = self.session.data_objects.get(objPath)
@@ -412,9 +443,9 @@ class irodsConnector():
             objSize = obj.size
             fSize = os.path.getsize(fsPath)
             if objSize != fSize:
-                return ([objPath, fsPath], [], [], [])
+                return ([(objPath, fsPath)], [], [], [])
             else:
-                return ([], [], [], [objPath, fsPath])
+                return ([], [], [], [(objPath, fsPath)])
         elif scope == "checksum":
             objCheck = obj.checksum
             if objCheck == None:
@@ -422,13 +453,23 @@ class irodsConnector():
                 objCheck = obj.checksum
             if objCheck.startswith("sha2"):
                 sha2Obj = b64decode(objCheck.split('sha2:')[1])
-                with open(fsPath) as f:
+                with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
+                print(sha2Obj != sha2)
                 if sha2Obj != sha2:
-                    return([objPath, fsPath], [], [], [])
+                    return([(objPath, fsPath)], [], [], [])
                 else:
-                    return ([], [], [], [objPath, fsPath])
+                    return ([], [], [], [(objPath, fsPath)])
+            elif objCheck:
+                #md5
+                with open(fsPath, "rb") as f:
+                    stream = f.read()
+                    md5 = hashlib.md5(stream).hexdigest();
+                if objCheck != md5:
+                    return([(objPath, fsPath)], [], [], [])
+                else:
+                    return ([], [], [], [(objPath, fsPath)])
 
 
     def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
@@ -443,8 +484,6 @@ class irodsConnector():
             raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
         if not os.path.isdir(dirPath):
             raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
-        if not self.session.collections.exists(coll.path):
-            raise CollectionDoesNotExist("IRODS FS DIFF: collection path unknwn")
 
         listDir = []
         for root, dirs, files in os.walk(dirPath, topdown=False):

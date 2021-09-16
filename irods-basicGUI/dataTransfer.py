@@ -84,34 +84,10 @@ class dataTransfer(QDialog):
             self.statusLbl.setText("Nothing to update.")
             self.loading_movie.stop()
             self.loadingLbl.setHidden(True)
-        elif len(self.diff) > 0 and len(self.addFiles) == 0:
-            if self.upload:
-                for d in self.diff:
-                    osPath = d[1]
-                    irodsPath = d[0]
-                    coll = self.ic.session.collections.get(os.path.dirname(irodsPath))
-                    self.ic.uploadData(osPath, coll, self.resource, total_size)
-            else:
-                for d in self.diff:
-                    osPath = d[1]
-                    irodsPath = d[0]
-                    if self.ic.session.collections.exists(irodsPath):
-                        item = self.ic.collections.get(irodsPath)
-                    else:
-                        item = self.ic.session.data_objects.get(irodsPath)
-                    self.ic.downloadData(item, os.path.dirname(osPath), total_size)
-
-            self.statusLbl.setText("Update complete.")
-            self.loading_movie.stop()
-            self.loadingLbl.setHidden(True)
-            self.confirmBtn.disconnect() # remove callback
-            self.confirmBtn.setText("Close")
-            self.confirmBtn.clicked.connect(self.closeAfterUpDownl)
-
-        elif len(self.addFiles) > 0:
+        else:
             self.worker = UpDownload(self.ic, self.upload, 
                                      self.localFsPath, self.coll, 
-                                     total_size, self.resource)
+                                     total_size, self.resource, self.diff, self.addFiles)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.thread.quit)
@@ -186,17 +162,16 @@ class getDataState(QObject):
         diff, onlyFS, onlyIrods, same = [], [], [], []
         try:
             if self.upload == True:
-            #data is placed inside of coll, check is dir or file is inside
+            #data is placed inside of coll, check if dir or file is inside
                 subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
-                if self.ic.session.collections.exists(subItemPath):
-                    subColl = self.ic.session.collections.get(subItemPath)
+                if os.path.isdir(self.localFsPath):
+                    subColl = self.ic.session.collections.create(subItemPath)
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   subColl, self.localFsPath, scope="checksum")
-                elif self.ic.session.data_objects.exists(subItemPath):
+                elif os.path.isfile(self.localFsPath):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
-                                                  subItemPath, self.localFsPath, scope="checksum")
-                else:
-                    onlyFS = [self.localFsPath]
+                                                        subItemPath, 
+                                                        self.localFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyFS), len(diff))
             else:
                 #data is placed inside fsDir, check if obj or coll is inside
@@ -229,7 +204,7 @@ class getDataState(QObject):
 # Background worker for the up/download
 class UpDownload(QObject):
     finished = pyqtSignal(bool, str)
-    def __init__(self, ic, upload, localFS, Coll, totalSize, resource = None):
+    def __init__(self, ic, upload, localFS, Coll, totalSize, resource, diff, addFiles):
         super(UpDownload, self).__init__()
         self.ic = ic
         self.upload = upload
@@ -237,12 +212,16 @@ class UpDownload(QObject):
         self.Coll = Coll
         self.totalSize = totalSize
         self.resource = resource
+        self.diff = diff
+        self.addFiles = addFiles
 
     def run(self):    
         try:
             if self.upload:
+                diffs = (self.diff, self.addFiles, [], [])
                 self.ic.uploadData(self.localFS, self.Coll, 
-                                   self.resource, self.totalSize, buff = 1024**3)
+                                   self.resource, self.totalSize, buff = 1024**3, 
+                                   force = False, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
                 self.ic.downloadData(self.Coll, self.localFS, self.totalSize)

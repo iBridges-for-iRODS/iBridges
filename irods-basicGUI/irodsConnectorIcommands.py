@@ -265,13 +265,15 @@ class irodsConnectorIcommands():
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
 
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, force = False):
+    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
+                    force = False, diffs = []):
         """
         source: absolute path to file or folder
         destination: iRODS collection where data is uploaded to
         resource: name of the iRODS storage resource to use
         size: size of data to be uploaded in bytes
         buf: buffer on resource that should be left over
+        diffs: Leave empty, placeholder to be in sync with irodsConnector class function
 
         The function uploads the contents of a folder with all subfolders to 
         an iRODS collection.
@@ -317,7 +319,7 @@ class irodsConnectorIcommands():
         out, err = p.communicate()
 
 
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False):
+    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs = []):
         '''
         Download object or collection.
         source: iRODS collection or data object
@@ -378,9 +380,9 @@ class irodsConnectorIcommands():
             objSize = obj.size
             fSize = os.path.getsize(fsPath)
             if objSize != fSize:
-                return ([objPath, fsPath], [], [], [])
+                return ([(objPath, fsPath)], [], [], [])
             else:
-                return ([], [], [], [objPath, fsPath])
+                return ([], [], [], [(objPath, fsPath)])
         elif scope == "checksum":
             objCheck = obj.checksum
             if objCheck == None:
@@ -392,10 +394,18 @@ class irodsConnectorIcommands():
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
                 if sha2Obj != sha2:
-                    return([objPath, fsPath], [], [], [])
+                    return([(objPath, fsPath)], [], [], [])
                 else:
-                    return ([], [], [], [objPath, fsPath])
-
+                    return ([], [], [], [(objPath, fsPath)])
+            elif objCheck:
+                #md5
+                with open(fsPath) as f:
+                    stream = f.read()
+                    md5 = hashlib.md5(stream).hexdigest();
+                if objCheck != md5:
+                    return([(objPath, fsPath)], [], [], [])
+                else:
+                    return ([], [], [], [(objPath, fsPath)])
 
     def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
         '''
