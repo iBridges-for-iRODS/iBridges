@@ -3,6 +3,8 @@ from popupWidgets import irodsIndexPopup
 
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.uic import loadUi
+from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal
+from PyQt5 import QtGui, QtCore
 
 from os import path, getcwd
 import json
@@ -47,6 +49,7 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
+        self.thread = QThread()
 
 
     def infoPopup(self, message):
@@ -82,11 +85,21 @@ class irodsDataCompression():
             index = self.widget.resourceBox.findText(self.ienv["default_resource_name"])
             button.setCurrentIndex(index)
 
+    def enableButtons(self, enable):
+        self.widget.compressRescButton.setEnabled(enable)
+        self.widget.decompressRescButton.setEnabled(enable)
+        #Create/Unpack/Index buttons
+        self.widget.createButton.setEnabled(enable)
+        self.widget.unpackButton.setEnabled(enable)
+        self.widget.indexButton.setEnabled(enable)
+
 
     def createDataBundle(self):
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.enableButtons(False)
+
         self.widget.createStatusLabel.clear()
         ruleFile = path.join(getcwd(),'rules/tarCollection.r')
-
         idx, source = self.collectionTreeModel.get_checked()
 
         if not self.ic.session.collections.exists(source):
@@ -108,19 +121,35 @@ class irodsDataCompression():
                 '*compress': '"'+str(compress).lower()+'"',
                 '*delete': '"'+str(remove).lower()+'"'
                 }
+
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
-        stdout, stderr = self.ic.executeRule(ruleFile, params)
-        if stderr == []:
+        self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "create")
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.dataCreateExtractFinished)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
+
+
+    def dataCreateExtractFinished(self, success, message, operation):
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        idx, source = self.collectionTreeModel.get_checked()
+        self.enableButtons(True)
+        if success and operation == "create":
+            stdout, stderr = message
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
             parentIdx = self.collectionTreeModel.getParentIdx(idx)
             self.collectionTreeModel.refreshSubTree(parentIdx)
-            #self.compressionTreeModel.refreshSubTree(parentIdx)
+            migrateResc = self.widget.compressRescButton.currentText()
             if migrateResc != self.ic.defaultResc:
-                obj = self.ic.session.data_objects.get(stdout[0])
-                self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout) +\
-                                                      "\n Migrate data bundle.")
-                self.ic.updateMetadata([obj], 'RESOURCE', 'archive')
-        else:
+                if self.ic.session.data_objects.exists(stdout[0]):
+                    item = self.ic.session.data_objects.get(stdout[0])
+                    self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout) +\
+                                                          "\n Migrate data bundle.")
+                    self.ic.updateMetadata([item], 'RESOURCE', 'archive')
+        elif not success and operation == "create":
             self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 
 
@@ -151,4 +180,21 @@ class irodsDataCompression():
         self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
         indexPopup = irodsIndexPopup(stdout[1:], source, self.widget.unpackStatusLabel)
         indexPopup.exec_()
+
+
+class dataBundleCreateExtract(QObject):
+    finished = pyqtSignal(bool, list, str)
+    def __init__(self, ic, ruleFile, params, operation):
+        super(dataBundleCreateExtract, self).__init__()
+        self.ruleFile = ruleFile
+        self.params = params
+        self.ic = ic
+        self.operation = operation
+
+    def run(self):
+        stdout, stderr = self.ic.executeRule(self.ruleFile, self.params)
+        if stderr != []:
+            self.finished.emit(False, [stdout, stderr], self.operation)
+        else:
+            self.finished.emit(True, [stdout, stderr], self.operation)
 

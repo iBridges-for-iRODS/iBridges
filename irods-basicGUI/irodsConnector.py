@@ -3,6 +3,7 @@ from irods.access import iRODSAccess
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
 from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
 from irods.exception import CollectionDoesNotExist
+from irods.connection import PlainTextPAMPasswordError
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.models import User, UserGroup
 from irods.column import Like, Between, In
@@ -14,6 +15,7 @@ import os
 from base64 import b64decode
 from shutil import disk_usage
 import hashlib
+import ssl
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -48,6 +50,18 @@ class irodsConnector():
                 self.session = iRODSSession(irods_env_file=envFile)
             else:
                 self.session = iRODSSession(**ienv, password=password)
+                coll = self.session.collections.get("/"+self.session.zone+"/home")
+        except PlainTextPAMPasswordError:
+            ssl_context = ssl.create_default_context(
+                    purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None)
+            ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
+                            'client_server_policy': 'CS_NEG_REQUIRE',
+                            'encryption_algorithm': 'AES-256-CBC',
+                            'encryption_key_size': 32,
+                            'encryption_num_hash_rounds': 16,
+                            'encryption_salt_size': 8,
+                            'ssl_context': ssl_context}
+            self.session = iRODSSession(**ienv, password=password, **ssl_settings)
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
             raise
