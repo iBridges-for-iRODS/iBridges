@@ -33,9 +33,12 @@ class irodsDataCompression():
 
         #irodsCollectionTree
         self.collectionTreeModel = self.setupFsTree(self.widget.irodsCollectionTree)
+        self.widget.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refreshSubTree)
+        #self.widget.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refreshSubTree)
         #irodsCompressionTree
         self.compressionTreeModel = self.setupFsTree(self.widget.irodsCompressionTree)
-
+        self.widget.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refreshSubTree)
+        #self.widget.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refreshSubTree)
         #resource buttons
         self.setupResourceButton(self.widget.compressRescButton)
         self.setupResourceButton(self.widget.decompressRescButton)
@@ -106,12 +109,12 @@ class irodsDataCompression():
                 '*delete': '"'+str(remove).lower()+'"'
                 }
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
-        self.collectionTreeModel.uncheckTree()
         stdout, stderr = self.ic.executeRule(ruleFile, params)
         if stderr == []:
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
             parentIdx = self.collectionTreeModel.getParentIdx(idx)
             self.collectionTreeModel.refreshSubTree(parentIdx)
+            #self.compressionTreeModel.refreshSubTree(parentIdx)
             if migrateResc != self.ic.defaultResc:
                 obj = self.ic.session.data_objects.get(stdout[0])
                 self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout) +\

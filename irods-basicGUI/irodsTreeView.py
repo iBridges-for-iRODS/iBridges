@@ -42,11 +42,6 @@ class IrodsModel(QStandardItemModel):
         return super(IrodsModel, self).data(index, role)
 
 
-    def uncheckTree(self, role=Qt.DisplayRole):
-        for index in self._checked_indeces:
-            return Qt.Unchecked
-
-
     def flags(self, index):
         return super(IrodsModel, self).flags(index) | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate
 
@@ -241,6 +236,7 @@ class IrodsModel(QStandardItemModel):
         return parent.index()
 
     def refreshSubTree(self, position):
+        
         try: #index when right mouse click
             modelIndex = self.tree.indexAt(position)
             if not modelIndex.isValid():
@@ -251,7 +247,7 @@ class IrodsModel(QStandardItemModel):
         treeItem = self.itemFromIndex(modelIndex)
         parent = treeItem.parent()
         if parent == None:
-            return
+            parent = self.invisibleRootItem()
 
         row = treeItem.row()
 
