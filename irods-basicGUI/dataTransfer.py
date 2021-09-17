@@ -175,15 +175,15 @@ class getDataState(QObject):
                 self.updLabels.emit(len(onlyFS), len(diff))
             else:
                 #data is placed inside fsDir, check if obj or coll is inside
-                subFsPath = self.localFsPath + os.sep + self.coll.name
-                if os.path.isdir(subFsPath):
+                subFsPath = os.path.join(self.localFsPath, self.coll.name)
+                if not os.path.isdir(subFsPath):
+                    os.mkdir(subFsPath)
+                if self.ic.session.collections.exists(self.coll.path):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, subFsPath, scope="checksum")
-                elif os.path.isfile(subFsPath):
+                elif self.ic.session.data_objects.exist(self.coll.path):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, subFsPath, scope="checksum")
-                else:
-                    onlyIrods = [self.coll.path]
                 self.updLabels.emit(len(onlyIrods), len(diff))
         except Exception as error:
             print(error)
@@ -224,7 +224,10 @@ class UpDownload(QObject):
                                    force = False, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
-                self.ic.downloadData(self.Coll, self.localFS, self.totalSize)
+                diffs = (self.diff, [], self.addFiles, [])
+                print(diffs)
+                self.ic.downloadData(self.Coll, self.localFS, 
+                                    self.totalSize, buff = 1024**3, force = False, diffs = diffs)
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
             print(error)

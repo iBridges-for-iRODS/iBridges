@@ -285,7 +285,8 @@ class irodsConnector():
         destination: iRODS collection where data is uploaded to
         resource: name of the iRODS storage resource to use
         size: size of data to be uploaded in bytes
-        buf: buffer on resource that should be left over
+        buff: buffer on resource that should be left over
+        force: If true, do not calculate storage capacity on destination
         diffs: output of diff functions
 
         The function uploads the contents of a folder with all subfolders to 
@@ -311,7 +312,6 @@ class irodsConnector():
                                                   destination.path+'/'+os.path.basename(source), 
                                                   source, scope="checksum")
             elif os.path.isdir(source):
-                print("calculate diffs")
                 subcoll = self.session.collections.create(
                           destination.path+'/'+os.path.basename(source))
                 (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(subcoll, source)
@@ -335,22 +335,21 @@ class irodsConnector():
 
         if os.path.isfile(source) and len(diff+onlyFS) > 0:
             try:
-                print("CREATE FILE", destination.path+"/"+os.path.basename(source))
+                print("IRODS UPLOADING FILE", destination.path+"/"+os.path.basename(source))
                 self.session.data_objects.put(
                         source, destination.path+"/"+os.path.basename(source), **options)
                 return
             except IsADirectoryError:
-                print("UPLOAD ERROR: There exists a collection of same name as "+source)
+                print("IRODS UPLOAD ERROR: There exists a collection of same name as "+source)
                 raise
             
         try: #collections/folders
+            print("IRODS UPLOAD started:")
             for d in diff:
                 #upload files to distinct data objects
                 destColl = self.session.collections.create(os.path.dirname(d[0]))
-                sourceFile = d[1]
-                print("REPLACE: "+sourceFile+": "+destColl.path+'/'+os.path.basename(sourceFile))
-                self.session.data_objects.put(
-                    sourceFile, destColl.path+'/'+os.path.basename(sourceFile), **options)
+                print("REPLACE: "+d[0]+" with "+d[1])
+                self.session.data_objects.put(d[1], d[0], **options)
 
             for o in onlyFS: #can contain files and folders
                 #Create subcollections and upload
@@ -369,26 +368,46 @@ class irodsConnector():
             raise
  
 
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False):
+    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs=[]):
         '''
         Download object or collection.
         source: iRODS collection or data object
         destination: absolute path to download folder
         size: size of data to be downloaded in bytes
-        buf: buffer on the filesystem that should be left over
+        buff: buffer on resource that should be left over
+        force: If true, do not calculate storage capacity on destination
+        diffs: output of diff functions
         '''
         
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
-        
+
         if destination.endswith(os.sep):
             destination = destination[:len(destination)-1]
-
-        if not os.access(destination, os.W_OK):
-            raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
         if not os.path.isdir(destination):
-            raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
+            raise FileNotFoundError(
+                "ERROR iRODS download: destination path does not exist or is not directory")
+        if not os.access(destination, os.W_OK):
+            raise PermissionError("ERROR iRODS download: No rights to write to destination.")
 
-        if not force:
+        if diffs == []:#Only download if not present or difference in files
+            if self.session.data_objects.exists(source.path):
+                (diff, onlyFS, onlyIrods, same) = self.diffObjFile(source.path,
+                                                    os.path.join(
+                                                    destination, os.path.basename(source.path)),
+                                                    scope="checksum")
+            elif self.session.collections.exists(source.path):
+                subdir = os.path.join(destination, source.name)
+                if not os.path.isdir(os.path.join(destination, source.name)):
+                    os.mkdir(os.path.join(destination, source.name))
+
+                (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(
+                                                    source, subdir, scope="checksum")
+            else:
+                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+        else:
+            (diff, onlyFS, onlyIrods, same) = diffs
+
+        if not force:#Check space on destination
             try:
                 space = disk_usage(destination).free
                 if int(size) > (int(space)-buff):
@@ -398,37 +417,33 @@ class irodsConnector():
             except Exception as error:
                 raise error()
 
-        if self.session.data_objects.exists(source.path):
+        if self.session.data_objects.exists(source.path) and len(diff+onlyIrods) > 0:
             try:
-                print("INFO Downloading:", source.path, "to \n\t", destination)
+                print("IRODS DOWNLOADING object:", source.path, "to \n\t", destination)
                 self.session.data_objects.get(source.path, 
                             local_path=os.path.join(destination, source.name), **options)
+                return
             except:
                 raise
 
-        elif self.session.collections.exists(source.path):
-            walk = [source]
-            while walk:
-                try:
-                    coll = walk.pop()
-                    suffix = os.path.join(os.path.basename(source.path), 
-                                          coll.path.split(source.path)[1].strip('/'))
-                    if suffix.endswith(os.sep):
-                        suffix = suffix[:len(suffix)-1]
-                    directory = os.path.join(destination, suffix)
-                    walk.extend(coll.subcollections)
-                    if not os.path.exists(directory):
-                        os.makedirs(directory)
-                    for obj in coll.data_objects:
-                        print(DEFAULT+"INFO: Downloading "+obj.path+" to \n\t", 
-                                os.path.join(directory, obj.name))
-                        self.session.data_objects.get(obj.path, 
-                                                      local_path=os.path.join(directory, obj.name), 
-                                                      **options)
-                except:
-                    raise 
-        else:
-            raise FileNotFoundError("IRODS DOWNLOAD: not a valid source path")
+        try: #collections/folders
+            subdir = os.path.join(destination, source.name)
+            print("IRODS DOWNLOAD started:")
+            for d in diff:
+                #upload files to distinct data objects
+                print("REPLACE: "+d[1]+" with "+d[0])
+                self.session.data_objects.get(d[0], local_path=d[1], **options)
+
+            for o in onlyIrods: #can contain files and folders
+                #Create subcollections and upload
+                sourcePath = os.path.join(source.path, o)
+                destPath = os.path.join(subdir, o)
+                if not os.path.isdir(os.path.dirname(destPath)):
+                    os.makedirs(os.path.dirname(destPath))
+                print(DEFAULT+"INFO: Downloading "+sourcePath+" to "+destPath)
+                self.session.data_objects.get(sourcePath, local_path=destPath, **options)
+        except:
+            raise
 
 
     def diffObjFile(self, objPath, fsPath, scope="size"):

@@ -58,6 +58,7 @@ class irodsConnectorIcommands():
             p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             outLogin, errLogin = p.communicate(input=(password+"\n").encode())
             if errLogin != b'':
+                print("Login failed.")
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
         else:
@@ -65,14 +66,14 @@ class irodsConnectorIcommands():
             p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
             if err != b'':
-                print("Logging in")
+                print("Cached password wrong. Logging in with password.")
                 p = Popen(
                         ['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
                 outLogin, errLogin = p.communicate(input=(password+"\n").encode())
                 if errLogin != b'':
+                    print("Login failed")
                     raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
-                    
         try:
             colls = self.session.collections.get("/"+self.session.zone+"/home").subcollections
         except CollectionDoesNotExist:
