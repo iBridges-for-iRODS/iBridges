@@ -50,15 +50,29 @@ class irodsConnectorIcommands():
             raise 
 
         if not envFileExists:
+            print(envFile)
             raise FileNotFoundError('Environment file not found: '+ envFile)
 
-        else:
-            p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
-            out, err = p.communicate(input=(password+"\n").encode())
-            if err != b'':
+        if not os.path.exists(os.path.expanduser('~/.irods/.irodsA')):
+            print("No password cached, logging in with password:")
+            p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+            outLogin, errLogin = p.communicate(input=(password+"\n").encode())
+            if errLogin != b'':
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
-
+        else:
+            print("Password cached, trying ils:")
+            p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+            out, err = p.communicate()
+            if err != b'':
+                print("Logging in")
+                p = Popen(
+                        ['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+                outLogin, errLogin = p.communicate(input=(password+"\n").encode())
+                if errLogin != b'':
+                    raise ConnectionRefusedError('Wrong iRODS password provided.')
+            self.session = iRODSSession(irods_env_file=envFile)
+                    
         try:
             colls = self.session.collections.get("/"+self.session.zone+"/home").subcollections
         except CollectionDoesNotExist:
@@ -76,7 +90,7 @@ class irodsConnectorIcommands():
         else:
             self.defaultResc = "demoResc"
         if "davrods_server" in ienv:
-            self.davrods = ienv["davrods_server"]
+            self.davrods = ienv["davrods_server"].strip('/')
         else:
             self.davrods = None
 

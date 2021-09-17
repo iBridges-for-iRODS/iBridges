@@ -1,7 +1,7 @@
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
-from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
+from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION
 from irods.exception import CollectionDoesNotExist
 from irods.connection import PlainTextPAMPasswordError
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
@@ -46,11 +46,15 @@ class irodsConnector():
         try:
             with open(envFile) as f:
                 ienv = json.load(f)
-            if password == "": # requires a valid .irods/.irodsA (linux/mac only)
-                self.session = iRODSSession(irods_env_file=envFile)
+            if password == "": 
+                # requires a valid .irods/.irodsA (linux/mac only)
+                #self.session = iRODSSession(irods_env_file=envFile)
+                raise CAT_INVALID_AUTHENTICATION("No password provided.")
+
             else:
                 self.session = iRODSSession(**ienv, password=password)
-                coll = self.session.collections.get("/"+self.session.zone+"/home")
+                testcoll = self.session.collections.get(
+                        "/"+self.session.zone+"/home")
         except PlainTextPAMPasswordError:
             ssl_context = ssl.create_default_context(
                     purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None)
@@ -61,19 +65,25 @@ class irodsConnector():
                             'encryption_num_hash_rounds': 16,
                             'encryption_salt_size': 8,
                             'ssl_context': ssl_context}
-            self.session = iRODSSession(**ienv, password=password, **ssl_settings)
+            self.session = iRODSSession(
+                                **ienv, password=password, **ssl_settings)
+        except CollectionDoesNotExist:
+            pass
         except Exception as error:
             print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
             raise
 
         try:
-            colls = self.session.collections.get("/"+self.session.zone+"/home").subcollections
+            colls = self.session.collections.get(
+                    "/"+self.session.zone+"/home").subcollections
         except CollectionDoesNotExist:
             colls = self.session.collections.get(
                     "/"+self.session.zone+"/home/"+self.session.username).subcollections
         except:
+            print(RED+"IRODS ERROR LOADING COLLECTION HOME/USER: "+DEFAULT)
             raise
 
+        
         collnames = [c.path for c in colls]
 
 
@@ -83,7 +93,7 @@ class irodsConnector():
             self.defaultResc = "demoResc"
 
         if "davrods_server" in ienv:
-            self.davrods = ienv["davrods_server"]
+            self.davrods = ienv["davrods_server"].strip('/')
         else:
             self.davrods = None
 

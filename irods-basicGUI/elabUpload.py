@@ -265,14 +265,18 @@ class Worker(QObject):
     def annotateElab(self):
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         if self.ic.davrods and "yoda" in self.ic.session.host:
-            self.elab.addMetadata(self.ic.davrods+self.coll.path.split('home/')[1],
-                    title='Data in iRODS')
-        elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
             self.elab.addMetadata(
-                self.ic.davrods+self.coll.path.split(self.ic.session.zone)[1], 
+                self.ic.davrods+'/'+self.coll.path.split('home/')[1].strip(),
                 title='Data in iRODS')
+        elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
+                self.elab.addMetadata(
+                    self.ic.davrods+'/'+self.coll.path.split(
+                        self.ic.session.zone)[1].strip('/'), 
+                    title='Data in iRODS')
         elif self.ic.davrods:
-            self.elab.addMetadata(self.ic.davrods+'/'+self.coll.path, title='Data in iRODS')
+            self.elab.addMetadata(
+                    self.ic.davrods+'/'+self.coll.path.strip('/'), 
+                    title='Data in iRODS')
         else:
             self.elab.addMetadata('{'+self.ic.session.host+', \n'\
                                     +self.ic.session.zone+', \n'\

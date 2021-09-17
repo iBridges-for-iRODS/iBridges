@@ -87,7 +87,8 @@ class mainmenu(QMainWindow):
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
-            #self.loadTable()
+            currentWidget = self.widget.currentWidget()
+            currentWidget.init_envbox()
         else:
             pass
 
