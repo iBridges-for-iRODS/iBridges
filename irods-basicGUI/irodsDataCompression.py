@@ -22,7 +22,8 @@ class irodsDataCompression():
             return
 
         ruleFiles = [path.join(getcwd(),'rules/tarCollection.r'), 
-                     path.join(getcwd(),'rules/tarReadIndex.r')]
+                     path.join(getcwd(),'rules/tarReadIndex.r'), 
+                     path.join(getcwd(),'rules/tarExtract.r')]
         for rule in ruleFiles:
             if not path.isfile(rule):
                 self.infoPopup('ERROR rules not configured:\n'+rule\
@@ -104,12 +105,14 @@ class irodsDataCompression():
 
         if not self.ic.session.collections.exists(source):
             self.widget.createStatusLabel.setText("ERROR: No collection selected.")
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
         #data bundling only allowed for collections in home/user
         if len(source.split('/')) < 5:
             self.widget.createStatusLabel.setText(
                     "ERROR: Selected collection is not a user collection.")
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
         compress = self.widget.compressCheckBox.isChecked()
@@ -135,30 +138,60 @@ class irodsDataCompression():
 
     def dataCreateExtractFinished(self, success, message, operation):
         self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        idx, source = self.collectionTreeModel.get_checked()
         self.enableButtons(True)
         if success and operation == "create":
+            idx, source = self.collectionTreeModel.get_checked()
             stdout, stderr = message
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
             parentIdx = self.collectionTreeModel.getParentIdx(idx)
             self.collectionTreeModel.refreshSubTree(parentIdx)
-            migrateResc = self.widget.compressRescButton.currentText()
-            if migrateResc != self.ic.defaultResc:
-                if self.ic.session.data_objects.exists(stdout[0]):
-                    item = self.ic.session.data_objects.get(stdout[0])
-                    self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout) +\
-                                                          "\n Migrate data bundle.")
-                    self.ic.updateMetadata([item], 'RESOURCE', 'archive')
         elif not success and operation == "create":
             self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
+        elif success and operation == "extract":
+            idx, source = self.compressionTreeModel.get_checked()
+            stdout, stderr = message
+            self.widget.unpackStatusLabel.setText("STATUS: Extracted " + str(stdout))
+            parentIdx = self.compressionTreeModel.getParentIdx(idx)
+            self.compressionTreeModel.refreshSubTree(parentIdx)
+        elif not success and operation == "extract":
+            self.widget.unpackStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 
 
     def unpackDataBundle(self):
-        idx, source = self.collectionTreeModel.get_checked()
-        if not source.endswith(".irods.tar") or source.endswith(".irods.tar"):
-            self.widget.unpack.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        idx, source = self.compressionTreeModel.get_checked()
+        if not source.endswith(".irods.tar") and not source.endswith(".irods.zip"):
+            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            return
+        extractPath = path.dirname(source)+'/'+path.basename(source).split('.irods')[0]
+        if self.ic.session.collections.exists(extractPath):
+            extractColl = self.ic.session.collections.get(extractPath)
+            if extractColl.subcollections != [] or extractColl.data_objects != []:
+                self.widget.unpackStatusLabel.setText("ERROR: Destination not empty: "+extractPath)
+                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                return
 
-        print("TODO")
+        self.enableButtons(False)
+
+        self.widget.unpackStatusLabel.clear()
+        ruleFile = path.join(getcwd(),'rules/tarExtract.r')
+
+        migrateResc = self.widget.decompressRescButton.currentText()
+        params = {
+                '*obj': '"'+source+'"',
+                '*resource': '"'+self.ic.defaultResc+'"',
+                }
+
+        self.widget.unpackStatusLabel.setText("STATUS: extracting "+source)
+        self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "extract")
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.dataCreateExtractFinished)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.thread.start()
 
 
     def getIndex(self):

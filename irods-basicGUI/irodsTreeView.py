@@ -231,6 +231,7 @@ class IrodsModel(QStandardItemModel):
             modelIndex = position
 
         treeItem = self.itemFromIndex(modelIndex)
+
         parent = treeItem.parent()
         
         return parent.index()

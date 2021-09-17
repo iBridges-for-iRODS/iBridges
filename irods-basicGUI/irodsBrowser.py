@@ -287,7 +287,7 @@ class irodsBrowser():
 
     def loadSelection(self):
         #loads selection from main table into delete tab
-        self.widget.loadDeleteSelectionButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.widget.deleteSelectionBrowser.clear()
         parent = self.widget.inputPath.text()
         row = self.widget.collTable.currentRow()
@@ -308,18 +308,19 @@ class irodsBrowser():
                     for item in irodsDict[key]:
                         self.widget.deleteSelectionBrowser.append('\t'+item)
             self.widget.deleteSelectionBrowser.append('...')
-        self.widget.loadDeleteSelectionButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
     def deleteData(self):
         #Deletes all data in the deleteSelectionBrowser
         data = self.widget.deleteSelectionBrowser.toPlainText().split('\n')
-        self.widget.dataDeleteButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
             reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
+                #reply.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+                #reply.widget.errorLabel.setText("Deleting data ...")
                 if self.ic.session.collections.exists(deleteItem):
                     item = self.ic.session.collections.get(deleteItem)
                 else:
@@ -327,7 +328,7 @@ class irodsBrowser():
                 self.ic.deleteData(item)
             self.widget.deleteSelectionBrowser.clear()
             self.loadTable()
-            self.widget.dataDeleteButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.errorLabel.clear()
 
     def createCollection(self):
         parent = "/"+self.widget.inputPath.text().strip("/")

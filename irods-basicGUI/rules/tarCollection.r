@@ -54,12 +54,13 @@ tarCollection{
         }
         else {*tarFile = "*parentColl/*collName.irods.tar"}
         writeLine("stdout", "*tarFile");
-        msiArchiveCreate(*tarFile, *coll);
-        if(bool(*delete)){
+        msiArchiveCreate(*tarFile, *coll, *resource, *outTar);
+        if(bool(*delete) && *outTar == 0){
             writeLine("stdout", "DEBUG tarCollection: Delete *coll")
 	    msiRmColl(*coll, "forceFlag=", *out);
             #writeLine("stdout", *out);
         }
+	if(*out!=0){writeLine("stderr", "Tar failed.")}
     }
     else{writeLine("stdout", "DEBUG tarCollection: no action.")}
 }
