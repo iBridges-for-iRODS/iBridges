@@ -57,9 +57,13 @@ def getDownloadDir():
 
 
 def saveIenv(ienv):
-    envFile = ienv["ui_ienvFilePath"]
+    if "ui_ienvFilePath" in ienv:
+        envFile = ienv["ui_ienvFilePath"]
+    else:
+        envFile = os.path.join(os.path.expanduser("~"), ".irods"+os.sep+"irods_environment.json")
+        ienv["ui_ienvFilePath"] = envFile
     with open(envFile, 'w') as f:
-        dump(ienv, f)
+        dump(ienv, f, indent=4)
 
 
 # needed to get the workdir for executable & normal operation
