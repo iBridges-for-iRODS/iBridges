@@ -181,7 +181,7 @@ class getDataState(QObject):
                 if self.ic.session.collections.exists(self.coll.path):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, subFsPath, scope="checksum")
-                elif self.ic.session.data_objects.exist(self.coll.path):
+                elif self.ic.session.data_objects.exists(self.coll.path):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, subFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
