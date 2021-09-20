@@ -50,8 +50,7 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
-        #self.thread = QThread()
-
+        
 
     def infoPopup(self, message):
         QMessageBox.information(self.widget, 'Information', message)
@@ -125,16 +124,16 @@ class irodsDataCompression():
                 '*delete': '"'+str(remove).lower()+'"'
                 }
 
-        self.thread = QThread()
+        self.threadCreate = QThread()
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "create")
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
+        self.worker.moveToThread(self.threadCreate)
+        self.threadCreate.started.connect(self.worker.run)
+        self.worker.finished.connect(self.threadCreate.quit)
         self.worker.finished.connect(self.dataCreateExtractFinished)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        self.threadCreate.finished.connect(self.threadCreate.deleteLater)
+        self.threadCreate.start()
 
 
     def dataCreateExtractFinished(self, success, message, operation):
@@ -184,16 +183,16 @@ class irodsDataCompression():
                 '*resource': '"'+self.ic.defaultResc+'"',
                 }
 
-        self.thread = QThread()
+        self.threadExtract = QThread()
         self.widget.unpackStatusLabel.setText("STATUS: extracting "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "extract")
-        self.worker.moveToThread(self.thread)
-        self.thread.started.connect(self.worker.run)
-        self.worker.finished.connect(self.thread.quit)
+        self.worker.moveToThread(self.threadExtract)
+        self.threadExtract.started.connect(self.worker.run)
+        self.worker.finished.connect(self.threadExtract.quit)
         self.worker.finished.connect(self.dataCreateExtractFinished)
         self.worker.finished.connect(self.worker.deleteLater)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        self.threadExtract.finished.connect(self.threadExtract.deleteLater)
+        self.threadExtract.start()
 
 
     def getIndex(self):
