@@ -50,7 +50,7 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
-        self.thread = QThread()
+        #self.thread = QThread()
 
 
     def infoPopup(self, message):
@@ -125,6 +125,7 @@ class irodsDataCompression():
                 '*delete': '"'+str(remove).lower()+'"'
                 }
 
+        self.thread = QThread()
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "create")
         self.worker.moveToThread(self.thread)
@@ -183,6 +184,7 @@ class irodsDataCompression():
                 '*resource': '"'+self.ic.defaultResc+'"',
                 }
 
+        self.thread = QThread()
         self.widget.unpackStatusLabel.setText("STATUS: extracting "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "extract")
         self.worker.moveToThread(self.thread)

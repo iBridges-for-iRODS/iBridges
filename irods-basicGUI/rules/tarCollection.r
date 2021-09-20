@@ -60,7 +60,7 @@ tarCollection{
 	    msiRmColl(*coll, "forceFlag=", *out);
             #writeLine("stdout", *out);
         }
-	if(*out!=0){writeLine("stderr", "Tar failed.")}
+	if(*outTar!=0){writeLine("stderr", "Tar failed.")}
     }
     else{writeLine("stdout", "DEBUG tarCollection: no action.")}
 }

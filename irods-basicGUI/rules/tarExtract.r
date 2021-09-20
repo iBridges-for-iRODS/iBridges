@@ -38,4 +38,3 @@ tarExtract{
 
 input *obj="/npecZone/home/cstaiger/Uploads/ACES.irods.zip", *resource="disk"
 output ruleExecOut
-
