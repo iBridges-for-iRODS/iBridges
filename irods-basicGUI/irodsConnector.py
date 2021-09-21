@@ -359,8 +359,7 @@ class irodsConnector():
             for o in onlyFS: #can contain files and folders
                 #Create subcollections and upload
                 sourcePath = os.path.join(source, o)
-                #IO = o.replace(os.sep, "/")
-                if len(o.split(os.sep)) > 1:
+                if len(o.split('/')) > 1:
                     subColl = self.session.collections.create(
                                 destination.path+'/'+os.path.basename(source)+'/'+os.path.dirname(o))
                 else:
@@ -440,11 +439,10 @@ class irodsConnector():
                 print("REPLACE: "+d[1]+" with "+d[0])
                 self.session.data_objects.get(d[0], local_path=d[1], **options)
 
-            for IO in onlyIrods: #can contain files and folders
-                # Create subfolders and download
-                sourcePath = source.path + "/" + IO
-                locO = IO.replace("/", os.sep)
-                destPath = os.path.join(subdir, locO)
+            for o in onlyIrods: #can contain files and folders
+                #Create subcollections and upload
+                sourcePath = os.path.join(source.path, o)
+                destPath = os.path.join(subdir, o)
                 if not os.path.isdir(os.path.dirname(destPath)):
                     os.makedirs(os.path.dirname(destPath))
                 print(DEFAULT+"INFO: Downloading "+sourcePath+" to "+destPath)
@@ -497,7 +495,7 @@ class irodsConnector():
                 #md5
                 with open(fsPath, "rb") as f:
                     stream = f.read()
-                    md5 = hashlib.md5(stream).hexdigest()
+                    md5 = hashlib.md5(stream).hexdigest();
                 if objCheck != md5:
                     return([(objPath, fsPath)], [], [], [])
                 else:
@@ -529,49 +527,44 @@ class irodsConnector():
 
         diff = []
         same = []
-        for locPartialPath in set(listDir).intersection(listColl):
-            iPartialPath = locPartialPath.replace(os.sep, "/")
+        for partialPath in set(listDir).intersection(listColl):
             if scope == "size":
-                objSize = self.session.data_objects.get(coll.path+'/'+iPartialPath).size
-                fSize = os.path.getsize(os.path.join(dirPath, iPartialPath))
+                objSize = self.session.data_objects.get(coll.path+'/'+partialPath).size
+                fSize = os.path.getsize(os.path.join(dirPath, partialPath))
                 if objSize != fSize:
-                    diff.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                    diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 else:
-                    same.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                    same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             elif scope == "checksum":
-                objCheck = self.session.data_objects.get(coll.path+'/'+iPartialPath).checksum
+                objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
                 if objCheck == None:
-                    self.session.data_objects.get(coll.path+'/'+iPartialPath).chksum()
-                    objCheck = self.session.data_objects.get(coll.path+'/'+iPartialPath).checksum
+                    self.session.data_objects.get(coll.path+'/'+partialPath).chksum()
+                    objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
-                    with open(os.path.join(dirPath, locPartialPath), "rb") as f:
+                    with open(os.path.join(dirPath, partialPath), "rb") as f:
                         stream = f.read()
                         sha2 = hashlib.sha256(stream).digest()
                     if sha2Obj != sha2:
-                        diff.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                        diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                     else:
-                        same.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                 elif objCheck:
                     #md5
-                    with open(os.path.join(dirPath, locPartialPath), "rb") as f:
+                    with open(os.path.join(dirPath, partialPath), "rb") as f:
                         stream = f.read()
                         md5 = hashlib.md5(stream).hexdigest();
                     if objCheck != md5:
-                        diff.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                        diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
                     else:
-                        same.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
             else: #same paths, no scope
-                diff.append((coll.path+'/'+iPartialPath, os.path.join(dirPath, locPartialPath)))
+                diff.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
 
         #adding files that are not on iRODS, only present on local FS
         #adding files that are not on local FS, only present in iRODS
         #adding files that are stored on both devices with the same checksum/size
-        irodsOnly = list(set(listColl).difference(listDir))
-        for i in range(0, len(irodsOnly)):
-            irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
-
-        return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
+        return (diff, list(set(listDir).difference(listColl)), list(set(listColl).difference(listDir)), same)
 
 
     def addMetadata(self, items, key, value, units = None):
