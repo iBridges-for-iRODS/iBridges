@@ -181,6 +181,8 @@ class irodsUpDownload():
                 print("FINISH UPLOAD/DOWNLOAD: saving ui parameters.")
                 self.saveUIset()
             self.widget.errorLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
+        else: 
+            self.widget.errorLabel.setText("")
         self.uploadWindow = None # Release
 
 
