@@ -101,7 +101,8 @@ class mainmenu(QMainWindow):
 
 
     def saveConfig(self):
-        saveIenv(self.ienv)
+        path = saveIenv(self.ienv)
+        self.globalErrorLabel.setText("Environment saved to: "+path)
 
     def exportMeta(self):
         print("TODO: Metadata export")

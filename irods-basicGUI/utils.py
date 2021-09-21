@@ -64,6 +64,7 @@ def saveIenv(ienv):
         ienv["ui_ienvFilePath"] = envFile
     with open(envFile, 'w') as f:
         dump(ienv, f, indent=4)
+    return envFile
 
 
 # needed to get the workdir for executable & normal operation
