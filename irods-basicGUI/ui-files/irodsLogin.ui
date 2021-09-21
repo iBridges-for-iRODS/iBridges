@@ -59,6 +59,9 @@ QLabel#passError, QLabel#envError, QLabel#icommandsError
       <property name="text">
        <string/>
       </property>
+      <property name="clearButtonEnabled">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
     <item row="0" column="0">
@@ -216,6 +219,9 @@ QLabel#passError, QLabel#envError, QLabel#icommandsError
    </property>
    <property name="text">
     <string>Connect</string>
+   </property>
+   <property name="autoDefault">
+    <bool>true</bool>
    </property>
    <property name="default">
     <bool>true</bool>

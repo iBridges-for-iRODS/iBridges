@@ -56,17 +56,21 @@ class irodsConnector():
                 testcoll = self.session.collections.get(
                         "/"+self.session.zone+"/home")
         except PlainTextPAMPasswordError:
-            ssl_context = ssl.create_default_context(
+            try:
+                ssl_context = ssl.create_default_context(
                     purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None)
-            ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
+                ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
                             'client_server_policy': 'CS_NEG_REQUIRE',
                             'encryption_algorithm': 'AES-256-CBC',
                             'encryption_key_size': 32,
                             'encryption_num_hash_rounds': 16,
                             'encryption_salt_size': 8,
                             'ssl_context': ssl_context}
-            self.session = iRODSSession(
+                self.session = iRODSSession(
                                 **ienv, password=password, **ssl_settings)
+            except:
+                raise
+
         except CollectionDoesNotExist:
             pass
         except Exception as error:
@@ -81,6 +85,7 @@ class irodsConnector():
                     "/"+self.session.zone+"/home/"+self.session.username).subcollections
         except:
             print(RED+"IRODS ERROR LOADING COLLECTION HOME/USER: "+DEFAULT)
+            print(RED+"Collection does not exist or user auth failed."+DEFAULT)
             raise
 
         

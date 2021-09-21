@@ -14,7 +14,7 @@ from PyQt5 import QtGui
 
 from irodsConnector import irodsConnector
 from irodsConnectorIcommands import irodsConnectorIcommands
-from irods.exception import CAT_INVALID_AUTHENTICATION
+from irods.exception import CAT_INVALID_AUTHENTICATION, PAM_AUTH_PASSWORD_FAILED
 from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
@@ -55,8 +55,8 @@ class irodsLogin(QDialog):
 
     def __resetErrorLabelsAndMouse(self):
         self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        self.passError.clear()
-        self.envError.clear()
+        self.passError.setText("")
+        self.envError.setText("")
 
 
     def setupStandard(self):
@@ -110,8 +110,7 @@ class irodsLogin(QDialog):
 
 
     def loginfunction(self):
-        self.__resetErrorLabelsAndMouse()
-        self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         cipher = self.__encryption()
         password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
         envFile = self.irodsEnvPath + os.sep + self.envbox.currentText()
@@ -125,15 +124,17 @@ class irodsLogin(QDialog):
             if not connect:
                 print("iRODS login: No network connection to server")
                 self.envError.setText("No network connection to server")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return
         except FileNotFoundError:
+            self.passError.clear()
             self.envError.setText("ERROR: iRODS environment file or certificate not found.")
-            self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as error:
             print(repr(error))
+            self.passError.clear()
             self.envError.setText("iRODS login: No network connection to server")
-            self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
              
         if connect:
@@ -153,24 +154,33 @@ class irodsLogin(QDialog):
                 self.__resetErrorLabelsAndMouse()
 
             except CAT_INVALID_AUTHENTICATION:
+                self.envError.clear()
                 self.passError.setText("ERROR: Wrong password.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            except PAM_AUTH_PASSWORD_FAILED:
+                self.envError.clear()
+                self.passError.setText("ERROR: Wrong password.")
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except ConnectionRefusedError:
+                self.envError.clear()
                 self.passError.setText("ERROR: Wrong password.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except FileNotFoundError:
+                self.passError.clear()
                 self.envError.setText("ERROR: iRODS environment file or certificate not found.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except IsADirectoryError:
+                self.passError.clear()
                 self.envError.setText("ERROR: File expected.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except NetworkException:
+                self.passError.clear()
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             except Exception as error:
                 #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
-                self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 raise
 
 
