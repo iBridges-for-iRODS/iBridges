@@ -332,6 +332,7 @@ class irodsConnectorIcommands():
         print("IRODS UPLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
+        print('IRODS UPLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
     def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs = []):
@@ -370,6 +371,7 @@ class irodsConnectorIcommands():
         print("IRODS DOWNLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
+        print('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
     def diffObjFile(self, objPath, fsPath, scope="size"):

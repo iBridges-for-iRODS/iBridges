@@ -11,6 +11,7 @@ from elabUpload import elabUpload
 from irodsSearch import irodsSearch
 from irodsUpDownload import irodsUpDownload
 from irodsDataCompression import irodsDataCompression
+from utils import saveIenv
 
 import sys
 
@@ -20,12 +21,14 @@ class mainmenu(QMainWindow):
         loadUi("ui-files/MainMenu.ui", self)
         self.ic = ic
         self.widget = widget #stackedWidget
+        self.ienv = ienv
 
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
         self.actionSearch.triggered.connect(self.search)
-        self.actionExportMetadata.triggered.connect(self.exportMeta)
+        self.actionSaveConfig.triggered.connect(self.saveConfig)
+        #self.actionExportMetadata.triggered.connect(self.exportMeta)
 
         #needed for Search
         self.browserWidget = loadUi("ui-files/tabBrowser.ui")
@@ -39,7 +42,7 @@ class mainmenu(QMainWindow):
             if ("tabUpDownload" in ienv["ui_tabs"]):
                 updownloadWidget = loadUi("ui-files/tabUpDownload.ui")
                 self.tabWidget.addTab(updownloadWidget, "Up and Download")
-                self.updownload = irodsUpDownload(updownloadWidget, ic, ienv)
+                self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
 
             # Elabjournal tab, index 2
             if ("tabELNData" in ienv["ui_tabs"]):
@@ -51,7 +54,7 @@ class mainmenu(QMainWindow):
             if ("tabDataCompression" in ienv["ui_tabs"]):
                 dataCompressWidget = loadUi("ui-files/tabDataCompression.ui")
                 self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
-                self.compressionTab = irodsDataCompression(dataCompressWidget, ic, ienv)
+                self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
 
             # iRODS federation tab, index 4
             ## TODO
@@ -97,7 +100,10 @@ class mainmenu(QMainWindow):
         search.exec_()
 
 
-    def exportMeta(Self):
+    def saveConfig(self):
+        saveIenv(self.ienv)
+
+    def exportMeta(self):
         print("TODO: Metadata export")
 
 

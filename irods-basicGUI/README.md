@@ -15,10 +15,38 @@
 pip install -r requirements.txt
 ```
 
+## Configuration
+### iRODS environment.json
+- Please create a folder `.irods` in your home
+   - Linux: /home/<username>/.irods
+   - Mac: /Users/<username>/.irods
+   - Windows: C:\\....
+
+- Your iRODS admin will proivide a file `irods_environment.json`. Place that file into the `.irods` folder
+   Example:
+   ```
+   {
+	"irods_host": "scomp1461.wur.nl", 
+	"irods_port": 1247, 
+	"irods_user_name": "cstaiger", 
+	"irods_zone_name": "npecZone", 
+	"default_resource_name": "disk", 
+	"davrods_server": "https://scomp1461.wur.nl", 
+	"ui_tabs": [ #Activated tabs for the user
+		"tabBrowser", 
+		"tabUpDownload",
+		"tabELNData", 
+		"tabDataCompression" #requires "default_resource_name" (not demoResc!)
+	], 
+	"ui_ienvFilePath": "/home/christine/.irods/irods_environment.json_npec"
+   }
+   ```
+
+
 
 ## Usage
 ```
-python irods-basicGui
+python3 irods-basicGui.py
 ```
 
 ## Remarks

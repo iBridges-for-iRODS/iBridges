@@ -72,16 +72,11 @@ class irodsUpDownload():
         available_resources = self.ic.listResources()
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(available_resources)
-        if ("ui_resource" in ienv) and \
-                (ienv["ui_resource"] != "") and (ienv["ui_resource"] in available_resources):
-            index = self.widget.resourceBox.findText(ienv["ui_resource"])
-            self.widget.resourceBox.setCurrentIndex(index)
-        elif ("default_resource_name" in ienv) and \
+        if ("default_resource_name" in ienv) and \
                 (ienv["default_resource_name"] != "") and \
                 (ienv["default_resource_name"] in available_resources):
             index = self.widget.resourceBox.findText(ienv["default_resource_name"])
             self.widget.resourceBox.setCurrentIndex(index)
-        #self.widget.resourceBox.currentIndexChanged.connect(self.saveUIset)
 
         # Continious upload settings
         if ienv["irods_host"] in ["scomp1461.wur.nl", "npec-icat.irods.surfsara.nl"]:

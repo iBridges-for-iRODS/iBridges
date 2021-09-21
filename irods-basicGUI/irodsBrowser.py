@@ -313,22 +313,25 @@ class irodsBrowser():
 
     def deleteData(self):
         #Deletes all data in the deleteSelectionBrowser
+        self.widget.errorLabel.clear()
         data = self.widget.deleteSelectionBrowser.toPlainText().split('\n')
         if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
             reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
             if reply == QMessageBox.Yes:
-                #reply.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-                #reply.widget.errorLabel.setText("Deleting data ...")
-                if self.ic.session.collections.exists(deleteItem):
-                    item = self.ic.session.collections.get(deleteItem)
-                else:
-                    item = self.ic.session.data_objects.get(deleteItem)
-                self.ic.deleteData(item)
-            self.widget.deleteSelectionBrowser.clear()
-            self.loadTable()
-            self.widget.errorLabel.clear()
+                try:
+                    if self.ic.session.collections.exists(deleteItem):
+                        item = self.ic.session.collections.get(deleteItem)
+                    else:
+                        item = self.ic.session.data_objects.get(deleteItem)
+                    self.ic.deleteData(item)
+                    self.widget.deleteSelectionBrowser.clear()
+                    self.loadTable()
+                    self.widget.errorLabel.clear()
+
+                except Exception as error:
+                    self.widget.errorLabel.setText("ERROR DELETE DATA: "+repr(error))
 
     def createCollection(self):
         parent = "/"+self.widget.inputPath.text().strip("/")
