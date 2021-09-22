@@ -23,10 +23,10 @@ class IrodsModel(QStandardItemModel):
         self.userGroups = self.ic.getUserInfo()[1]
 
         try:
-            coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
-            self.irodsRootColl = "/" + self.ic.session.zone
+            coll = self.ic.session.collections.get('/'+self.ic.session.zone+'/home')
+            self.irodsRootColl = "/"+self.ic.session.zone+"/home"
         except:
-            self.irodsRootColl = "/" + self.ic.session.zone + "/home"
+            self.irodsRootColl = "/"+self.ic.session.zone+"/home/"+self.ic.session.username
 
         self.TreeView = TreeView
         self.clear() # Empty tree
@@ -95,25 +95,21 @@ class IrodsModel(QStandardItemModel):
         """
         #initial tree information
         parentId = -1
-        try:
-            coll = self.ic.session.collections.get(self.irodsRootColl+'/home')
-        except:
-            coll = self.ic.session.collections.get(
-                    self.irodsRootColl+'/'+self.ic.session.username)
-        #get the depth of the irods path, disregard irodsRootColl and its own depth
-        level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+        coll = self.ic.session.collections.get(self.irodsRootColl)
+        level = 0
         data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,
                  'shortName': coll.name, 'type': 'C'}]
         #get content of home
         for subColl in coll.subcollections:
-            level = len(subColl.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            level = 1
             data.append({'level': level, 'irodsID': subColl.id,
                          'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
             if subColl.data_objects != [] or subColl.subcollections != []:
                 data.append({'level': level+1, 'irodsID': 'test',
                              'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
         for obj in coll.data_objects:
-            level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            #level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            level = 1
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
         return data
@@ -177,14 +173,14 @@ class IrodsModel(QStandardItemModel):
         """
         data = []
         for subColl in coll.subcollections:
-            level = len(subColl.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            level = len(subColl.path.split('/')) - len(self.irodsRootColl.split('/'))
             data.append({'level': level, 'irodsID': subColl.id,
                          'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
             if subColl.data_objects != [] or subColl.subcollections != []:
                 data.append({'level': level+1, 'irodsID': 'test',
                              'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
         for obj in coll.data_objects:
-            level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            level = len(obj.path.split('/')) - len(self.irodsRootColl.split('/'))
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
         return data
@@ -263,17 +259,15 @@ class IrodsModel(QStandardItemModel):
             coll = self.ic.session.collections.get(irodsItemPath)
         else:
             return
-
         #delete subtree in irodsFsdata and the TreeView
         self.deletesubTree(treeItem)
 
         #Retrieve updated data from the collection
-        coll = self.ic.session.collections.get(irodsItemPath)
         recentCollData = self.getCollData(coll)
 
         #update irodsFsData and the treeView
         #Level of subcollections
-        level = len(coll.path.split(self.irodsRootColl+'/')[1].split('/'))
+        level = len(coll.path.split('/')) - len(self.irodsRootColl.split('/')) + 1
         self.addSubtree(treeItem, level, recentCollData)
 
 
@@ -283,5 +277,5 @@ class IrodsModel(QStandardItemModel):
         while parentmodel.isValid():
             fullpath = parentmodel.data() + "/" + fullpath
             parentmodel = parentmodel.parent()
-        return self.irodsRootColl + "/" + fullpath
+        return os.path.dirname(self.irodsRootColl) + "/" + fullpath
 
