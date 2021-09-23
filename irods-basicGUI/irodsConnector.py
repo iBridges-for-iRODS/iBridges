@@ -245,11 +245,15 @@ class irodsConnector():
 
 
     def listResources(self):
-        query = self.session.query(Resource.name)
+        """
+        Returns list of all root resources, that accept data.
+        """
+        query = self.session.query(Resource.name, Resource.parent)
         resources = []
         for item in query.get_results():
-            for key in item.keys():
-                resources.append(item[key])
+            rescName, parent = item.values()
+            if parent == None:
+                resources.append(rescName)
 
         if 'bundleResc' in resources:
             resources.remove('bundleResc')
@@ -342,7 +346,8 @@ class irodsConnector():
             try:
                 print("IRODS UPLOADING FILE", destination.path+"/"+os.path.basename(source))
                 self.session.data_objects.put(
-                        source, destination.path+"/"+os.path.basename(source), **options)
+                        source, destination.path+"/"+os.path.basename(source), 
+			num_threads=4, **options)
                 return
             except IsADirectoryError:
                 print("IRODS UPLOAD ERROR: There exists a collection of same name as "+source)
@@ -354,7 +359,7 @@ class irodsConnector():
                 #upload files to distinct data objects
                 destColl = self.session.collections.create(os.path.dirname(d[0]))
                 print("REPLACE: "+d[0]+" with "+d[1])
-                self.session.data_objects.put(d[1], d[0], **options)
+                self.session.data_objects.put(d[1], d[0], num_threads=4, **options)
 
             for o in onlyFS: #can contain files and folders
                 #Create subcollections and upload
@@ -368,7 +373,8 @@ class irodsConnector():
                 print("UPLOAD: "+sourcePath+" to "+subColl.path)
                 print("CREATE", subColl.path+"/"+os.path.basename(sourcePath))
                 self.session.data_objects.put(
-                    sourcePath, subColl.path+"/"+os.path.basename(sourcePath), **options)
+                    sourcePath, subColl.path+"/"+os.path.basename(sourcePath), 
+                    num_threads=0, **options)
         except:
             raise
  

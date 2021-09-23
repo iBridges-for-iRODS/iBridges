@@ -241,11 +241,15 @@ class irodsConnectorIcommands():
 
 
     def listResources(self):
-        query = self.session.query(Resource.name)
+        """
+        Returns list of all root resources, that accept data.
+        """
+        query = self.session.query(Resource.name, Resource.parent)
         resources = []
         for item in query.get_results():
-            for key in item.keys():
-                resources.append(item[key])
+            rescName, parent = item.values()
+            if parent == None:
+                resources.append(rescName)
 
         if 'bundleResc' in resources:
             resources.remove('bundleResc')
