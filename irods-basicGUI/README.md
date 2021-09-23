@@ -16,12 +16,17 @@
 pip install -r requirements.txt
 ```
 
+- Large data transfers
+	- For large data transfers we recommend to run the GUI on a Linux (sub)system. 
+	- [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). Then start the GUI in the mode (icommands) on the Login screen.
+	<img src="icons/irods-basicGUI_Login.png" width="500">
+
 ## Configuration
 ### iRODS environment.json
 - Please create a folder `.irods` in your home
-   - Linux: /home/<username>/.irods
-   - Mac: /Users/<username>/.irods
-   - Windows: C:\\....
+   - Linux: /home/\<username\>/.irods/irods_environment.json
+   - Mac: /Users/\<username\>/.irods/irods_environment.json
+   - Windows: C:\\\\....\\\<username\>\\.irods\\irods_environment.json
 
 - Your iRODS admin will proivide a file `irods_environment.json`. Place that file into the `.irods` folder
    Example:
@@ -54,7 +59,7 @@ python3 irods-basicGui.py
 
 - When the client is started for the first time it, might take some time to launch.
 - Tested on
-	- 4cores, 8GB memory: Quick performance. GUI reacts :very quickly.
+	- 4/2cores, 8/4GB memory: Quick performance. GUI reacts very quickly. Data transfers with default python API perform ok. For large data we recommend to move to a linux system, install the icommands and use the GUI with icommands settings upon login. 
 
 - Upload performances 
 	- icommands: Upload speed is mainly impacted by network speed
