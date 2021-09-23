@@ -31,6 +31,11 @@ QLabel#globalErrorLabel
 {
 	color: rgb(217, 174, 23);
 }
+
+QTabBar::tab:top:selected {
+    background-color: rgb(58, 152, 112);
+    color: rgb(54, 54, 54);
+}
 </string>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -69,7 +74,7 @@ QLabel#globalErrorLabel
      <x>0</x>
      <y>0</y>
      <width>1300</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
@@ -102,9 +107,7 @@ QLabel#globalErrorLabel
     <string>Close Session</string>
    </property>
    <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-    </font>
+    <font/>
    </property>
   </action>
   <action name="actionExit">
@@ -112,9 +115,7 @@ QLabel#globalErrorLabel
     <string>Exit</string>
    </property>
    <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-    </font>
+    <font/>
    </property>
   </action>
   <action name="actionSearch">
@@ -122,9 +123,7 @@ QLabel#globalErrorLabel
     <string>Search</string>
    </property>
    <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-    </font>
+    <font/>
    </property>
   </action>
   <action name="actionSaveConfig">
@@ -132,9 +131,7 @@ QLabel#globalErrorLabel
     <string>Save configuration</string>
    </property>
    <property name="font">
-    <font>
-     <pointsize>13</pointsize>
-    </font>
+    <font/>
    </property>
   </action>
  </widget>
