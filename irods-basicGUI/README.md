@@ -10,6 +10,7 @@
 	- PyQt5
 	- python-irodsclient-1.0.0
 	- elabjournal
+	- watchdog
 
 ```
 pip install -r requirements.txt
