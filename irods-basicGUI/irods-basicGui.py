@@ -22,7 +22,6 @@ from mainmenu import mainmenu
 from utils import networkCheck, check_direxists, check_fileexists
 
 
-
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
@@ -54,7 +53,7 @@ class irodsLogin(QDialog):
         return ic
 
     def __resetErrorLabelsAndMouse(self):
-        self.connectButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.passError.setText("")
         self.envError.setText("")
 
@@ -150,8 +149,9 @@ class irodsLogin(QDialog):
                 browser = mainmenu(widget, ic, ienv)
                 if len(widget) == 1:
                     widget.addWidget(browser)
-                widget.setCurrentIndex(widget.currentIndex()+1)
                 self.__resetErrorLabelsAndMouse()
+                #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                widget.setCurrentIndex(widget.currentIndex()+1)
 
             except CAT_INVALID_AUTHENTICATION:
                 self.envError.clear()
@@ -181,7 +181,8 @@ class irodsLogin(QDialog):
                 #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                raise
+                return
+        
 
 
 

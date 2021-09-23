@@ -24,8 +24,9 @@ pip install -r requirements.txt
 
 - Your iRODS admin will proivide a file `irods_environment.json`. Place that file into the `.irods` folder
    Example:
-   ```
-   {
+   
+```py
+{
 	"irods_host": "scomp1461.wur.nl", 
 	"irods_port": 1247, 
 	"irods_user_name": "cstaiger", 
@@ -34,14 +35,12 @@ pip install -r requirements.txt
 	"davrods_server": "https://scomp1461.wur.nl", 
 	"ui_tabs": [ #Activated tabs for the user
 		"tabBrowser", 
-		"tabUpDownload",
+		"tabUpDownload", #requires "default_resource_name" (not demoResc!)
 		"tabELNData", 
 		"tabDataCompression" #requires "default_resource_name" (not demoResc!)
-	], 
-	"ui_ienvFilePath": "/home/christine/.irods/irods_environment.json_npec"
-   }
-   ```
-
+	]
+}
+```
 
 
 ## Usage

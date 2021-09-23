@@ -24,6 +24,12 @@
 QTabWidget
 {
 	background-color: rgb(54, 54, 54);
+	selection-background-color: rgb(58, 152, 112);
+}
+
+QTabBar::tab:top:selected {
+    background-color: rgb(58, 152, 112);
+    color: rgb(54, 54, 54);
 }
 
 QTableWidget
@@ -55,7 +61,7 @@ QPushButton#closeButton
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
