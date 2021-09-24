@@ -1,10 +1,52 @@
 # iRODS basic GUI
 ## Synopsis
 ## Dependencies
+
+### iRODS server
+
+To protect the iRODS resources from overflowing you need to install an event hook on the iRODS server that fills the resources' `RESC_FREE_SPACE` attribute in the iCAT. Please add the following to the `/etc/irods/core.re` or another rule engine file:
+
+```py
+######################################################
+# Storage capacity policies. 
+# Update the metadtaa field free_space of the resource 
+# when data is moved there or deleted from it.
+#
+# Author: Christine Staiger (2021)
+#######################################################
+
+acPostProcForParallelTransferReceived(*leaf_resource) {
+    msiWriteRodsLog("LOGGING: acPostProcForParallelTransferReceived", *Status);
+    msi_update_unixfilesystem_resource_free_space(*leaf_resource);
+}
+
+acPostProcForDataCopyReceived(*leaf_resource) {
+    msiWriteRodsLog("LOGGING: acPostProcForDataCopyReceived", *Status);
+    msi_update_unixfilesystem_resource_free_space(*leaf_resource);
+}
+
+# for iput
+acPostProcForPut {
+    msi_update_unixfilesystem_resource_free_space($KVPairs.rescName);
+}
+
+acPostProcForPut { }
+
+# for storage update after irmtrash
+acPostProcForDelete {
+    msi_update_unixfilesystem_resource_free_space($KVPairs.rescName);
+}
+
+acPostProcForDelete { }
+```
+
+
+
+### Python
+
 - Python 3
 	- Tested on 3.6 and 3.9.6
 - pip-21.1.3
-
 - Python packages
 	- Cryptography
 	- PyQt5
@@ -16,10 +58,14 @@
 pip install -r requirements.txt
 ```
 
-- Large data transfers
-	- For large data transfers we recommend to run the GUI on a Linux (sub)system. 
-	- [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). Then start the GUI in the mode (icommands) on the Login screen.
-	<img src="icons/irods-basicGUI_Login.png" width="500">
+### Operating system
+
+The client works on  Mac, Windows and Linux distributions. On Mac and windows it makes use solely of the iRODS python API. On Linux, we implemented a switch: If the iRODS icommands are installed you can choose at the login page  to up and download data through the icommand `irsync`. This is recommanded for large data transfers:
+
+- We recommend to run the GUI on a Linux (sub)system and use the icommands
+
+- [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). Then start the GUI in the mode (icommands) on the Login screen.
+<img src="icons/irods-basicGUI_Login.png" width="500">
 
 ## Configuration
 ### iRODS environment.json
