@@ -10,6 +10,7 @@ from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 class elabUpload():
     def __init__(self, widget, ic):
+        self.widget = widget
         self.elab = None
         self.coll = None
         self.ic = ic
@@ -55,10 +56,12 @@ class elabUpload():
                 row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
             self.loadLocalFileView()
-            self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as e:
-            self.errorLabel.setText("ELN ERROR: "+repr(e))
-
+            self.errorLabel.setText(
+                "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            return
     
     def selectExperiment(self, expId):
         #put exp id in self experimentIdLabel
@@ -71,7 +74,8 @@ class elabUpload():
 
     def loadExperiments(self):
         self.errorLabel.clear()
-        self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.elnExperimentTable.setRowCount(0)
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         row = self.elnGroupTable.currentRow()
         if row > -1:
             groupId = self.elnGroupTable.item(row, 0).text()
@@ -95,11 +99,13 @@ class elabUpload():
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
                     row = row+1
             except Exception as e:
-                self.errorLabel.setText("ELN ERROR: "+repr(e))
-                raise
+                self.errorLabel.setText(
+                    "ELN ERROR: "+repr(e)+"\n You might not have permissions for that group.")
+                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                return
 
         self.elnExperimentTable.resizeColumnsToContents()
-        self.elnGroupTable.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
 
     def loadLocalFileView(self):
@@ -173,13 +179,6 @@ class elabUpload():
             expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
             print("ELN DATA UPLOAD experiment: \n"+expUrl)
     
-            #get all file and folder names from local fs
-            #filePaths = set([path])
-            #Get all filenames to annotate later with url
-            #filenames = [os.path.basename(path) for path in filePaths]
-            #[filenames.extend(os.listdir(path)) for path in filePaths if os.path.isdir(path)]
-            #filenames = set(filenames)
-    
             #get upload total size to inform user
             size = round(getSize([path])/1024**2)
             #if user specifies a different path than standard home
@@ -218,7 +217,7 @@ class elabUpload():
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
             self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            raise
+            return
 
 class Worker(QObject):
     finished = pyqtSignal()
