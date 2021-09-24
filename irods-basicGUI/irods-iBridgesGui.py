@@ -181,7 +181,7 @@ class irodsLogin(QDialog):
                 #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                return
+                raise
         
 
 
