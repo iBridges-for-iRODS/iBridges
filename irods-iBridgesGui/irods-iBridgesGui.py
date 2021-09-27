@@ -177,11 +177,12 @@ class irodsLogin(QDialog):
                 self.passError.clear()
                 self.envError.setText("iRODS server ERROR: iRODS server down.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            except Exception as error:
+            except:
+                logging.exception("Something went wrong")
                 #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                raise
+                return
         
 
 
