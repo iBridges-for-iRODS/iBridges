@@ -162,10 +162,13 @@ class getDataState(QObject):
         diff, onlyFS, onlyIrods, same = [], [], [], []
         try:
             if self.upload == True:
-            #data is placed inside of coll, check if dir or file is inside
-                subItemPath = self.coll.path+"/"+os.path.basename(self.localFsPath)
+            # Data is placed inside of coll, check if dir or file is inside
+                subItemPath = self.coll.path + "/" + os.path.basename(self.localFsPath)
                 if os.path.isdir(self.localFsPath):
-                    subColl = self.ic.session.collections.create(subItemPath)
+                    if self.ic.session.collections.exists(subItemPath):
+                        subColl = self.ic.session.collections.get(subItemPath)
+                    else:
+                        subColl = self.ic.session.collections.create(subItemPath)
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   subColl, self.localFsPath, scope="checksum")
                 elif os.path.isfile(self.localFsPath):
@@ -174,10 +177,8 @@ class getDataState(QObject):
                                                         self.localFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyFS), len(diff))
             else:
-                #data is placed inside fsDir, check if obj or coll is inside
+                #Data is placed inside fsDir, check if obj or coll is inside
                 subFsPath = os.path.join(self.localFsPath, self.coll.name)
-                #if not os.path.isdir(subFsPath):
-                #    os.mkdir(subFsPath)
                 if self.ic.session.collections.exists(self.coll.path):
                     if not os.path.isdir(subFsPath):
                         os.mkdir(subFsPath)
