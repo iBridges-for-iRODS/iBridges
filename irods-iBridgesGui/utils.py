@@ -95,19 +95,23 @@ def _check_exists(fname):
 
 
 # Create logger, it is important to note that it either writes prints to the console or the logfile! 
-def setup_logger(log_stdout = False):
-    log_folder = get_filepath() + os.sep + "logs"
-    if not check_direxists(log_folder):
-        os.makedirs(log_folder)
-    #current_imestamp = datetime.now().strftime("%y-%m-%dT%H_%M_%S")
-    #file_path = log_folder + "/log_" + current_imestamp + ".log"
-    file_path = log_folder + "/current_session.log"
+def setup_logger(irods_folder):
+    logfile = irods_folder + os.sep + "ibridges_log.txt"
 
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [logging.FileHandler(file_path, 'a'), logging.StreamHandler(sys.stdout)]#, logging.StreamHandler()
+    handlers = [logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
     logging.basicConfig(format = log_format, level = logging.INFO, handlers = handlers)
-    logger = logging.getLogger()
-    if log_stdout == True:
-        sys.stderr.write = logger.error
-        sys.stdout.write = logger.info
 
+    # Indicate start of a new session
+    with open(logfile, 'a') as f:
+        f.write("\n\n")
+        underscores = ""
+        for x in range(0, 50):
+            underscores = underscores + "_"
+        underscores = underscores + "\n"
+        f.write(underscores)
+        f.write(underscores) 
+        f.write("\t\t" + datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "\n")
+        f.write(underscores)
+        f.write(underscores)
+    

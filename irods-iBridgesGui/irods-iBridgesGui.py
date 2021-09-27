@@ -6,6 +6,7 @@ from cryptography.fernet import Fernet
 from json import load, dump
 #from platform import system
 import subprocess
+import logging
 
 from PyQt5.QtWidgets import QDialog, QApplication, QLineEdit, QStackedWidget
 from PyQt5.uic import loadUi
@@ -19,16 +20,16 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from mainmenu import mainmenu
-from utils import networkCheck, check_direxists, check_fileexists
+from utils import networkCheck, setup_logger
 
 
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
-        #setup_logger()
         loadUi("ui-files/irodsLogin.ui", self)
         
         self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
+        setup_logger(self.irodsEnvPath)
         if not os.path.isdir(self.irodsEnvPath):
             os.makedirs(self.irodsEnvPath)
         self.configFilePath = self.irodsEnvPath + os.sep + "config.json"
