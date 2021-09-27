@@ -176,9 +176,10 @@ class getDataState(QObject):
             else:
                 #data is placed inside fsDir, check if obj or coll is inside
                 subFsPath = os.path.join(self.localFsPath, self.coll.name)
-                if not os.path.isdir(subFsPath):
-                    os.mkdir(subFsPath)
+                #if not os.path.isdir(subFsPath):
+                #    os.mkdir(subFsPath)
                 if self.ic.session.collections.exists(self.coll.path):
+                    os.mkdir(subFsPath)
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, subFsPath, scope="checksum")
                 elif self.ic.session.data_objects.exists(self.coll.path):
