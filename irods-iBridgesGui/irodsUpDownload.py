@@ -64,7 +64,8 @@ class irodsUpDownload():
         self.widget.UploadButton.clicked.connect(self.upload)
         self.widget.DownloadButton.clicked.connect(self.download)
         #self.widget.ContUplBut.clicked.connect(self.cont_upload)
-        #self.widget.ChecksumCheckBut.clicked.connect(self.check_checksum)
+        self.widget.ContUplBut.setHidden(True) #fFor first release hide special buttons
+        self.widget.uplSetGB_2.setHidden(True)
         self.widget.createFolderButton.clicked.connect(self.createFolder)
         self.widget.createCollButton.clicked.connect(self.createCollection)
 
