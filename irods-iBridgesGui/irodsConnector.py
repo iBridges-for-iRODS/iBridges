@@ -517,20 +517,21 @@ class irodsConnector():
         collection: iRODS collection
         '''
 
-        if not os.access(dirPath, os.R_OK):
-            raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
-        if not os.path.isdir(dirPath):
-            raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
-
         listDir = []
-        for root, dirs, files in os.walk(dirPath, topdown=False):
-            for name in files:
-                listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
+        if not dirPath == None:
+            if not os.access(dirPath, os.R_OK):
+                raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
+            if not os.path.isdir(dirPath):
+                raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
+            for root, dirs, files in os.walk(dirPath, topdown=False):
+                for name in files:
+                    listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
 
         listColl = []
-        for root, subcolls, obj in coll.walk():
-            for o in obj:
-                listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
+        if not coll == None:
+            for root, subcolls, obj in coll.walk():
+                for o in obj:
+                    listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
 
         diff = []
         same = []
