@@ -3,7 +3,7 @@ from PyQt5.uic import loadUi
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QMovie
-#import logging
+import logging
 
 from irods.keywords import NO_PARA_OP_KW
 
@@ -179,15 +179,16 @@ class getDataState(QObject):
                 #if not os.path.isdir(subFsPath):
                 #    os.mkdir(subFsPath)
                 if self.ic.session.collections.exists(self.coll.path):
-                    os.mkdir(subFsPath)
+                    if not os.path.isdir(subFsPath):
+                        os.mkdir(subFsPath)
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, subFsPath, scope="checksum")
                 elif self.ic.session.data_objects.exists(self.coll.path):
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, subFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
-        except Exception as error:
-            print(error)
+        except:
+            logging.exception("dataTransfer.py: Error in getDataState")
 
         # Get size 
         if self.upload == True:
@@ -226,11 +227,10 @@ class UpDownload(QObject):
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])
-                print(diffs)
+                logging.info(str(diffs))
                 self.ic.downloadData(self.Coll, self.localFS, 
                                     self.totalSize, buff = 1024**3, force = False, diffs = diffs)
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
-            print(error)
-            #logging.info(repr(error))
+            logging.info(repr(error))
             self.finished.emit(False, str(error))
