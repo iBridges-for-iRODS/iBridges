@@ -160,24 +160,18 @@ class getDataState(QObject):
     def run(self):
         # Diff
         diff, onlyFS, onlyIrods, same = [], [], [], []
-        print("getDataState")
         try:
             if self.upload == True:
             # Data is placed inside of coll, check if dir or file is inside
                 newPath = self.coll.path + "/" + os.path.basename(self.localFsPath)
-                print("markerA")
                 if os.path.isdir(self.localFsPath):
-                    print("markerB")
                     if self.ic.session.collections.exists(newPath):
                         subColl = self.ic.session.collections.get(newPath)
                     else:
-                        #subColl = self.ic.session.collections.create(newPath)
                         subColl = None
-                    print("calling diff")
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   subColl, self.localFsPath, scope="checksum")
                 elif os.path.isfile(self.localFsPath):
-                    print("calling file diff")
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                         newPath, 
                                                         self.localFsPath, scope="checksum")
@@ -187,7 +181,6 @@ class getDataState(QObject):
                 newPath = os.path.join(self.localFsPath, self.coll.name)
                 if self.ic.session.collections.exists(self.coll.path):
                     if not os.path.isdir(newPath):
-                        #os.mkdir(subFsPath)
                         FsPath = None
                     else:
                         FsPath = newPath
