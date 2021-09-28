@@ -68,11 +68,11 @@ pip install -r requirements.txt
 
 ### Operating system
 
-The client works on  Mac, Windows and Linux distributions. On Mac and windows it makes use solely of the iRODS python API. On Linux, we implemented a switch: If the iRODS icommands are installed you can choose at the login page  to up and download data through the icommand `irsync`. This is recommanded for large data transfers:
+The client works on  Mac, Windows and Linux distributions. On Mac and Windows it makes use solely of the iRODS python API. On Linux, we implemented a switch: If the iRODS icommands are installed, you can choose at the login page to up and download data through the icommand `irsync`. This is recommended for large data transfers.
 
-- We recommend to run the GUI on a Linux (sub)system and use the icommands
-
-- [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). Then start the GUI in the mode (icommands) on the Login screen.
+- Install the iBridges GUI on a linux (sub)system
+- [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). 
+- Start the iBridges GUI in the mode (icommands) on the Login screen.
 <img src="gui/icons/irods-basicGUI_Login.png" width="500">
 
 ## Configuration
@@ -120,9 +120,9 @@ The client works on  Mac, Windows and Linux distributions. On Mac and windows it
 	- default: Upload performance is depending on network speed and performance of the iRODS python API: https://github.com/chStaiger/irods-performances
 	- 4GB from home network through python API takes about 30 minutes.	
 
-### ELabjournal
+### Elabjournal
 - Data Upload to Elabjournal works in an own thread. Hence, you can continue working in other Tabs of the application.
-- The laoding of Projects and Experiments takes quite long and depends on the performance of the Elabjournal server and the elabjournal python library.
+- The laoding of Projects and Experiments takes quite long and depends on the performance of the Elabjournal server and the Elabjournal python library.
 - After clicking 'Upload' the application also waits for some response of the Elabjournal and seems to 'hang'.
 - Before data is uploaded, there is a check whether data fits on th iRODS resource.
 - Small hickup after Data upload to Elabjournal finished. The stopping and cleaning up of the thread is done in the main application and affects all Tabs for a short moment. 
