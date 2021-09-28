@@ -10,6 +10,7 @@ from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
 from gui.irodsUpDownload import irodsUpDownload
 from gui.irodsDataCompression import irodsDataCompression
+from gui.irodsInfo import irodsInfo
 from utils.utils import saveIenv
 
 import sys
@@ -67,7 +68,12 @@ class mainmenu(QMainWindow):
             #PageWidget = loadUi("gui/ui-files/tabPage.ui")
             #self.tabWidget.addTab(FederationsWidget, "Federations")
             #self.elnTab = Federations(FederationsWidget, ic)        
-       
+      
+        #general info
+        self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
+        self.tabWidget.addTab(self.infoWidget, "Info")
+        self.irodsInfo = irodsInfo(self.infoWidget, ic)
+
         self.tabWidget.setCurrentIndex(0)
 
     #connect functions
