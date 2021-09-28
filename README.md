@@ -1,5 +1,9 @@
 # iRODS basic GUI
+###Authors 
+Tim van Daalen, Chrisine Staiger
+Wageningen University & Research 2021
 ## Synopsis
+
 ## Dependencies
 
 ### iRODS server
@@ -65,7 +69,7 @@ The client works on  Mac, Windows and Linux distributions. On Mac and windows it
 - We recommend to run the GUI on a Linux (sub)system and use the icommands
 
 - [Install the icommands](https://git.wur.nl/rdm-infrastructure/irods-training/-/blob/master/04-Training-Setup.md#icommands). Then start the GUI in the mode (icommands) on the Login screen.
-<img src="icons/irods-basicGUI_Login.png" width="500">
+<img src="gui/icons/irods-basicGUI_Login.png" width="500">
 
 ## Configuration
 ### iRODS environment.json
@@ -79,12 +83,12 @@ The client works on  Mac, Windows and Linux distributions. On Mac and windows it
    
 ```py
 {
-	"irods_host": "scomp1461.wur.nl", 
+	"irods_host": "server.fqdn.nl", 
 	"irods_port": 1247, 
 	"irods_user_name": "cstaiger", 
 	"irods_zone_name": "npecZone", 
 	"default_resource_name": "disk", 
-	"davrods_server": "https://scomp1461.wur.nl", 
+	"davrods_server": "https://server.fqdn.nl", 
 	"ui_tabs": [ #Activated tabs for the user
 		"tabBrowser", 
 		"tabUpDownload", #requires "default_resource_name" (not demoResc!)
@@ -97,7 +101,7 @@ The client works on  Mac, Windows and Linux distributions. On Mac and windows it
 
 ## Usage
 ```
-python3 irods-basicGui.py
+./irods-basicGui.py
 ```
 
 ## Remarks
