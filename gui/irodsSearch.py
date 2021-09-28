@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets, QtGui, QtCore
 from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.uic import loadUi
 import os
-from utils import getDownloadDir
+from utils.utils import getDownloadDir
 
 class irodsSearch(QDialog):
     def __init__(self, ic, collTable):

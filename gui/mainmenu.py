@@ -4,21 +4,20 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from popupWidgets import irodsCreateCollection
-
-from irodsBrowser import irodsBrowser
-from elabUpload import elabUpload
-from irodsSearch import irodsSearch
-from irodsUpDownload import irodsUpDownload
-from irodsDataCompression import irodsDataCompression
-from utils import saveIenv
+from gui.popupWidgets import irodsCreateCollection
+from gui.irodsBrowser import irodsBrowser
+from gui.elabUpload import elabUpload
+from gui.irodsSearch import irodsSearch
+from gui.irodsUpDownload import irodsUpDownload
+from gui.irodsDataCompression import irodsDataCompression
+from utils.utils import saveIenv
 
 import sys
 
 class mainmenu(QMainWindow):
     def __init__(self, widget, ic, ienv):
         super(mainmenu, self).__init__()
-        loadUi("ui-files/MainMenu.ui", self)
+        loadUi("gui/ui-files/MainMenu.ui", self)
         self.ic = ic
         self.widget = widget #stackedWidget
         self.ienv = ienv
@@ -31,7 +30,7 @@ class mainmenu(QMainWindow):
         #self.actionExportMetadata.triggered.connect(self.exportMeta)
 
         #needed for Search
-        self.browserWidget = loadUi("ui-files/tabBrowser.ui")
+        self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
         self.tabWidget.addTab(self.browserWidget, "Browser")
         self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
 
@@ -40,32 +39,32 @@ class mainmenu(QMainWindow):
 
             # Setup up/download tab, index 1
             if ("tabUpDownload" in ienv["ui_tabs"]):
-                updownloadWidget = loadUi("ui-files/tabUpDownload.ui")
+                updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
                 self.tabWidget.addTab(updownloadWidget, "Up and Download")
                 self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
 
             # Elabjournal tab, index 2
             if ("tabELNData" in ienv["ui_tabs"]):
-                elabUploadWidget = loadUi("ui-files/tabELNData.ui")
+                elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
                 self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
                 self.elnTab = elabUpload(elabUploadWidget, ic)
 
             # Data compression tab, index 3
             if ("tabDataCompression" in ienv["ui_tabs"]):
-                dataCompressWidget = loadUi("ui-files/tabDataCompression.ui")
+                dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
                 self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
                 self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
 
             # iRODS federation tab, index 4
             ## TODO
             #if ("tabFederations" in ienv["ui_tabs"]):
-            #FederationsWidget = loadUi("ui-files/tabFederations.ui")
+            #FederationsWidget = loadUi("gui/ui-files/tabFederations.ui")
             #self.tabWidget.addTab(FederationsWidget, "Federations")
             #self.elnTab = Federations(FederationsWidget, ic)
 
             ## TODO page, index 5
             #if ("tabPage" in ienv["ui_tabs"]):
-            #PageWidget = loadUi("ui-files/tabPage.ui")
+            #PageWidget = loadUi("gui/ui-files/tabPage.ui")
             #self.tabWidget.addTab(FederationsWidget, "Federations")
             #self.elnTab = Federations(FederationsWidget, ic)        
        

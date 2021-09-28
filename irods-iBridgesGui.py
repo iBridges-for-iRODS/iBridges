@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import logging
@@ -11,20 +13,20 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from irodsConnector import irodsConnector
-from irodsConnectorIcommands import irodsConnectorIcommands
+from utils.irodsConnector import irodsConnector
+from utils.irodsConnectorIcommands import irodsConnectorIcommands
 from irods.exception import CAT_INVALID_AUTHENTICATION, PAM_AUTH_PASSWORD_FAILED
 from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
-from mainmenu import mainmenu
-from utils import networkCheck, setup_logger
+from gui.mainmenu import mainmenu
+from utils.utils import networkCheck, setup_logger
 
 
 class irodsLogin(QDialog):
     def __init__(self):
         super(irodsLogin, self).__init__()
-        loadUi("ui-files/irodsLogin.ui", self)
+        loadUi("gui/ui-files/irodsLogin.ui", self)
         
         self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
         setup_logger(self.irodsEnvPath, "iBridgesGui")
@@ -168,6 +170,7 @@ class irodsLogin(QDialog):
                 self.passError.clear()
                 self.envError.setText("ERROR: iRODS environment file or certificate not found.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                raise
             except IsADirectoryError:
                 self.passError.clear()
                 self.envError.setText("ERROR: File expected.")
@@ -181,7 +184,7 @@ class irodsLogin(QDialog):
                 #logging.info(repr(error))
                 self.envError.setText("Something went wrong.")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-                return
+                raise
         
 
 

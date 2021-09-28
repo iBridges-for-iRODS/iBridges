@@ -22,6 +22,7 @@ import json
 import getopt
 import getpass
 import subprocess
+from utils import setup_logger, getSize
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -79,7 +80,7 @@ def setupIRODS(config):
         print(RED+"Collection path not set or invalid: "+ config['iRODS']['irodscoll']+DEFAULT)
         success = False
         print(''.join([coll.path+'\n' for coll
-            in ic.getSubcollections("/"+ic.session.zone+"/home").subcollections]))
+            in ic.session.collections.get("/"+ic.session.zone+"/home").subcollections]))
         while not success:
             iPath = input('Choose iRODS collection: ')
             try:
@@ -148,7 +149,7 @@ def prepareUpload(dataPath, ic, config):
     else:
         pass 
 
-    size = getSize(dataPath)
+    size = getSize([dataPath])
     freeSpace = ic.getResource(config['iRODS']['irodsresc']).free_space
 
     print('Checking storage capacity for '+dataPath+', '+str(float(size)/(1024**3))+'GB')
@@ -161,19 +162,10 @@ def prepareUpload(dataPath, ic, config):
         return True
 
 
-def getSize(path):
-    size = 0
-    if os.path.isdir(path):
-        for dirpath, dirnames, filenames in os.walk(path):
-            for i in filenames:
-                f = os.path.join(dirpath, i)
-                size += os.path.getsize(f)
-    elif os.path.isfile(path):
-        size = os.path.getsize(path)
-
-    return size
-
 def main(argv):
+    
+    irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
+    setup_logger(irodsEnvPath, "iBridgesCli")
 
     try:
         opts, args = getopt.getopt(argv,"hc:d:",["config="])

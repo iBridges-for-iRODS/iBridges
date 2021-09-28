@@ -4,8 +4,8 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from popupWidgets import irodsCreateCollection
-from utils import walkToDict, getDownloadDir
+from gui.popupWidgets import irodsCreateCollection
+from utils.utils import walkToDict, getDownloadDir
 import logging
 
 from irods.exception import CollectionDoesNotExist, NetworkException

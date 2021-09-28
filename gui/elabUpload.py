@@ -1,11 +1,11 @@
-from elabConnector import elabConnector
+from utils.elabConnector import elabConnector
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
-from checkableFsTree import checkableFsTreeModel
+from gui.checkableFsTree import checkableFsTreeModel
 
 import os
-from utils import getSize, walkToDict
+from utils.utils import getSize, walkToDict
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 import logging
 

@@ -1,5 +1,5 @@
-from irodsTreeView  import IrodsModel
-from popupWidgets import irodsIndexPopup
+from gui.irodsTreeView  import IrodsModel
+from gui.popupWidgets import irodsIndexPopup
 
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.uic import loadUi

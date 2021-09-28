@@ -7,7 +7,7 @@ import logging
 
 from irods.keywords import NO_PARA_OP_KW
 
-from utils import getSize
+from utils.utils import getSize
 import os
 
 

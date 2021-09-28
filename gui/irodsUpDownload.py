@@ -1,15 +1,14 @@
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 from PyQt5 import QtCore
-#import logging
 import os
 
-from checkableFsTree import checkableFsTreeModel
-from irodsTreeView  import IrodsModel
-from utils import getSize, saveIenv
-from continousUpload import contUpload
+from gui.checkableFsTree import checkableFsTreeModel
+from gui.irodsTreeView  import IrodsModel
+from utils.utils import getSize, saveIenv
+from gui.continousUpload import contUpload
 
-from popupWidgets import irodsCreateCollection, createDirectory
-from dataTransfer import dataTransfer
+from gui.popupWidgets import irodsCreateCollection, createDirectory
+from gui.dataTransfer import dataTransfer
 
 class irodsUpDownload():
     def __init__(self, widget, ic, ienv):
