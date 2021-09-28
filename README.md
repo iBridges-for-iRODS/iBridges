@@ -1,8 +1,12 @@
-# iRODS basic GUI
-###Authors 
-Tim van Daalen, Chrisine Staiger
+# iBRIDGES GUI
+### Authors 
+Tim van Daalen, Christine Staiger
+
 Wageningen University & Research 2021
+
 ## Synopsis
+The git repository contains a generic iRODS graphical userinterface and the corresponding commandline client.
+The GUI and CLI work with any iRODS instance. However, for user and data security we depend on some iRODS event hooks that need to be installed on the iRODS server. Please refer to the documentation below.
 
 ## Dependencies
 
