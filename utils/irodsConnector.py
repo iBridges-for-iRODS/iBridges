@@ -314,6 +314,7 @@ class irodsConnector():
         
         """
         logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
+
         if resource != None and resource != "":
             options = {kw.RESC_NAME_KW: resource,
                        kw.REG_CHKSUM_KW: '', kw.ALL_KW: '',
@@ -371,11 +372,11 @@ class irodsConnector():
                 raise
             
         try: #collections/folders
-            print("IRODS UPLOAD started:")
+            logging.info("IRODS UPLOAD started:")
             for d in diff:
                 #upload files to distinct data objects
                 destColl = self.session.collections.create(os.path.dirname(d[0]))
-                print("REPLACE: "+d[0]+" with "+d[1])
+                logging.info("REPLACE: "+d[0]+" with "+d[1])
                 self.session.data_objects.put(d[1], d[0], num_threads=4, **options)
 
             for o in onlyFS: #can contain files and folders
@@ -387,8 +388,8 @@ class irodsConnector():
                 else:
                     subColl = self.session.collections.create(
                             destination.path+'/'+os.path.basename(source))
-                print("UPLOAD: "+sourcePath+" to "+subColl.path)
-                print("CREATE", subColl.path+"/"+os.path.basename(sourcePath))
+                logging.info("UPLOAD: "+sourcePath+" to "+subColl.path)
+                logging.info("CREATE "+subColl.path+"/"+os.path.basename(sourcePath))
                 self.session.data_objects.put(
                     sourcePath, subColl.path+"/"+os.path.basename(sourcePath), 
                     num_threads=0, **options)
@@ -456,9 +457,8 @@ class irodsConnector():
 
         if self.session.data_objects.exists(source.path) and len(diff+onlyIrods) > 0:
             try:
-                logging.info("IRODS DOWNLOADING object:", source.path, 
-                                "to \n\t", destination)
-                print("IRODS DOWNLOADING object:", source.path, "to \n\t", destination)
+                logging.info("IRODS DOWNLOADING object:"+ source.path+
+                                "to "+ destination)
                 self.session.data_objects.get(source.path, 
                             local_path=os.path.join(destination, source.name), **options)
                 return
@@ -469,11 +469,10 @@ class irodsConnector():
 
         try: #collections/folders
             subdir = os.path.join(destination, source.name)
-            print("IRODS DOWNLOAD started:")
+            logging.info("IRODS DOWNLOAD started:")
             for d in diff:
                 #upload files to distinct data objects
                 logging.info("REPLACE: "+d[1]+" with "+d[0])
-                print("REPLACE: "+d[1]+" with "+d[0])
                 self.session.data_objects.get(d[0], local_path=d[1], **options)
 
             for IO in onlyIrods: #can contain files and folders
@@ -484,7 +483,6 @@ class irodsConnector():
                 if not os.path.isdir(os.path.dirname(destPath)):
                     os.makedirs(os.path.dirname(destPath))
                 logging.info('INFO: Downloading '+sourcePath+" to "+destPath)
-                print(DEFAULT+"INFO: Downloading "+sourcePath+" to "+destPath)
                 self.session.data_objects.get(sourcePath, local_path=destPath, **options)
         except:
             logging.info('DOWNLOAD ERROR', exc_info=True)
@@ -689,11 +687,13 @@ class irodsConnector():
         """
 
         if self.session.collections.exists(item.path):
+            logging.info("IRODS DELETE: "+item.path)
             try:
                 item.remove(recurse = True, force = True)
             except CAT_NO_ACCESS_PERMISSION:
                 raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
         elif self.session.data_objects.exists(item.path):
+            logging.info("IRODS DELETE: "+item.path)
             try:
                 item.unlink(force = True)
             except CAT_NO_ACCESS_PERMISSION:

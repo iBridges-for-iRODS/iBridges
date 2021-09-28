@@ -364,7 +364,7 @@ class irodsBrowser():
 
 
     def fileUpload(self):
-        from utils import getSize
+        from utils.utils import getSize
         dialog = QFileDialog(self.widget)
         fileSelect = QFileDialog.getOpenFileName(self.widget,
                         "Open File", "","All Files (*);;Python Files (*.py)")

@@ -8,6 +8,7 @@ from irods.models       import Collection, DataObject, Resource, ResourceMeta, C
 from irods.models       import User, UserGroup
 from irods.column import Like, Between, In
 import irods.keywords as kw
+from irods.rule import Rule
 
 import subprocess
 from subprocess         import Popen, PIPE
@@ -586,14 +587,16 @@ class irodsConnectorIcommands():
         Delete a data object or a collection recursively.
         item: iRODS data object or collection
         """
-
+       
         if self.session.collections.exists(item.path):
+            logging.info("IRODS DELETE: "+item.path)
             try:
                 item.remove(recurse = True, force = True)
             except CAT_NO_ACCESS_PERMISSION:
                 logging.info('DELETE ERROR', exc_info=True)
                 raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
         elif self.session.data_objects.exists(item.path):
+            logging.info("IRODS DELETE: "+item.path)
             try:
                 item.unlink(force = True)
             except CAT_NO_ACCESS_PERMISSION:
