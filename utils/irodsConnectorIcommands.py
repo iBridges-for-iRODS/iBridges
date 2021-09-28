@@ -625,7 +625,7 @@ class irodsConnectorIcommands():
                 stderr = [o.decode
                     for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
             except AttributeError:
-                logging.info('ERROR RULE EXECUTION', exc_info=True)
+                #logging.info('ERROR RULE EXECUTION', exc_info=True)
                 return stdout, stderr
 
         return stdout, stderr

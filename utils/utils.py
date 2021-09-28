@@ -95,8 +95,8 @@ def _check_exists(fname):
 
 
 # Create logger, it is important to note that it either writes prints to the console or the logfile! 
-def setup_logger(irods_folder):
-    logfile = irods_folder + os.sep + "ibridges_log.txt"
+def setup_logger(irods_folder, app):
+    logfile = irods_folder + os.sep + app + ".log"
 
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     handlers = [logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
