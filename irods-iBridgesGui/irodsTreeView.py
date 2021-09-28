@@ -1,9 +1,11 @@
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtWidgets import QFileIconProvider, QMessageBox
 from PyQt5.QtCore import Qt
+from irods.exception import NetworkException
+
 import os
 from collections import deque
-
+import logging
 
 """
 Tree model for IRODS collections. 
@@ -20,11 +22,16 @@ class IrodsModel(QStandardItemModel):
         self._checked_indeces = set()
         self.ic = irods_session
         #Groups which the user id member of to check access rights on tree
-        self.userGroups = self.ic.getUserInfo()[1]
+        try:
+            self.userGroups = self.ic.getUserInfo()[1]
+        except Exception as e:
+            logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
 
         try:
             coll = self.ic.session.collections.get('/'+self.ic.session.zone+'/home')
             self.irodsRootColl = "/"+self.ic.session.zone+"/home"
+        except NetworkException:
+            logging.info('iRODS FILE TREE ERROR: retrieving collection', exc_info=True)
         except:
             self.irodsRootColl = "/"+self.ic.session.zone+"/home/"+self.ic.session.username
 
@@ -52,19 +59,22 @@ class IrodsModel(QStandardItemModel):
             if value == Qt.Checked:
                 #check irods ACLs for access rights
                 path = self.irodsPathFromTreeIdx(index)
-                reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
-                reqAcls.extend([('write', path, group, self.ic.session.zone) \
+                try:
+                    reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
+                    reqAcls.extend([('write', path, group, self.ic.session.zone) \
                                     for group in self.userGroups])
 
-                acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
+                    acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
                             for acl in self.ic.getPermissions(path)])
-                # Block checking of home item (found no easy way to remove the checkbox)
-                if acls.intersection(reqAcls) == set():
-                    message = "ERROR, insufficient rights:\nCannot select "+path
-                    QMessageBox.information(self.TreeView, 'Error', message)
-                    #logging.info("Filedownload:" + message)
+                    # Block checking of home item (found no easy way to remove the checkbox)
+                    if acls.intersection(reqAcls) == set():
+                        message = "ERROR, insufficient rights:\nCannot select "+path
+                        QMessageBox.information(self.TreeView, 'Error', message)
+                        #logging.info("Filedownload:" + message)
+                        return False
+                except:
+                    logging.info('IRODS TREE ERROR', exc_info=True)
                     return False
-
                 # Enforce single select
                 while self._checked_indeces:
                     selected_index = self._checked_indeces.pop()
@@ -95,7 +105,12 @@ class IrodsModel(QStandardItemModel):
         """
         #initial tree information
         parentId = -1
-        coll = self.ic.session.collections.get(self.irodsRootColl)
+        try:
+            coll = self.ic.session.collections.get(self.irodsRootColl)
+        except:
+            logging.info('IRODS TREE INIT ERROR',
+                        exc_info=True)
+            return
         level = 0
         data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,
                  'shortName': coll.name, 'type': 'C'}]

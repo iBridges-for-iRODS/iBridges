@@ -16,6 +16,7 @@ import os
 from base64 import b64decode
 from shutil import disk_usage
 import hashlib
+import logging
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -23,7 +24,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 class irodsConnectorIcommands():
-    def __init__(self, password = '', logger = None):
+    def __init__(self, password = ''):
         """
         iRODS authentication.
         Input:
@@ -35,8 +36,6 @@ class irodsConnectorIcommands():
             FileNotFoundError: /home/<user>/.irods/irods_environment.json not found
             All other errors refer to having the envFile not setup properly
         """
-        self.logger = logger
-
         envFile = os.environ['HOME']+"/.irods/irods_environment.json"
         envFileExists = os.path.exists(envFile)
         
@@ -47,31 +46,33 @@ class irodsConnectorIcommands():
             if icommandsExist == False:
                 raise EnvironmentError("icommands not installed")
         except Exception as error:
+            logging.info('AUTHENTICATION ERROR', exc_info=True)
             raise 
 
         if not envFileExists:
-            print(envFile)
+            logging.info('AUTHENTICATION ERROR envFile not found: '+envFile)
             raise FileNotFoundError('Environment file not found: '+ envFile)
 
         if not os.path.exists(os.path.expanduser('~/.irods/.irodsA')):
+            logging.info("No password cached, logging in with password:")
             print("No password cached, logging in with password:")
             p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             outLogin, errLogin = p.communicate(input=(password+"\n").encode())
             if errLogin != b'':
-                print("Login failed.")
+                logging.info("AUTHENTICATION ERROR: Wrong iRODS password provided.")
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
         else:
-            print("Password cached, trying ils:")
+            logging.info("Password cached, trying ils:")
             p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             out, err = p.communicate()
             if err != b'':
-                print("Cached password wrong. Logging in with password.")
+                logging.info("Cached password wrong. Logging in with password.")
                 p = Popen(
                         ['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
                 outLogin, errLogin = p.communicate(input=(password+"\n").encode())
                 if errLogin != b'':
-                    print("Login failed")
+                    logging.info('AUTHENTICATION ERROR: Wrong iRODS password provided.')
                     raise ConnectionRefusedError('Wrong iRODS password provided.')
             self.session = iRODSSession(irods_env_file=envFile)
         try:
@@ -80,6 +81,7 @@ class irodsConnectorIcommands():
             colls = self.session.collections.get(
                     "/"+self.session.zone+"/home/"+self.session.username).subcollections
         except:
+            logging.info('AUTHENTICATION ERROR', exc_info=True)
             raise
 
         collnames = [c.path for c in colls]
@@ -101,6 +103,9 @@ class irodsConnectorIcommands():
         print("Default resource: "+self.defaultResc)
         print("You have access to: \n")
         print('\n'.join(collnames))
+
+        logging.info(
+            'IRODS LOGIN SUCCESS: '+self.session.username+", "+self.session.zone+", "+self.session.host)
 
 
     def getUserInfo(self):
@@ -134,6 +139,7 @@ class irodsConnectorIcommands():
                     obj = self.session.data_objects.get(iPath)
                     return self.session.permissions.get(obj)
                 except:
+                    logging.info('PERMISSIONS ERROR', exc_info=True)
                     raise
 
 
@@ -166,6 +172,7 @@ class irodsConnectorIcommands():
                 self.session.collections.create(collPath)
             return self.session.collections.get(collPath)
         except:
+            logging.info('ENSURE COLLECtION ERROR', exc_info=True)
             raise
 
 
@@ -277,10 +284,12 @@ class irodsConnectorIcommands():
         try:
             size = self.session.resources.get(resource).free_space
             if size == None:
+                logging.info("RESOURCE ERROR: size not set.")
                 raise AttributeError("RESOURCE ERROR: size not set.")
             else:
                 return size
         except Exception as error:
+            logging.info('RESOURCE ERROR', exc_info=True)
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
 
 
@@ -303,15 +312,17 @@ class irodsConnectorIcommands():
         ValueError (if resource too small or buffer is too small)
         
         """
-        
+        logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
         if not force:
             try:
                 space = self.session.resources.get(resource).free_space
                 if not space:
                     space = 0
                 if int(size) > (int(space)-buff):
+                    logging.info('ERROR iRODS upload: Not enough space on resource.')
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
+                    logging.info('ERROR iRODS upload: Negative resource buffer.')
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
                 raise
@@ -331,12 +342,13 @@ class irodsConnectorIcommands():
             else:
                 cmd = 'irsync -aKr '+source+' i:'+subColl.path
         else:
+            logging.info('UPLOAD ERROR', exc_info=True)
             raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
        
-        print("IRODS UPLOAD: "+cmd)
+        logging.info("IRODS UPLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
-        print('IRODS UPLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
+        logging.info('IRODS UPLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
     def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs = []):
@@ -347,21 +359,27 @@ class irodsConnectorIcommands():
         size: size of data to be downloaded in bytes
         buff: buffer on the filesystem that should be left over
         '''
-
+        
+        logging.info('iRODS DOWNLOAD: '+str(source)+'-->'+destination)
         destination = '/'+destination.strip('/')
         if not os.access(destination, os.W_OK):
+            logging.info("IRODS DOWNLOAD: No rights to write to destination.")
             raise PermissionError("IRODS DOWNLOAD: No rights to write to destination.")
         if not os.path.isdir(destination):
+            logging.info("IRODS DOWNLOAD: Path seems to be directory, but is file.")
             raise IsADirectoryError("IRODS DOWNLOAD: Path seems to be directory, but is file.")
 
         if not force:
             try:
                 space = disk_usage(destination).free
                 if int(size) > (int(space)-buff):
+                    logging.info('ERROR iRODS download: Not enough space on disk.')
                     raise ValueError('ERROR iRODS download: Not enough space on disk.')
                 if buff < 0:
+                    logging.info('ERROR iRODS download: Negative disk buffer.')
                     raise BufferError('ERROR iRODS download: Negative disk buffer.')
             except Exception as error:
+                logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error()
 
         if self.session.data_objects.exists(source.path):
@@ -372,10 +390,10 @@ class irodsConnectorIcommands():
         else:
             raise FileNotFoundError("IRODS download: not a valid source.")
         
-        print("IRODS DOWNLOAD: "+cmd)
+        logging.info("IRODS DOWNLOAD: "+cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
-        print('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
+        logging.info('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
     def diffObjFile(self, objPath, fsPath, scope="size"):
@@ -383,17 +401,16 @@ class irodsConnectorIcommands():
         Compares and iRODS object to a file system file.
         returns ([diff], [onlyIrods], [onlyFs], [same])
         """
-
         if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
         if self.session.collections.exists(objPath):
             raise IsADirectoryError("IRODS FS DIFF: object is a collection.")
 
         if not os.path.isfile(fsPath) and self.session.data_objects.exists(objPath):
-            return ([], [objPath], [], [])
+            return ([], [], [objPath], [])
 
         elif not self.session.data_objects.exists(objPath) and os.path.isfile(fsPath):
-            return ([], [], [fsPath], [])
+            return ([], [fsPath], [], [])
 
         #both, file and object exist
         obj = self.session.data_objects.get(objPath)
@@ -428,6 +445,7 @@ class irodsConnectorIcommands():
                 else:
                     return ([], [], [], [(objPath, fsPath)])
 
+
     def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
         '''
         Compares and iRODS tree to a directory and lists files that are not in sync.
@@ -436,22 +454,21 @@ class irodsConnectorIcommands():
         collection: collection path
         '''
 
-        if not os.access(dirPath, os.R_OK):
-            raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
-        if not os.path.isdir(dirPath):
-            raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
-        if not self.session.collections.exists(coll.path):
-            raise CollectionDoesNotExist("IRODS FS DIFF: collection path unknwn")
-
         listDir = []
-        for root, dirs, files in os.walk(dirPath, topdown=False):
-            for name in files:
-                listDir.append(os.path.join(root.split(dirPath)[1], name).strip('/'))
+        if not dirPath == None:
+            if not os.access(dirPath, os.R_OK):
+                raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
+            if not os.path.isdir(dirPath):
+                raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
+            for root, dirs, files in os.walk(dirPath, topdown=False):
+                for name in files:
+                    listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
 
         listColl = []
-        for root, subcolls, obj in coll.walk():
-            for o in obj:
-                listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
+        if not coll == None:
+            for root, subcolls, obj in coll.walk():
+                for o in obj:
+                    listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
 
         diff = []
         same = []
@@ -492,7 +509,10 @@ class irodsConnectorIcommands():
         #adding files that are not on iRODS, only present on local FS
         #adding files that are not on local FS, only present in iRODS
         #adding files that are stored on both devices with the same checksum/size
-        return (diff, list(set(listDir).difference(listColl)), list(set(listColl).difference(listDir)), same)
+        irodsOnly = list(set(listColl).difference(listDir))
+        for i in range(0, len(irodsOnly)):
+            irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
+        return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
 
 
     def addMetadata(self, items, key, value, units = None):
@@ -561,8 +581,6 @@ class irodsConnectorIcommands():
                 raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
 
 
-
-
     def deleteData(self, item):
         """
         Delete a data object or a collection recursively.
@@ -573,11 +591,13 @@ class irodsConnectorIcommands():
             try:
                 item.remove(recurse = True, force = True)
             except CAT_NO_ACCESS_PERMISSION:
+                logging.info('DELETE ERROR', exc_info=True)
                 raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
         elif self.session.data_objects.exists(item.path):
             try:
                 item.unlink(force = True)
             except CAT_NO_ACCESS_PERMISSION:
+                logging.info('DELETE DATA ERROR', exc_info=True)
                 raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
 
 
@@ -605,6 +625,7 @@ class irodsConnectorIcommands():
                 stderr = [o.decode
                     for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
             except AttributeError:
+                logging.info('ERROR RULE EXECUTION', exc_info=True)
                 return stdout, stderr
 
         return stdout, stderr

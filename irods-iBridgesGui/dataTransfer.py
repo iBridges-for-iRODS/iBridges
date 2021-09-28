@@ -230,7 +230,7 @@ class UpDownload(QObject):
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])
-                logging.info(str(diffs))
+                logging.info("UpDownload Diff: "+str(diffs))
                 self.ic.downloadData(self.Coll, self.localFS, 
                                     self.totalSize, buff = 1024**3, force = False, diffs = diffs)
                 self.finished.emit(True, "Download finished")                

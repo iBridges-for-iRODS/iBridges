@@ -99,7 +99,6 @@ class irodsUpDownload():
         else:
             self.widget.uplSetGB_2.hide()
             self.widget.ContUplBut.hide()
-            self.widget.ChecksumCheckBut.hide()
 
 
     def infoPopup(self, message):
@@ -209,4 +208,3 @@ class irodsUpDownload():
         if destIdx == None or os.path.isfile(destPath):
             return (None, None, None)     
         return (source, destIdx, destPath)
-

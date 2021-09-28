@@ -6,6 +6,7 @@ from PyQt5 import QtGui
 
 from popupWidgets import irodsCreateCollection
 from utils import walkToDict, getDownloadDir
+import logging
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 
@@ -249,6 +250,7 @@ class irodsBrowser():
                 self.widget.collTable.setRowCount(0)
                 self.widget.errorLabel.setText("Collection does not exist.")
         except NetworkException:
+            logging.exception("Something went wrong")
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
@@ -291,10 +293,14 @@ class irodsBrowser():
         else:
             path = self.widget.inputPath.text()
         self.__clearViewTabs()
-        self.__fillPreview(value, path)
-        self.__fillMetadata(value, path)
-        self.__fillACLs(value, path)
-        self.__fillResc(value, path)
+        try:
+            self.__fillPreview(value, path)
+            self.__fillMetadata(value, path)
+            self.__fillACLs(value, path)
+            self.__fillResc(value, path)
+        except Exception as e:
+            logging.info('ERROR in Browser',exc_info=True)
+            self.widget.errorLabel.setText(repr(e))
 
 
     def loadSelection(self):

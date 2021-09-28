@@ -7,6 +7,7 @@ from checkableFsTree import checkableFsTreeModel
 import os
 from utils import getSize, walkToDict
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+import logging
 
 class elabUpload():
     def __init__(self, widget, ic):
@@ -58,6 +59,7 @@ class elabUpload():
             self.loadLocalFileView()
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as e:
+            logging.info("elabUpload: "+repr(e))
             self.errorLabel.setText(
                 "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -99,6 +101,7 @@ class elabUpload():
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
                     row = row+1
             except Exception as e:
+                logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(e)+"\n You might not have permissions for that group.")
                 self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -214,6 +217,7 @@ class elabUpload():
                 self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
         except Exception as e:
+            logging.info("ElabUpload UploadData: "+repr(error))
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
             self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -257,10 +261,12 @@ class Worker(QObject):
             self.progress.emit(3)
             self.finished.emit()
         except Exception as e:
+            logging.info("ElabUpload data upload and annotation worker: "+repr(error))
             print(repr(e))
 
         self.annotateElab()
-	
+
+
     def annotateElab(self):
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         if self.ic.davrods and "yoda" in self.ic.session.host:

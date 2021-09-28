@@ -1,5 +1,6 @@
 from elabjournal import elabjournal
 import urllib.request
+import logging
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'

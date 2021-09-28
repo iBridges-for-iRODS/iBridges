@@ -113,18 +113,21 @@ class irodsSearch(QDialog):
 
             if buttonReply == QMessageBox.Yes:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-                for p in irodsPaths:
-                    if self.ic.session.collections.exists(p):
-                        item = self.ic.session.collections.get(p)
-                        self.ic.downloadData(item, downloadDir, 0, force=True)
-                        self.errorLabel.setText("Download complete")
-                    elif self.ic.session.data_objects.exists(p):
-                        item = self.ic.session.data_objects.get(p)
-                        self.ic.downloadData(item, downloadDir, 0, force=True)
-                        self.errorLabel.setText("Download complete")
-                    else:
-                        self.errorLabel.setText(
+                try:
+                    for p in irodsPaths:
+                        if self.ic.session.collections.exists(p):
+                            item = self.ic.session.collections.get(p)
+                            self.ic.downloadData(item, downloadDir, 0, force=True)
+                            self.errorLabel.setText("Download complete")
+                        elif self.ic.session.data_objects.exists(p):
+                            item = self.ic.session.data_objects.get(p)
+                            self.ic.downloadData(item, downloadDir, 0, force=True)
+                            self.errorLabel.setText("Download complete")
+                        else:
+                            self.errorLabel.setText(
                                 "SEARCH widget ERROR: "+p+" not an irods item.")
+                except Exception as e:
+                    logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.enableButtons()
 

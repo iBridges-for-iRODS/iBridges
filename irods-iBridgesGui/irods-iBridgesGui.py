@@ -1,10 +1,8 @@
 import os
 import sys
-#import logging
-#from shutil import copyfile
+import logging
 from cryptography.fernet import Fernet
 from json import load, dump
-#from platform import system
 import subprocess
 import logging
 
@@ -29,7 +27,7 @@ class irodsLogin(QDialog):
         loadUi("ui-files/irodsLogin.ui", self)
         
         self.irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
-        setup_logger(self.irodsEnvPath)
+        setup_logger(self.irodsEnvPath, "iBridgesGui")
         if not os.path.isdir(self.irodsEnvPath):
             os.makedirs(self.irodsEnvPath)
         self.configFilePath = self.irodsEnvPath + os.sep + "config.json"
@@ -122,7 +120,7 @@ class irodsLogin(QDialog):
                 ienv = load(f)
             connect = networkCheck(ienv['irods_host'])
             if not connect:
-                print("iRODS login: No network connection to server")
+                logging.info("iRODS login: No network connection to server")
                 self.envError.setText("No network connection to server")
                 self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return
@@ -131,7 +129,7 @@ class irodsLogin(QDialog):
             self.envError.setText("ERROR: iRODS environment file or certificate not found.")
             self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as error:
-            print(repr(error))
+            logging.info('ERROR IRODS LOGIN', exc_info=True)
             self.passError.clear()
             self.envError.setText("iRODS login: No network connection to server")
             self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
