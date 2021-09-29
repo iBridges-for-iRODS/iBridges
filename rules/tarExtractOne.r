@@ -1,4 +1,5 @@
 tarExtract{
+delay("<PLUSET>1s</PLUSET>"){
 
     msiGetObjType(*obj, *objType);
 
@@ -19,12 +20,13 @@ tarExtract{
         writeLine("stderr", "ERROR tarExtract: not an irods.tar file, *path")
     }
 
-    if(*run== true){
+    if(*run==true && *extract!="null"){
         writeLine("stdout", "STATUS tarExtract: Create collection *parentColl/*objName");
         msiCollCreate("*parentColl/*objName", 1, *collCreateOut);
         if(*collCreateOut == 0){
-            writeLine("stdout", "STATUS tarExtract: Extract *obj to *parentColl/*objName");
-            msiArchiveExtract(*obj, "*parentColl/*objName", "null", *resource, *outTarExtract);
+            writeLine("stdout", "STATUS tarExtract: Extract *extract to *parentColl/*objName");
+            msiArchiveExtract(*obj, "*parentColl/*objName", 
+			      *extract,  *resource, *outTarExtract);
             if(*outTarExtract != 0){
                 writeLine("stderr", "ERROR tarExtract: Failed to extract data");
             }
@@ -35,6 +37,7 @@ tarExtract{
     }
     else{writeLine("stdout", "DEBUG tarExtract: no action.")}
 }
+}
 
-input *obj="/npecZone/home/cstaiger/Uploads/ACES.irods.zip", *resource="disk"
+input *obj="/npecZone/home/cstaiger/Uploads/ACES.irods.zip", *extract="null", *resource="disk"
 output ruleExecOut

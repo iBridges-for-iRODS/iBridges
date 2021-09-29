@@ -26,6 +26,9 @@ class irodsInfo():
         groupNames = [x for x in userGroups if not isinstance(x, int)]
         self.widget.typeLabel.setText(userType[0])
         self.widget.groupsLabel.setText('\n'.join(groupNames))
+        #defaul resource
+        self.widget.rescLabel.setText(self.ic.defaultResc)
+        
         #irods server and version
         self.widget.serverLabel.setText(self.ic.session.host)
         self.widget.versionLabel.setText(

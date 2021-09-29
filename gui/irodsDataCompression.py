@@ -119,7 +119,7 @@ class irodsDataCompression():
         migrateResc = self.widget.compressRescButton.currentText()
         params = {
                 '*coll': '"'+source+'"',
-                '*resource': '"'+self.ic.defaultResc+'"',
+                '*resource': '"'+migrateResc+'"',
                 '*compress': '"'+str(compress).lower()+'"',
                 '*delete': '"'+str(remove).lower()+'"'
                 }
@@ -180,7 +180,7 @@ class irodsDataCompression():
         migrateResc = self.widget.decompressRescButton.currentText()
         params = {
                 '*obj': '"'+source+'"',
-                '*resource': '"'+self.ic.defaultResc+'"',
+                '*resource': '"'+migrateResc+'"',
                 }
 
         self.threadExtract = QThread()
@@ -212,7 +212,7 @@ class irodsDataCompression():
                 }
         stdout, stderr = self.ic.executeRule(ruleFile, params)
         self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
-        indexPopup = irodsIndexPopup(stdout[1:], source, self.widget.unpackStatusLabel)
+        indexPopup = irodsIndexPopup(self.ic, stdout[1:], source, self.widget.unpackStatusLabel)
         indexPopup.exec_()
 
 
