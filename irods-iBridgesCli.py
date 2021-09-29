@@ -6,13 +6,13 @@ Commandline client to upload data to a storage service and double-link the stora
 Implemented for:
     Storage types:
         iRODS
-    Metadtaa stores:
+    Metadata stores:
         Elabjournal
 """
 
-from elabConnector import elabConnector
-from irodsConnector import irodsConnector
-from irodsConnectorIcommands import irodsConnectorIcommands
+from utils.elabConnector import elabConnector
+from utils.irodsConnector import irodsConnector
+from utils.irodsConnectorIcommands import irodsConnectorIcommands
 from irods.exception import ResourceDoesNotExist
 
 import configparser
@@ -22,7 +22,7 @@ import json
 import getopt
 import getpass
 import subprocess
-from utils import setup_logger, getSize
+from utils.utils import setup_logger, getSize, ensure_dir
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -43,36 +43,45 @@ def getConfig(path):
     
     return args
 
-def setupIRODS(config):
+
+def connectIRODS(config):
+
+    #icommands present and irods_environment file present and user wants to use standard envFile
+    standardEnv = os.path.expanduser('~' +os.sep+'.irods/irods_environment.json')
+    if os.path.exists(standardEnv) and \
+            (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
+        try:
+            ic = irodsConnectorIcommands()
+            print(BLUE+"INFO: Icommands and standard environment file are present.")
+            print("INFO: Using icommands for data up and download."+DEFAULT)
+        except ConnectionRefusedError:
+            raise
+        except FileNotFoundError:
+            raise
+        except Exception as e:
+           raise
+
+    elif os.path.exists(config['iRODS']['irodsenv']):
+        passwd = getpass.getpass(
+                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
+        ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
+        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
+
+    else:
+        raise FileNotFoundError('Environment file not found: '+ envFile)
+
+    return ic
+
+
+def setupIRODS(config, operation):
     """
     Connects to iRODS and sets up the environment.
     """
-    try:
-    #icommands available and standard irods_environment file
-        assert(subprocess.call(["which", "iinit"]) == 0 
-            and config['iRODS']['irodsenv'] == \
-                        os.environ['HOME']+'/.irods/irods_environment.json')
-        ic = irodsConnectorIcommands()
-        print(BLUE+"INFO: Icommands and standard environment file are present.")
-        print("INFO: Using icommands for data up and download."+DEFAULT)
-    except:
-    #no icommands or not standard environment file --> python only
-        if config['iRODS']['irodsenv'] != '':
-            passwd = getpass.getpass('Password for iRODS user in '+config['iRODS']['irodsenv']+': ')
-            ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
-            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-        elif os.path.isfile(os.environ['HOME']+'/.irods/irods_environment.json'):
-            print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-            if os.path.isfile(os.environ['HOME']+'/.irods/.irodsA'):
-                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json')
-            else:
-                passwd = getpass.getpass(
-                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-                ic = irodsConnector(os.environ['HOME']+'/.irods/irods_environment.json', passwd)
-        else:
-            raise AttributeError('No valid iRODS environment file found')
+    ic = connectIRODS(config)
+    if operation == 'download':
+        return ic
 
-    # set iRODS path
+    #set iRODS path
     try:
         coll = ic.ensureColl(config['iRODS']['irodscoll'])
         print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
@@ -93,16 +102,19 @@ def setupIRODS(config):
 
     #set iRODS resource
     try:
-        ic.getResource(config['iRODS']['irodsresc'])
+        resource = ic.getResource(config['iRODS']['irodsresc'])
         print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
-                str(int(ic.resourceSize(config['iRODS']['irodsresc']))/1024**3)+'GB')
+                str(round(int(ic.resourceSize(resource.name))/1024**3))+'GB')
     except ResourceDoesNotExist:
         print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
-        resc = ic.getResource('demoResc')
-        menu = input('Set iRODS to demoResc ('\
-                +str(int(ic.resourceSize('demoResc'))/1024**3)+'GB free)? (Yes/No) ')
+        resources  = ic.listResources()
+        sizes = list(map(ic.resourceSize, resources))
+        largestResc = resources[sizes.index(max(sizes))]
+        menu = 'y'
+        menu = input('Choose '+largestResc+' ('\
+                +str(round(int(ic.resourceSize(largestResc))/1024**3))+'GB free)? (Yes/No) ')
         if menu in ['Yes', 'yes', 'Y', 'y']:
-            config['iRODS']['irodsresc'] = 'demoResc'
+            config['iRODS']['irodsresc'] = largestResc
         else:
             print("Aborted: no iRODS reosurce set.")
             sys.exit(2)
@@ -137,15 +149,16 @@ def setupELN(config):
 
 def prepareUpload(dataPath, ic, config):
     if not os.path.exists(dataPath):
-        print(RED+'Data path odes not exist'+DEFAULT)
+        print(RED+'Data path does not exist'+DEFAULT)
         menu = input('Do you want to specify a new path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y']:
+        if menu in ['YES', 'Yes', 'Y', 'y', '']:
             success = False
             while not success:
                 dataPath = input('Full data path: ')
                 success = os.path.exists(dataPath)
         else:
             print('Aborted: Data path not given')
+            return False
     else:
         pass 
 
@@ -162,13 +175,49 @@ def prepareUpload(dataPath, ic, config):
         return True
 
 
+def prepareDownload(irodsItemPath, ic, config):
+    if not ic.session.data_objects.exists(irodsItemPath) or \
+       not ic.session.collections.exists(irodsItemPath):
+        print(RED+'iRODS path does not exist'+DEFAULT)
+        menu = input('Do you want to specify a new iRODS path? (Y/N)')
+        if menu in ['YES', 'Yes', 'Y', 'y', '']:
+            success = False
+            while not success:
+                irodsItemPath = input('Full data path: ')
+                success = ic.session.data_objects.exists(irodsItemPath) or \
+                          ic.session.collections.exists(irodsItemPath)
+            config["iRODS"]["downloadItem"] = irodsItemPath
+        else:
+            print('Aborted: iRODS path not given')
+            return False
+    else:
+        pass
+
+    if config['DOWNLOAD']['path'] == '' or os.path.isfile(config['DOWNLOAD']['path']):
+        print(RED+'No download directory given'+DEFAULT)
+        menu = input('Do you want to specify a new iRODS path? (Y/N)')
+        if menu in ['YES', 'Yes', 'Y', 'y', '']:
+            success = False
+            while not success:
+                dataPath = input('Download directory: ')
+                success = ensure_dir(dataPath)
+            config["DOWNLOAD"]["path"] = dataPath
+        else:
+            print('Aborted: download directory not given')
+            return False
+    else:
+        return ensure_dir(config['DOWNLOAD']['path'])
+    
+    return True
+
+
 def main(argv):
     
     irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
     setup_logger(irodsEnvPath, "iBridgesCli")
 
     try:
-        opts, args = getopt.getopt(argv,"hc:d:",["config="])
+        opts, args = getopt.getopt(argv,"hc:d:i:",["config=", "data=", "irods="])
     except getopt.GetoptError:
         print('iUpload -h')
         sys.exit(2)
@@ -181,7 +230,11 @@ def main(argv):
             print('Data upload client')
             print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
             print('Usage: ./iUpload.py -c, --config= \t config file') 
-            print('\t\t    -d, --data= \t datapath')
+            print('\t\t    -d, --data= \t datapath (upload)')
+            print('\t\t    -i, --irods= \t irodspath (download)')
+            print('Examples:')
+            print('Downloading: ./irods-iBridgesCli.py -c <youConfigFile> --irods=/npecZone/home')
+            print('Uploading: ./irods-iBridgesCli.py -c <youConfigFile> --data=/my/data/path')
             sys.exit(2)
         elif opt in ['-c', '--config']:
             try:
@@ -192,6 +245,12 @@ def main(argv):
                 except:
                     print(RED+'No config file found.'+DEFAULT)
                     sys.exit(2)
+        elif opt in ['-i', '--irods']:
+            operation = 'download'
+            if arg.endswith("/"):
+                irodsPath = arg[:-1]
+            else:
+                irodsPath = arg
         elif opt in ['-d', '--data']:
             operation = 'upload'
             if arg.endswith("/"):
@@ -203,12 +262,17 @@ def main(argv):
             print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
             print('Usage: ./iUpload.py -c, --config= \t config file')
             print('\t\t    -d, --data= \t datapath')
+            print('\t\t    -i, --irods= \t irodspath (download)')
+            print('Examples:')
+            print('Downloading: ./irods-iBridgesCli.py -c <youConfigFile> --irods=/npecZone/home')
+            print('Uploading: ./irods-iBridgesCli.py -c <youConfigFile> --data=/my/data/path')
+
             sys.exit(2)
 
     #initialise iRODS
-    ic = setupIRODS(config)
+    ic = setupIRODS(config, operation)
     #initialise medata store connetcions
-    if 'ELN' in config:
+    if 'ELN' in config and operation == 'upload':
         md, title = setupELN(config)
     else:
         md = None
@@ -226,7 +290,7 @@ def main(argv):
             ic.ensureColl(iPath)
             print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
-            ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize(dataPath))
+            ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]))
         else:
             sys.exit(2)
         #tag data in iRODS and metadata store
@@ -244,6 +308,25 @@ def main(argv):
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
         print(DEFAULT)
+    elif operation == 'download':
+        print(json.dumps(config, indent=4))
+        if prepareDownload(irodsPath, ic, config):
+            downloadDir = config['DOWNLOAD']['path']
+            irodsDataPath = config["iRODS"]["downloadItem"]
+            print(YEL, 
+                  'Downloading: '+irodsDataPath+', '+str(ic.getSize([irodsDataPath])/1024**3)+'GB', 
+                  DEFAULT)
+            try:
+                item = ic.session.collections.get(irodsDataPath)
+            except:
+                item = ic.session.data_objects.get(irodsDataPath)
+            ic.downloadData(item, downloadDir, ic.getSize([irodsDataPath]), force = False)
+            print()
+            print(BLUE+'Download complete with the following parameters:')
+            print(json.dumps(config, indent=4))
+            print(DEFAULT)
+        else:
+            sys.exit(2)
     else:
         print('Not an implemented operation.')
         sys.exit(2)

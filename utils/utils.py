@@ -6,6 +6,15 @@ from datetime import datetime
 from json import dump
 
 
+def ensure_dir(path):
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+        return True
+    except:
+        return False 
+
+
 def getSize(pathList):
     size = 0
     for p in pathList:
