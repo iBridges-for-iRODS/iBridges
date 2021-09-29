@@ -18,41 +18,30 @@ pip install python-irodsclient
 
 ## Configuration
 
-- Minimal configuration file (upload to iRODS only):
+- Minimal configuration file for uploading data to iRODs:
 
 ```
 [iRODS]
-irodsenv = <path to>/irods_environment.json
+irodsenv = /<path to>/irods_environment.json
 irodscoll = 
 irodsresc = 
 webdav = 
 ```
 
-- Configuration files for the iRODS-Elab instance
+- Configuration file for downloading data from iRODS:
 
-  - The iRODS instance is SSL encrypted to allow for interactions with LDAP, you can use your WUR-account and password to login.
-  - You need an irods.crt file (contact iRODS admin)
-  - You need to be on the WUR-VPN
-  - iRODS environment file:
+```
+[iRODS]
+irodsenv = /<path to>/irods_environment.json
+irodscoll = 
+irodsresc = 
+webdav =
 
-  ```
-  {
-      "irods_host": "scomp1486.wurnet.nl",
-      "irods_port": 1247,
-      "irods_zone_name": "elabZone",
-      "irods_user_name": "<WUR-account>", 
-      "irods_client_server_negotiation": "request_server_negotiation",
-      "irods_client_server_policy": "CS_NEG_REQUIRE",
-      "irods_encryption_key_size": 32,
-      "irods_encryption_salt_size": 8,
-      "irods_encryption_num_hash_rounds": 16,
-      "irods_encryption_algorithm": "AES-256-CBC",
-      "irods_ssl_ca_certificate_file": "<path to>/irods.crt",
-      "irods_authentication_scheme": "PAM"
-  }
-  ```
+[DOWNLOAD]
+path = /path/to/download/directory
+```
 
-  - Config file for the upload client (upload to iRODs and linking in ELN)
+- Configuration files for uploading data to iRODS and linking them to ElabJournal experiment:
 
   ```
   [iRODS]
@@ -68,14 +57,15 @@ webdav =
   title =
   ```
 
-  - In the iRODS instance there are two iRODS resources available:
-    - bigstore: ~300GB
-    - demoResc: ~5GB
-
   ## Usage
 
+  
   ```
-  ./iUpload -c </path/to/config> -d </path/to/folder/or/file/to/upload>
+  ./irods-iBridgesCli.py -h
+  ./irods-iBridgesCli -c </path/to/config> -d </path/to/folder/or/file/to/upload>
+  ./irods-iBridgesCli.py -c </path/to/config> -i </zone/home/path/to/coll/or/obj>
   ```
+
+
 
   
