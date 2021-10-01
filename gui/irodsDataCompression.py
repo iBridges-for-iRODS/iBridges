@@ -33,6 +33,8 @@ class irodsDataCompression():
         self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
         self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
         self.irodsRootColl = '/'+ic.session.zone
+        index = self.widget.decompressRescButton.findText(ic.defaultResc)
+        self.widget.decompressRescButton.setCurrentIndex(index)
 
         #irodsCollectionTree
         self.collectionTreeModel = self.setupFsTree(self.widget.irodsCollectionTree)
@@ -80,9 +82,8 @@ class irodsDataCompression():
         button.clear()
         resources = self.ic.listResources()
         button.addItems(resources)
-        if "irods_default_resource" in self.ienv and \
-                self.ienv["irods_default_resource"] in resources:
-            index = self.widget.resourceBox.findText(self.ienv["default_resource_name"])
+        if self.ic.defaultResc in resources:
+            index = button.findText(self.ic.defaultResc)
             button.setCurrentIndex(index)
 
     def enableButtons(self, enable):
@@ -105,6 +106,7 @@ class irodsDataCompression():
         if not self.ic.session.collections.exists(source):
             self.widget.createStatusLabel.setText("ERROR: No collection selected.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.enableButtons(True)
             return
 
         #data bundling only allowed for collections in home/user
@@ -112,6 +114,7 @@ class irodsDataCompression():
             self.widget.createStatusLabel.setText(
                     "ERROR: Selected collection is not a user collection.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.enableButtons(True)
             return
 
         compress = self.widget.compressCheckBox.isChecked()

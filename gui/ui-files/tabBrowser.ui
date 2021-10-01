@@ -191,6 +191,11 @@ color: rgb(46, 52, 54);
        <string>Checksum</string>
       </property>
      </column>
+     <column>
+      <property name="text">
+       <string>Last modified</string>
+      </property>
+     </column>
     </widget>
    </item>
    <item>

@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
 from PyQt5.QtGui import QMovie
 import logging
+from datetime import datetime
 
 from irods.keywords import NO_PARA_OP_KW
 
@@ -42,7 +43,7 @@ class dataTransfer(QDialog):
             self.confirmBtn.setText("Download")        
         self.confirmBtn.setEnabled(False)
 
-        self.loading_movie = QMovie("icons/loading_circle.gif")
+        self.loading_movie = QMovie("gui/icons/loading_circle.gif")
         #loading_movie.setScaledSize(size)
         self.loadingLbl.setMovie(self.loading_movie)
         self.loading_movie.start()
@@ -75,10 +76,15 @@ class dataTransfer(QDialog):
         total_size = self.updateSize + self.addSize
         self.loading_movie.start()
         self.loadingLbl.setHidden(False)
+        now = datetime.now()
         if self.upload:
-            self.statusLbl.setText("Uploading... this might take a while")
+            self.statusLbl.setText(
+                "Uploading... this might take a while. \nStarted "+\
+                str(now.date())+"  "+str(now.time().hour)+":"+str(now.time().minute))
         else:
-            self.statusLbl.setText("Downloading... this might take a while")
+            self.statusLbl.setText(
+                "Downloading... this might take a while. \nStarted "+\
+                 str(now.date())+"  "+str(now.time().hour)+":"+str(now.time().minute))
         self.thread = QThread()
         if len(self.diff)+len(self.addFiles) == 0:
             self.statusLbl.setText("Nothing to update.")

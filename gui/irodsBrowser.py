@@ -241,8 +241,12 @@ class irodsBrowser():
                     row = row+1
                 for obj in coll.data_objects:
                     self.widget.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
-                    self.widget.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
-                    self.widget.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                    self.widget.collTable.setItem(
+                        row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
+                    self.widget.collTable.setItem(
+                        row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                    self.widget.collTable.setItem(
+                        row, 4, QtWidgets.QTableWidgetItem(str(obj.modify_time)))
                     self.widget.collTable.setItem(row, 0, QtWidgets.QTableWidgetItem(""))
                     row = row+1
                 self.widget.collTable.resizeColumnsToContents()
