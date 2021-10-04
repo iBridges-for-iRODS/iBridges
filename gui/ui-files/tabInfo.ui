@@ -283,6 +283,11 @@ QTextBrowser
          <string>Free space in GB</string>
         </property>
        </column>
+       <column>
+        <property name="text">
+         <string>Status</string>
+        </property>
+       </column>
       </widget>
      </item>
      <item row="8" column="0">

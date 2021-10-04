@@ -44,8 +44,10 @@ class irodsInfo():
         self.widget.rescTable.setRowCount(len(resources))
         row = 0
         for rescName, rescSize in resources:
+            resc = self.ic.getResource(rescName)
             self.widget.rescTable.setItem(row, 0, QtWidgets.QTableWidgetItem(rescName))
             self.widget.rescTable.setItem(row, 1, QtWidgets.QTableWidgetItem(rescSize))
+            self.widget.rescTable.setItem(row, 2, QtWidgets.QTableWidgetItem(resc.status))
             row = row + 1
         self.widget.rescTable.resizeColumnsToContents()
         self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
