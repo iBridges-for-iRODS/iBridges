@@ -179,7 +179,7 @@ class irodsConnectorIcommands():
 
     def search(self, keyVals = None):
         '''
-        Given a dictionary with keys and values, searches for collections and 
+        Given a dictionary with keys and values, searches for colletions and 
         data objects that fullfill the criteria.
         The key 'checksum' will be mapped to DataObject.checksum, the key 'path'
         will be mapped to Collection.name and the key 'object' will be mapped to DataObject.name.
@@ -187,33 +187,29 @@ class irodsConnectorIcommands():
 
         keyVals: dict; {'checksum': '', 'key1': 'val1', 'key2': 'val2', 'path': '', 'object': ''}
 
-        
         Returns:
         list: [[Collection name, Object name, checksum]]
         '''
         collQuery = None
         objQuery = None
-        if set(keyVals.keys()).intersection(['checksum', 'object', 'path']) == set():
-            collQuery = self.session.query(Collection.name)
-            objQuery = self.session.query(Collection.name,
-                                          DataObject.name,
-                                          DataObject.checksum)
-        if 'path' in keyVals:
-            collQuery = self.session.query(Collection.name).\
-                                           filter(Like(Collection.name, keyVals['path']))
-        if 'object' in keyVals or 'checksum' in keyVals:
-            objQuery = self.session.query(Collection.name,
-                                DataObject.name,
-                                DataObject.checksum)
+        # data query
+        if 'checksum' in keyVals or 'object' in keyVals:
+            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
             if 'object' in keyVals:
                 if keyVals['object']:
-                    objQuery = objQuery.filter(Like(DataObject.name,
-                                                keyVals['object']))
+                    objQuery = objQuery.filter(Like(DataObject.name, keyVals['object']))
             if 'checksum' in keyVals:
                 if keyVals['checksum']:
-                    objQuery = objQuery.filter(Like(DataObject.checksum,
-                                                keyVals['checksum']))
+                    objQuery = objQuery.filter(Like(DataObject.checksum, keyVals['checksum']))
+        else:
+            collQuery = self.session.query(Collection.name)
+            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
 
+        if 'path' in keyVals and keyVals['path']:
+            if collQuery:
+                collQuery = collQuery.filter(Like(Collection.name, keyVals['path']))
+            objQuery = objQuery.filter(Like(Collection.name, keyVals['path']))
+        
         for key in keyVals:
             if key not in ['checksum', 'path', 'object']:
                 if objQuery:
@@ -225,10 +221,10 @@ class irodsConnectorIcommands():
                         objQuery.filter(DataObjectMeta.value == keyVals[key])
                     if collQuery:
                         collQuery.filter(CollectionMeta.value == keyVals[key])
-
         results = [['', '', ''], ['', '', ''], ['', '', '']]
-        collBatch = []
-        objBatch = []
+        collBatch = [[]]
+        objBatch = [[]]
+        #return only 100 results
         if collQuery:
             results[0] = ["Collections found: "+str(sum(1 for _ in collQuery)),'', '']
             collBatch = [b for b in collQuery.get_batches()]
@@ -236,15 +232,12 @@ class irodsConnectorIcommands():
             results[1] = ["Objects found: "+str(sum(1 for _ in objQuery)), '', '']
             objBatch = [b for b in objQuery.get_batches()]
 
-        if 'checksum' in keyVals or 'object' in keyVals:
-            for res in objBatch[0][:50]:
-                results.append([res[list(res.keys())[0]],
-                                res[list(res.keys())[1]],
-                                res[list(res.keys())[2]]])
-        if 'path' in keyVals:
-            for res in collBatch[0][:50]:
-                results.append([res[list(res.keys())[0]], '', ''])
-
+        for res in collBatch[0][:50]:
+            results.append([res[list(res.keys())[0]], '', ''])
+        for res in objBatch[0][:50]:
+            results.append([res[list(res.keys())[0]],
+                            res[list(res.keys())[1]],
+                            res[list(res.keys())[2]]])
         return results
 
 
