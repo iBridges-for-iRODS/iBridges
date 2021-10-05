@@ -283,10 +283,7 @@ class irodsConnector():
         """
         try:
             size = self.session.resources.get(resource).free_space
-            if size == None:
-                raise AttributeError("RESOURCE ERROR: size not set.")
-            else:
-                return size
+            return size
         except Exception as error:
             logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
                             exc_info=True)
@@ -314,7 +311,6 @@ class irodsConnector():
         
         """
         logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
-
         if resource != None and resource != "":
             options = {kw.RESC_NAME_KW: resource,
                        kw.REG_CHKSUM_KW: '', kw.ALL_KW: '',

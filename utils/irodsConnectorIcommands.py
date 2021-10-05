@@ -284,13 +284,10 @@ class irodsConnectorIcommands():
         """
         try:
             size = self.session.resources.get(resource).free_space
-            if size == None:
-                logging.info("RESOURCE ERROR: size not set.")
-                raise AttributeError("RESOURCE ERROR: size not set.")
-            else:
-                return size
+            return size
         except Exception as error:
-            logging.info('RESOURCE ERROR', exc_info=True)
+            logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
+                            exc_info=True)
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
 
 

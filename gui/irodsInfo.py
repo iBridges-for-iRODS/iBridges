@@ -35,11 +35,13 @@ class irodsInfo():
             '.'.join(str(num) for num in self.ic.session.server_version))
         #irods resources
         resourceNames = self.ic.listResources()
-        try:
-            resources = [(name, str(round(int(self.ic.resourceSize(name))/1024**3)))
-                     for name in resourceNames]
-        except:
-            resources = [(name, "no information") for name in resourceNames]
+        resources = []
+        for name in resourceNames:
+            size = self.ic.resourceSize(name)
+            if size:
+                resources.append((name, str(round(int(self.ic.resourceSize(name))/1024**3))))
+            else:
+                resources.append((name, "no information"))
 
         self.widget.rescTable.setRowCount(len(resources))
         row = 0
