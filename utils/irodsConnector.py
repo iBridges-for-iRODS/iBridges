@@ -1,5 +1,6 @@
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
+from irods.ticket import Ticket
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
 from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION
 from irods.exception import CollectionDoesNotExist
@@ -16,6 +17,7 @@ from base64 import b64decode
 from shutil import disk_usage
 import hashlib
 import ssl
+import random, string
 import logging
 
 RED = '\x1b[1;31m'
@@ -39,6 +41,8 @@ class irodsConnector():
             NetworkException: No conection could be established
             All other errors refer to having the envFile not setup properly
         """
+        self.__name__="irodsConnector"
+
         try:
             with open(envFile) as f:
                 ienv = json.load(f)
@@ -748,3 +752,11 @@ class irodsConnector():
                         raise
         return size
 
+
+    def createTicket(self, path, expiryString=""):
+        ticket = Ticket(self.session, 
+                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
+        ticket.issue("read", path)
+        logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
+        #returns False when no expiry date is set
+        return ticket.ticket, False

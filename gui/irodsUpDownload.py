@@ -18,11 +18,6 @@ class irodsUpDownload():
         self.syncing = False # syncing or not
 
         rescs = self.ic.listResources()
-        #if ic.defaultResc not in rescs:
-        #    self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'\
-        #                   +ic.defaultResc \
-        #                   +'\nData Up and Download view not setup.')
-        #    return
 
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)

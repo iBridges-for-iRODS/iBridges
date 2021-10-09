@@ -3,6 +3,7 @@ from irods.access       import iRODSAccess
 from irods.exception    import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION
 from irods.exception    import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER
 from irods.exception    import CollectionDoesNotExist
+from irods.ticket       import Ticket
 
 from irods.models       import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.models       import User, UserGroup
@@ -17,14 +18,16 @@ import os
 from base64 import b64decode
 from shutil import disk_usage
 import hashlib
+import random, string
 import logging
+from utils.irodsConnector import irodsConnector
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
-class irodsConnectorIcommands():
+class irodsConnectorIcommands(irodsConnector):
     def __init__(self, password = ''):
         """
         iRODS authentication.
@@ -37,6 +40,8 @@ class irodsConnectorIcommands():
             FileNotFoundError: /home/<user>/.irods/irods_environment.json not found
             All other errors refer to having the envFile not setup properly
         """
+        self.__name__="irodsConnectorIcommands"
+
         envFile = os.environ['HOME']+"/.irods/irods_environment.json"
         envFileExists = os.path.exists(envFile)
         
@@ -107,181 +112,6 @@ class irodsConnectorIcommands():
 
         logging.info(
             'IRODS LOGIN SUCCESS: '+self.session.username+", "+self.session.zone+", "+self.session.host)
-
-
-    def getUserInfo(self):
-        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
-        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
-
-        userType = []
-        for t in userTypeQuery.get_results():
-            userType.extend(list(t.values()))
-        userGroups = []
-        for g in userGroupQuery.get_results():
-            userGroups.extend(list(g.values()))
-
-        return(userType, userGroups)
-
-
-    def getPermissions(self, iPath):
-        '''
-        iPath: Can be a string or an iRODS collection/object
-        Throws:
-            irods.exception.CollectionDoesNotExist
-        '''
-        try:
-            return self.session.permissions.get(iPath)
-        except:
-            try:
-                coll = self.session.collections.get(iPath)
-                return self.session.permissions.get(coll)
-            except:
-                try:
-                    obj = self.session.data_objects.get(iPath)
-                    return self.session.permissions.get(obj)
-                except:
-                    logging.info('PERMISSIONS ERROR', exc_info=True)
-                    raise
-
-
-    def setPermissions(self, rights, user, path, zone, recursive = False):
-        '''
-        Sets permissions to an iRODS collection or data object.
-        path: string
-        rights: string, [own, read, write, null]
-        '''
-        acl = iRODSAccess(rights, path, user, zone)
-
-        try:
-            if recursive and self.session.collections.exists(path):
-                self.session.permissions.set(acl, recursive=True)
-            else:
-                self.session.permissions.set(acl, recursive=False)
-        except CAT_INVALID_USER:
-            raise CAT_INVALID_USER("ACL ERROR: user unknown ")
-        except CAT_INVALID_ARGUMENT:
-            raise CAT_INVALID_ARGUMENT("ACL ERROR: rights or path not known")
-
-
-    def ensureColl(self, collPath):
-        '''
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-        '''
-        try:
-            if not self.session.collections.exists(collPath):
-                self.session.collections.create(collPath)
-            return self.session.collections.get(collPath)
-        except:
-            logging.info('ENSURE COLLECtION ERROR', exc_info=True)
-            raise
-
-
-    def search(self, keyVals = None):
-        '''
-        Given a dictionary with keys and values, searches for colletions and 
-        data objects that fullfill the criteria.
-        The key 'checksum' will be mapped to DataObject.checksum, the key 'path'
-        will be mapped to Collection.name and the key 'object' will be mapped to DataObject.name.
-        Default: if no keyVals are given, all accessible colletcins and data objects will be returned
-
-        keyVals: dict; {'checksum': '', 'key1': 'val1', 'key2': 'val2', 'path': '', 'object': ''}
-
-        Returns:
-        list: [[Collection name, Object name, checksum]]
-        '''
-        collQuery = None
-        objQuery = None
-        # data query
-        if 'checksum' in keyVals or 'object' in keyVals:
-            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
-            if 'object' in keyVals:
-                if keyVals['object']:
-                    objQuery = objQuery.filter(Like(DataObject.name, keyVals['object']))
-            if 'checksum' in keyVals:
-                if keyVals['checksum']:
-                    objQuery = objQuery.filter(Like(DataObject.checksum, keyVals['checksum']))
-        else:
-            collQuery = self.session.query(Collection.name)
-            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
-
-        if 'path' in keyVals and keyVals['path']:
-            if collQuery:
-                collQuery = collQuery.filter(Like(Collection.name, keyVals['path']))
-            objQuery = objQuery.filter(Like(Collection.name, keyVals['path']))
-        
-        for key in keyVals:
-            if key not in ['checksum', 'path', 'object']:
-                if objQuery:
-                    objQuery.filter(DataObjectMeta.name == key)
-                if collQuery:
-                    collQuery.filter(CollectionMeta.name == key)
-                if keyVals[key]:
-                    if objQuery:
-                        objQuery.filter(DataObjectMeta.value == keyVals[key])
-                    if collQuery:
-                        collQuery.filter(CollectionMeta.value == keyVals[key])
-        results = [['', '', ''], ['', '', ''], ['', '', '']]
-        collBatch = [[]]
-        objBatch = [[]]
-        #return only 100 results
-        if collQuery:
-            results[0] = ["Collections found: "+str(sum(1 for _ in collQuery)),'', '']
-            collBatch = [b for b in collQuery.get_batches()]
-        if objQuery:
-            results[1] = ["Objects found: "+str(sum(1 for _ in objQuery)), '', '']
-            objBatch = [b for b in objQuery.get_batches()]
-
-        for res in collBatch[0][:50]:
-            results.append([res[list(res.keys())[0]], '', ''])
-        for res in objBatch[0][:50]:
-            results.append([res[list(res.keys())[0]],
-                            res[list(res.keys())[1]],
-                            res[list(res.keys())[2]]])
-        return results
-
-
-    def listResources(self):
-        """
-        Returns list of all root resources, that accept data.
-        """
-        query = self.session.query(Resource.name, Resource.parent)
-        resources = []
-        for item in query.get_results():
-            rescName, parent = item.values()
-            if parent == None:
-                resources.append(rescName)
-
-        if 'bundleResc' in resources:
-            resources.remove('bundleResc')
-        if 'demoResc' in resources:
-            resources.remove('demoResc')
-
-        return resources
-
-
-    def getResource(self, resource):
-        '''
-        Raises:
-            irods.exception.ResourceDoesNotExist
-        '''
-        return self.session.resources.get(resource)
-
-
-    def resourceSize(self, resource):
-        """
-        Returns the available space left on a resource in bytes
-        resource: Name of the resource
-        Throws: ResourceDoesNotExist if resource not known
-                TypeError if 'free_space' not set
-        """
-        try:
-            size = self.session.resources.get(resource).free_space
-            return size
-        except Exception as error:
-            logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
-                            exc_info=True)
-            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
 
 
     def uploadData(self, source, destination, resource, size, buff = 1024**3, 
@@ -387,269 +217,19 @@ class irodsConnectorIcommands():
         logging.info('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
-    def diffObjFile(self, objPath, fsPath, scope="size"):
-        """
-        Compares and iRODS object to a file system file.
-        returns ([diff], [onlyIrods], [onlyFs], [same])
-        """
-        if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
-            raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
-        if self.session.collections.exists(objPath):
-            raise IsADirectoryError("IRODS FS DIFF: object is a collection.")
+    def createTicket(self, path, expiryString=""):
+        ticket = Ticket(self.session, 
+                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
+        ticket.issue("read", path)
+        logging.info('IRODS TICKET INFO: ticket created: '+ticket.ticket)
 
-        if not os.path.isfile(fsPath) and self.session.data_objects.exists(objPath):
-            return ([], [], [objPath], [])
+        if expiryString != "":
+            cmd = 'iticket mod '+ticket.ticket+' expire '+expiryString
 
-        elif not self.session.data_objects.exists(objPath) and os.path.isfile(fsPath):
-            return ([], [fsPath], [], [])
-
-        #both, file and object exist
-        obj = self.session.data_objects.get(objPath)
-        if scope == "size":
-            objSize = obj.size
-            fSize = os.path.getsize(fsPath)
-            if objSize != fSize:
-                return ([(objPath, fsPath)], [], [], [])
-            else:
-                return ([], [], [], [(objPath, fsPath)])
-        elif scope == "checksum":
-            objCheck = obj.checksum
-            if objCheck == None:
-                obj.chksum()
-                objCheck = obj.checksum
-            if objCheck.startswith("sha2"):
-                sha2Obj = b64decode(objCheck.split('sha2:')[1])
-                with open(fsPath) as f:
-                    stream = f.read()
-                    sha2 = hashlib.sha256(stream).digest()
-                if sha2Obj != sha2:
-                    return([(objPath, fsPath)], [], [], [])
-                else:
-                    return ([], [], [], [(objPath, fsPath)])
-            elif objCheck:
-                #md5
-                with open(fsPath) as f:
-                    stream = f.read()
-                    md5 = hashlib.md5(stream).hexdigest();
-                if objCheck != md5:
-                    return([(objPath, fsPath)], [], [], [])
-                else:
-                    return ([], [], [], [(objPath, fsPath)])
-
-
-    def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
-        '''
-        Compares and iRODS tree to a directory and lists files that are not in sync.
-        Syncing scope can be 'size' or 'checksum'
-        Returns: zip([dataObjects][files]) where ther is a difference
-        collection: collection path
-        '''
-
-        listDir = []
-        if not dirPath == None:
-            if not os.access(dirPath, os.R_OK):
-                raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
-            if not os.path.isdir(dirPath):
-                raise IsADirectoryError("IRODS FS DIFF: directory is a file.")
-            for root, dirs, files in os.walk(dirPath, topdown=False):
-                for name in files:
-                    listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
-
-        listColl = []
-        if not coll == None:
-            for root, subcolls, obj in coll.walk():
-                for o in obj:
-                    listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
-
-        diff = []
-        same = []
-        for partialPath in set(listDir).intersection(listColl):
-            if scope == "size":
-                objSize = self.session.data_objects.get(coll.path+'/'+partialPath).size
-                fSize = os.path.getsize(dirPath+'/'+partialPath)
-                if objSize != fSize:
-                    diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
-                else:
-                    same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
-            elif scope == "checksum":
-                objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
-                if objCheck == None:
-                    self.session.data_objects.get(coll.path+'/'+partialPath).chksum()
-                    objCheck = self.session.data_objects.get(coll.path+'/'+partialPath).checksum
-                if objCheck.startswith("sha2"):
-                    sha2Obj = b64decode(objCheck.split('sha2:')[1])
-                    with open(dirPath+'/'+partialPath,"rb") as f:
-                        stream = f.read()
-                        sha2 = hashlib.sha256(stream).digest()
-                    if sha2Obj != sha2:
-                        diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
-                    else:
-                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
-                elif objCheck:
-                    #md5
-                    with open(dirPath+'/'+partialPath,"rb") as f:
-                        stream = f.read()
-                        md5 = hashlib.md5(stream).hexdigest();
-                    if objCheck != md5:
-                        diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
-                    else:
-                        same.append((coll.path+'/'+partialPath, os.path.join(dirPath, partialPath)))
-            else: # same paths no scope
-                diff.append((coll.path+'/'+partialPath, dirPath+'/'+partialPath))
-
-        #adding files that are not on iRODS, only present on local FS
-        #adding files that are not on local FS, only present in iRODS
-        #adding files that are stored on both devices with the same checksum/size
-        irodsOnly = list(set(listColl).difference(listDir))
-        for i in range(0, len(irodsOnly)):
-            irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
-        return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
-
-
-    def addMetadata(self, items, key, value, units = None):
-        """
-        Adds metadata to all items
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string 
-
-        Throws:
-            AttributeError
-        """
-        for item in items:
-            try:
-                item.metadata.add(key.upper(), value, units)
-            except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                print(RED+"METADATA ADD FAILED: Metadata already present"+DEFAULT)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions: "+item.path)
-
-
-    def updateMetadata(self, items, key, value, units = None):
-        """
-        Updates a metadata entry to all items
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string
-
-        Throws:
-        """
-
-        for item in items:
-            if key in item.metadata.keys():
-                meta = item.metadata.get_all(key)
-                valuesUnits = [(m.value, m.units) for m in meta]
-                if (value, units) not in valuesUnits:
-                    #remove all iCAT entries with that key
-                    for m in meta:
-                        item.metadata.remove(m)
-                    #add key, value, units
-                    self.addMetadata(items, key, value, units)
-
-            else:
-                self.addMetadata(items, key, value, units)
-                
-
-    def deleteMetadata(self, items, key, value, units):
-        """
-        Deletes a metadata entry of all items
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string
-
-        Throws:
-            CAT_SUCCESS_BUT_WITH_NO_INFO: metadata did not exist
-        """
-        for item in items:
-            try:
-                item.metadata.remove(key, value, units)
-            except CAT_SUCCESS_BUT_WITH_NO_INFO:
-                print(RED+"METADATA ADD FAILED: Metadata never existed"+DEFAULT)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
-
-
-    def deleteData(self, item):
-        """
-        Delete a data object or a collection recursively.
-        item: iRODS data object or collection
-        """
-       
-        if self.session.collections.exists(item.path):
-            logging.info("IRODS DELETE: "+item.path)
-            try:
-                item.remove(recurse = True, force = True)
-            except CAT_NO_ACCESS_PERMISSION:
-                logging.info('DELETE ERROR', exc_info=True)
-                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
-        elif self.session.data_objects.exists(item.path):
-            logging.info("IRODS DELETE: "+item.path)
-            try:
-                item.unlink(force = True)
-            except CAT_NO_ACCESS_PERMISSION:
-                logging.info('DELETE DATA ERROR', exc_info=True)
-                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
-
-
-
-    def executeRule(self, ruleFile, params, output='ruleExecOut'):
-        """
-        Executes and interactive rule. Returns stdout and stderr.
-        params: depending on rule, 
-                     dictionary of variables for rule, will overwrite the default settings.
-        params format example:
-        params = {  # extra quotes for string literals
-            '*obj': '"/zone/home/user"',
-            '*name': '"attr_name"',
-            '*value': '"attr_value"'
-        }
-        """
-        rule = Rule(self.session, ruleFile, params=params, output=output)
-        out = rule.execute()
-        stdout = []
-        stderr = []
-        if len(out.MsParam_PI) > 0:
-            try:
-                stdout = [o.decode()
-                    for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
-                stderr = [o.decode
-                    for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
-            except AttributeError:
-                #logging.info('ERROR RULE EXECUTION', exc_info=True)
-                return stdout, stderr
-
-        return stdout, stderr
-
-
-    def getSize(self, itemPaths):
-        '''
-        Compute the size of the iRods dataobject or collection
-        Returns: size in bytes.
-        itemPaths: list of irods paths pointing to collection or object
-        '''
-        size = 0
-        for path in itemPaths:
-            #remove possible leftovers of windows fs separators
-            path = path.replace("\\", "/")
-            if self.session.data_objects.exists(path):
-                size = size + self.session.data_objects.get(path).size
-
-            elif self.session.collections.exists(path):
-                coll = self.session.collections.get(path)
-                walk = [coll]
-                while walk:
-                    try:
-                        coll = walk.pop()
-                        walk.extend(coll.subcollections)
-                        for obj in coll.data_objects:
-                            size = size + obj.size
-                    except:
-                        raise
-            else:
-                pass
-
-        return size
-
+        p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+        out, err = p.communicate()
+        logging.info('IRODS TICKET Expiration date: out:'+str(out)+'\nerr: '+str(err))
+        if err == b'':
+            return ticket.ticket, expiryString
+        else:
+            return ticket.ticket, err.decode()

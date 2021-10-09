@@ -286,8 +286,8 @@ class irodsBrowser():
 
         self.widget.metadataTable.setRowCount(0);
         self.widget.aclTable.setRowCount(0);
-
         self.widget.resourceTable.setRowCount(0);
+        
         col = index.column()
         row = index.row()
         self.currentBrowserRow = row
