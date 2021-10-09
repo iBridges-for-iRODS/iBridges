@@ -20,8 +20,8 @@ from irods.exception import NetworkException
 from irods.exception import CollectionDoesNotExist
 
 from gui.mainmenu import mainmenu
+from gui.irodsTicketLogin import irodsTicketLogin
 from utils.utils import networkCheck, setup_logger
-
 
 class irodsLogin(QDialog):
     def __init__(self):
@@ -38,6 +38,7 @@ class irodsLogin(QDialog):
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)
+        self.ticketButton.clicked.connect(self.ticketLogin)
         self.passwordField.setEchoMode(QLineEdit.Password)
         self.icommands = False
 
@@ -187,6 +188,13 @@ class irodsLogin(QDialog):
                 raise
         
 
+    def ticketLogin(self):
+        browser = mainmenu(widget, None, None)
+        if len(widget) == 1:
+            widget.addWidget(browser)
+        self.__resetErrorLabelsAndMouse()
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        widget.setCurrentIndex(widget.currentIndex()+1)
 
 
 if __name__ == "__main__":

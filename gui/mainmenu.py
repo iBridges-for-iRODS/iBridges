@@ -11,6 +11,8 @@ from gui.irodsSearch import irodsSearch
 from gui.irodsUpDownload import irodsUpDownload
 from gui.irodsDataCompression import irodsDataCompression
 from gui.irodsInfo import irodsInfo
+from gui.irodsTicketLogin import irodsTicketLogin
+from gui.irodsCreateTicket import irodsCreateTicket
 from utils.utils import saveIenv
 
 import sys
@@ -19,69 +21,70 @@ class mainmenu(QMainWindow):
     def __init__(self, widget, ic, ienv):
         super(mainmenu, self).__init__()
         loadUi("gui/ui-files/MainMenu.ui", self)
-        self.ic = ic
-        self.widget = widget #stackedWidget
-        self.ienv = ienv
 
-        # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-        self.actionSearch.triggered.connect(self.search)
-        self.actionSaveConfig.triggered.connect(self.saveConfig)
-        #self.actionExportMetadata.triggered.connect(self.exportMeta)
+        self.widget = widget #stackedWidget
 
-        #needed for Search
-        self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
-        self.tabWidget.addTab(self.browserWidget, "Browser")
-        self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
+        if ic == None and ienv == None:
+            ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
+            self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
+            self.ticketAccessTab = irodsTicketLogin()
+        else:
+            self.ic = ic
+            self.ienv = ienv
+
+            # Menu actions
+            self.actionSearch.triggered.connect(self.search)
+            self.actionSaveConfig.triggered.connect(self.saveConfig)
+
+            #needed for Search
+            self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
+            self.tabWidget.addTab(self.browserWidget, "Browser")
+            self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
 
         
-        if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
+            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
 
-            # Setup up/download tab, index 1
-            if ("tabUpDownload" in ienv["ui_tabs"]):
-                updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-                self.tabWidget.addTab(updownloadWidget, "Up and Download")
-                self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
+                # Setup up/download tab, index 1
+                if ("tabUpDownload" in ienv["ui_tabs"]):
+                    updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
+                    self.tabWidget.addTab(updownloadWidget, "Up and Download")
+                    self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
 
-            # Elabjournal tab, index 2
-            if ("tabELNData" in ienv["ui_tabs"]):
-                elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
-                self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
-                self.elnTab = elabUpload(elabUploadWidget, ic)
+                # Elabjournal tab, index 2
+                if ("tabELNData" in ienv["ui_tabs"]):
+                    elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
+                    self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
+                    self.elnTab = elabUpload(elabUploadWidget, ic)
 
-            # Data compression tab, index 3
-            if ("tabDataCompression" in ienv["ui_tabs"]):
-                dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
-                self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
-                self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
+                # Data compression tab, index 3
+                if ("tabDataCompression" in ienv["ui_tabs"]):
+                    dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
+                    self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
+                    self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
 
-            # iRODS federation tab, index 4
-            ## TODO
-            #if ("tabFederations" in ienv["ui_tabs"]):
-            #FederationsWidget = loadUi("gui/ui-files/tabFederations.ui")
-            #self.tabWidget.addTab(FederationsWidget, "Federations")
-            #self.elnTab = Federations(FederationsWidget, ic)
+                # Grant access by tickets
+                if ("tabCreateTicket" in ienv["ui_tabs"]):
+                    createTicketWidget = loadUi("gui/ui-files/tabTicketCreate.ui")
+                    self.tabWidget.addTab(createTicketWidget, "Create access tokens")
+                    self.compressionTab = irodsCreateTicket(createTicketWidget, ic, self.ienv)
 
-            ## TODO page, index 5
-            #if ("tabPage" in ienv["ui_tabs"]):
-            #PageWidget = loadUi("gui/ui-files/tabPage.ui")
-            #self.tabWidget.addTab(FederationsWidget, "Federations")
-            #self.elnTab = Federations(FederationsWidget, ic)        
-      
-        #general info
-        self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
-        self.tabWidget.addTab(self.infoWidget, "Info")
-        self.irodsInfo = irodsInfo(self.infoWidget, ic)
 
-        self.tabWidget.setCurrentIndex(0)
+            #general info
+            self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
+            self.tabWidget.addTab(self.infoWidget, "Info")
+            self.irodsInfo = irodsInfo(self.infoWidget, ic)
+
+            self.tabWidget.setCurrentIndex(0)
 
     #connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.ic.session.cleanup()
+            if ic:
+                self.ic.session.cleanup()
             sys.exit()
         else:
             pass
@@ -91,7 +94,10 @@ class mainmenu(QMainWindow):
         quit_msg = "Are you sure you want to disconnect?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.ic.session.cleanup()
+            try:
+                self.ic.session.cleanup()
+            except:
+                pass
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
