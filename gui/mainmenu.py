@@ -29,7 +29,7 @@ class mainmenu(QMainWindow):
         if ic == None and ienv == None:
             ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
             self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
-            self.ticketAccessTab = irodsTicketLogin()
+            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
         else:
             self.ic = ic
             self.ienv = ienv

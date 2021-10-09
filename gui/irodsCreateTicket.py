@@ -34,8 +34,8 @@ class irodsCreateTicket():
 
         #gather info
         idx, path = self.irodsmodel.get_checked()
-        if path == None:
-            self.widget.infoLabel.setText("ERROR: No data selected.")
+        if path == None or self.ic.session.data_objects.exists(path):
+            self.widget.infoLabel.setText("ERROR: Please select a collection.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
