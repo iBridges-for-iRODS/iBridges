@@ -433,7 +433,7 @@ class irodsConnector():
                 (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(
                                                     source, subdir, scope="checksum")
             else:
-                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+                raise FileNotFoundError("ERROR iRODS download: not a valid source path")
         else:
             (diff, onlyFS, onlyIrods, same) = diffs
 

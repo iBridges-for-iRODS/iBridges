@@ -84,7 +84,7 @@ class dataTransfer(QDialog):
         else:
             self.statusLbl.setText(
                 "Downloading... this might take a while. \nStarted "+\
-                 str(now.date())+"  "+str(now.time().hour)+":"+str(now.time().minute))
+                        now.strftime('%Y-%m-%d %H:%M'))
         self.thread = QThread()
         if len(self.diff)+len(self.addFiles) == 0:
             self.statusLbl.setText("Nothing to update.")
@@ -192,13 +192,13 @@ class getDataState(QObject):
                         FsPath = newPath
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, FsPath, scope="checksum")                        
-                elif self.ic.session.data_objects.exists(self.coll.path):
+                #elif self.ic.session.data_objects.exists(self.coll.path):
+                else:
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
         except:
             logging.exception("dataTransfer.py: Error in getDataState")
-
         # Get size 
         if self.upload == True:
             fsDiffFiles = [d[1] for d in diff]
@@ -208,7 +208,11 @@ class getDataState(QObject):
         else:
             irodsDiffFiles = [d[0] for d in diff]
             updateSize =  self.ic.getSize(irodsDiffFiles)
-            addSize = self.ic.getSize(onlyIrods)
+            onlyIrodsFullPath = onlyIrods.copy()
+            for i in range(len(onlyIrodsFullPath)):
+                if not onlyIrods[i].startswith(self.coll.path):
+                     onlyIrodsFullPath[i] = self.coll.path+'/'+ onlyIrods[i]
+            addSize = self.ic.getSize(onlyIrodsFullPath)
             self.finished.emit(onlyIrods, diff, addSize, updateSize)
 
 

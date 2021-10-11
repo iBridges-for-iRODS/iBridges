@@ -4,6 +4,9 @@ from PyQt5 import QtCore
 from PyQt5.uic import loadUi
 from utils.irodsConnectorAnonymous import irodsConnectorAnonymous
 from gui.checkableFsTree import checkableFsTreeModel
+from gui.popupWidgets import createDirectory
+from gui.dataTransfer import dataTransfer
+
 import os
 
 class irodsTicketLogin():
@@ -28,6 +31,9 @@ class irodsTicketLogin():
 
         self.widget.connectButton.clicked.connect(self.irodsSession)
         self.widget.homeButton.clicked.connect(self.loadTable)
+        self.widget.createDirectoryButton.clicked.connect(self.createFolder)
+        self.widget.downloadButton.clicked.connect(self.download)
+        self.widget.downloadAllButton.clicked.connect(self.downloadAll)
         self.widget.collTable.doubleClicked.connect(self.browse)
         self.widget.collTable.clicked.connect(self.fillInfo)
 
@@ -160,5 +166,57 @@ class irodsTicketLogin():
             row = row+1
         self.widget.metadataTable.resizeColumnsToContents()
 
+
+    def createFolder(self):
+        self.widget.infoLabel.clear()
+        parent = self.dirmodel.get_checked()
+        if parent == None:
+            self.widget.infoLabel.setText("No parent folder selected.")
+        else:
+            createDirWidget = createDirectory(parent)
+            createDirWidget.exec_()
+            #self.dirmodel.initial_expand(previous_item = parent)
+
+
+    def downloadAll(self):
+        self.download(allData = True)
+
+
+    def download(self, allData = False):
+        #irods data
+        self.widget.infoLabel.clear()
+        if allData:
+            collPath = os.path.dirname(self.coll.path)
+            dataName = self.coll.name.strip('/')
+        else:
+            row = self.widget.collTable.selectedIndexes()[0].row()
+            if row == -1:
+                self.widget.infoLabel.setText("No iRODS data selected.")
+                return
+            else:
+                collPath = self.widget.collTable.item(row, 0).text()
+                dataName = self.widget.collTable.item(row, 1).text().strip('/')
+
+        #fielsystem data
+        destination = self.dirmodel.get_checked()
+        if destination == None or os.path.isfile(destination):
+            self.widget.infoLabel.setText("No download folder selected.")
+            return
+        
+        if self.ic.session.collections.exists(collPath+'/'+dataName):
+            item = self.ic.session.collections.get(collPath+'/'+dataName)
+        else: #data object with workaround for bug
+            parent = self.ic.session.collections.get(collPath)
+            item = [obj for obj in parent.data_objects if obj.name == dataName][0]
+        self.downloadWindow = dataTransfer(self.ic, False, destination, item)
+        self.downloadWindow.finished.connect(self.finishedTransfer)
+
+
+    def finishedTransfer(self, succes, irodsIdx):
+        #Refreshes iRODS sub tree ad irodsIdx (set "None" if to skip)
+        #Saves upload parameters if check box is set
+        if succes == True:
+            self.widget.infoLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
+        self.uploadWindow = None # Release
 
 

@@ -1,6 +1,7 @@
 from irods.session import iRODSSession
 from irods.ticket import Ticket
-from irods.exception import CollectionDoesNotExist
+from irods.exception import CollectionDoesNotExist, CAT_SQL_ERR
+import irods.keywords as kw
 import irods
 
 from utils.irodsConnector import irodsConnector
@@ -42,7 +43,7 @@ class irodsConnectorAnonymous(irodsConnector):
         self.token = ticket
         self.path = path
         self.icommands = False
-        #self.icommands = subprocess.call(["which", "iinit"]) == 0
+        self.icommands = subprocess.call(["which", "iinit"]) == 0
 
 
     def getData(self):
@@ -111,7 +112,6 @@ class irodsConnectorAnonymous(irodsConnector):
             raise FileNotFoundError("IRODS download: not a valid source.")
 
         logging.info("IRODS DOWNLOAD: "+cmd)
-        print(cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
         logging.info('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
@@ -123,7 +123,7 @@ class irodsConnectorAnonymous(irodsConnector):
             try:
                 logging.info("IRODS DOWNLOADING object:"+ source.path+
                                 "to "+ destination)
-                self.__stream(source, os.path.join(destination, source.name))
+                self.__get(source, os.path.join(destination, source.name))
                 return
             except:
                 logging.info('DOWNLOAD ERROR: '+source.path+"-->"+destination,
@@ -136,9 +136,9 @@ class irodsConnectorAnonymous(irodsConnector):
             for d in diff:
                 #upload files to distinct data objects
                 logging.info("REPLACE: "+d[1]+" with "+d[0])
-                _subcoll = self.session.collections.get(os.path.dirname(d[1]))
+                _subcoll = self.session.collections.get(os.path.dirname(d[0]))
                 obj = [o for o in _subcoll.data_objects if o.path == d[0]][0]
-                self.__stream(obj, local_path=d[1])
+                self.__get(obj, d[1])
                 #self.session.data_objects.get(d[0], local_path=d[1], **options)
 
             for IO in onlyIrods: #can contain files and folders
@@ -149,10 +149,9 @@ class irodsConnectorAnonymous(irodsConnector):
                 if not os.path.isdir(os.path.dirname(destPath)):
                     os.makedirs(os.path.dirname(destPath))
                 logging.info('INFO: Downloading '+sourcePath+" to "+destPath)
-                print('INFO: Downloading '+sourcePath+" to "+destPath)
                 _subcoll = self.session.collections.get(os.path.dirname(sourcePath))
                 obj = [o for o in _subcoll.data_objects if o.path == sourcePath][0]
-                self.__stream(obj, destPath)
+                self.__get(obj, destPath)
                 #self.session.data_objects.get(sourcePath, local_path=destPath, **options)
         except:
             logging.info('DOWNLOAD ERROR', exc_info=True)
@@ -224,13 +223,24 @@ class irodsConnectorAnonymous(irodsConnector):
             self.download(source, destination, diffs)
     
 
-    def __stream(self, obj, filename):
+    def __get(self, obj, filename):
+        """
+        Work around for bug in the irods_data_objects get function:
+        https://github.com/irods/python-irodsclient/issues/294
+        """
+        options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: '', kw.TICKET_KW: self.token}
+        #with obj.open('r') as stream:
+        #    tmp = stream.read()
+        #with open(filename, 'wb') as f:
+        #    f.write(tmp)
+        #    f.close()
 
-        with obj.open('r') as stream:
-            tmp = stream.read()
-        with open(filename, 'wb') as f:
-            f.write(tmp)
-            f.close()
+        try:
+            self.session.data_objects.get(obj.path, local_path=filename, **options)
+        except CAT_SQL_ERR:
+            pass
+        except:
+            raise
 
 
     def diffObjFile(self, objPath, fsPath, scope="size"):
@@ -238,6 +248,8 @@ class irodsConnectorAnonymous(irodsConnector):
         Compares and iRODS object to a file system file.
         We do not have the function session.data_objects.exists or .get for anonymous users
         returns ([diff], [onlyIrods], [onlyFs], [same])
+        Implements workaround to
+        https://github.com/irods/python-irodsclient/issues/294
         """
         if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
@@ -247,7 +259,7 @@ class irodsConnectorAnonymous(irodsConnector):
         coll = self.session.collections.get(os.path.dirname(objPath))
         obj = [o for o in coll.data_objects if o.path == objPath][0]
         if not os.path.isfile(fsPath) and obj:
-            return ([], [], [objPath], [])
+            return ([], [], [obj.path], [])
 
         elif not obj and os.path.isfile(fsPath):
             return ([], [fsPath], [], [])
@@ -291,6 +303,8 @@ class irodsConnectorAnonymous(irodsConnector):
         Syncing scope can be 'size' or 'checksum'
         Returns: zip([dataObjects][files]) where ther is a difference
         collection: iRODS collection
+        Implements workaround to
+        https://github.com/irods/python-irodsclient/issues/294
         '''
 
         listDir = []
@@ -375,3 +389,36 @@ class irodsConnectorAnonymous(irodsConnector):
 
     def createTicket(self, path, expiryString=""):
         pass
+
+
+    def getSize(self, itemPaths):
+        '''
+        Compute the size of the iRods dataobject or collection
+        Returns: size in bytes.
+        itemPaths: list of irods paths pointing to collection or object
+        Implementing workaround for bug
+        '''
+        size = 0
+        for path in itemPaths:
+            #remove possible leftovers of windows fs separators
+            path = path.replace("\\", "/")
+            
+            if self.session.collections.exists(path):
+                coll = self.session.collections.get(path)
+                walk = [coll]
+                while walk:
+                    try:
+                        coll = walk.pop()
+                        walk.extend(coll.subcollections)
+                        for obj in coll.data_objects:
+                            size = size + obj.size
+                    except:
+                        logging.info('DATA SIZE', exc_info=True)
+                        raise
+            else:
+                _subcoll = self.session.collections.get(os.path.dirname(path))
+                obj = [o for o in _subcoll.data_objects if o.path == path][0]
+                size = size + obj.size
+
+        return size
+
