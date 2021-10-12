@@ -13,6 +13,7 @@ import hashlib
 import logging
 import subprocess
 from subprocess         import Popen, PIPE
+from utils.utils        import saveIenv
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -44,6 +45,19 @@ class irodsConnectorAnonymous(irodsConnector):
         self.path = path
         self.icommands = False
         self.icommands = subprocess.call(["which", "iinit"]) == 0
+        if self.icommands:
+            #do iinit
+            env = {"irods_host": self.session.host, 
+                    "irods_port": 1247, 
+                    "irods_user_name": "anonymous", 
+                    "irods_zone_name": self.session.zone}
+            saveIenv(env)
+            logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
+            p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+            outLogin, errLogin = p.communicate()
+            if errLogin != b'':
+                logging.info('AUTHENTICATION ERROR: Anonymous login failed.')
+                self.icommands = False
 
 
     def getData(self):
@@ -275,8 +289,10 @@ class irodsConnectorAnonymous(irodsConnector):
         elif scope == "checksum":
             objCheck = obj.checksum
             if objCheck == None:
-                obj.chksum()
-                objCheck = obj.checksum
+                #obj.chksum()
+                #objCheck = obj.checksum
+                logging.info('No checksum available: '+obj.path)
+                return([(objPath, fsPath)], [], [], [])
             if objCheck.startswith("sha2"):
                 sha2Obj = b64decode(objCheck.split('sha2:')[1])
                 with open(fsPath, "rb") as f:
@@ -339,8 +355,12 @@ class irodsConnectorAnonymous(irodsConnector):
             elif scope == "checksum":
                 objCheck = obj.checksum
                 if objCheck == None:
-                    obj.chksum()
-                    objCheck = obj.checksum
+                    #Anonymous user cannot calculate checksums
+                    #obj.chksum()
+                    #objCheck = obj.checksum
+                    diff.append((coll.path + '/' + iPartialPath, 
+                                 os.path.join(dirPath, locPartialPath)))
+                    pass
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
