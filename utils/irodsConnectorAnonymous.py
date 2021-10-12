@@ -360,7 +360,7 @@ class irodsConnectorAnonymous(irodsConnector):
                     #objCheck = obj.checksum
                     diff.append((coll.path + '/' + iPartialPath, 
                                  os.path.join(dirPath, locPartialPath)))
-                    pass
+                    continue
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:

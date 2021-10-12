@@ -513,8 +513,12 @@ class irodsConnector():
         elif scope == "checksum":
             objCheck = obj.checksum
             if objCheck == None:
-                obj.chksum()
-                objCheck = obj.checksum
+                try:
+                    obj.chksum()
+                    objCheck = obj.checksum
+                except:
+                    logging.info('No checksum for '+obj.path)
+                    return([(objPath, fsPath)], [], [], [])
             if objCheck.startswith("sha2"):
                 sha2Obj = b64decode(objCheck.split('sha2:')[1])
                 with open(fsPath, "rb") as f:
@@ -574,8 +578,15 @@ class irodsConnector():
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(coll.path + '/' + iPartialPath).checksum
                 if objCheck == None:
-                    self.session.data_objects.get(coll.path + '/' + iPartialPath).chksum()
-                    objCheck = self.session.data_objects.get(coll.path + '/' + iPartialPath).checksum
+                    try:
+                        self.session.data_objects.get(coll.path + '/' + iPartialPath).chksum()
+                        objCheck = self.session.data_objects.get(
+                                    coll.path + '/' + iPartialPath).checksum
+                    except:
+                        logging.info('No checksum for '+coll.path + '/' + iPartialPath)
+                        diff.append((coll.path + '/' + iPartialPath, 
+                                        os.path.join(dirPath, locPartialPath)))
+                        continue
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
