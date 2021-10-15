@@ -95,6 +95,15 @@ class irodsUpDownload():
             self.widget.ContUplBut.hide()
 
 
+    def enableButtons(self, enable):
+        self.widget.UploadButton.setEnabled(enable)
+        self.widget.DownloadButton.setEnabled(enable)
+        self.widget.ContUplBut.setEnabled(enable)
+        self.widget.uplSetGB_2.setEnabled(enable)
+        self.widget.createFolderButton.setEnabled(enable)
+        self.widget.createCollButton.setEnabled(enable)
+
+
     def infoPopup(self, message):
         QMessageBox.information(self.widget, 'Information', message)
 
@@ -143,6 +152,7 @@ class irodsUpDownload():
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
+        self.enableButtons(False)
         self.widget.errorLabel.clear()
         (fsSource, irodsDestIdx, irodsDestPath) = self.getPathsFromTrees()
         if fsSource == None or irodsDestPath == None: 
@@ -171,9 +181,11 @@ class irodsUpDownload():
                 self.saveUIset()
             self.widget.errorLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
         self.uploadWindow = None # Release
+        self.enableButtons(True)
 
 
     def download(self):
+        self.enableButtons(False)
         self.widget.errorLabel.clear()
         (fsDest, irodsSourceIdx, irodsSourcePath) = self.getPathsFromTrees()
         if fsDest == None or irodsSourcePath == None:

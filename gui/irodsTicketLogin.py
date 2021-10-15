@@ -51,6 +51,14 @@ class irodsTicketLogin():
         except Exception as e:
             self.widget.infoLabel.setText("LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
 
+
+    def enableButtons(self, enable):
+        self.widget.connectButton.setEnabled(enable)
+        self.widget.homeButton.setEnabled(enable)
+        self.widget.createDirectoryButton.setEnabled(enable)
+        self.widget.downloadButton.setEnabled(enable)
+        self.widget.downloadAllButton.setEnabled(enable)
+
     
     def loadTable(self, update = None):
         self.widget.infoLabel.clear()
@@ -184,6 +192,7 @@ class irodsTicketLogin():
 
     def download(self, allData = False):
         #irods data
+        self.enableButtons(False)
         self.widget.infoLabel.clear()
         if allData:
             collPath = os.path.dirname(self.coll.path)
@@ -218,5 +227,6 @@ class irodsTicketLogin():
         if succes == True:
             self.widget.infoLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
         self.uploadWindow = None # Release
+        self.enableButtons(True)
 
 

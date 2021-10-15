@@ -44,7 +44,6 @@ class dataTransfer(QDialog):
         self.confirmBtn.setEnabled(False)
 
         self.loading_movie = QMovie("gui/icons/loading_circle.gif")
-        #loading_movie.setScaledSize(size)
         self.loadingLbl.setMovie(self.loading_movie)
         self.loading_movie.start()
 
@@ -63,7 +62,12 @@ class dataTransfer(QDialog):
 
 
     def cancel(self):
+        print("Thread stopped")
         self.finished.emit(False, None)
+        try: # if thread is still running
+            self.thread.exit(1)
+        except:
+            pass
         self.close()
 
 
@@ -162,6 +166,7 @@ class getDataState(QObject):
         self.localFsPath = localFsPath
         self.coll = coll
         self.upload = upload
+
 
     def run(self):
         # Diff

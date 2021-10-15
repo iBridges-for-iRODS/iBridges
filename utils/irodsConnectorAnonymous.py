@@ -239,7 +239,7 @@ class irodsConnectorAnonymous(irodsConnector):
 
     def __get(self, obj, filename):
         """
-        Work around for bug in the irods_data_objects get function:
+        Workaround for bug in the irods_data_objects get function:
         https://github.com/irods/python-irodsclient/issues/294
         """
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: '', kw.TICKET_KW: self.token}
