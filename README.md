@@ -105,7 +105,7 @@ The client works on  Mac, Windows and Linux distributions. On Mac and Windows it
 
 ## Usage
 ```
-./irods-basicGui.py
+./irods-iBridgesGui.py
 ```
 
 ## Remarks
