@@ -55,7 +55,7 @@ class irodsCreateTicket():
                 self.widget.ticketInfoBrowser.append("Expiry date:\t"+expiryDate)
 
         else:
-            self.widget.infoLabel.setText("ERROR: Insuficient rights, you need to be owner.")
+            self.widget.infoLabel.setText("ERROR: Insufficient rights, you need to be owner.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
