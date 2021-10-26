@@ -3,8 +3,10 @@ from irods.ticket import Ticket
 from irods.exception import CollectionDoesNotExist, CAT_SQL_ERR
 import irods.keywords as kw
 import irods
+import uuid
 
 from utils.irodsConnector import irodsConnector
+from utils.utils import ensure_dir
 
 import os
 from base64 import b64decode
@@ -35,6 +37,10 @@ class irodsConnectorAnonymous(irodsConnector):
             path = path[:-1]
         if not path.startswith("/"):
             raise Exception("Not a valid iRODS path.")
+        
+        self.tempEnv = None
+        self.tempIrodsA = None
+
         zone = path.split('/')[1]
         self.session = iRODSSession(user='anonymous',
                                     password='',
@@ -46,7 +52,9 @@ class irodsConnectorAnonymous(irodsConnector):
         self.icommands = False
         self.icommands = subprocess.call(["which", "iinit"]) == 0
         if self.icommands:
-            #do iinit
+            ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
+            #move previous iRODS sessions to tmp file (envFile and .irodsA file)
+            self.__movePrevSessionConfigs(False)
             env = {"irods_host": self.session.host, 
                     "irods_port": 1247, 
                     "irods_user_name": "anonymous", 
@@ -58,6 +66,29 @@ class irodsConnectorAnonymous(irodsConnector):
             if errLogin != b'':
                 logging.info('AUTHENTICATION ERROR: Anonymous login failed.')
                 self.icommands = False
+
+    def closeSession(self):
+        self.__movePrevSessionConfigs(True)
+
+
+    def __movePrevSessionConfigs(self, restore):
+        if restore:
+            if self.tempEnv:
+                os.rename(self.tempEnv, 
+                        os.path.expanduser('~'+os.sep+'.irods'+os.sep+'irods_environment.json'))
+            if self.tempIrodsA:
+                os.rename(self.tempIrodsA, 
+                        os.path.expanduser('~'+os.sep+'.irods'+os.sep+'.irodsA'))
+        else:
+            uid = str(uuid.uuid1())
+            envPath = os.path.expanduser('~'+os.sep+'.irods'+os.sep+'irods_environment.json')
+            irodsAPath = os.path.expanduser('~'+os.sep+'.irods'+os.sep+'.irodsA')
+            if os.path.exists(envPath):
+                os.rename(envPath, envPath+uid)
+                self.tempEnv = envPath+uid
+            if os.path.exists(irodsAPath):
+                os.rename(irodsAPath, irodsAPath+uid)
+                self.tempIrodsA = irodsAPath+uid
 
 
     def getData(self):

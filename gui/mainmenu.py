@@ -84,7 +84,10 @@ class mainmenu(QMainWindow):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.ic.session.cleanup()
+            if self.ic:
+                self.ic.session.cleanup()
+            elif self.ticketAccessTab.ic:
+                self.ticketAccessTab.ic.closeSession()
             sys.exit()
         else:
             pass
@@ -94,10 +97,10 @@ class mainmenu(QMainWindow):
         quit_msg = "Are you sure you want to disconnect?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
-            try:
+            if self.ic:
                 self.ic.session.cleanup()
-            except:
-                pass
+            elif self.ticketAccessTab.ic:
+                self.ticketAccessTab.ic.closeSession()
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
