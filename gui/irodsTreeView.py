@@ -68,7 +68,6 @@ class IrodsModel(QStandardItemModel):
 
                     acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
                             for acl in self.ic.getPermissions(path)])
-                    print(acls)
                     # Block checking of home item (found no easy way to remove the checkbox)
                     if acls.intersection(reqAcls) == set():
                         message = "ERROR, insufficient rights:\nCannot select "+path

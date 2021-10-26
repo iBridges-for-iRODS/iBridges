@@ -11,8 +11,8 @@ from gui.irodsSearch import irodsSearch
 from gui.irodsUpDownload import irodsUpDownload
 from gui.irodsDataCompression import irodsDataCompression
 from gui.irodsInfo import irodsInfo
-from gui.irodsTicketLogin import irodsTicketLogin
 from gui.irodsCreateTicket import irodsCreateTicket
+from gui.irodsTicketLogin import irodsTicketLogin
 from utils.utils import saveIenv
 
 import sys
@@ -28,17 +28,24 @@ class mainmenu(QMainWindow):
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-        
-        if ienv != None:
+
+        if not ienv or not ic:
+            self.actionSearch.setEnabled(False)
+            self.actionSaveConfig.setEnabled(False)
+            ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
+            self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
+            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
+
+        else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
+            #self.actionExportMetadata.triggered.connect(self.exportMeta)
 
             #needed for Search
             self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
             self.tabWidget.addTab(self.browserWidget, "Browser")
             self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
 
-        
             if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
     
                 # Setup up/download tab, index 1
@@ -63,25 +70,21 @@ class mainmenu(QMainWindow):
                 if ("tabCreateTicket" in ienv["ui_tabs"]):
                     createTicketWidget = loadUi("gui/ui-files/tabTicketCreate.ui")
                     self.tabWidget.addTab(createTicketWidget, "Create access tokens")
-                    self.compressionTab = irodsCreateTicket(createTicketWidget, ic, self.ienv)
-
-            #general info, index 5
+                    self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
+    
+            #general info
             self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
             self.tabWidget.addTab(self.infoWidget, "Info")
             self.irodsInfo = irodsInfo(self.infoWidget, ic)
+    
             self.tabWidget.setCurrentIndex(0)
-
-        else: # Login with ticket
-            ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
-            self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
-            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
-
 
     #connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
         if reply == QMessageBox.Yes:
+            self.ic.session.cleanup()
             sys.exit()
         else:
             pass
@@ -114,5 +117,4 @@ class mainmenu(QMainWindow):
 
     def exportMeta(self):
         print("TODO: Metadata export")
-
 

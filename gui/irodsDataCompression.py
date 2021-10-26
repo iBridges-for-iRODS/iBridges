@@ -163,7 +163,8 @@ class irodsDataCompression():
     def unpackDataBundle(self):
         self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         idx, source = self.compressionTreeModel.get_checked()
-        if not source.endswith(".irods.tar") and not source.endswith(".irods.zip"):
+
+        if not idx or (not source.endswith(".irods.tar") and not source.endswith(".irods.zip")):
             self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
