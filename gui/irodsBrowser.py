@@ -284,9 +284,9 @@ class irodsBrowser():
         self.__clearErrorLabel()
         self.__clearViewTabs()
 
-        self.widget.metadataTable.setRowCount(0);
-        self.widget.aclTable.setRowCount(0);
-        self.widget.resourceTable.setRowCount(0);
+        self.widget.metadataTable.setRowCount(0)
+        self.widget.aclTable.setRowCount(0)
+        self.widget.resourceTable.setRowCount(0)
         
         col = index.column()
         row = index.row()
@@ -413,7 +413,7 @@ class irodsBrowser():
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
-                print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
+                print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
 
 

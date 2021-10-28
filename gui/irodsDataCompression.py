@@ -142,9 +142,9 @@ class irodsDataCompression():
     def dataCreateExtractFinished(self, success, message, operation):
         self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.enableButtons(True)
+        stdout, stderr = message
         if success and operation == "create":
             idx, source = self.collectionTreeModel.get_checked()
-            stdout, stderr = message
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
             parentIdx = self.collectionTreeModel.getParentIdx(idx)
             self.collectionTreeModel.refreshSubTree(parentIdx)

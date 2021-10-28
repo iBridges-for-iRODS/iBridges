@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QDialog, QMessageBox
 from PyQt5.uic import loadUi
 import os
 from utils.utils import getDownloadDir
+import logging
 
 class irodsSearch(QDialog):
     def __init__(self, ic, collTable):
