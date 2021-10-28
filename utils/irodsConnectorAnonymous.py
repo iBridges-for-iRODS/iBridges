@@ -13,7 +13,7 @@ from base64 import b64decode
 from shutil import disk_usage
 import hashlib
 import logging
-import subprocess
+#import subprocess
 from subprocess         import Popen, PIPE
 from utils.utils        import saveIenv
 
@@ -49,8 +49,13 @@ class irodsConnectorAnonymous(irodsConnector):
                                     host=host)
         self.token = ticket
         self.path = path
-        self.icommands = False
-        self.icommands = subprocess.call(["which", "iinit"]) == 0
+                
+        p = Popen(['which','iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+        outLogin, errLogin = p.communicate()
+        if p.returncode == 0: 
+            self.icommands = True
+        else:
+            self.icommands = False
         if self.icommands:
             ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
             #move previous iRODS sessions to tmp file (envFile and .irodsA file)

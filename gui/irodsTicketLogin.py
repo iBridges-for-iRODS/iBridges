@@ -41,9 +41,9 @@ class irodsTicketLogin():
     def irodsSession(self):
         self.widget.infoLabel.clear()
         host = self.widget.serverEdit.text()
-        token = self.widget.ticketEdit.text()
         path = self.widget.pathEdit.text()
-
+        token = self.widget.ticketEdit.text()
+        
         try:
             self.ic = irodsConnectorAnonymous(host, token, path)
             self.coll = self.ic.getData()
