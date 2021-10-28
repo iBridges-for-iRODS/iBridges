@@ -61,6 +61,7 @@ class irodsTicketLogin():
         self.widget.createDirectoryButton.setEnabled(enable)
         self.widget.downloadButton.setEnabled(enable)
         self.widget.downloadAllButton.setEnabled(enable)
+        self.widget.localFsTreeView.setEnabled(enable)
 
     
     def loadTable(self, update = None):
