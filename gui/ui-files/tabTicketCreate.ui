@@ -132,7 +132,14 @@ QLabel#infoLabel{
         </widget>
        </item>
        <item row="9" column="0">
-        <widget class="QTextBrowser" name="ticketInfoBrowser"/>
+        <widget class="QTextBrowser" name="ticketInfoBrowser">
+         <property name="font">
+          <font>
+           <family>Courier New</family>
+           <pointsize>10</pointsize>
+          </font>
+         </property>
+        </widget>
        </item>
        <item row="5" column="0">
         <spacer name="verticalSpacer">
