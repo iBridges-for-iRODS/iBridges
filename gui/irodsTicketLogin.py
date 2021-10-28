@@ -43,7 +43,7 @@ class irodsTicketLogin():
         host = self.widget.serverEdit.text()
         path = self.widget.pathEdit.text()
         token = self.widget.ticketEdit.text()
-        
+
         try:
             self.ic = irodsConnectorAnonymous(host, token, path)
             self.coll = self.ic.getData()
@@ -201,6 +201,7 @@ class irodsTicketLogin():
             row = self.widget.collTable.selectedIndexes()[0].row()
             if row == -1:
                 self.widget.infoLabel.setText("No iRODS data selected.")
+                self.enableButtons(True)
                 return
             else:
                 collPath = self.widget.collTable.item(row, 0).text()
@@ -210,6 +211,7 @@ class irodsTicketLogin():
         destination = self.dirmodel.get_checked()
         if destination == None or os.path.isfile(destination):
             self.widget.infoLabel.setText("No download folder selected.")
+            self.enableButtons(True)
             return
         
         if self.ic.session.collections.exists(collPath+'/'+dataName):
