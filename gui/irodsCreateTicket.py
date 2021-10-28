@@ -46,11 +46,11 @@ class irodsCreateTicket():
             #format of time string for irods: 2012-05-07.23:00:00
             expiryString = str(date.toPyDate())+'.23:59:59'
             ticket, expiryDate = self.ic.createTicket(path, expiryString)
-            self.widget.ticketInfoBrowser.append("iRODS instance:\t"+self.ic.session.host)
+            self.widget.ticketInfoBrowser.append("iRODS server: \t"+self.ic.session.host)
             self.widget.ticketInfoBrowser.append("iRODS path:\t"+path)
             self.widget.ticketInfoBrowser.append("iRODS Ticket:\t"+ticket)
             if self.ic.__name__ == "irodsConnector":
-                self.widget.ticketInfoBrowser.append("Expiry date:\t Not set (linux only)")
+                self.widget.ticketInfoBrowser.append("Expiry date:\tNot set (linux only)")
             else:
                 self.widget.ticketInfoBrowser.append("Expiry date:\t"+expiryDate)
 
