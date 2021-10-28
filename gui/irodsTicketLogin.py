@@ -36,6 +36,8 @@ class irodsTicketLogin():
         self.widget.downloadAllButton.clicked.connect(self.downloadAll)
         self.widget.collTable.doubleClicked.connect(self.browse)
         self.widget.collTable.clicked.connect(self.fillInfo)
+        self.enableButtons(False)
+        self.widget.connectButton.setEnabled(True)
 
 
     def irodsSession(self):
@@ -48,6 +50,7 @@ class irodsTicketLogin():
             self.ic = irodsConnectorAnonymous(host, token, path)
             self.coll = self.ic.getData()
             self.loadTable()
+            self.enableButtons(True)
         except Exception as e:
             self.widget.infoLabel.setText("LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
 
@@ -197,19 +200,25 @@ class irodsTicketLogin():
         if allData:
             collPath = os.path.dirname(self.coll.path)
             dataName = self.coll.name.strip('/')
-        else:
+        elif self.widget.collTable.selectedIndexes():
             row = self.widget.collTable.selectedIndexes()[0].row()
             if row == -1:
                 self.widget.infoLabel.setText("No iRODS data selected.")
+                self.enableButtons(True)
                 return
             else:
                 collPath = self.widget.collTable.item(row, 0).text()
                 dataName = self.widget.collTable.item(row, 1).text().strip('/')
+        else:
+            self.widget.infoLabel.setText("No iRODS data selected.")
+            self.enableButtons(True)
+            return
 
         #fielsystem data
         destination = self.dirmodel.get_checked()
         if destination == None or os.path.isfile(destination):
             self.widget.infoLabel.setText("No download folder selected.")
+            self.enableButtons(True)
             return
         
         if self.ic.session.collections.exists(collPath+'/'+dataName):
