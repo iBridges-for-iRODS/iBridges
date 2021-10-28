@@ -102,6 +102,8 @@ class irodsUpDownload():
         self.widget.uplSetGB_2.setEnabled(enable)
         self.widget.createFolderButton.setEnabled(enable)
         self.widget.createCollButton.setEnabled(enable)
+        self.widget.localFsTreeView.setEnabled(enable)
+        self.widget.localFsTreeView.setEnabled(enable)
 
 
     def infoPopup(self, message):
@@ -158,10 +160,12 @@ class irodsUpDownload():
         if fsSource == None or irodsDestPath == None: 
             self.widget.errorLabel.setText(
                     "ERROR Up/Download: Please select source and destination.")
+            self.enableButtons(True)
             return
         if not self.ic.session.collections.exists(irodsDestPath):
             self.widget.errorLabel.setText(
                     "ERROR UPLOAD: iRODS destination is file, must be collection.")
+            self.enableButtons(True)
             return
         destColl = self.ic.session.collections.get(irodsDestPath)
         #if os.path.isdir(fsSource):
@@ -191,10 +195,12 @@ class irodsUpDownload():
         if fsDest == None or irodsSourcePath == None:
             self.widget.errorLabel.setText(
                     "ERROR Up/Download: Please select source and destination.")
+            self.enableButtons(True)
             return
         if os.path.isfile(fsDest):
             self.widget.errorLabel.setText(
                     "ERROR DOWNLOAD: Local Destination is file, must be folder.")
+            self.enableButtons(True)
             return
         # File           
         if self.ic.session.data_objects.exists(irodsSourcePath):
