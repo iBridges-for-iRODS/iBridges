@@ -190,6 +190,9 @@ class irodsLogin(QDialog):
 
     def ticketLogin(self):
         browser = mainmenu(widget, None, None)
+        browser.menuOptions.clear()
+        browser.menuOptions.deleteLater()
+
         if len(widget) == 1:
             widget.addWidget(browser)
         self.__resetErrorLabelsAndMouse()
