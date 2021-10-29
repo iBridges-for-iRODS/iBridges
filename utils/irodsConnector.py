@@ -1,8 +1,11 @@
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
 from irods.ticket import Ticket
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
-from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION
+from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, \
+                            CAT_NO_ACCESS_PERMISSION, CAT_SUCCESS_BUT_WITH_NO_INFO, \
+                            CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION,\
+                            NO_RULE_OR_MSI_FUNCTION_FOUND_ERR
+
 from irods.exception import CollectionDoesNotExist
 from irods.connection import PlainTextPAMPasswordError
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
@@ -719,8 +722,13 @@ class irodsConnector():
             '*value': '"attr_value"'
         }
         """
-        rule = Rule(self.session, ruleFile, params=params, output=output)
-        out = rule.execute()
+        try:
+            rule = Rule(self.session, ruleFile, params=params, output=output)
+            out = rule.execute()
+        except Exception as e:
+            logging.info('RULE EXECUTION ERROR', exc_info=True)
+            return [], [repr(e)]
+
         stdout = []
         stderr = []
         if len(out.MsParam_PI) > 0:
@@ -730,7 +738,7 @@ class irodsConnector():
                 stderr = [o.decode() 
                     for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
             except AttributeError:
-                #logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
+                logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
                 return stdout, stderr
         
         return stdout, stderr
