@@ -44,7 +44,6 @@ class dataTransfer(QDialog):
         self.confirmBtn.setEnabled(False)
 
         self.loading_movie = QMovie("gui/icons/loading_circle.gif")
-        #loading_movie.setScaledSize(size)
         self.loadingLbl.setMovie(self.loading_movie)
         self.loading_movie.start()
 
@@ -63,7 +62,12 @@ class dataTransfer(QDialog):
 
 
     def cancel(self):
+        print("Thread stopped")
         self.finished.emit(False, None)
+        try: # if thread is still running
+            self.thread.exit(1)
+        except:
+            pass
         self.close()
 
 
@@ -84,7 +88,7 @@ class dataTransfer(QDialog):
         else:
             self.statusLbl.setText(
                 "Downloading... this might take a while. \nStarted "+\
-                 str(now.date())+"  "+str(now.time().hour)+":"+str(now.time().minute))
+                        now.strftime('%Y-%m-%d %H:%M'))
         self.thread = QThread()
         if len(self.diff)+len(self.addFiles) == 0:
             self.statusLbl.setText("Nothing to update.")
@@ -112,13 +116,14 @@ class dataTransfer(QDialog):
     # Callback for the getDataSize worker
     def updateUiWithDataState(self, addFiles, diff, addSize, updateSize):
         self.updateSize = updateSize
+        print(int(addSize), int(updateSize))
         #checksumSizeStr = self.bytesToStr(updateSize)
-        self.ChecksumSizeLbl.setText(self.bytesToStr(updateSize))
+        self.ChecksumSizeLbl.setText(self.bytesToStr(int(updateSize)))
         self.diff = diff
 
         self.addSize = addSize
         #newSizeStr = self.bytesToStr(addSize)
-        self.newFSizeLbl.setText(self.bytesToStr(addSize))
+        self.newFSizeLbl.setText(self.bytesToStr(int(addSize)))
         self.addFiles = addFiles
 
         self.loading_movie.stop()
@@ -128,7 +133,7 @@ class dataTransfer(QDialog):
 
 
     def bytesToStr(self, bytes):
-        bytes = bytes / (1024**3)
+        bytes = bytes / (1000**3)
         if bytes < 1000:
             bytesStr = f"{round(bytes, 3)} GB"
         else:
@@ -154,7 +159,7 @@ class dataTransfer(QDialog):
 class getDataState(QObject):
     # Signals
     updLabels = pyqtSignal(int, int) # Num files
-    finished = pyqtSignal(list, list, int, int) # Lists with size in bytes
+    finished = pyqtSignal(list, list, str, str) # Lists with size in bytes
 
     def __init__(self, ic, localFsPath, coll, upload):
         super(getDataState, self).__init__()
@@ -162,6 +167,7 @@ class getDataState(QObject):
         self.localFsPath = localFsPath
         self.coll = coll
         self.upload = upload
+
 
     def run(self):
         # Diff
@@ -192,24 +198,34 @@ class getDataState(QObject):
                         FsPath = newPath
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
                                                   self.coll, FsPath, scope="checksum")                        
-                elif self.ic.session.data_objects.exists(self.coll.path):
+                #elif self.ic.session.data_objects.exists(self.coll.path):
+                else:
                     (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
         except:
             logging.exception("dataTransfer.py: Error in getDataState")
-
         # Get size 
         if self.upload == True:
             fsDiffFiles = [d[1] for d in diff]
             updateSize = getSize(fsDiffFiles)
-            addSize = getSize(onlyFS)
-            self.finished.emit(onlyFS, diff, addSize, updateSize)
+            fullOnlyFsPaths = [self.localFsPath+os.sep+d for d in onlyFS 
+                                if not d.startswith('/') or ':' not in d]
+            fullOnlyFsPaths.extend([d for d in onlyFS 
+                                if d.startswith('/') or ':' in d])
+            addSize = getSize(fullOnlyFsPaths)
+            print(str(fsDiffFiles)+" "+str(updateSize))
+            print(str(onlyFS)+" "+str(addSize))
+            self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
             updateSize =  self.ic.getSize(irodsDiffFiles)
-            addSize = self.ic.getSize(onlyIrods)
-            self.finished.emit(onlyIrods, diff, addSize, updateSize)
+            onlyIrodsFullPath = onlyIrods.copy()
+            for i in range(len(onlyIrodsFullPath)):
+                if not onlyIrods[i].startswith(self.coll.path):
+                     onlyIrodsFullPath[i] = self.coll.path+'/'+ onlyIrods[i]
+            addSize = self.ic.getSize(onlyIrodsFullPath)
+            self.finished.emit(onlyIrods, diff, str(addSize), str(updateSize))
 
 
 # Background worker for the up/download

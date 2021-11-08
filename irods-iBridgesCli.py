@@ -47,7 +47,7 @@ def getConfig(path):
 def connectIRODS(config):
 
     #icommands present and irods_environment file present and user wants to use standard envFile
-    standardEnv = os.path.expanduser('~' +os.sep+'.irods/irods_environment.json')
+    standardEnv = os.path.expanduser('~' +os.sep+'.irods'+os.sep+'irods_environment.json')
     if os.path.exists(standardEnv) and \
             (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
         try:
@@ -68,7 +68,7 @@ def connectIRODS(config):
         print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
 
     else:
-        raise FileNotFoundError('Environment file not found: '+ envFile)
+        raise FileNotFoundError('Environment file not found e.g. '+ standardEnv)
 
     return ic
 

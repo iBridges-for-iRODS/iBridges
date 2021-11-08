@@ -63,6 +63,8 @@ class IrodsModel(QStandardItemModel):
                     reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
                     reqAcls.extend([('write', path, group, self.ic.session.zone) \
                                     for group in self.userGroups])
+                    reqAcls.extend([('read object', path, group, self.ic.session.zone) \
+                                    for group in self.userGroups])
 
                     acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
                             for acl in self.ic.getPermissions(path)])

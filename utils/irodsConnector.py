@@ -1,7 +1,11 @@
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION 
-from irods.exception import CAT_SUCCESS_BUT_WITH_NO_INFO, CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION
+from irods.ticket import Ticket
+from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, \
+                            CAT_NO_ACCESS_PERMISSION, CAT_SUCCESS_BUT_WITH_NO_INFO, \
+                            CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION,\
+                            NO_RULE_OR_MSI_FUNCTION_FOUND_ERR
+
 from irods.exception import CollectionDoesNotExist
 from irods.connection import PlainTextPAMPasswordError
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
@@ -16,6 +20,7 @@ from base64 import b64decode
 from shutil import disk_usage
 import hashlib
 import ssl
+import random, string
 import logging
 
 RED = '\x1b[1;31m'
@@ -39,6 +44,8 @@ class irodsConnector():
             NetworkException: No conection could be established
             All other errors refer to having the envFile not setup properly
         """
+        self.__name__="irodsConnector"
+
         try:
             with open(envFile) as f:
                 ienv = json.load(f)
@@ -429,7 +436,7 @@ class irodsConnector():
                 (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(
                                                     source, subdir, scope="checksum")
             else:
-                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+                raise FileNotFoundError("ERROR iRODS download: not a valid source path")
         else:
             (diff, onlyFS, onlyIrods, same) = diffs
 
@@ -509,8 +516,12 @@ class irodsConnector():
         elif scope == "checksum":
             objCheck = obj.checksum
             if objCheck == None:
-                obj.chksum()
-                objCheck = obj.checksum
+                try:
+                    obj.chksum()
+                    objCheck = obj.checksum
+                except:
+                    logging.info('No checksum for '+obj.path)
+                    return([(objPath, fsPath)], [], [], [])
             if objCheck.startswith("sha2"):
                 sha2Obj = b64decode(objCheck.split('sha2:')[1])
                 with open(fsPath, "rb") as f:
@@ -570,8 +581,15 @@ class irodsConnector():
             elif scope == "checksum":
                 objCheck = self.session.data_objects.get(coll.path + '/' + iPartialPath).checksum
                 if objCheck == None:
-                    self.session.data_objects.get(coll.path + '/' + iPartialPath).chksum()
-                    objCheck = self.session.data_objects.get(coll.path + '/' + iPartialPath).checksum
+                    try:
+                        self.session.data_objects.get(coll.path + '/' + iPartialPath).chksum()
+                        objCheck = self.session.data_objects.get(
+                                    coll.path + '/' + iPartialPath).checksum
+                    except:
+                        logging.info('No checksum for '+coll.path + '/' + iPartialPath)
+                        diff.append((coll.path + '/' + iPartialPath, 
+                                        os.path.join(dirPath, locPartialPath)))
+                        continue
                 if objCheck.startswith("sha2"):
                     sha2Obj = b64decode(objCheck.split('sha2:')[1])
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
@@ -704,8 +722,13 @@ class irodsConnector():
             '*value': '"attr_value"'
         }
         """
-        rule = Rule(self.session, ruleFile, params=params, output=output)
-        out = rule.execute()
+        try:
+            rule = Rule(self.session, ruleFile, params=params, output=output)
+            out = rule.execute()
+        except Exception as e:
+            logging.info('RULE EXECUTION ERROR', exc_info=True)
+            return [], [repr(e)]
+
         stdout = []
         stderr = []
         if len(out.MsParam_PI) > 0:
@@ -715,7 +738,7 @@ class irodsConnector():
                 stderr = [o.decode() 
                     for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
             except AttributeError:
-                #logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
+                logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
                 return stdout, stderr
         
         return stdout, stderr
@@ -748,3 +771,11 @@ class irodsConnector():
                         raise
         return size
 
+
+    def createTicket(self, path, expiryString=""):
+        ticket = Ticket(self.session, 
+                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
+        ticket.issue("read", path)
+        logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
+        #returns False when no expiry date is set
+        return ticket.ticket, False

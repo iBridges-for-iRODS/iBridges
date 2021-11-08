@@ -217,7 +217,7 @@ class elabUpload():
                 self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
         except Exception as e:
-            logging.info("ElabUpload UploadData: "+repr(error))
+            logging.info("ElabUpload UploadData: "+repr(e))
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
             self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
@@ -261,7 +261,7 @@ class Worker(QObject):
             self.progress.emit(3)
             self.finished.emit()
         except Exception as e:
-            logging.info("ElabUpload data upload and annotation worker: "+repr(error))
+            logging.info("ElabUpload data upload and annotation worker: "+repr(e))
             print(repr(e))
 
         self.annotateElab()
