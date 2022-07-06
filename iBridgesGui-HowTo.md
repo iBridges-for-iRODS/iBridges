@@ -68,7 +68,7 @@ Note, all you metadata will be preserved too and restored upon extraction.
 
 ## How to decompress data
 
-![How to Compress](screenshots/how_to_decompress.png)
+![How to Compress](screenshots/tarExtract.png)
 
 Partial extract of data:
 
