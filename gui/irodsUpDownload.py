@@ -67,10 +67,10 @@ class irodsUpDownload():
         available_resources = self.ic.listResources()
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(available_resources)
-        if ("default_resource_name" in ienv) and \
-                (ienv["default_resource_name"] != "") and \
-                (ienv["default_resource_name"] in available_resources):
-            index = self.widget.resourceBox.findText(ienv["default_resource_name"])
+        if ("irods_default_resource" in ienv) and \
+                (ienv["irods_default_resource"] != "") and \
+                (ienv["irods_default_resource"] in available_resources):
+            index = self.widget.resourceBox.findText(ienv["irods_default_resource"])
             self.widget.resourceBox.setCurrentIndex(index)
 
         # Continious upload settings
