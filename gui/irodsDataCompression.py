@@ -16,7 +16,7 @@ class irodsDataCompression():
         self.ienv = ienv
         rescs = self.ic.listResources()
         if ic.defaultResc not in rescs:
-            self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'\
+            self.infoPopup('ERROR resource config: "irods_default_resource" invalid:\n'\
                            +ic.defaultResc \
                            +'\nDataCompression view not setup.')
             return
