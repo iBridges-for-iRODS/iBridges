@@ -1,3 +1,5 @@
+"""irodsConnector for anonymous users
+"""
 from irods.session import iRODSSession
 from irods.ticket import Ticket
 from irods.exception import CollectionDoesNotExist, CAT_SQL_ERR
@@ -37,7 +39,7 @@ class irodsConnectorAnonymous(irodsConnector):
             path = path[:-1]
         if not path.startswith("/"):
             raise Exception("Not a valid iRODS path.")
-        
+
         self.tempEnv = None
         self.tempIrodsA = None
 
@@ -49,7 +51,7 @@ class irodsConnectorAnonymous(irodsConnector):
                                     host=host)
         self.token = ticket
         self.path = path
-                
+
         p = Popen(['which','iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         outLogin, errLogin = p.communicate()
         if p.returncode == 0: 
@@ -130,26 +132,10 @@ class irodsConnectorAnonymous(irodsConnector):
         '''
         return self.session.resources.get(resource)
 
-    def resourceSize(self, resource):
-        """
-        Returns the available space left on a resource in bytes
-        resource: Name of the resource
-        Throws: ResourceDoesNotExist if resource not known
-                AttributeError if 'free_space' not set
-        """
-        try:
-            size = self.session.resources.get(resource).free_space
-            return size
-        except Exception as error:
-            logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
-                            exc_info=True)
-            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
-        
-
     def uploadData(self, source, destination, resource, size, buff = 1024**3, 
                          force = False, diffs = []):
-        pass 
-    
+        pass
+
     def downloadIcommands(self, source, destination):
         if type(source) == irods.data_object.iRODSDataObject:
             #-f overwrite, -K control checksum, -r recursive (collections)
@@ -291,7 +277,6 @@ class irodsConnectorAnonymous(irodsConnector):
             pass
         except:
             raise
-
 
     def diffObjFile(self, objPath, fsPath, scope="size"):
         """
