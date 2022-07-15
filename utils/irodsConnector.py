@@ -1,3 +1,5 @@
+"""irodsConnector base
+"""
 from irods.session import iRODSSession
 from irods.access import iRODSAccess
 from irods.ticket import Ticket
@@ -7,6 +9,7 @@ from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, \
                             NO_RULE_OR_MSI_FUNCTION_FOUND_ERR
 
 from irods.exception import CollectionDoesNotExist
+from irods.exception import ResourceDoesNotExist
 from irods.connection import PlainTextPAMPasswordError
 from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.models import User, UserGroup
@@ -27,6 +30,17 @@ RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
+
+
+class FreeSpaceNotSet(Exception):
+    """Custom Exception for when free_space iRODS parameter missing.
+    """
+
+
+class NotEnoughFreeSpace(Exception):
+    """Custom Exception for when the reported free_space is too low.
+    """
+
 
 class irodsConnector():
     def __init__(self, envFile, password = ""):
@@ -97,8 +111,8 @@ class irodsConnector():
         collnames = [c.path for c in colls]
 
 
-        if "default_resource_name" in ienv:
-            self.defaultResc = ienv["default_resource_name"]
+        if "irods_default_resource" in ienv:
+            self.defaultResc = ienv["irods_default_resource"]
         else:
             self.defaultResc = "demoResc"
 
@@ -277,21 +291,22 @@ class irodsConnector():
         '''
         return self.session.resources.get(resource)
 
-    def resourceSize(self, resource):
+    def resourceSpace(self, resource):
         """
         Returns the available space left on a resource in bytes
         resource: Name of the resource
         Throws: ResourceDoesNotExist if resource not known
-                AttributeError if 'free_space' not set
+                FreeSpaceNotSet if 'free_space' not set
         """
-        try:
-            size = self.session.resources.get(resource).free_space
-            return size
-        except Exception as error:
-            logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
-                            exc_info=True)
-            raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
-        
+        size = get_free_space(resource, self.session)
+        if size == -1:
+            logging.info('RESOURCE ERROR: Resource {rname} does not exist (typo?).'.format(rname=resource), exc_info=True)
+            raise ResourceDoesNotExist('RESOURCE ERROR: Resource {rname} does not exist (typo?).'.format(rname=resource))
+        if size == 0:
+            logging.info('RESOURCE ERROR: Resource "free_space" is not set for {rname}.'.format(rname=resource), exc_info=True)
+            raise FreeSpaceNotSet('RESOURCE ERROR: Resource "free_space" is not set for {rname}.'.format(rname=resource))
+        return size
+
 
     def uploadData(self, source, destination, resource, size, buff = 1024**3, 
                          force = False, diffs = []):
@@ -338,17 +353,11 @@ class irodsConnector():
 
         if not force:
             try:
-                space = self.session.resources.get(resource).free_space
-                if not space:
-                    logging.info(
-                        'ERROR iRODS upload: No size set on iRODS resource. Refuse to upload.', 
-                        exc_info=True)
-                    raise ValueError(
-                        'ERROR iRODS upload: No size set on iRODS resource. Refuse to upload.')
+                space = self.resourceSpace(resource)
                 if int(size) > (int(space)-buff):
                     logging.info('ERROR iRODS upload: Not enough space on resource.', 
                                  exc_info=True)
-                    raise ValueError('ERROR iRODS upload: Not enough space on resource.')
+                    raise NotEnoughFreeSpace('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
                     logging.info('ERROR iRODS upload: Negative resource buffer.', 
                         exc_info=True)
@@ -779,3 +788,61 @@ class irodsConnector():
         logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
         #returns False when no expiry date is set
         return ticket.ticket, False
+
+
+def get_resource_children(resc):
+    """Get all the children for the resource named `resc_name`.
+
+    Parameters
+    ----------
+    resc : instance
+        iRODS resource instance.
+
+    Returns
+    -------
+    list
+        Instances of child resources.
+
+    """
+    children = []
+    for child in resc.children:
+        children.extend(get_resource_children(child))
+    return resc.children + children
+
+
+def get_free_space(resc_name, session):
+    """Determine free space in a resource hierarchy.
+
+    If the specified resource name has the free space annotated, then
+    report that.  If not, search for any resources in the tree that have
+    the free space annotated and report the sum all those values.
+
+    Parameters
+    ----------
+    resc_name : str
+        Name of monolithic resource or the top of a resource tree.
+    session : iRODSSession
+        Open session for the current system/user.
+
+    Returns
+    -------
+    int
+        Number of bytes free in the resource hierarchy.
+
+    The return can have one of two possible values if not the actual
+    free space:
+
+        -1 if the resource does not exists (typo or otherwise)
+         0 if the no free space has been annotated in the specified
+           resource tree
+
+    """
+    try:
+        resc = session.resources.get(resc_name)
+    except ResourceDoesNotExist:
+        print('Resource with name {rname} not found'.format(rname=resc_name))
+        return -1
+    if resc.free_space is not None:
+        return int(resc.free_space)
+    children = get_resource_children(resc)
+    return sum([int(child.free_space) for child in children if child.free_space is not None])
