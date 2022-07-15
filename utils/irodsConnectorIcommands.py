@@ -1,3 +1,5 @@
+"""irodsConnector for iCommands
+"""
 from irods.session      import iRODSSession
 from irods.access       import iRODSAccess
 from irods.exception    import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CAT_NO_ACCESS_PERMISSION
@@ -94,8 +96,8 @@ class irodsConnectorIcommands(irodsConnector):
 
         with open(envFile) as f:
             ienv = json.load(f)
-        if "default_resource_name" in ienv:
-            self.defaultResc = ienv["default_resource_name"]
+        if "irods_default_resource" in ienv:
+            self.defaultResc = ienv["irods_default_resource"]
         else:
             self.defaultResc = "demoResc"
         if "davrods_server" in ienv:
@@ -131,14 +133,12 @@ class irodsConnectorIcommands(irodsConnector):
         Throws:
         ResourceDoesNotExist
         ValueError (if resource too small or buffer is too small)
-        
+
         """
         logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
         if not force:
             try:
-                space = self.session.resources.get(resource).free_space
-                if not space:
-                    space = 0
+                space = self.resourceSpace(resource)
                 if int(size) > (int(space)-buff):
                     logging.info('ERROR iRODS upload: Not enough space on resource.')
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
