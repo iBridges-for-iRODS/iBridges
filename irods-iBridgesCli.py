@@ -100,27 +100,28 @@ def setupIRODS(config, operation):
             except:
                 print(RED+"Collection path not valid: "+ config['iRODS']['irodscoll']+DEFAULT)
 
-    #set iRODS resource
+    # set iRODS resource
     try:
-        resource = ic.getResource(config['iRODS']['irodsresc'])
-        print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
-                str(round(int(ic.resourceSize(resource.name))/1024**3))+'GB')
+        resc_name = config['iRODS']['irodsresc']
+        free_space = '{free}GiB'.format(free=round(ic.resourceSpace(resc_name) / 2**30))
+        print('{rname} upload capacity, free space: {free}'.format(rname=resc_name, free=free_space))
     except ResourceDoesNotExist:
-        print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
-        resources  = ic.listResources()
-        sizes = list(map(ic.resourceSize, resources))
-        largestResc = resources[sizes.index(max(sizes))]
+        resc_name = config['iRODS']['irodsresc']
+        print('{red}iRODS resource does not exist: {rname}{dflt}'.format(red=RED, rname=resc_name, dflt=DEFAULT))
+        resources = ic.listResources()
+        sizes = list(map(ic.resourceSpace, resources))
+        largest_resc = resources[sizes.index(max(sizes))]
+        free_space = '{free}GiB'.format(free=round(ic.resourceSpace(largest_resc) / 2**30))
         menu = 'y'
-        menu = input('Choose '+largestResc+' ('\
-                +str(round(int(ic.resourceSize(largestResc))/1024**3))+'GB free)? (Yes/No) ')
+        menu = input('Choose {rname} ({free} free)? (Yes/No) '.format(rname=largest_resc, free=free_space))
         if menu in ['Yes', 'yes', 'Y', 'y']:
-            config['iRODS']['irodsresc'] = largestResc
+            config['iRODS']['irodsresc'] = largest_resc
         else:
             print("Aborted: no iRODS reosurce set.")
             sys.exit(2)
 
     return ic
-    
+
 
 def setupELN(config):
     md = elabConnector(config['ELN']['token'])
