@@ -17,6 +17,7 @@ import PyQt5.uic
 import gui
 import utils
 
+app = PyQt5.QtWidgets.QApplication(sys.argv)
 widget = PyQt5.QtWidgets.QStackedWidget()
 
 
@@ -236,9 +237,7 @@ def main():
     """Main function
 
     """
-    app = PyQt5.QtWidgets.QApplication(sys.argv)
     login_window = IrodsLoginWindow()
-    # widget is a global variable
     widget.addWidget(login_window)
     widget.show()
     app.exec_()
