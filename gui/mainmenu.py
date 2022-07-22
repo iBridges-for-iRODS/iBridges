@@ -1,10 +1,18 @@
+"""Main menu window definition
+
+"""
+import PyQt5
+import PyQt5.QtWidgets
+import PyQt5.uic
+
+
+
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
 from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-from gui.popupWidgets import irodsCreateCollection
 from gui.irodsBrowser import irodsBrowser
 from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
