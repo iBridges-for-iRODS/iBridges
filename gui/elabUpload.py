@@ -9,6 +9,8 @@ from utils.utils import getSize, walkToDict
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 import logging
 
+
+# TODO Inherit from IrodsConnctor?
 class elabUpload():
     def __init__(self, widget, ic):
         self.widget = widget
@@ -38,7 +40,7 @@ class elabUpload():
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
-        self.elnUploadButton.clicked.connect(self.uploadData)
+        self.elnUploadButton.clicked.connect(self.upload_data)
     
     
     def connectElab(self):
@@ -148,7 +150,7 @@ class elabUpload():
         self.errorLabel.setText("ELN upload success: "+self.coll.path)
 
 
-    def uploadData(self):
+    def upload_data(self):
         self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.elnPreviewBrowser.clear()
         self.errorLabel.clear()
@@ -189,7 +191,7 @@ class elabUpload():
                 collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
             else:
                 collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
-            self.coll = self.ic.ensureColl(collPath)
+            self.coll = self.ic.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
     
             buttonReply = QMessageBox.question(
@@ -245,12 +247,12 @@ class Worker(QObject):
     def run(self):
         try:
             if os.path.isfile(self.filePath):
-                self.ic.uploadData(self.filePath, self.coll, None, self.size, force=True)
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 item = self.ic.session.data_objects.get(
                         self.coll.path+'/'+os.path.basename(self.filePath))
                 self.ic.addMetadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.ic.uploadData(self.filePath, self.coll, None, self.size, force=True)
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 upColl = self.ic.session.collections.get(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]

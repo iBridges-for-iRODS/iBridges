@@ -1,3 +1,6 @@
+"""
+ 
+"""
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
 from PyQt5.uic import loadUi
@@ -37,14 +40,14 @@ class irodsBrowser():
 
         #if user is not admin nor datasteward, hide ACL buttons
         try:
-            userType, userGroups = self.ic.getUserInfo()
+            user_type, user_groups = self.ic.get_user_info()
         except NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
-        if "rodsadmin" not in userType and \
-           "datastewards" not in userGroups and \
-           "training" not in userGroups:
+        if user_type != 'rodsadmin' and \
+           'datastewards' not in user_groups and \
+           'training' not in user_groups:
 
             self.widget.aclAddButton.hide()
             self.widget.aclBox.setEnabled(False)
@@ -56,10 +59,9 @@ class irodsBrowser():
 
         #iRODS defaults
         try:
-            self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
+            self.irodsRoot = self.ic.session.collections.get(f'/{ic.session.zone}/home/{ic.session.username}')
         except CollectionDoesNotExist:
-            self.irodsRoot = self.ic.session.collections.get(
-                    "/"+ic.session.zone+"/home/"+ic.session.username)
+            self.irodsRoot = self.ic.session.collections.get(f'/{ic.session.zone}/home')
         except NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
@@ -70,7 +72,7 @@ class irodsBrowser():
 
 
     def browse(self):
-        #update main table when iRODS paht is changed upon 'Enter'
+        #update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.homeButton.clicked.connect(self.resetPath)
         #quick data upload and download (files only)
@@ -108,7 +110,7 @@ class irodsBrowser():
         self.widget.resourceTable.setRowCount(0)
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
-            resources = self.ic.listResources()
+            resources = self.ic.list_resources()
             self.widget.resourceTable.setRowCount(len(resources))
             obj = self.ic.session.data_objects.get(
                     "/"+path.strip("/")+"/"+value.strip("/")
@@ -378,8 +380,8 @@ class irodsBrowser():
         if buttonReply == QMessageBox.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
-                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
-                self.ic.uploadData(fileSelect[0], parentColl,
+                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
+                self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=True)
                 self.loadTable()
             except NetworkException:
@@ -407,7 +409,7 @@ class irodsBrowser():
                                 'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                     if buttonReply == QMessageBox.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
-                        self.ic.downloadData(obj, downloadDir, obj.size)
+                        self.ic.download_data(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
             except NetworkException:
                 self.widget.errorLabel.setText(
@@ -460,7 +462,7 @@ class irodsBrowser():
         cell = self.widget.collTable.item(self.currentBrowserRow, 1).text()
         zone = self.widget.aclZoneField.text()
         try:
-            self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
+            self.ic.set_permissions(rights, f'/{parent.strip("/")}/{cell.strip("/")}', user, zone, recursive)
             self.__fillACLs(cell, parent)
 
         except NetworkException:

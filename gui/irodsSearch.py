@@ -17,7 +17,7 @@ class irodsSearch(QDialog):
         self.setWindowTitle("iRODS search")
         self.startSearchButton.clicked.connect(self.search)
         self.selectSearchButton.clicked.connect(self.loadSearchResults)
-        self.downloadButton.clicked.connect(self.downloadData)
+        self.downloadButton.clicked.connect(self.download_data)
         self.searchExitButton.released.connect(self.close)
 
 
@@ -95,7 +95,7 @@ class irodsSearch(QDialog):
         self.close()
 
 
-    def downloadData(self):
+    def download_data(self):
         self.enableButtons(enabled=False)
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes() if idx.row() > 2])
         irodsPaths = []
@@ -118,11 +118,11 @@ class irodsSearch(QDialog):
                     for p in irodsPaths:
                         if self.ic.session.collections.exists(p):
                             item = self.ic.session.collections.get(p)
-                            self.ic.downloadData(item, downloadDir, 0, force=True)
+                            self.ic.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         elif self.ic.session.data_objects.exists(p):
                             item = self.ic.session.data_objects.get(p)
-                            self.ic.downloadData(item, downloadDir, 0, force=True)
+                            self.ic.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
                             self.errorLabel.setText(

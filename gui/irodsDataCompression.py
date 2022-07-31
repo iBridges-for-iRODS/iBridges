@@ -14,10 +14,10 @@ class irodsDataCompression():
         self.ic = ic
         self.widget = widget
         self.ienv = ienv
-        rescs = self.ic.listResources()
-        if ic.defaultResc not in rescs:
+        rescs = self.ic.list_resources()
+        if ic.default_resc not in rescs:
             self.infoPopup('ERROR resource config: "irods_default_resource" invalid:\n'\
-                           +ic.defaultResc \
+                           +ic.default_resc \
                            +'\nDataCompression view not setup.')
             return
 
@@ -33,7 +33,7 @@ class irodsDataCompression():
         self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
         self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
         self.irodsRootColl = '/'+ic.session.zone
-        index = self.widget.decompressRescButton.findText(ic.defaultResc)
+        index = self.widget.decompressRescButton.findText(ic.default_resc)
         self.widget.decompressRescButton.setCurrentIndex(index)
 
         #irodsCollectionTree
@@ -80,10 +80,10 @@ class irodsDataCompression():
 
     def setupResourceButton(self, button):
         button.clear()
-        resources = self.ic.listResources()
+        resources = self.ic.list_resources()
         button.addItems(resources)
-        if self.ic.defaultResc in resources:
-            index = button.findText(self.ic.defaultResc)
+        if self.ic.default_resc in resources:
+            index = button.findText(self.ic.default_resc)
             button.setCurrentIndex(index)
 
     def enableButtons(self, enable):

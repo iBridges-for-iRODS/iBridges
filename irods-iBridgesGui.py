@@ -74,8 +74,8 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
 
         """
         if self.icommands:
-            return utils.irodsConnectorIcommands.irodsConnectorIcommands(cipher.decrypt(password).decode())
-        return utils.irodsConnector.irodsConnector(env_file, cipher.decrypt(password).decode())
+            return utils.IrodsConnectorIcommands.IrodsConnectorIcommands(cipher.decrypt(password).decode())
+        return utils.IrodsConnector.IrodsConnector(env_file, cipher.decrypt(password).decode())
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text

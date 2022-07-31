@@ -1,10 +1,10 @@
 """Provide the GUI with iRODS information
 """
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+import irods
+import PyQt5
+import PyQt5.QtWidgets
 
-from utils.irodsConnector import FreeSpaceNotSet, ResourceDoesNotExist
+import utils
 
 
 class irodsInfo():
@@ -22,41 +22,40 @@ class irodsInfo():
         including the availble top-level resources.
         """
         self.widget.rescTable.setRowCount(0)
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
         # irods Zone
         self.widget.zoneLabel.setText(self.ic.session.zone)
         # irods user
         self.widget.userLabel.setText(self.ic.session.username)
         # irods user type and groups
-        user_type, user_groups = self.ic.getUserInfo()
-        group_names = [x for x in user_groups if not isinstance(x, int)]
-        self.widget.typeLabel.setText(user_type[0])
-        self.widget.groupsLabel.setText('\n'.join(group_names))
+        user_type, user_groups = self.ic.get_user_info()
+        self.widget.typeLabel.setText(user_type)
+        self.widget.groupsLabel.setText('\n'.join(user_groups))
         # defaul resource
-        self.widget.rescLabel.setText(self.ic.defaultResc)
+        self.widget.rescLabel.setText(self.ic.default_resc)
         # irods server and version
         self.widget.serverLabel.setText(self.ic.session.host)
         self.widget.versionLabel.setText(
             '.'.join(str(num) for num in self.ic.session.server_version))
         # irods resources
-        resc_names = self.ic.listResources()
+        resc_names = self.ic.list_resources()
         resources = []
         for resc_name in resc_names:
             try:
-                free_space = self.ic.resourceSpace(resc_name)
+                free_space = self.ic.resource_space(resc_name)
                 # Round to nearest GiB
                 resources.append((resc_name, str(round(free_space / 2**30))))
-            except FreeSpaceNotSet:
+            except utils.IrodsConnector.FreeSpaceNotSet:
                 resources.append((resc_name, "no information"))
-            except ResourceDoesNotExist:
+            except irods.exception.ResourceDoesNotExist:
                 resources.append((resc_name, "invalid resource"))
         self.widget.rescTable.setRowCount(len(resources))
         row = 0
         for resc_name, free_space in resources:
-            resc = self.ic.getResource(resc_name)
-            self.widget.rescTable.setItem(row, 0, QtWidgets.QTableWidgetItem(resc_name))
-            self.widget.rescTable.setItem(row, 1, QtWidgets.QTableWidgetItem(free_space))
-            self.widget.rescTable.setItem(row, 2, QtWidgets.QTableWidgetItem(resc.status))
+            resc = self.ic.get_resource(resc_name)
+            self.widget.rescTable.setItem(row, 0, PyQt5.QtWidgets.QTableWidgetItem(resc_name))
+            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(free_space))
+            self.widget.rescTable.setItem(row, 2, PyQt5.QtWidgets.QTableWidgetItem(resc.status))
             row = row + 1
         self.widget.rescTable.resizeColumnsToContents()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))

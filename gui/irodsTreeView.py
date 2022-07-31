@@ -23,7 +23,7 @@ class IrodsModel(QStandardItemModel):
         self.ic = irods_session
         #Groups which the user id member of to check access rights on tree
         try:
-            self.userGroups = self.ic.getUserInfo()[1]
+            self.user_groups = self.ic.get_user_info()[1]
         except Exception as e:
             logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
 
@@ -60,14 +60,14 @@ class IrodsModel(QStandardItemModel):
                 #check irods ACLs for access rights
                 path = self.irodsPathFromTreeIdx(index)
                 try:
-                    reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
+                    reqAcls = [('own', path, group, self.ic.session.zone) for group in self.user_groups]
                     reqAcls.extend([('write', path, group, self.ic.session.zone) \
-                                    for group in self.userGroups])
+                                    for group in self.user_groups])
                     reqAcls.extend([('read object', path, group, self.ic.session.zone) \
-                                    for group in self.userGroups])
+                                    for group in self.user_groups])
 
                     acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
-                            for acl in self.ic.getPermissions(path)])
+                            for acl in self.ic.get_permissions(path)])
                     # Block checking of home item (found no easy way to remove the checkbox)
                     if acls.intersection(reqAcls) == set():
                         message = "ERROR, insufficient rights:\nCannot select "+path

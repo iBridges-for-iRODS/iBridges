@@ -54,7 +54,7 @@ class contUpload(Thread):
                 if filename == "metadata.json":
                     if filepath in self.tosync_dictionary:
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
-                        self.ic.uploadData(filepath, self.destColl, None, None, force = True)
+                        self.ic.upload_data(filepath, self.destColl, None, None, force = True)
                     else:
                         print("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
@@ -70,7 +70,7 @@ class contUpload(Thread):
                 print("TODO figure out how to do the F500 upload")
                 
             else: # "all"
-                self.ic.uploadData(new_file, self.destColl, None, None, force = True)
+                self.ic.upload_data(new_file, self.destColl, None, None, force = True)
             
         # Stop file watcher
         self.fWatcher.stop()

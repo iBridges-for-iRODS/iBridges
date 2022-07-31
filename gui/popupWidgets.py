@@ -24,7 +24,7 @@ class irodsCreateCollection(QDialog):
         if self.collPathLine.text() != "":
             newCollPath = self.parent+"/"+self.collPathLine.text()
             try:
-                self.ic.ensureColl(newCollPath)
+                self.ic.ensure_coll(newCollPath)
                 self.done(1)
             except Exception as error:
                 if hasattr(error, 'message'):
@@ -125,7 +125,7 @@ class irodsIndexPopup(QDialog):
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
                         '*obj': '"'+self.tarFilePath+'"',
-                        '*resource': '"'+self.ic.defaultResc+'"',
+                        '*resource': '"'+self.ic.default_resc+'"',
                         '*extract': '"'+extractPath+'"',
                         }
                 stdout, stderr = self.ic.executeRule(ruleFile, params)

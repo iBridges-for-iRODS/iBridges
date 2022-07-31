@@ -17,7 +17,7 @@ class irodsUpDownload():
         self.ienv = ienv
         self.syncing = False # syncing or not
 
-        rescs = self.ic.listResources()
+        rescs = self.ic.list_resources()
 
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)
@@ -64,7 +64,7 @@ class irodsUpDownload():
         self.widget.createCollButton.clicked.connect(self.createCollection)
 
         # Resource selector
-        available_resources = self.ic.listResources()
+        available_resources = self.ic.list_resources()
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(available_resources)
         if ("irods_default_resource" in ienv) and \
@@ -116,7 +116,7 @@ class irodsUpDownload():
         saveIenv(self.ienv)
 
 
-    def getResource(self):
+    def get_resource(self):
         return self.widget.resourceBox.currentText()
 
     def getRemLocalCopy(self):
@@ -170,7 +170,7 @@ class irodsUpDownload():
         destColl = self.ic.session.collections.get(irodsDestPath)
         #if os.path.isdir(fsSource):
         self.uploadWindow = dataTransfer(self.ic, True, fsSource, destColl, 
-                                                irodsDestIdx, self.getResource())
+                                                irodsDestIdx, self.get_resource())
         self.uploadWindow.finished.connect(self.finishedUpDownload)
 
 
