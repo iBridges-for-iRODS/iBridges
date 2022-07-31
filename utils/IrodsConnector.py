@@ -1,54 +1,77 @@
-"""irodsConnector base
+"""IrodsConnector base
+
 """
-from irods.session import iRODSSession
-from irods.access import iRODSAccess
-from irods.ticket import Ticket
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, \
-                            CAT_NO_ACCESS_PERMISSION, CAT_SUCCESS_BUT_WITH_NO_INFO, \
-                            CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION,\
-                            NO_RULE_OR_MSI_FUNCTION_FOUND_ERR
-
-from irods.exception import CollectionDoesNotExist
-from irods.exception import ResourceDoesNotExist
-from irods.connection import PlainTextPAMPasswordError
-from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
-from irods.models import User, UserGroup
-from irods.column import Like, Between, In
-import irods.keywords as kw
-from irods.rule import Rule
-
+import hashlib
 import json
+import logging
 import os
+import random
+import ssl
+import string
 from base64 import b64decode
 from shutil import disk_usage
-import hashlib
-import ssl
-import random, string
-import logging
 
+import irods
+import irods.rule
+import irods.ticket
+
+# Keywords
+ALL_KW = irods.keywords.ALL_KW
+FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
+REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
+RESC_NAME_KW = irods.keywords.RESC_NAME_KW
+VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
+# Map model names to iquest attribute names
+COLL_NAME = irods.models.Collection.name
+DATA_NAME = irods.models.DataObject.name
+DATA_CHECKSUM = irods.models.DataObject.checksum
+META_COLL_ATTR_NAME = irods.models.CollectionMeta.name
+META_COLL_ATTR_VALUE = irods.models.CollectionMeta.value
+META_DATA_ATTR_NAME = irods.models.DataObjectMeta.name
+META_DATA_ATTR_VALUE = irods.models.DataObjectMeta.value
+RESC_NAME = irods.models.Resource.name
+RESC_PARENT = irods.models.Resource.parent
+USER_GROUP_NAME = irods.models.UserGroup.name
+USER_NAME = irods.models.User.name
+USER_TYPE = irods.models.User.type
+# Query operators
+LIKE = irods.column.Like
+# ASCII colors
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
+# Misc
+BUFF_SIZE = 2**30
+NUM_THREADS = 4
 
 
 class FreeSpaceNotSet(Exception):
     """Custom Exception for when free_space iRODS parameter missing.
+
     """
 
 
 class NotEnoughFreeSpace(Exception):
     """Custom Exception for when the reported free_space is too low.
+
     """
 
 
-class irodsConnector():
-    def __init__(self, envFile, password = ""):
-        """
-        iRODS authentication with python.
-        Input:
-            envFile: json document with iRODS connection parameters
-            password: string
+class IrodsConnector():
+    """Create a connection to an iRODS system.
+
+    """
+
+    def __init__(self, envFile, password=""):
+        """iRODS authentication with python.
+
+        Parameters
+        ----------
+        envFile : str
+            JSON document with iRODS connection parameters
+        password : str
+            Provided plain text password
 
         If you like to overwrite one or both parameters, use the envFile and password.
 
@@ -57,401 +80,483 @@ class irodsConnector():
             irods.exception.PAM_AUTH_PASSWORD_FAILED: wrong password
             NetworkException: No conection could be established
             All other errors refer to having the envFile not setup properly
+
         """
-        self.__name__="irodsConnector"
+        self.__name__ = 'IrodsConnector'
 
         try:
-            with open(envFile) as f:
-                ienv = json.load(f)
-            if password == "": 
-                # requires a valid .irods/.irodsA (linux/mac only)
-                #self.session = iRODSSession(irods_env_file=envFile)
-                raise CAT_INVALID_AUTHENTICATION("No password provided.")
-
-            else:
-                self.session = iRODSSession(**ienv, password=password)
-                testcoll = self.session.collections.get(
-                        "/"+self.session.zone+"/home")
-        except PlainTextPAMPasswordError:
+            with open(envFile) as envfd:
+                ienv = json.load(envfd)
+            if password == '':
+                # TODO add support for .irods/.irodsA for all OSes
+                # self.session = irods.session.iRODSSession(irods_env_file=envFile)
+                raise irods.exception.CAT_INVALID_AUTHENTICATION('No password provided.')
+            self.session = irods.session.iRODSSession(**ienv, password=password)
+        except irods.connection.PlainTextPAMPasswordError:
             try:
                 ssl_context = ssl.create_default_context(
                     purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None, cadata=None)
                 ssl_settings = {'client_server_negotiation': 'request_server_negotiation',
-                            'client_server_policy': 'CS_NEG_REQUIRE',
-                            'encryption_algorithm': 'AES-256-CBC',
-                            'encryption_key_size': 32,
-                            'encryption_num_hash_rounds': 16,
-                            'encryption_salt_size': 8,
-                            'ssl_context': ssl_context}
-                self.session = iRODSSession(
+                                'client_server_policy': 'CS_NEG_REQUIRE',
+                                'encryption_algorithm': 'AES-256-CBC',
+                                'encryption_key_size': 32,
+                                'encryption_num_hash_rounds': 16,
+                                'encryption_salt_size': 8,
+                                'ssl_context': ssl_context}
+                self.session = irods.session.iRODSSession(
                                 **ienv, password=password, **ssl_settings)
-            except:
-                raise
-
-        except CollectionDoesNotExist:
+            except Exception as error:
+                raise error
+        except irods.exception.CollectionDoesNotExist:
             pass
         except Exception as error:
             logging.info('AUTHENTICATION ERROR', exc_info=True)
-            print(RED+"AUTHENTICATION ERROR: "+repr(error)+DEFAULT)
-            raise
-
+            print(f'{RED}AUTHENTICATION ERROR: {error!r}{DEFAULT}')
+            raise error
         try:
-            colls = self.session.collections.get(
-                    "/"+self.session.zone+"/home").subcollections
-        except CollectionDoesNotExist:
-            colls = self.session.collections.get(
-                    "/"+self.session.zone+"/home/"+self.session.username).subcollections
-        except:
+            colls = self.session.collections.get(f'/{self.session.zone}/home/{self.session.username}').subcollections
+        except irods.exception.CollectionDoesNotExist:
+            colls = self.session.collections.get(f'/{self.session.zone}/home').subcollections
+        except Exception as error:
             logging.info('AUTHENTICATION ERROR', exc_info=True)
-            print(RED+"IRODS ERROR LOADING COLLECTION HOME/USER: "+DEFAULT)
-            print(RED+"Collection does not exist or user auth failed."+DEFAULT)
-            raise
-
-        
+            print(f'{RED}IRODS ERROR LOADING COLLECTION HOME/USER: {DEFAULT}')
+            print(f'{RED}Collection does not exist or user auth failed.{DEFAULT}')
+            raise error
         collnames = [c.path for c in colls]
-
-
-        if "irods_default_resource" in ienv:
-            self.defaultResc = ienv["irods_default_resource"]
+        if 'irods_default_resource' in ienv:
+            self.default_resc = ienv['irods_default_resource']
         else:
-            self.defaultResc = "demoResc"
+            self.default_resc = 'demoResc'
 
-        if "davrods_server" in ienv:
-            self.davrods = ienv["davrods_server"].strip('/')
+        if 'davrods_server' in ienv:
+            self.davrods = ienv['davrods_server'].strip('/')
         else:
             self.davrods = None
 
-        print("Welcome to iRODS:")
-        print("iRODS Zone: "+self.session.zone)
-        print("You are: "+self.session.username)
-        print("Default resource: "+self.defaultResc)
-        print("You have access to: \n")
+        print('Welcome to iRODS:')
+        print(f'iRODS Zone: {self.session.zone}')
+        print(f'You are: {self.session.username}')
+        print(f'Default resource: {self.default_resc}')
+        print('You have access to: \n')
         print('\n'.join(collnames))
 
-        logging.info(
-            'IRODS LOGIN SUCCESS: '+self.session.username+", "+self.session.zone+", "+self.session.host)
+        logging.info('IRODS LOGIN SUCCESS: %s, %s, %s', self.session.username, self.session.zone, self.session.host)
 
+    def get_user_info(self):
+        """Query for user type and groups.
 
-    def getUserInfo(self):
-        userGroupQuery = self.session.query(UserGroup).filter(Like(User.name, self.session.username))
-        userTypeQuery = self.session.query(User.type).filter(Like(User.name, self.session.username))
-        
-        userType = []
-        for t in userTypeQuery.get_results():
-            userType.extend(list(t.values()))
-        userGroups = []
-        for g in userGroupQuery.get_results():
-            userGroups.extend(list(g.values()))
+        Returns
+        -------
+        str
+            iRODS user type name.
+        list
+            iRODS group names.
 
-        return(userType, userGroups)
+        """
+        query = self.session.query(USER_TYPE).filter(LIKE(USER_NAME, self.session.username))
+        user_type = [list(result.values())[0] for result in query.get_results()][0]
+        query = self.session.query(USER_GROUP_NAME).filter(LIKE(USER_NAME, self.session.username))
+        user_groups = [list(result.values())[0] for result in query.get_results()]
+        return user_type, user_groups
 
-        
-    def getPermissions(self, iPath):
-        '''
-        iPath: Can be a string or an iRODS collection/object
-        Throws:
-            irods.exception.CollectionDoesNotExist
-        '''
-        try:
-            return self.session.permissions.get(iPath)
-        except:
+    def get_permissions(self, path='', obj=None):
+        """Discover ACLs for an iRODS collection expressed as a `path` or
+        an `obj`ect.
+
+        Parameters
+        ----------
+        path : str
+            Logical iRODS path of a collection or data object
+        obj : iRODSCollection, iRODSDataObject
+            Instance of an iRODS collection or data object
+
+        Returns
+        -------
+        list
+            iRODS ACL instances
+
+        """
+        if isinstance(path, str) and path:
             try:
-                coll = self.session.collections.get(iPath)
-                return self.session.permissions.get(coll)
-            except:
-                try:
-                    obj = self.session.data_objects.get(iPath)
-                    return self.session.permissions.get(obj)
-                except:
-                    logging.info('GET PERMISSIONS', exc_info=True)
-                    raise
+                return self.session.permissions.get(self.session.collections.get(path))
+            except irods.exception.CollectionDoesNotExist:
+                return self.session.permissions.get(self.session.data_objects.get(path))
+            finally:
+                logging.info('GET PERMISSIONS', exc_info=True)
+        if isinstance(obj, (irods.collection.iRODSCollection, irods.data_object.iRODSDataObject)):
+            return self.session.permissions.get(obj)
+        print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
+        return []
 
-    def setPermissions(self, rights, user, path, zone, recursive = False):
-        '''
-        Sets permissions to an iRODS collection or data object.
-        path: string
-        rights: string, [own, read, write, null]
-        '''
-        acl = iRODSAccess(rights, path, user, zone)
+    def set_permissions(self, perm, path, user, zone, recursive=False):
+        """Set permissions (ACL) for an iRODS collection or data object.
 
+        Parameters
+        ----------
+        perm : str
+            Name of permission string: own, read, write, or null.
+        path : str
+            Name of iRODS logical path.
+        user : str
+            Name of user.
+        zone : str
+            Name of user's zone.
+        recursive : bool
+            Apply ACL to all children of `path`.
+
+        """
+        acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if recursive and self.session.collections.exists(path):
-                self.session.permissions.set(acl, recursive=True)
-            else:
-                self.session.permissions.set(acl, recursive=False)
-        except CAT_INVALID_USER:
-            raise CAT_INVALID_USER("ACL ERROR: user unknown ")
-        except CAT_INVALID_ARGUMENT:
-            print(RED+"ACL ERROR: rights or path not known "+path+DEFAULT)
-            logging.info('ACL ERROR: rights or path not known', exc_info=True)
-            raise
+            if self.session.collections.exists(path):
+                self.session.permissions.set(acl, recursive=recursive)
+        except irods.exception.CAT_INVALID_USER as ciu:
+            print(f'{RED}ACL ERROR: user unknown{DEFAULT}')
+            raise ciu
+        except irods.exception.CAT_INVALID_ARGUMENT as cia:
+            print(f'{RED}ACL ERROR: permission {perm} or path {path} not known{DEFAULT}')
+            logging.info('ACL ERROR: permission %s or path %s not known', perm, path, exc_info=True)
+            raise cia
 
+    def ensure_coll(self, coll_name):
+        """Optimally create a collection with `coll_name` if one does
+        not exist.
 
-    def ensureColl(self, collPath):
-        '''
+        Parameters
+        ----------
+        coll_name : str
+            Name of the collection to check/create.
+
+        Returns
+        -------
+        iRODSCollection
+            Existing or new iRODS collection.
+
         Raises:
             irods.exception.CAT_NO_ACCESS_PERMISSION
-        '''
+
+        """
         try:
-            self.session.collections.create(collPath)
-            return self.session.collections.get(collPath)
-        except:
+            if not self.session.collections.exists(coll_name):
+                return self.session.collections.create(coll_name)
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
             logging.info('ENSURE COLLECTION', exc_info=True)
-            raise
+            raise cnap
 
+    def search(self, key_vals=None):
+        """Given a dictionary with metadata attribute names as keys and
+        associated values, query for collections and data objects that
+        fullfill the criteria.  The key 'checksum' will be mapped to
+        DataObject.checksum, the key 'path' will be mapped to
+        Collection.name and the key 'object' will be mapped to
+        DataObject.name:
 
-    def search(self, keyVals = None):
-        '''
-        Given a dictionary with keys and values, searches for colletions and 
-        data objects that fullfill the criteria.
-        The key 'checksum' will be mapped to DataObject.checksum, the key 'path'
-        will be mapped to Collection.name and the key 'object' will be mapped to DataObject.name.
-        Default: if no keyVals are given, all accessible colletcins and data objects will be returned
+        {
+            'checksum': '',
+            'key1': 'val1',
+            'key2': 'val2',
+            'path': '',
+            'object': '',
+        }
 
-        keyVals: dict; {'checksum': '', 'key1': 'val1', 'key2': 'val2', 'path': '', 'object': ''}
+        By Default, if `key_vals` is empty, all accessible collections
+        and data objects will be returned.
 
-        Returns:
+        Parameters
+        ----------
+        key_vals : dict
+            Attribute name mapping to values.
+
+        Returns
+        -------
         list: [[Collection name, Object name, checksum]]
-        '''
-        collQuery = None
-        objQuery = None
-        # data query
-        if 'checksum' in keyVals or 'object' in keyVals:
-            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
-            if 'object' in keyVals:
-                if keyVals['object']:
-                    objQuery = objQuery.filter(Like(DataObject.name, keyVals['object']))
-            if 'checksum' in keyVals:
-                if keyVals['checksum']:
-                    objQuery = objQuery.filter(Like(DataObject.checksum, keyVals['checksum']))
-        else:
-            collQuery = self.session.query(Collection.name)
-            objQuery = self.session.query(Collection.name, DataObject.name, DataObject.checksum)
 
-        if 'path' in keyVals and keyVals['path']: 
-            if collQuery:
-                collQuery = collQuery.filter(Like(Collection.name, keyVals['path']))
-            objQuery = objQuery.filter(Like(Collection.name, keyVals['path']))
-        
-        for key in keyVals:
+        """
+        coll_query = None
+        data_query = None
+        # data query
+        if 'checksum' in key_vals or 'object' in key_vals:
+            data_query = self.session.query(COLL_NAME, DATA_NAME, DATA_CHECKSUM)
+            if 'object' in key_vals:
+                if key_vals['object']:
+                    data_query = data_query.filter(LIKE(DATA_NAME, key_vals['object']))
+            if 'checksum' in key_vals:
+                if key_vals['checksum']:
+                    data_query = data_query.filter(LIKE(DATA_CHECKSUM, key_vals['checksum']))
+        else:
+            coll_query = self.session.query(COLL_NAME)
+            data_query = self.session.query(COLL_NAME, DATA_NAME, DATA_CHECKSUM)
+
+        if 'path' in key_vals and key_vals['path']:
+            if coll_query:
+                coll_query = coll_query.filter(LIKE(COLL_NAME, key_vals['path']))
+            data_query = data_query.filter(LIKE(COLL_NAME, key_vals['path']))
+        for key in key_vals:
             if key not in ['checksum', 'path', 'object']:
-                if objQuery:
-                    objQuery.filter(DataObjectMeta.name == key)
-                if collQuery:
-                    collQuery.filter(CollectionMeta.name == key)
-                if keyVals[key]:
-                    if objQuery:
-                        objQuery.filter(DataObjectMeta.value == keyVals[key])
-                    if collQuery:
-                        collQuery.filter(CollectionMeta.value == keyVals[key])
+                if data_query:
+                    data_query.filter(META_DATA_ATTR_NAME == key)
+                if coll_query:
+                    coll_query.filter(META_COLL_ATTR_NAME == key)
+                if key_vals[key]:
+                    if data_query:
+                        data_query.filter(META_DATA_ATTR_VALUE == key_vals[key])
+                    if coll_query:
+                        coll_query.filter(META_COLL_ATTR_VALUE == key_vals[key])
 
         results = [['', '', ''], ['', '', ''], ['', '', '']]
-        collBatch = [[]]
-        objBatch = [[]]
-        #return only 100 results
-        if collQuery:
-            results[0] = ["Collections found: "+str(sum(1 for _ in collQuery)),'', '']
-            collBatch = [b for b in collQuery.get_batches()]
-        if objQuery:
-            results[1] = ["Objects found: "+str(sum(1 for _ in objQuery)), '', '']
-            objBatch = [b for b in objQuery.get_batches()]
-       
-        for res in collBatch[0][:50]:
+        coll_batch = [[]]
+        data_batch = [[]]
+        # Return only 100 results.
+        if coll_query:
+            results[0] = ["Collections found: "+str(sum(1 for _ in coll_query)), '', '']
+            coll_batch = list(coll_query.get_batches())
+        if data_query:
+            results[1] = ["Objects found: "+str(sum(1 for _ in data_query)), '', '']
+            data_batch = list(data_query.get_batches())
+        for res in coll_batch[0][:50]:
             results.append([res[list(res.keys())[0]], '', ''])
-        for res in objBatch[0][:50]:
+        for res in data_batch[0][:50]:
             results.append([res[list(res.keys())[0]],
                             res[list(res.keys())[1]],
                             res[list(res.keys())[2]]])
         return results
 
+    def list_resources(self):
+        """Discover all root resources available in the current system.
 
-    def listResources(self):
+        Returns
+        -------
+        list
+            Discovered resource names.
+
         """
-        Returns list of all root resources, that accept data.
-        """
-        query = self.session.query(Resource.name, Resource.parent)
-        resources = []
+        query = self.session.query(RESC_NAME, RESC_PARENT)
+        resc_names = []
         for item in query.get_results():
-            rescName, parent = item.values()
-            if parent == None:
-                resources.append(rescName)
+            resc_name, parent = item.values()
+            if parent is None:
+                resc_names.append(resc_name)
+        if 'bundleResc' in resc_names:
+            resc_names.remove('bundleResc')
+        if 'demoResc' in resc_names:
+            resc_names.remove('demoResc')
+        return resc_names
 
-        if 'bundleResc' in resources:
-            resources.remove('bundleResc')
-        if 'demoResc' in resources:
-            resources.remove('demoResc')
+    def get_resource(self, resc_name):
+        '''Instantiate an iRODS resource object.
 
-        return resources
+        Prameters
+        ---------
+        resc_name : str
+            Name of the iRODS resource.
 
+        Returns
+        -------
+        iRODSResource
+            Instance of the resource with `resc_name`.
 
-    def getResource(self, resource):
-        '''
         Raises:
             irods.exception.ResourceDoesNotExist
-        '''
-        return self.session.resources.get(resource)
 
-    def resourceSpace(self, resource):
-        """
-        Returns the available space left on a resource in bytes
-        resource: Name of the resource
+        '''
+        return self.session.resources.get(resc_name)
+
+    def resource_space(self, resc_name):
+        """Find the available space left on a resource in bytes.
+
+        Parameters
+        ----------
+        resc_name : str
+            Name of an iRODS resource.
+
+        Returns
+        -------
+        int
+            Number of bytes in `resc_name`.
+
         Throws: ResourceDoesNotExist if resource not known
                 FreeSpaceNotSet if 'free_space' not set
+
         """
-        size = get_free_space(resource, self.session)
-        if size == -1:
-            logging.info('RESOURCE ERROR: Resource {rname} does not exist (typo?).'.format(rname=resource), exc_info=True)
-            raise ResourceDoesNotExist('RESOURCE ERROR: Resource {rname} does not exist (typo?).'.format(rname=resource))
-        if size == 0:
-            logging.info('RESOURCE ERROR: Resource "free_space" is not set for {rname}.'.format(rname=resource), exc_info=True)
-            raise FreeSpaceNotSet('RESOURCE ERROR: Resource "free_space" is not set for {rname}.'.format(rname=resource))
-        return size
+        space = get_free_space(resc_name, self.session)
+        if space == -1:
+            logging.info('RESOURCE ERROR: Resource %s does not exist (typo?).', resc_name, exc_info=True)
+            raise irods.exception.ResourceDoesNotExist(f'RESOURCE ERROR: Resource {resc_name} does not exist (typo?).')
+        if space == 0:
+            logging.info('RESOURCE ERROR: Resource "free_space" is not set for %s.', resc_name, exc_info=True)
+            raise FreeSpaceNotSet('RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
+        return space
 
+def irods_put(self, local_path, irods_path, **kwargs):
+    """
+    """
+    self.session.data_objects.put(local_path, irods_path, **kwargs)
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
-                         force = False, diffs = []):
-        """
-        source: absolute path to file or folder
-        destination: iRODS collection where data is uploaded to
-        resource: name of the iRODS storage resource to use
-        size: size of data to be uploaded in bytes
-        buff: buffer on resource that should be left over
-        force: If true, do not calculate storage capacity on destination
-        diffs: output of diff functions
+def irods_get(self, irods_path, local_path, **kwargs):
+    """
+    """
+    self.session.data_objects.get(irods_path, local_path, **kwargs)
 
-        The function uploads the contents of a folder with all subfolders to 
-        an iRODS collection.
-        If source is the path to a file, the file will be uploaded.
+    def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE, force=False, diffs=None):
+        """Upload data from the local `src_path` to the iRODS
+        `dst_coll`.
+
+        When `src_path` is a folder/directory, upload its contents
+        recursively to the iRODS collection `dst_coll`.  If `src_path`
+        is the path to a file, upload the file.
+
+        Parameters
+        ----------
+        src_path : str
+            Absolute path to local file or folder.
+        dst_coll : iRODSCollection
+            The iRODS collection to where the data will be uploaded.
+        resc_name : str
+            Name of the top-level iRODS resource.
+        size : int
+            Size of data to be uploaded in bytes.
+        buff : int
+            Buffer size on resource that should remain after upload in
+            bytes.
+        force : bool
+            Ignore storage capacity on resource associated with
+            `resc_name`.
+        diffs : list
+            Output of diff functions.
 
         Throws:
         ResourceDoesNotExist
         ValueError (if resource too small or buffer is too small)
-        
+
         """
-        logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
-        if resource != None and resource != "":
-            options = {kw.RESC_NAME_KW: resource,
-                       kw.REG_CHKSUM_KW: '', kw.ALL_KW: '',
-                       kw.VERIFY_CHKSUM_KW: ''}
-        else:
-            options = {kw.REG_CHKSUM_KW: '', kw.ALL_KW: '', 
-                       kw.VERIFY_CHKSUM_KW: ''}
-
-        if diffs == []:
-            if os.path.isfile(source):
-                (diff, onlyFS, onlyIrods, same) = self.diffObjFile(
-                                                  destination.path+'/'+os.path.basename(source), 
-                                                  source, scope="checksum")
-            elif os.path.isdir(source):
-                subcoll = self.session.collections.create(
-                          destination.path+'/'+os.path.basename(source))
-                (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(subcoll, source)
+        logging.info('iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path, resc_name)
+        obj_path, coll_name = '', ''
+        if os.path.isfile(src_path):
+            obj_path = f'{dst_coll.path}/{os.path.basename(src_path)}'
+        elif os.path.isdir(src_path):
+            if isinstance(dst_coll, irods.collection.iRODSCollection):
+                dst_path = dst_coll.path
             else:
-                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+                raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
-            (diff, onlyFS, onlyIrods, same) = diffs
-
+            raise FileNotFoundError('ERROR iRODS upload: not a valid source path')
+        options = {
+            ALL_KW: '',
+            REG_CHKSUM_KW: '',
+            VERIFY_CHKSUM_KW: '',
+        }
+        if resc_name not in [None, ""]:
+            options[RESC_NAME_KW] = resc_name
+        if diffs is None:
+            if os.path.isfile(src_path):
+                diff, only_fs, _, _ = self.diffObjFile(obj_path, src_path, scope='checksum')
+            else:
+                diff, only_fs, _, _ = self.diffIrodsLocalfs(dst_coll, src_path)
+        else:
+            diff, only_fs, _, _ = diffs
         if not force:
+            space = self.resource_space(resc_name)
+            if int(size) > (space - buff):
+                logging.info('ERROR iRODS upload: Not enough free space on resource.', exc_info=True)
+                raise NotEnoughFreeSpace('ERROR iRODS upload: Not enough free space on resource.')
+        # Data object
+        if obj_path is not None and len(diff + only_fs) > 0:
             try:
-                space = self.resourceSpace(resource)
-                if int(size) > (int(space)-buff):
-                    logging.info('ERROR iRODS upload: Not enough space on resource.', 
-                                 exc_info=True)
-                    raise NotEnoughFreeSpace('ERROR iRODS upload: Not enough space on resource.')
-                if buff < 0:
-                    logging.info('ERROR iRODS upload: Negative resource buffer.', 
-                        exc_info=True)
-                    raise BufferError('ERROR iRODS upload: Negative resource buffer.')
-            except Exception as error:
-                logging.info('UPLOAD ERROR', exc_info=True)
-                raise error
-
-        if os.path.isfile(source) and len(diff+onlyFS) > 0:
-            try:
-                print("IRODS UPLOADING FILE", destination.path+"/"+os.path.basename(source))
-                self.session.data_objects.put(
-                        source, destination.path+"/"+os.path.basename(source), 
-			num_threads=4, **options)
+                print(f'IRODS UPLOADING FILE {obj_path}')
+                self.irods_put(src_path, obj_path, num_threads=NUM_THREADS, **options)
                 return
-            except IsADirectoryError:
-                logging.info('IRODS UPLOAD ERROR: There exists a collection of same name as '+source, 
-                    exc_info=True)
-                print("IRODS UPLOAD ERROR: There exists a collection of same name as "+source)
-                raise
-            
-        try: #collections/folders
-            logging.info("IRODS UPLOAD started:")
-            for d in diff:
-                #upload files to distinct data objects
-                destColl = self.session.collections.create(os.path.dirname(d[0]))
-                logging.info("REPLACE: "+d[0]+" with "+d[1])
-                self.session.data_objects.put(d[1], d[0], num_threads=4, **options)
-
-            for o in onlyFS: #can contain files and folders
-                #Create subcollections and upload
-                sourcePath = os.path.join(source, o)
-                if len(o.split(os.sep)) > 1:
-                    subColl = self.session.collections.create(
-                                destination.path+'/'+os.path.basename(source)+'/'+os.path.dirname(o))
+            except IsADirectoryError as iade:
+                logging.info(
+                    'IRODS UPLOAD ERROR: There exists a collection of same name as %s',
+                    src_path, exc_info=True
+                )
+                print(f'IRODS UPLOAD ERROR: There exists a collection of same name as {src_path}')
+                raise iade
+        # Collection
+        try:
+            logging.info('IRODS UPLOAD started:')
+            for irods_path, local_path in diff:
+                # Upload files to distinct data objects.
+                _ = self.ensure_coll(irods_dirname(irods_path))
+                logging.info('REPLACE: %s with %s', irods_path, local_path)
+                self.irods_put(local_path, irods_path, num_threads=NUM_THREADS, **options)
+            # Variable `only_fs` can contain files and folders.
+            for rel_path in only_fs:
+                # Create subcollections and upload.
+                local_path = os.path.join(src_path, rel_path)
+                if rel_path.count(os.sep) > 0:
+                    new_path = f'{dst_path}/{os.path.basename(src_path)}/{os.path.dirname(rel_path)}'
                 else:
-                    subColl = self.session.collections.create(
-                            destination.path+'/'+os.path.basename(source))
-                logging.info("UPLOAD: "+sourcePath+" to "+subColl.path)
-                logging.info("CREATE "+subColl.path+"/"+os.path.basename(sourcePath))
-                self.session.data_objects.put(
-                    sourcePath, subColl.path+"/"+os.path.basename(sourcePath), 
-                    num_threads=0, **options)
-        except:
+                    new_path = f'{dst_path}/{os.path.basename(src_path)}'
+                new_coll = self.ensure_coll(new_path)
+                logging.info('UPLOAD: %s to %s', local_path, new_coll.path)
+                irods_path = f'{new_coll.path}/{os.path.basename(local_path)}'
+                logging.info('CREATE %s', irods_path)
+                self.irods_put(local_path, irods_path, num_threads=NUM_THREADS, **options)
+        except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
-            raise
- 
+            raise error
 
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs=[]):
-        '''
-        Download object or collection.
-        source: iRODS collection or data object
-        destination: absolute path to download folder
-        size: size of data to be downloaded in bytes
-        buff: buffer on resource that should be left over
-        force: If true, do not calculate storage capacity on destination
-        diffs: output of diff functions
-        '''
-        logging.info('iRODS DOWNLOAD: '+str(source)+'-->'+destination) 
-        options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
+    def download_data(self, src_obj, dst_path, size, buff=BUFF_SIZE, force=False, diffs=None):
+        """Dowload data from an iRODS `src_obj` to the local `dst_path`.
 
-        if destination.endswith(os.sep):
-            destination = destination[:len(destination)-1]
-        if not os.path.isdir(destination):
-            logging.info('DOWNLOAD ERROR: destination path does not exist or is not directory', 
-                    exc_info=True)
+        When `src_obj` is a collection, download its contents
+        recursively to the local folder/directory `dst_path`.  If
+        `src_obj` is a data object, download it to a file in the local
+        folder/director.
+
+        Parameters
+        ----------
+        src_obj : iRODSCollection, iRODSDataObject
+            The iRODS collection or data object from where the data will
+            be downloaded.
+        dst_path : str
+            Absolute path to local folder/directory.
+        size : int
+            Size of data to be uploaded in bytes.
+        buff : int
+            Buffer size on local storage that should remain after
+            download in bytes.
+        force : bool
+            Ignore storage capacity on the storage system of `dst_path`.
+        diffs : list
+            Output of diff functions.
+
+        """
+        logging.info('iRODS DOWNLOAD: %s-->%s', src_obj.path, dst_path)
+        options = {FORCE_FLAG_KW: '', REG_CHKSUM_KW: ''}
+
+        if dst_path.endswith(os.sep):
+            dst_path = dst_path[:len(dst_path)-1]
+        if not os.path.isdir(dst_path):
+            logging.info('DOWNLOAD ERROR: destination path does not exist or is not directory', exc_info=True)
             raise FileNotFoundError(
                 "ERROR iRODS download: destination path does not exist or is not directory")
-        if not os.access(destination, os.W_OK):
-            logging.info('DOWNLOAD ERROR: No rights to write to destination.', 
-                exc_info=True)
+        if not os.access(dst_path, os.W_OK):
+            logging.info('DOWNLOAD ERROR: No rights to write to destination.', exc_info=True)
             raise PermissionError("ERROR iRODS download: No rights to write to destination.")
 
-        if diffs == []:#Only download if not present or difference in files
-            if self.session.data_objects.exists(source.path):
-                (diff, onlyFS, onlyIrods, same) = self.diffObjFile(source.path,
+        # Only download if not present or difference in files
+        if diffs == []:
+            if self.session.data_objects.exists(src_obj.path):
+                (diff, only_fs, only_irods, same) = self.diffObjFile(src_obj.path,
                                                     os.path.join(
-                                                    destination, os.path.basename(source.path)),
+                                                    dst_path, os.path.basename(src_obj.path)),
                                                     scope="checksum")
-            elif self.session.collections.exists(source.path):
-                subdir = os.path.join(destination, source.name)
-                if not os.path.isdir(os.path.join(destination, source.name)):
-                    os.mkdir(os.path.join(destination, source.name))
+            elif self.session.collections.exists(src_obj.path):
+                subdir = os.path.join(dst_path, src_obj.name)
+                if not os.path.isdir(os.path.join(dst_path, src_obj.name)):
+                    os.mkdir(os.path.join(dst_path, src_obj.name))
 
-                (diff, onlyFS, onlyIrods, same) = self.diffIrodsLocalfs(
-                                                    source, subdir, scope="checksum")
+                (diff, only_fs, only_irods, same) = self.diffIrodsLocalfs(
+                                                    src_obj, subdir, scope="checksum")
             else:
                 raise FileNotFoundError("ERROR iRODS download: not a valid source path")
         else:
-            (diff, onlyFS, onlyIrods, same) = diffs
+            (diff, only_fs, only_irods, same) = diffs
 
         if not force:#Check space on destination
             try:
-                space = disk_usage(destination).free
+                space = disk_usage(dst_path).free
                 if int(size) > (int(space)-buff):
                     logging.info('DOWNLOAD ERROR: Not enough space on disk.', 
                             exc_info=True)
@@ -463,29 +568,29 @@ class irodsConnector():
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error()
 
-        if self.session.data_objects.exists(source.path) and len(diff+onlyIrods) > 0:
+        if self.session.data_objects.exists(src_obj.path) and len(diff+only_irods) > 0:
             try:
-                logging.info("IRODS DOWNLOADING object:"+ source.path+
-                                "to "+ destination)
-                self.session.data_objects.get(source.path, 
-                            local_path=os.path.join(destination, source.name), **options)
+                logging.info("IRODS DOWNLOADING object:"+ src_obj.path+
+                                "to "+ dst_path)
+                self.session.data_objects.get(src_obj.path, 
+                            local_path=os.path.join(dst_path, src_obj.name), **options)
                 return
             except:
-                logging.info('DOWNLOAD ERROR: '+source.path+"-->"+destination, 
+                logging.info('DOWNLOAD ERROR: '+src_obj.path+"-->"+dst_path, 
                         exc_info=True)
                 raise
 
         try: #collections/folders
-            subdir = os.path.join(destination, source.name)
+            subdir = os.path.join(dst_path, src_obj.name)
             logging.info("IRODS DOWNLOAD started:")
             for d in diff:
                 #upload files to distinct data objects
                 logging.info("REPLACE: "+d[1]+" with "+d[0])
                 self.session.data_objects.get(d[0], local_path=d[1], **options)
 
-            for IO in onlyIrods: #can contain files and folders
+            for IO in only_irods: #can contain files and folders
                 #Create subcollections and upload
-                sourcePath = source.path + "/" + IO
+                sourcePath = src_obj.path + "/" + IO
                 locO = IO.replace("/", os.sep)
                 destPath = os.path.join(subdir, locO)
                 if not os.path.isdir(os.path.dirname(destPath)):
@@ -500,7 +605,7 @@ class irodsConnector():
     def diffObjFile(self, objPath, fsPath, scope="size"):
         """
         Compares and iRODS object to a file system file.
-        returns ([diff], [onlyIrods], [onlyFs], [same])
+        returns ([diff], [only_irods], [only_fs], [same])
         """
         if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
@@ -628,7 +733,6 @@ class irodsConnector():
             irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
         return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
 
-
     def addMetadata(self, items, key, value, units = None):
         """
         Adds metadata to all items
@@ -643,12 +747,10 @@ class irodsConnector():
         for item in items:
             try:
                 item.metadata.add(key.upper(), value, units)
-            except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
+            except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 print(RED+"INFO ADD META: Metadata already present"+DEFAULT)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions")
-
-            
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+                raise cnap("ERROR UPDATE META: no permissions")
 
     def updateMetadata(self, items, key, value, units = None):
         """
@@ -674,9 +776,8 @@ class irodsConnector():
 
                 else:
                     self.addMetadata(items, key, value, units)
-        except CAT_NO_ACCESS_PERMISSION:
-            raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
-
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+            raise cnap("ERROR UPDATE META: no permissions "+item.path)
 
     def deleteMetadata(self, items, key, value, units):
         """
@@ -692,10 +793,10 @@ class irodsConnector():
         for item in items:
             try:
                 item.metadata.remove(key, value, units)
-            except CAT_SUCCESS_BUT_WITH_NO_INFO:
+            except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
                 print(RED+"INFO DELETE META: Metadata never existed"+DEFAULT)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR UPDATE META: no permissions "+item.path)
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+                raise cnap("ERROR UPDATE META: no permissions "+item.path)
 
 
 
@@ -709,14 +810,14 @@ class irodsConnector():
             logging.info("IRODS DELETE: "+item.path)
             try:
                 item.remove(recurse = True, force = True)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions")
+            except irods.exceptionCAT_NO_ACCESS_PERMISSION as cnap:
+                raise cnap("ERROR IRODS DELETE: no permissions")
         elif self.session.data_objects.exists(item.path):
             logging.info("IRODS DELETE: "+item.path)
             try:
                 item.unlink(force = True)
-            except CAT_NO_ACCESS_PERMISSION:
-                raise CAT_NO_ACCESS_PERMISSION("ERROR IRODS DELETE: no permissions "+item.path)
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+                raise irods.exception("ERROR IRODS DELETE: no permissions "+item.path)
 
 
     def executeRule(self, ruleFile, params, output='ruleExecOut'):
@@ -732,7 +833,7 @@ class irodsConnector():
         }
         """
         try:
-            rule = Rule(self.session, ruleFile, params=params, output=output)
+            rule = irods.rule.Rule(self.session, ruleFile, params=params, output=output)
             out = rule.execute()
         except Exception as e:
             logging.info('RULE EXECUTION ERROR', exc_info=True)
@@ -782,7 +883,7 @@ class irodsConnector():
 
 
     def createTicket(self, path, expiryString=""):
-        ticket = Ticket(self.session, 
+        ticket = irods.ticket.Ticket(self.session, 
                         ''.join(random.choice(string.ascii_letters) for _ in range(20)))
         ticket.issue("read", path)
         logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
@@ -839,10 +940,27 @@ def get_free_space(resc_name, session):
     """
     try:
         resc = session.resources.get(resc_name)
-    except ResourceDoesNotExist:
-        print('Resource with name {rname} not found'.format(rname=resc_name))
+    except irods.exception.ResourceDoesNotExist:
+        print(f'Resource with name {resc_name} not found')
         return -1
     if resc.free_space is not None:
         return int(resc.free_space)
     children = get_resource_children(resc)
     return sum([int(child.free_space) for child in children if child.free_space is not None])
+
+
+def irods_dirname(path):
+    """Find path less the final element for an iRODS path.
+
+    Parameters
+    ----------
+    path : str
+        An iRODS path, relative or absolute.
+
+    Returns
+    -------
+    str
+        iRODS path less the element after the final '/'
+
+    """
+    return path[:path.rfind('/')]
