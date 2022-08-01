@@ -1,15 +1,16 @@
 """IrodsConnector base
 
 """
+import base64
 import hashlib
 import json
 import logging
 import os
+import pathlib
 import random
+import shutil
 import ssl
 import string
-from base64 import b64decode
-from shutil import disk_usage
 
 import irods
 import irods.rule
@@ -386,15 +387,17 @@ class IrodsConnector():
             raise FreeSpaceNotSet('RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
         return space
 
-def irods_put(self, local_path, irods_path, **kwargs):
-    """
-    """
-    self.session.data_objects.put(local_path, irods_path, **kwargs)
+    def irods_put(self, local_path, irods_path, **kwargs):
+        """
 
-def irods_get(self, irods_path, local_path, **kwargs):
-    """
-    """
-    self.session.data_objects.get(irods_path, local_path, **kwargs)
+        """
+        self.session.data_objects.put(local_path, irods_path, **kwargs)
+
+    def irods_get(self, irods_path, local_path, **kwargs):
+        """
+
+        """
+        self.session.data_objects.get(irods_path, local_path, **kwargs)
 
     def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE, force=False, diffs=None):
         """Upload data from the local `src_path` to the iRODS
@@ -429,26 +432,28 @@ def irods_get(self, irods_path, local_path, **kwargs):
 
         """
         logging.info('iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path, resc_name)
-        obj_path, coll_name = '', ''
-        if os.path.isfile(src_path):
-            obj_path = f'{dst_coll.path}/{os.path.basename(src_path)}'
-        elif os.path.isdir(src_path):
+        # Handle both POSIX and non-POSIX paths.
+        src_path = pathlib.Path(src_path)
+        if src_path.is_file() or src_path.is_dir():
             if isinstance(dst_coll, irods.collection.iRODSCollection):
-                dst_path = dst_coll.path
+                dst_path = pathlib.Path(dst_coll.path).joinpath(src_path.name)
             else:
                 raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
             raise FileNotFoundError('ERROR iRODS upload: not a valid source path')
         options = {
             ALL_KW: '',
+            FORCE_FLAG_KW: '',
+            'num_threads': NUM_THREADS,
             REG_CHKSUM_KW: '',
             VERIFY_CHKSUM_KW: '',
         }
-        if resc_name not in [None, ""]:
-            options[RESC_NAME_KW] = resc_name
+        if resc_name in [None, '']:
+            resc_name = self.default_resc
+        options[RESC_NAME_KW] = resc_name
         if diffs is None:
-            if os.path.isfile(src_path):
-                diff, only_fs, _, _ = self.diffObjFile(obj_path, src_path, scope='checksum')
+            if src_path.is_file():
+                diff, only_fs, _, _ = self.diffObjFile(dst_path, src_path, scope='checksum')
             else:
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(dst_coll, src_path)
         else:
@@ -458,40 +463,34 @@ def irods_get(self, irods_path, local_path, **kwargs):
             if int(size) > (space - buff):
                 logging.info('ERROR iRODS upload: Not enough free space on resource.', exc_info=True)
                 raise NotEnoughFreeSpace('ERROR iRODS upload: Not enough free space on resource.')
-        # Data object
-        if obj_path is not None and len(diff + only_fs) > 0:
-            try:
-                print(f'IRODS UPLOADING FILE {obj_path}')
-                self.irods_put(src_path, obj_path, num_threads=NUM_THREADS, **options)
-                return
-            except IsADirectoryError as iade:
-                logging.info(
-                    'IRODS UPLOAD ERROR: There exists a collection of same name as %s',
-                    src_path, exc_info=True
-                )
-                print(f'IRODS UPLOAD ERROR: There exists a collection of same name as {src_path}')
-                raise iade
-        # Collection
         try:
-            logging.info('IRODS UPLOAD started:')
-            for irods_path, local_path in diff:
-                # Upload files to distinct data objects.
-                _ = self.ensure_coll(irods_dirname(irods_path))
-                logging.info('REPLACE: %s with %s', irods_path, local_path)
-                self.irods_put(local_path, irods_path, num_threads=NUM_THREADS, **options)
-            # Variable `only_fs` can contain files and folders.
-            for rel_path in only_fs:
-                # Create subcollections and upload.
-                local_path = os.path.join(src_path, rel_path)
-                if rel_path.count(os.sep) > 0:
-                    new_path = f'{dst_path}/{os.path.basename(src_path)}/{os.path.dirname(rel_path)}'
-                else:
-                    new_path = f'{dst_path}/{os.path.basename(src_path)}'
-                new_coll = self.ensure_coll(new_path)
-                logging.info('UPLOAD: %s to %s', local_path, new_coll.path)
-                irods_path = f'{new_coll.path}/{os.path.basename(local_path)}'
-                logging.info('CREATE %s', irods_path)
-                self.irods_put(local_path, irods_path, num_threads=NUM_THREADS, **options)
+            # Data object
+            if src_path.is_file() and len(diff + only_fs) > 0:
+                print(f'IRODS UPLOADING FILE {src_path}')
+                self.irods_put(src_path, dst_path, **options)
+                return
+            # Collection
+            else:
+                logging.info('IRODS UPLOAD started:')
+                for irods_path, local_path in diff:
+                    # Upload files to distinct data objects.
+                    _ = self.ensure_coll(irods_dirname(irods_path))
+                    logging.info('REPLACE: %s with %s', irods_path, local_path)
+                    self.irods_put(local_path, irods_path, **options)
+                # Variable `only_fs` can contain files and folders.
+                for rel_path in only_fs:
+                    # Create subcollections and upload.
+                    rel_path = pathlib.Path(rel_path)
+                    local_path = src_path.joinpath(rel_path)
+                    if len(rel_path.parts) > 1:
+                        new_path = dst_path.joinpath(rel_path.parent)
+                    else:
+                        new_path = dst_path
+                    _ = self.ensure_coll(new_path)
+                    logging.info('UPLOAD: %s to %s', local_path, new_path)
+                    irods_path = new_path.joinpath(rel_path.name)
+                    logging.info('CREATE %s', irods_path)
+                    self.irods_put(local_path, irods_path, **options)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
@@ -524,9 +523,8 @@ def irods_get(self, irods_path, local_path, **kwargs):
         """
         logging.info('iRODS DOWNLOAD: %s-->%s', src_obj.path, dst_path)
         options = {FORCE_FLAG_KW: '', REG_CHKSUM_KW: ''}
-
         if dst_path.endswith(os.sep):
-            dst_path = dst_path[:len(dst_path)-1]
+            dst_path = dst_path[:-1]
         if not os.path.isdir(dst_path):
             logging.info('DOWNLOAD ERROR: destination path does not exist or is not directory', exc_info=True)
             raise FileNotFoundError(
@@ -534,29 +532,26 @@ def irods_get(self, irods_path, local_path, **kwargs):
         if not os.access(dst_path, os.W_OK):
             logging.info('DOWNLOAD ERROR: No rights to write to destination.', exc_info=True)
             raise PermissionError("ERROR iRODS download: No rights to write to destination.")
-
         # Only download if not present or difference in files
         if diffs == []:
             if self.session.data_objects.exists(src_obj.path):
-                (diff, only_fs, only_irods, same) = self.diffObjFile(src_obj.path,
-                                                    os.path.join(
-                                                    dst_path, os.path.basename(src_obj.path)),
-                                                    scope="checksum")
+                os.path.join(dst_path, os.path.basename(src_obj.path))
+                diff, _, only_irods, _ = self.diffObjFile(src_obj.path, , scope="checksum")
             elif self.session.collections.exists(src_obj.path):
                 subdir = os.path.join(dst_path, src_obj.name)
                 if not os.path.isdir(os.path.join(dst_path, src_obj.name)):
                     os.mkdir(os.path.join(dst_path, src_obj.name))
 
-                (diff, only_fs, only_irods, same) = self.diffIrodsLocalfs(
+                diff, _, only_irods, _ = self.diffIrodsLocalfs(
                                                     src_obj, subdir, scope="checksum")
             else:
                 raise FileNotFoundError("ERROR iRODS download: not a valid source path")
         else:
-            (diff, only_fs, only_irods, same) = diffs
-
-        if not force:#Check space on destination
+            diff, _, only_irods, _ = diffs
+        # Check space on destination
+        if not force:
             try:
-                space = disk_usage(dst_path).free
+                space = shutil.disk_usage(dst_path).free
                 if int(size) > (int(space)-buff):
                     logging.info('DOWNLOAD ERROR: Not enough space on disk.', 
                             exc_info=True)
@@ -637,7 +632,7 @@ def irods_get(self, irods_path, local_path, **kwargs):
                     logging.info('No checksum for '+obj.path)
                     return([(objPath, fsPath)], [], [], [])
             if objCheck.startswith("sha2"):
-                sha2Obj = b64decode(objCheck.split('sha2:')[1])
+                sha2Obj = base64.b64decode(objCheck.split('sha2:')[1])
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
@@ -705,7 +700,7 @@ def irods_get(self, irods_path, local_path, **kwargs):
                                         os.path.join(dirPath, locPartialPath)))
                         continue
                 if objCheck.startswith("sha2"):
-                    sha2Obj = b64decode(objCheck.split('sha2:')[1])
+                    sha2Obj = base64.b64decode(objCheck.split('sha2:')[1])
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
                         stream = f.read()
                         sha2 = hashlib.sha256(stream).digest()
