@@ -247,14 +247,14 @@ class UpDownload(QObject):
             if self.upload:
                 diffs = (self.diff, self.addFiles, [], [])
                 self.ic.upload_data(self.localFS, self.Coll, 
-                                   self.resource, self.totalSize, buff = 1024**3, 
+                                   self.resource, int(self.totalSize), buff = 1024**3, 
                                    force = False, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])
                 logging.info("UpDownload Diff: "+str(diffs))
                 self.ic.download_data(self.Coll, self.localFS, 
-                                    self.totalSize, buff = 1024**3, force = False, diffs = diffs)
+                                    int(self.totalSize), buff = 1024**3, force = False, diffs = diffs)
                 self.finished.emit(True, "Download finished")                
         except Exception as error:
             logging.info(repr(error))
