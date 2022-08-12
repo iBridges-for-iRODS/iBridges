@@ -16,7 +16,7 @@ from PyQt5 import QtGui
 from gui.irodsBrowser import irodsBrowser
 from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
-from gui.irodsUpDownload import irodsUpDownload
+from gui.IrodsUpDownload import IrodsUpDownload
 from gui.irodsDataCompression import irodsDataCompression
 from gui.irodsInfo import irodsInfo
 from gui.irodsCreateTicket import irodsCreateTicket
@@ -25,12 +25,14 @@ from utils.utils import saveIenv
 
 import sys
 
+
 class mainmenu(QMainWindow):
     def __init__(self, widget, ic, ienv):
         super(mainmenu, self).__init__()
-        loadUi("gui/ui-files/MainMenu.ui", self)
+        loadUi('gui/ui-files/MainMenu.ui', self)
         self.ic = ic
-        self.widget = widget #stackedWidget
+        # stackedWidget
+        self.widget = widget
         self.ienv = ienv
 
         # Menu actions
@@ -40,54 +42,49 @@ class mainmenu(QMainWindow):
         if not ienv or not ic:
             self.actionSearch.setEnabled(False)
             self.actionSaveConfig.setEnabled(False)
-            ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
-            self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
+            ticketAccessWidget = loadUi('gui/ui-files/tabTicketAccess.ui')
+            self.tabWidget.addTab(ticketAccessWidget, 'Ticket Access')
             self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
 
         else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
-            #self.actionExportMetadata.triggered.connect(self.exportMeta)
+            # self.actionExportMetadata.triggered.connect(self.exportMeta)
 
-            #needed for Search
-            self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
-            self.tabWidget.addTab(self.browserWidget, "Browser")
+            # tabBrowser needed for Search
+            self.browserWidget = loadUi('gui/ui-files/tabBrowser.ui')
+            self.tabWidget.addTab(self.browserWidget, 'Browser')
             self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
-
-            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
-    
+            # Optional tabs
+            if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
                 # Setup up/download tab, index 1
-                if ("tabUpDownload" in ienv["ui_tabs"]):
-                    updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-                    self.tabWidget.addTab(updownloadWidget, "Up and Download")
-                    self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
-    
+                if 'tabUpDownload' in ienv['ui_tabs']:
+                    updownloadWidget = loadUi('gui/ui-files/tabUpDownload.ui')
+                    self.tabWidget.addTab(updownloadWidget, 'Up and Download')
+                    self.updownload = IrodsUpDownload(updownloadWidget, ic, self.ienv)
                 # Elabjournal tab, index 2
-                if ("tabELNData" in ienv["ui_tabs"]):
-                    elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
-                    self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
+                if 'tabELNData' in ienv['ui_tabs']:
+                    elabUploadWidget = loadUi('gui/ui-files/tabELNData.ui')
+                    self.tabWidget.addTab(elabUploadWidget, 'ELN Data upload')
                     self.elnTab = elabUpload(elabUploadWidget, ic)
-    
                 # Data compression tab, index 3
-                if ("tabDataCompression" in ienv["ui_tabs"]):
-                    dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
-                    self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
+                if 'tabDataCompression' in ienv['ui_tabs']:
+                    dataCompressWidget = loadUi('gui/ui-files/tabDataCompression.ui')
+                    self.tabWidget.addTab(dataCompressWidget, 'Compress/bundle data')
                     self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
-    
                 # Grant access by tickets, index 4
-                if ("tabCreateTicket" in ienv["ui_tabs"]):
-                    createTicketWidget = loadUi("gui/ui-files/tabTicketCreate.ui")
-                    self.tabWidget.addTab(createTicketWidget, "Create access tokens")
+                if 'tabCreateTicket' in ienv['ui_tabs']:
+                    createTicketWidget = loadUi('gui/ui-files/tabTicketCreate.ui')
+                    self.tabWidget.addTab(createTicketWidget, 'Create access tokens')
                     self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
-    
-            #general info
-            self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
-            self.tabWidget.addTab(self.infoWidget, "Info")
+            # General info
+            self.infoWidget = loadUi('gui/ui-files/tabInfo.ui')
+            self.tabWidget.addTab(self.infoWidget, 'Info')
             self.irodsInfo = irodsInfo(self.infoWidget, ic)
-    
+
             self.tabWidget.setCurrentIndex(0)
 
-    #connect functions
+    # Connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
         reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)

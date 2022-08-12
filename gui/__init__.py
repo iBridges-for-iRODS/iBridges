@@ -11,7 +11,7 @@ from . import irodsInfo
 from . import irodsSearch
 from . import irodsTicketLogin
 from . import irodsTreeView
-from . import irodsUpDownload
+from . import IrodsUpDownload
 # from . import mainmenu
 from .mainmenu import mainmenu
 from . import popupWidgets
