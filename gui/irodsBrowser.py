@@ -13,63 +13,63 @@ import logging
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 
-import sys
-
 
 class irodsBrowser():
-    def __init__ (self, widget, ic):
-        
+    """
+
+    """
+
+    def __init__(self, widget, ic):
+        """
+
+        """
         self.ic = ic
         self.widget = widget
         self.widget.viewTabs.setCurrentIndex(0)
-
-        #Browser table
-        self.widget.collTable.setColumnWidth(1,399)
-        self.widget.collTable.setColumnWidth(2,199)
-        self.widget.collTable.setColumnWidth(3,399)
-        self.widget.collTable.setColumnWidth(0,20)
-
-        #Metadata table
-        self.widget.metadataTable.setColumnWidth(0,199)
-        self.widget.metadataTable.setColumnWidth(1,199)
-        self.widget.metadataTable.setColumnWidth(2,199)
-
-        #ACL table
-        self.widget.aclTable.setColumnWidth(0,299)
-        self.widget.aclTable.setColumnWidth(1,299)
-
-        #if user is not admin nor datasteward, hide ACL buttons
+        # Browser table
+        self.widget.collTable.setColumnWidth(1, 399)
+        self.widget.collTable.setColumnWidth(2, 199)
+        self.widget.collTable.setColumnWidth(3, 399)
+        self.widget.collTable.setColumnWidth(0, 20)
+        # Metadata table
+        self.widget.metadataTable.setColumnWidth(0, 199)
+        self.widget.metadataTable.setColumnWidth(1, 199)
+        self.widget.metadataTable.setColumnWidth(2, 199)
+        # ACL table
+        self.widget.aclTable.setColumnWidth(0, 299)
+        self.widget.aclTable.setColumnWidth(1, 299)
+        # If user is not admin nor datasteward, hide ACL buttons.
         try:
-            user_type, user_groups = self.ic.get_user_info()
+            user_type, user_groups = ic.get_user_info()
         except NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-
         if user_type != 'rodsadmin' and \
            'datastewards' not in user_groups and \
            'training' not in user_groups:
-
             self.widget.aclAddButton.hide()
             self.widget.aclBox.setEnabled(False)
             self.widget.recurseBox.setEnabled(False)
-
-        #Resource table
-        self.widget.resourceTable.setColumnWidth(0,500)
-        self.widget.resourceTable.setColumnWidth(1,90)
-
-        #iRODS defaults
+        # Resource table
+        self.widget.resourceTable.setColumnWidth(0, 500)
+        self.widget.resourceTable.setColumnWidth(1, 90)
+        # iRODS defaults
+        if 'irods_cwd' in ic.ienv:
+            root_path = ic.ienv['irods_cwd']
+        elif 'irods_home' in ic.ienv:
+            root_path = ic.ienv['irods_home']
+        else:
+            root_path = f'/{ic.session.zone}/home/{ic.session.username}'
         try:
-            self.irodsRoot = self.ic.session.collections.get(f'/{ic.session.zone}/home/{ic.session.username}')
+            self.root_coll = ic.get_collection(root_path)
         except CollectionDoesNotExist:
-            self.irodsRoot = self.ic.session.collections.get(f'/{ic.session.zone}/home')
+            self.root_coll = ic.get_collection(f'/{ic.session.zone}/home')
         except NetworkException:
             self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
-
+                'IRODS NETWORK ERROR: No Connection, please check network')
         self.resetPath()
         self.currentBrowserRow = 0
         self.browse()
-
 
     def browse(self):
         #update main table when iRODS path is changed upon 'Enter'
@@ -260,11 +260,9 @@ class irodsBrowser():
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
-
     def resetPath(self):
-        self.widget.inputPath.setText(self.irodsRoot.path)
+        self.widget.inputPath.setText(self.root_coll.path)
         self.loadTable()
-
 
     #@QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
@@ -390,6 +388,7 @@ class irodsBrowser():
             except Exception as error:
                 print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
+                raise error
         else:
             pass
 
