@@ -88,7 +88,6 @@ class IrodsConnector():
                 self.ienv = json.load(envfd)
         if password is None:
             # TODO add support for .irods/.irodsA for all OSes
-            # self.session = irods.session.iRODSSession(irods_env_file=envFile)
             raise irods.exception.CAT_INVALID_AUTHENTICATION('No password provided.')
         self._password = password
         self.default_resc = None
@@ -493,6 +492,38 @@ class IrodsConnector():
                 'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
         return space
 
+    def dataobject_exists(self, path):
+        """Check if an iRODS data object exists.
+
+        Parameters
+        ----------
+        path : str
+            Name of an iRODS data object.
+
+        Returns
+        -------
+        bool
+            Existence of the data object with `path`.
+
+        """
+        return self.session.data_objects.exists(path)
+
+    def collection_exists(self, path):
+        """Check if an iRODS collection exists.
+
+        Parameters
+        ----------
+        path : str
+            Name of an iRODS collection.
+
+        Returns
+        -------
+        bool
+            Existance of the collection with `path`.
+
+        """
+        return self.session.collections.exists(path)
+
     def get_dataobject(self, path):
         """Instantiate an iRODS data object.
 
@@ -507,8 +538,9 @@ class IrodsConnector():
             Instance of the data object with `path`.
 
         """
-        if self.session.data_objects.exists(path):
+        if self.dataobject_exists(path):
             return self.session.data_objects.get(path)
+        raise irods.exception.DataObjectDoesNotExist(path)
 
     def get_collection(self, path):
         """Instantiate an iRODS collection.
@@ -524,8 +556,9 @@ class IrodsConnector():
             Instance of the collection with `path`.
 
         """
-        if self.session.collections.exists(path):
+        if self.collection_exists(path):
             return self.session.collections.get(path)
+        raise irods.exception.CollectionDoesNotExist(path)
 
     def irods_put(self, local_path, irods_path, **options):
         """Upload `local_path` to `irods_path` following iRODS
