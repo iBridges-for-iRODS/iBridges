@@ -1,6 +1,7 @@
 """Tree model for IRODS collections.
-The IRODS database is huge and retreiving a complete tree of all files can take ages.
-Too improve the loading time the tree is only grown as far as its shows.
+The IRODS database is huge and retreiving a complete tree of all files
+can take ages.  To improve the loading time the tree is only grown as
+far as its shows.
 
 """
 import collections
@@ -16,36 +17,43 @@ import PyQt5.QtWidgets
 
 
 class IrodsModel(PyQt5.QtGui.QStandardItemModel):
-    """
+    """Model for an iRODS tree view.
 
     """
 
-    def __init__(self, irods_session, TreeView, parent=None):
-        """Initializes the Treeview with the root node and first level.
+    def __init__(self, irods_connector, tree_view):
+        """Initializes the tree view with the root node and first level.
+
+        Class variables 'user_groups' and 'base_path' _must_ be
+        populated with a list of group names and the path name of the
+        iRODS top-level collection (i.e., /<zone name>/home),
+        respectively.
+
+        Parameters
+        ----------
+        irods_connector : IrodsConnector
+            iRODS session container.
+        tree_view : PyQt5.QtWidgets
+            Defined iRODS tree view UI element.
 
         """
-        super().__init__(parent)
+        super().__init__()
         self._checked_indeces = set()
-        self.ic = irods_session
-        #Groups which the user id member of to check access rights on tree
+        self.ic = irods_connector
+        self.tree_view = tree_view
         try:
             self.user_groups = self.ic.get_user_info()[1]
-        except Exception as e:
-            logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
-        home_path = f'/{self.ic.session.zone}/home/{self.ic.session.username}'
-        try:
-            _ = self.ic.session.collections.get(home_path)
-            self.irodsRootColl = home_path
         except irods.exception.NetworkException:
-            logging.info('iRODS FILE TREE ERROR: retrieving collection', exc_info=True)
-        except irods.exception.CollectionDoesNotExist:
-            self.irodsRootColl = f'/{self.ic.session.zone}/home'
-
-        self.TreeView = TreeView
-        self.clear() # Empty tree
-        _ = self.invisibleRootItem()
+            logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
+        self.zone_path = f'/{self.ic.session.zone}'
+        self.base_path = f'{self.zone_path}/home'
+        # Empty tree
+        self.clear()
 
     def data(self, index, role=PyQt5.QtCore.Qt.DisplayRole):
+        """
+
+        """
         if role == PyQt5.QtCore.Qt.CheckStateRole:
             if index in self._checked_indeces:
                 return PyQt5.QtCore.Qt.Checked
@@ -74,7 +82,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                     # Block checking of home item (found no easy way to remove the checkbox)
                     if acls.intersection(reqAcls) == set():
                         message = "ERROR, insufficient rights:\nCannot select "+path
-                        PyQt5.QtWidgets.QMessageBox.information(self.TreeView, 'Error', message)
+                        PyQt5.QtWidgets.QMessageBox.information(self.tree_view, 'Error', message)
                         #logging.info("Filedownload:" + message)
                         return False
                 except:
@@ -88,7 +96,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                 self._checked_indeces.add(index)
             else:
                 self._checked_indeces.discard(index)
-            self.TreeView.repaint() # force refresh
+            self.tree_view.repaint() # force refresh
             return True
         return super().setData(self, index, value, role)
 
@@ -109,7 +117,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         #initial tree information
         parentId = -1
         try:
-            coll = self.ic.session.collections.get(self.irodsRootColl)
+            coll = self.ic.session.collections.get(self.base_path)
         except:
             logging.info('IRODS TREE INIT ERROR',
                         exc_info=True)
@@ -126,7 +134,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                 data.append({'level': level+1, 'irodsID': 'test',
                              'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
         for obj in coll.data_objects:
-            #level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
+            #level = len(obj.path.split(self.base_path+'/')[1].split('/')) - 1
             level = 1
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
@@ -188,14 +196,14 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         """
         data = []
         for subColl in coll.subcollections:
-            level = len(subColl.path.split('/')) - len(self.irodsRootColl.split('/'))
+            level = len(subColl.path.split('/')) - len(self.base_path.split('/'))
             data.append({'level': level, 'irodsID': subColl.id,
                          'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
             if subColl.data_objects != [] or subColl.subcollections != []:
                 data.append({'level': level+1, 'irodsID': 'test',
                              'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
         for obj in coll.data_objects:
-            level = len(obj.path.split('/')) - len(self.irodsRootColl.split('/'))
+            level = len(obj.path.split('/')) - len(self.base_path.split('/'))
             data.append({'level': level, 'irodsID': obj.id,
                          'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
         return data
@@ -272,7 +280,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
             coll = self.ic.session.collections.get(irodsItemPath)
         else:
             return
-        #delete subtree in irodsFsdata and the TreeView
+        #delete subtree in irodsFsdata and the tree_view
         self.deletesubTree(treeItem)
 
         #Retrieve updated data from the collection
@@ -280,7 +288,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
 
         #update irodsFsData and the treeView
         #Level of subcollections
-        level = len(coll.path.split('/')) - len(self.irodsRootColl.split('/')) + 1
+        level = len(coll.path.split('/')) - len(self.base_path.split('/')) + 1
         self.addSubtree(treeItem, level, recentCollData)
 
     def irodsPathFromTreeIdx(self, modelindex):
@@ -289,4 +297,4 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         while parentmodel.isValid():
             fullpath = parentmodel.data() + "/" + fullpath
             parentmodel = parentmodel.parent()
-        return os.path.dirname(self.irodsRootColl) + "/" + fullpath
+        return os.path.dirname(self.base_path) + "/" + fullpath
