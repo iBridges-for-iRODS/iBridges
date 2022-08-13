@@ -40,6 +40,8 @@ class IrodsUpDownload():
         self.ic = ic
         self.widget = widget
         self.ienv = ienv
+        self.localmodel = None
+        self.irodsmodel = None
         # syncing or not
         self.syncing = False
         self._initialize_local_model()
@@ -73,26 +75,25 @@ class IrodsUpDownload():
         """Initialize iRODS QTreeView.
 
         """
-        irods_root_path = f'/{self.ic.session.zone}/home'
-        self.widget.irodsZoneLabel.setText(f'{irods_root_path}:')
         self.irodsmodel = gui.irodsTreeView.IrodsModel(
             self.ic, self.widget.irodsFsTreeView)
+        #header_labels = [
+        #    self.irodsmodel.zone_path,
+        #    'Level',
+        #    'iRODS ID',
+        #    'parent ID',
+        #    'type',
+        #]
+        #self.irodsmodel.setHorizontalHeaderLabels(header_labels)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
-        header_labels = [
-            irods_root_path,
-            'Level',
-            'iRODS ID',
-            'parent ID',
-            'type',
-        ]
-        self.irodsmodel.setHorizontalHeaderLabels(header_labels)
+        self.widget.irodsZoneLabel.setText(f'{self.irodsmodel.zone_path}:')
         self.widget.irodsFsTreeView.expanded.connect(
             self.irodsmodel.refreshSubTree)
         self.widget.irodsFsTreeView.clicked.connect(
             self.irodsmodel.refreshSubTree)
         self.irodsmodel.initTree()
-        self.widget.irodsFsTreeView.setHeaderHidden(True)
-        self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
+        # self.widget.irodsFsTreeView.setHeaderHidden(True)
+        # self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
         self.widget.irodsFsTreeView.setColumnHidden(1, True)
         self.widget.irodsFsTreeView.setColumnHidden(2, True)
         self.widget.irodsFsTreeView.setColumnHidden(3, True)
