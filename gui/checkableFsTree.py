@@ -9,11 +9,11 @@ import os
 # a class to put checkbox on the folders and record which ones are checked.
 class checkableFsTreeModel(QFileSystemModel):
 
-    def __init__(self, TreeView, parent=None):
+    def __init__(self, TreeView):
         """
         Initializes the Treeview with the root node. 
         """
-        QFileSystemModel.__init__(self, None)
+        super().__init__()
         self._checked_indeces = set() # keep track of the check files and folders...
         self.TreeView = TreeView
         self.setRootPath(QDir.currentPath())
