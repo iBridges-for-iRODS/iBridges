@@ -64,13 +64,11 @@ class IrodsConnector():
 
     """
 
-    def __init__(self, env_file=None, password=None):
+    def __init__(self, password):
         """iRODS authentication with Python client.
 
         Parameters
         ----------
-        env_file : str
-            JSON document with iRODS connection parameters.
         password : str
             Plain text password.
 
@@ -88,10 +86,6 @@ class IrodsConnector():
         self._ienv = None
         self._password = None
         self._session = None
-        # Populate environment manually if provided.
-        if env_file is not None:
-            with open(env_file, encoding='utf-8') as envfd:
-                self.ienv = json.load(envfd)
         self.password = password
         self.default_resc = None
         if 'irods_default_resource' in self.ienv:
@@ -103,41 +97,6 @@ class IrodsConnector():
         self.davrods = None
         if 'davrods_server' in self.ienv:
             self.davrods = self.ienv['davrods_server'].strip('/')
-        print('Welcome to iRODS:')
-        print(f'iRODS Zone: {self.session.zone}')
-        print(f'You are: {self.session.username}')
-        print(f'Default resource: {self.default_resc}')
-        print('You have access to: \n')
-        print('\n'.join([coll.path for coll in self.collections]))
-        logging.info(
-            'IRODS LOGIN SUCCESS: %s, %s, %s', self.session.username,
-            self.session.zone, self.session.host)
-
-    def _get_collections(self):
-        """iRODS readable collections getter method.
-
-        Returns
-        -------
-        list
-            iRODSCollections available to the user.
-
-        """
-        if self._collections is None and self.session is not None:
-            home_path = f'/{self.session.zone}/home'
-            try:
-                self._collections = self.get_collection(home_path).subcollections
-            except irods.exception.CollectionDoesNotExist:
-                print(f'{RED}WARNING -- {home_path} does not exist!{DEFAULT}')
-            except Exception as error:
-                logging.info('AUTHENTICATION ERROR', exc_info=True)
-                print(f'{RED}IRODS ERROR LOADING COLLECTION HOME/USER: {DEFAULT}')
-                print(f'{RED}User auth failed!{DEFAULT}')
-                raise error
-        return self._collections
-
-    collections = property(
-        _get_collections, None, None,
-        'List of iRODSCollections readable by user')
 
     def _get_ienv(self):
         """iRODS environment getter method.
@@ -211,7 +170,7 @@ class IrodsConnector():
             Unencrypted iRODS password.
 
         """
-        if password is not None:
+        if password not in (None, ''):
             if 'IRODS_AUTHENTICATION_FILE' in os.environ:
                 auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
             else:
@@ -243,7 +202,7 @@ class IrodsConnector():
         if self._session is None:
             try:
                 self._session = irods.session.iRODSSession(
-                    **self.ienv, password=self._password)
+                    **self.ienv, password=self.password)
             except irods.connection.PlainTextPAMPasswordError:
                 try:
                     ssl_context = ssl.create_default_context(
@@ -261,7 +220,7 @@ class IrodsConnector():
                     }
                     self._session = irods.session.iRODSSession(
                         **self.ienv,
-                        password=self._password,
+                        password=self.password,
                         **ssl_settings)
                 except Exception as sslerror:
                     raise sslerror
@@ -269,6 +228,17 @@ class IrodsConnector():
                 logging.info('AUTHENTICATION ERROR', exc_info=True)
                 print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
                 raise autherror
+            print('Welcome to iRODS:')
+            print(f'iRODS Zone: {self._session.zone}')
+            print(f'You are: {self._session.username}')
+            print(f'Default resource: {self.default_resc}')
+            print('You have access to: \n')
+            home_path = f'/{self._session.zone}/home'
+            colls = self.get_collection(home_path).subcollections
+            print('\n'.join([coll.path for coll in colls]))
+            logging.info(
+                'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
+                self._session.zone, self._session.host)
         return self._session
 
     session = property(_get_session, None, None, 'iRODSSession')
