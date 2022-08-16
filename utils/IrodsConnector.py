@@ -64,13 +64,11 @@ class IrodsConnector():
 
     """
 
-    def __init__(self, env_file=None, password=None):
+    def __init__(self, password):
         """iRODS authentication with Python client.
 
         Parameters
         ----------
-        env_file : str
-            JSON document with iRODS connection parameters.
         password : str
             Plain text password.
 
@@ -78,105 +76,27 @@ class IrodsConnector():
         environment file is in the standard location
         (~/.irods/irods_environment.json) or is specified in the local
         environment with the IRODS_ENVIRONMENT_FILE variable, and the
-        ~/.irods/.irodsA files exists and is valid.
+        iRODS authentication file is in the standard location
+        (~/.irods/.irodsA) or is specified in the local environment with
+        the IRODS_AUTHENTICATION_FILE variable and is valid.
 
         """
         self.__name__ = 'IrodsConnector'
-        self._session, self._collections, self._ienv = None, None, None
-        if env_file is not None:
-            with open(env_file) as envfd:
-                self.ienv = json.load(envfd)
-        if password is None:
-            # TODO add support for .irods/.irodsA for all OSes
-            raise irods.exception.CAT_INVALID_AUTHENTICATION('No password provided.')
-        self._password = password
+        self._collections = None
+        self._ienv = None
+        self._password = None
+        self._session = None
+        self.password = password
         self.default_resc = None
         if 'irods_default_resource' in self.ienv:
             self.default_resc = self.ienv['irods_default_resource']
-        # XXX is this default needed
+        # XXX is this default needed?
         else:
             self.default_resc = 'demoResc'
         # FIXME move iBridges parameters to iBridges configuration
         self.davrods = None
         if 'davrods_server' in self.ienv:
             self.davrods = self.ienv['davrods_server'].strip('/')
-        print('Welcome to iRODS:')
-        print(f'iRODS Zone: {self.session.zone}')
-        print(f'You are: {self.session.username}')
-        print(f'Default resource: {self.default_resc}')
-        print('You have access to: \n')
-        print('\n'.join([coll.path for coll in self.collections]))
-        logging.info(
-            'IRODS LOGIN SUCCESS: %s, %s, %s', self.session.username,
-            self.session.zone, self.session.host)
-
-    def _get_session(self):
-        """iRODS session getter method.
-
-        Returns
-        -------
-        iRODSSession
-            iRODS connection based on given environment and password.
-
-        """
-        if self._session is None:
-            try:
-                self._session = irods.session.iRODSSession(
-                    **self.ienv, password=self._password)
-            except irods.connection.PlainTextPAMPasswordError:
-                try:
-                    ssl_context = ssl.create_default_context(
-                        purpose=ssl.Purpose.SERVER_AUTH,
-                        cafile=None, capath=None, cadata=None)
-                    ssl_settings = {
-                        'client_server_negotiation':
-                            'request_server_negotiation',
-                        'client_server_policy': 'CS_NEG_REQUIRE',
-                        'encryption_algorithm': 'AES-256-CBC',
-                        'encryption_key_size': 32,
-                        'encryption_num_hash_rounds': 16,
-                        'encryption_salt_size': 8,
-                        'ssl_context': ssl_context,
-                    }
-                    self._session = irods.session.iRODSSession(
-                        **self.ienv,
-                        password=self._password,
-                        **ssl_settings)
-                except Exception as sslerror:
-                    raise sslerror
-            except Exception as autherror:
-                logging.info('AUTHENTICATION ERROR', exc_info=True)
-                print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
-                raise autherror
-        return self._session
-
-    session = property(_get_session, None, None, 'iRODSSession')
-
-    def _get_collections(self):
-        """iRODS readable collections getter method.
-
-        Returns
-        -------
-        list
-            iRODSCollections available to the user.
-
-        """
-        if self._collections is None and self.session is not None:
-            home_path = f'/{self.session.zone}/home'
-            try:
-                self._collections = self.get_collection(home_path).subcollections
-            except irods.exception.CollectionDoesNotExist:
-                print(f'{RED}WARNING -- {home_path} does not exist!{DEFAULT}')
-            except Exception as error:
-                logging.info('AUTHENTICATION ERROR', exc_info=True)
-                print(f'{RED}IRODS ERROR LOADING COLLECTION HOME/USER: {DEFAULT}')
-                print(f'{RED}User auth failed!{DEFAULT}')
-                raise error
-        return self._collections
-
-    collections = property(
-        _get_collections, None, None,
-        'List of iRODSCollections readable by user')
 
     def _get_ienv(self):
         """iRODS environment getter method.
@@ -188,12 +108,12 @@ class IrodsConnector():
 
         """
         if self._ienv is None:
-            try:
+            if 'IRODS_ENVIRONMENT_FILE' in os.environ:
                 env_file = os.environ['IRODS_ENVIRONMENT_FILE']
-            except KeyError:
+            else:
                 env_file = pathlib.Path(
                     '~/.irods/irods_environment.json').expanduser()
-            with open(env_file) as envfd:
+            with open(env_file, encoding='utf-8') as envfd:
                 self._ienv = json.load(envfd)
         return self._ienv
 
@@ -216,6 +136,112 @@ class IrodsConnector():
 
     ienv = property(
         _get_ienv, _set_ienv, _del_ienv, 'iRODS environment dictionary')
+
+    def _get_password(self):
+        """iRODS password getter method.
+
+        Returns
+        -------
+        str
+            iRODS password pre-set or decoded from iRODS authentication
+            file.
+
+        """
+        if self._password is None:
+            if 'IRODS_AUTHENTICATION_FILE' in os.environ:
+                auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
+            else:
+                auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
+            if os.path.exists(auth_file):
+                with open(auth_file, encoding='utf-8') as authfd:
+                    encoded = authfd.read()
+                self._password = irods.password_obfuscation.decode(encoded)
+        if self._password is None:
+            raise irods.exception.CAT_INVALID_AUTHENTICATION(
+                'No password found/provided.')
+        return self._password
+
+    def _set_password(self, password):
+        """iRODS password setter method.
+
+        Pararmeters
+        -----------
+        password : str
+            Unencrypted iRODS password.
+
+        """
+        if password not in (None, ''):
+            if 'IRODS_AUTHENTICATION_FILE' in os.environ:
+                auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
+            else:
+                auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
+            if not os.path.exists(auth_file):
+                encoded = irods.password_obfuscation.encode(password)
+                with open(auth_file, 'w', encoding='utf-8') as authfd:
+                    authfd.write(encoded)
+            self._password = password
+
+    def _del_password(self):
+        """iRODS password deleter method.
+
+        """
+        self._password = None
+
+    password = property(
+        _get_password, _set_password, _del_password, 'iRODS password')
+
+    def _get_session(self):
+        """iRODS session getter method.
+
+        Returns
+        -------
+        iRODSSession
+            iRODS connection based on given environment and password.
+
+        """
+        if self._session is None:
+            try:
+                self._session = irods.session.iRODSSession(
+                    **self.ienv, password=self.password)
+            except irods.connection.PlainTextPAMPasswordError:
+                try:
+                    ssl_context = ssl.create_default_context(
+                        purpose=ssl.Purpose.SERVER_AUTH,
+                        cafile=None, capath=None, cadata=None)
+                    ssl_settings = {
+                        'client_server_negotiation':
+                            'request_server_negotiation',
+                        'client_server_policy': 'CS_NEG_REQUIRE',
+                        'encryption_algorithm': 'AES-256-CBC',
+                        'encryption_key_size': 32,
+                        'encryption_num_hash_rounds': 16,
+                        'encryption_salt_size': 8,
+                        'ssl_context': ssl_context,
+                    }
+                    self._session = irods.session.iRODSSession(
+                        **self.ienv,
+                        password=self.password,
+                        **ssl_settings)
+                except Exception as sslerror:
+                    raise sslerror
+            except Exception as autherror:
+                logging.info('AUTHENTICATION ERROR', exc_info=True)
+                print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
+                raise autherror
+            print('Welcome to iRODS:')
+            print(f'iRODS Zone: {self._session.zone}')
+            print(f'You are: {self._session.username}')
+            print(f'Default resource: {self.default_resc}')
+            print('You have access to: \n')
+            home_path = f'/{self._session.zone}/home'
+            colls = self.get_collection(home_path).subcollections
+            print('\n'.join([coll.path for coll in colls]))
+            logging.info(
+                'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
+                self._session.zone, self._session.host)
+        return self._session
+
+    session = property(_get_session, None, None, 'iRODSSession')
 
     def get_user_info(self):
         """Query for user type and groups.
