@@ -29,8 +29,13 @@ DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
+
 class IrodsConnectorIcommands(IrodsConnector):
-    def __init__(self, password = ''):
+    """
+
+    """
+
+    def __init__(self, ienv=None, password=''):
         """
         iRODS authentication.
         Input:
@@ -42,6 +47,7 @@ class IrodsConnectorIcommands(IrodsConnector):
             FileNotFoundError: /home/<user>/.irods/irods_environment.json not found
             All other errors refer to having the envFile not setup properly
         """
+        # super().__init__()
         self.__name__="IrodsConnectorIcommands"
 
         envFile = os.environ['HOME']+"/.irods/irods_environment.json"
