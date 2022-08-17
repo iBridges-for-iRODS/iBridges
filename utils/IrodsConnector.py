@@ -64,21 +64,25 @@ class IrodsConnector():
 
     """
 
-    def __init__(self, password):
+    def __init__(self, ienv=None, password=None):
         """iRODS authentication with Python client.
 
         Parameters
         ----------
+        ienv : dict
+            iRODS environment.
         password : str
             Plain text password.
 
-        Both parameters are optional provided that the iRODS
-        environment file is in the standard location
-        (~/.irods/irods_environment.json) or is specified in the local
-        environment with the IRODS_ENVIRONMENT_FILE variable, and the
-        iRODS authentication file is in the standard location
-        (~/.irods/.irodsA) or is specified in the local environment with
-        the IRODS_AUTHENTICATION_FILE variable and is valid.
+        The 'ienv' and 'password' properties can autoload from their
+        respective caches, but can be overridden by the `ienv` and
+        `password` arguments, respectively.  The iRODS environment file
+        is expected in the standard location
+        (~/.irods/irods_environment.json) or to be specified in the
+        local environment with the IRODS_ENVIRONMENT_FILE variable, and
+        the iRODS authentication file is expected in the standard
+        location (~/.irods/.irodsA) or to be specified in the local
+        environment with the IRODS_AUTHENTICATION_FILE variable.
 
         """
         self.__name__ = 'IrodsConnector'
@@ -86,7 +90,10 @@ class IrodsConnector():
         self._ienv = None
         self._password = None
         self._session = None
-        self.password = password
+        if ienv is not None:
+            self.ienv = ienv
+        if password is not None:
+            self.password = password
         self.default_resc = None
         if 'irods_default_resource' in self.ienv:
             self.default_resc = self.ienv['irods_default_resource']
@@ -147,7 +154,7 @@ class IrodsConnector():
             file.
 
         """
-        if self._password is None:
+        if self._password in (None, ''):
             if 'IRODS_AUTHENTICATION_FILE' in os.environ:
                 auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
             else:
@@ -156,9 +163,6 @@ class IrodsConnector():
                 with open(auth_file, encoding='utf-8') as authfd:
                     encoded = authfd.read()
                 self._password = irods.password_obfuscation.decode(encoded)
-        if self._password is None:
-            raise irods.exception.CAT_INVALID_AUTHENTICATION(
-                'No password found/provided.')
         return self._password
 
     def _set_password(self, password):
@@ -175,10 +179,9 @@ class IrodsConnector():
                 auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
             else:
                 auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
-            if not os.path.exists(auth_file):
-                encoded = irods.password_obfuscation.encode(password)
-                with open(auth_file, 'w', encoding='utf-8') as authfd:
-                    authfd.write(encoded)
+            encoded = irods.password_obfuscation.encode(password)
+            with open(auth_file, 'w', encoding='utf-8') as authfd:
+                authfd.write(encoded)
             self._password = password
 
     def _del_password(self):
@@ -200,9 +203,11 @@ class IrodsConnector():
 
         """
         if self._session is None:
+            options = self.ienv.copy()
+            if self.password is not None:
+                options['password'] = self.password
             try:
-                self._session = irods.session.iRODSSession(
-                    **self.ienv, password=self.password)
+                self._session = irods.session.iRODSSession(**options)
             except irods.connection.PlainTextPAMPasswordError:
                 try:
                     ssl_context = ssl.create_default_context(
@@ -218,10 +223,8 @@ class IrodsConnector():
                         'encryption_salt_size': 8,
                         'ssl_context': ssl_context,
                     }
-                    self._session = irods.session.iRODSSession(
-                        **self.ienv,
-                        password=self.password,
-                        **ssl_settings)
+                    options.update(ssl_settings)
+                    self._session = irods.session.iRODSSession(**options)
                 except Exception as sslerror:
                     raise sslerror
             except Exception as autherror:
