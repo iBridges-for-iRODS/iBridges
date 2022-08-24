@@ -38,12 +38,12 @@ class irodsDataCompression():
 
         #irodsCollectionTree
         self.collectionTreeModel = self.setupFsTree(self.widget.irodsCollectionTree)
-        self.widget.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refreshSubTree)
-        #self.widget.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refreshSubTree)
+        self.widget.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refresh_subtree)
+        #self.widget.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refresh_subtree)
         #irodsCompressionTree
         self.compressionTreeModel = self.setupFsTree(self.widget.irodsCompressionTree)
-        self.widget.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refreshSubTree)
-        #self.widget.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refreshSubTree)
+        self.widget.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refresh_subtree)
+        #self.widget.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refresh_subtree)
         #resource buttons
         self.setupResourceButton(self.widget.compressRescButton)
         self.setupResourceButton(self.widget.decompressRescButton)
@@ -65,9 +65,9 @@ class irodsDataCompression():
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
 
-        treeView.expanded.connect(model.refreshSubTree)
-        treeView.clicked.connect(model.refreshSubTree)
-        model.initTree()
+        treeView.expanded.connect(model.refresh_subtree)
+        treeView.clicked.connect(model.refresh_subtree)
+        model.init_tree()
 
         treeView.setHeaderHidden(True)
         treeView.header().setDefaultSectionSize(180)
@@ -144,18 +144,18 @@ class irodsDataCompression():
         self.enableButtons(True)
         stdout, stderr = message
         if success and operation == "create":
-            idx, source = self.collectionTreeModel.get_checked()
+            idx, _ = self.collectionTreeModel.get_checked()
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
-            parentIdx = self.collectionTreeModel.getParentIdx(idx)
-            self.collectionTreeModel.refreshSubTree(parentIdx)
+            parent_index = self.collectionTreeModel.get_parent_index(idx)
+            self.collectionTreeModel.refresh_subtree(parent_index)
         elif not success and operation == "create":
             self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
         elif success and operation == "extract":
-            idx, source = self.compressionTreeModel.get_checked()
+            idx, _ = self.compressionTreeModel.get_checked()
             stdout, stderr = message
             self.widget.unpackStatusLabel.setText("STATUS: Extracted " + str(stdout))
-            parentIdx = self.compressionTreeModel.getParentIdx(idx)
-            self.compressionTreeModel.refreshSubTree(parentIdx)
+            parent_index = self.compressionTreeModel.get_parent_index(idx)
+            self.compressionTreeModel.refresh_subtree(parent_index)
         elif not success and operation == "extract":
             self.widget.unpackStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 

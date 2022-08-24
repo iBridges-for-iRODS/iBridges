@@ -64,7 +64,6 @@ class IrodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(3, True)
         self.widget.localFsTreeView.header().setSectionResizeMode(
             PyQt5.QtWidgets.QHeaderView.ResizeToContents)
-        # TODO discover proper way to determine local home directory
         home_location = PyQt5.QtCore.QStandardPaths.standardLocations(
             PyQt5.QtCore.QStandardPaths.HomeLocation)[0]
         index = self.localmodel.setRootPath(home_location)
@@ -77,27 +76,33 @@ class IrodsUpDownload():
         """
         self.irodsmodel = gui.irodsTreeView.IrodsModel(
             self.ic, self.widget.irodsFsTreeView)
-        #header_labels = [
-        #    self.irodsmodel.zone_path,
-        #    'Level',
-        #    'iRODS ID',
-        #    'parent ID',
-        #    'type',
-        #]
-        #self.irodsmodel.setHorizontalHeaderLabels(header_labels)
+        # header_labels = [
+        #     self.irodsmodel.zone_path,
+        #     'Level',
+        #     'iRODS ID',
+        #     'parent ID',
+        #     'type',
+        # ]
+        # self.irodsmodel.setHorizontalHeaderLabels(header_labels)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
         self.widget.irodsZoneLabel.setText(f'{self.irodsmodel.zone_path}:')
         self.widget.irodsFsTreeView.expanded.connect(
-            self.irodsmodel.refreshSubTree)
+            self.irodsmodel.refresh_subtree)
         self.widget.irodsFsTreeView.clicked.connect(
-            self.irodsmodel.refreshSubTree)
-        self.irodsmodel.initTree()
+            self.irodsmodel.refresh_subtree)
+        self.irodsmodel.init_tree()
         # self.widget.irodsFsTreeView.setHeaderHidden(True)
         # self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
         self.widget.irodsFsTreeView.setColumnHidden(1, True)
         self.widget.irodsFsTreeView.setColumnHidden(2, True)
         self.widget.irodsFsTreeView.setColumnHidden(3, True)
         self.widget.irodsFsTreeView.setColumnHidden(4, True)
+        # XXX unsuccessful attempt to open home in tree view
+        # index = self.irodsmodel.indexFromItem(
+        #     PyQt5.QtGui.QStandardItem(self.irodsmodel.base_path))
+        # self.widget.irodsFsTreeView.setCurrentIndex(index)
+        # self.widget.irodsFsTreeView.scrollTo(index)
+        # XXX
 
     def _create_buttons(self):
         """Create panel buttons.
@@ -248,7 +253,7 @@ class IrodsUpDownload():
             create_coll_widget = gui.popupWidgets.irodsCreateCollection(
                 parent, self.ic)
             create_coll_widget.exec_()
-            self.irodsmodel.refreshSubTree(index)
+            self.irodsmodel.refresh_subtree(index)
 
     def upload(self):
         """Upload a file or directory/folder to iRODS and refresh the
@@ -288,7 +293,7 @@ class IrodsUpDownload():
         """
         if success:
             if irods_index is not None:
-                self.irodsmodel.refreshSubTree(irods_index)
+                self.irodsmodel.refresh_subtree(irods_index)
             if self.widget.saveSettings.isChecked():
                 print("FINISH UPLOAD/DOWNLOAD: saving ui parameters.")
                 self.save_ui_settings()

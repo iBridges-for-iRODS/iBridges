@@ -13,9 +13,9 @@ class irodsCreateTicket():
         self.irodsmodel.setHorizontalHeaderLabels([self.irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
-        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refreshSubTree)
-        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refreshSubTree)
-        self.irodsmodel.initTree()
+        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refresh_subtree)
+        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refresh_subtree)
+        self.irodsmodel.init_tree()
 
         self.widget.irodsFsTreeView.setHeaderHidden(True)
         self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
