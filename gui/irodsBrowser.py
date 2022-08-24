@@ -1,3 +1,6 @@
+"""
+ 
+"""
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
 from PyQt5.uic import loadUi
@@ -10,67 +13,66 @@ import logging
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 
-import sys
-
 
 class irodsBrowser():
-    def __init__ (self, widget, ic):
-        
+    """
+
+    """
+
+    def __init__(self, widget, ic):
+        """
+
+        """
         self.ic = ic
         self.widget = widget
         self.widget.viewTabs.setCurrentIndex(0)
-
-        #Browser table
-        self.widget.collTable.setColumnWidth(1,399)
-        self.widget.collTable.setColumnWidth(2,199)
-        self.widget.collTable.setColumnWidth(3,399)
-        self.widget.collTable.setColumnWidth(0,20)
-
-        #Metadata table
-        self.widget.metadataTable.setColumnWidth(0,199)
-        self.widget.metadataTable.setColumnWidth(1,199)
-        self.widget.metadataTable.setColumnWidth(2,199)
-
-        #ACL table
-        self.widget.aclTable.setColumnWidth(0,299)
-        self.widget.aclTable.setColumnWidth(1,299)
-
-        #if user is not admin nor datasteward, hide ACL buttons
+        # Browser table
+        self.widget.collTable.setColumnWidth(1, 399)
+        self.widget.collTable.setColumnWidth(2, 199)
+        self.widget.collTable.setColumnWidth(3, 399)
+        self.widget.collTable.setColumnWidth(0, 20)
+        # Metadata table
+        self.widget.metadataTable.setColumnWidth(0, 199)
+        self.widget.metadataTable.setColumnWidth(1, 199)
+        self.widget.metadataTable.setColumnWidth(2, 199)
+        # ACL table
+        self.widget.aclTable.setColumnWidth(0, 299)
+        self.widget.aclTable.setColumnWidth(1, 299)
+        # If user is not admin nor datasteward, hide ACL buttons.
         try:
-            userType, userGroups = self.ic.getUserInfo()
+            user_type, user_groups = ic.get_user_info()
         except NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-
-        if "rodsadmin" not in userType and \
-           "datastewards" not in userGroups and \
-           "training" not in userGroups:
-
+        if user_type != 'rodsadmin' and \
+           'datastewards' not in user_groups and \
+           'training' not in user_groups:
             self.widget.aclAddButton.hide()
             self.widget.aclBox.setEnabled(False)
             self.widget.recurseBox.setEnabled(False)
-
-        #Resource table
-        self.widget.resourceTable.setColumnWidth(0,500)
-        self.widget.resourceTable.setColumnWidth(1,90)
-
-        #iRODS defaults
+        # Resource table
+        self.widget.resourceTable.setColumnWidth(0, 500)
+        self.widget.resourceTable.setColumnWidth(1, 90)
+        # iRODS defaults
+        if 'irods_cwd' in ic.ienv:
+            root_path = ic.ienv['irods_cwd']
+        elif 'irods_home' in ic.ienv:
+            root_path = ic.ienv['irods_home']
+        else:
+            root_path = f'/{ic.session.zone}/home/{ic.session.username}'
         try:
-            self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
+            self.root_coll = ic.get_collection(root_path)
         except CollectionDoesNotExist:
-            self.irodsRoot = self.ic.session.collections.get(
-                    "/"+ic.session.zone+"/home/"+ic.session.username)
+            self.root_coll = ic.get_collection(f'/{ic.session.zone}/home')
         except NetworkException:
             self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
-
+                'IRODS NETWORK ERROR: No Connection, please check network')
         self.resetPath()
         self.currentBrowserRow = 0
         self.browse()
 
-
     def browse(self):
-        #update main table when iRODS paht is changed upon 'Enter'
+        #update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.homeButton.clicked.connect(self.resetPath)
         #quick data upload and download (files only)
@@ -108,7 +110,7 @@ class irodsBrowser():
         self.widget.resourceTable.setRowCount(0)
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
         if not value.endswith("/") and self.ic.session.data_objects.exists(newPath):
-            resources = self.ic.listResources()
+            resources = self.ic.list_resources()
             self.widget.resourceTable.setRowCount(len(resources))
             obj = self.ic.session.data_objects.get(
                     "/"+path.strip("/")+"/"+value.strip("/")
@@ -258,11 +260,9 @@ class irodsBrowser():
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
-
     def resetPath(self):
-        self.widget.inputPath.setText(self.irodsRoot.path)
+        self.widget.inputPath.setText(self.root_coll.path)
         self.loadTable()
-
 
     #@QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
@@ -378,8 +378,8 @@ class irodsBrowser():
         if buttonReply == QMessageBox.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
-                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
-                self.ic.uploadData(fileSelect[0], parentColl,
+                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
+                self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=True)
                 self.loadTable()
             except NetworkException:
@@ -388,6 +388,7 @@ class irodsBrowser():
             except Exception as error:
                 print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
+                raise error
         else:
             pass
 
@@ -407,7 +408,7 @@ class irodsBrowser():
                                 'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                     if buttonReply == QMessageBox.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
-                        self.ic.downloadData(obj, downloadDir, obj.size)
+                        self.ic.download_data(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
             except NetworkException:
                 self.widget.errorLabel.setText(
@@ -460,7 +461,7 @@ class irodsBrowser():
         cell = self.widget.collTable.item(self.currentBrowserRow, 1).text()
         zone = self.widget.aclZoneField.text()
         try:
-            self.ic.setPermissions(rights, user, "/"+parent.strip("/")+"/"+cell.strip("/"), zone, recursive)
+            self.ic.set_permissions(rights, f'/{parent.strip("/")}/{cell.strip("/")}', user, zone, recursive)
             self.__fillACLs(cell, parent)
 
         except NetworkException:

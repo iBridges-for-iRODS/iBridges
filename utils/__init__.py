@@ -2,7 +2,7 @@
 """
 
 from . import elabConnector
-from . import irodsConnectorAnonymous
-from . import irodsConnectorIcommands
-from . import irodsConnector
+from . import IrodsConnectorAnonymous
+from . import IrodsConnectorIcommands
+from . import IrodsConnector
 from . import utils

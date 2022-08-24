@@ -1,4 +1,4 @@
-"""irodsConnector for iCommands
+"""IrodsConnector for iCommands
 """
 from irods.session      import iRODSSession
 from irods.access       import iRODSAccess
@@ -22,15 +22,20 @@ from shutil import disk_usage
 import hashlib
 import random, string
 import logging
-from utils.irodsConnector import irodsConnector
+from utils.IrodsConnector import IrodsConnector
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
-class irodsConnectorIcommands(irodsConnector):
-    def __init__(self, password = ''):
+
+class IrodsConnectorIcommands(IrodsConnector):
+    """
+
+    """
+
+    def __init__(self, ienv=None, password=''):
         """
         iRODS authentication.
         Input:
@@ -42,7 +47,8 @@ class irodsConnectorIcommands(irodsConnector):
             FileNotFoundError: /home/<user>/.irods/irods_environment.json not found
             All other errors refer to having the envFile not setup properly
         """
-        self.__name__="irodsConnectorIcommands"
+        # super().__init__()
+        self.__name__="IrodsConnectorIcommands"
 
         envFile = os.environ['HOME']+"/.irods/irods_environment.json"
         envFileExists = os.path.exists(envFile)
@@ -97,9 +103,9 @@ class irodsConnectorIcommands(irodsConnector):
         with open(envFile) as f:
             ienv = json.load(f)
         if "irods_default_resource" in ienv:
-            self.defaultResc = ienv["irods_default_resource"]
+            self.default_resc = ienv["irods_default_resource"]
         else:
-            self.defaultResc = "demoResc"
+            self.default_resc = "demoResc"
         if "davrods_server" in ienv:
             self.davrods = ienv["davrods_server"].strip('/')
         else:
@@ -108,7 +114,7 @@ class irodsConnectorIcommands(irodsConnector):
         print("Welcome to iRODS:")
         print("iRODS Zone: "+self.session.zone)
         print("You are: "+self.session.username)
-        print("Default resource: "+self.defaultResc)
+        print("Default resource: "+self.default_resc)
         print("You have access to: \n")
         print('\n'.join(collnames))
 
@@ -116,15 +122,15 @@ class irodsConnectorIcommands(irodsConnector):
             'IRODS LOGIN SUCCESS: '+self.session.username+", "+self.session.zone+", "+self.session.host)
 
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
-                    force = False, diffs = []):
+    def upload_data(self, source, destination, resource, size, buff=1024**3, 
+                    force=False, diffs=[]):
         """
         source: absolute path to file or folder
         destination: iRODS collection where data is uploaded to
         resource: name of the iRODS storage resource to use
         size: size of data to be uploaded in bytes
         buf: buffer on resource that should be left over
-        diffs: Leave empty, placeholder to be in sync with irodsConnector class function
+        diffs: Leave empty, placeholder to be in sync with IrodsConnector class function
 
         The function uploads the contents of a folder with all subfolders to 
         an iRODS collection.
@@ -138,7 +144,7 @@ class irodsConnectorIcommands(irodsConnector):
         logging.info('iRODS UPLOAD: '+source+'-->'+str(destination)+', '+str(resource))
         if not force:
             try:
-                space = self.resourceSpace(resource)
+                space = self.resource_space(resource)
                 if int(size) > (int(space)-buff):
                     logging.info('ERROR iRODS upload: Not enough space on resource.')
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
@@ -172,7 +178,7 @@ class irodsConnectorIcommands(irodsConnector):
         logging.info('IRODS UPLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
 
 
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs = []):
+    def download_data(self, source, destination, size, buff = 1024**3, force = False, diffs = []):
         '''
         Download object or collection.
         source: iRODS collection or data object

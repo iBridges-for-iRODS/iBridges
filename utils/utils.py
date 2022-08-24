@@ -28,16 +28,27 @@ def getSize(pathList):
     return size
 
 
-def networkCheck(hostname):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    try:
-        s.settimeout(10.0)
-        s.connect((hostname, 1247))
-        return True
-    except socket.error as e:
-        return False
+def can_connect(hostname):
+    """Check connectivity to an iRODS server.
 
-    s.close()
+    Parameters
+    ----------
+    hostname : str
+        FQDN/IP of an iRODS server.
+
+    Returns
+    -------
+    bool
+        Connection to `hostname` possible.
+
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.settimeout(10.0)
+            sock.connect((hostname, 1247))
+            return True
+        except socket.error:
+            return False
 
 
 def walkToDict(root):
@@ -103,24 +114,31 @@ def _check_exists(fname):
     return True
 
 
-# Create logger, it is important to note that it either writes prints to the console or the logfile! 
-def setup_logger(irods_folder, app):
-    logfile = irods_folder + os.sep + app + ".log"
+def setup_logger(logdir, appname):
+    """Initialize the application logging service.
 
+    Parameters
+    ----------
+    logdir : str
+        Path to logging location.
+    appname : str
+        Base name for the log file.
+
+    """
+    logfile = logdir.joinpath(f'{appname}.log')
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
-    logging.basicConfig(format = log_format, level = logging.INFO, handlers = handlers)
-
+    handlers = [
+        logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1),
+        logging.StreamHandler(sys.stdout),
+    ]
+    logging.basicConfig(
+        format=log_format, level=logging.INFO, handlers=handlers)
     # Indicate start of a new session
-    with open(logfile, 'a') as f:
-        f.write("\n\n")
-        underscores = ""
-        for x in range(0, 50):
-            underscores = underscores + "_"
-        underscores = underscores + "\n"
-        f.write(underscores)
-        f.write(underscores) 
-        f.write("\t\t" + datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "\n")
-        f.write(underscores)
-        f.write(underscores)
-    
+    with open(logfile, 'a', encoding='utf-8') as logfd:
+        logfd.write('\n\n')
+        underscores = f'{"_"*50}\n'
+        logfd.write(underscores)
+        logfd.write(underscores)
+        logfd.write(f'\t\t{datetime.now().isoformat()}\n')
+        logfd.write(underscores)
+        logfd.write(underscores)

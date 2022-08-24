@@ -5,10 +5,10 @@
 import json
 import logging
 import os
+import pathlib
 import subprocess
 import sys
 
-import cryptography.fernet
 import irods.exception
 import PyQt5
 import PyQt5.QtWidgets
@@ -21,6 +21,64 @@ app = PyQt5.QtWidgets.QApplication(sys.argv)
 widget = PyQt5.QtWidgets.QStackedWidget()
 
 
+class JsonConfig():
+    """A configuration stored in a JSON file.
+
+    """
+
+    def __init__(self, filepath):
+        """Create the configuration.
+
+        Parameter
+        ---------
+        filepath : str
+
+        """
+        self.filepath = pathlib.Path(filepath)
+        self._config = None
+
+    def _get_config(self):
+        """Configuration getter.
+
+        Attempt to load a configuration from the JSON file.
+
+        Returns
+        -------
+        dict or None
+            The configuration if it exists.
+
+        """
+        if self._config is None:
+            if self.filepath.exists():
+                with open(self.filepath, 'r', encoding='utf-8') as confd:
+                    self._config = json.load(confd)
+        return self._config
+
+    def _set_config(self, conf_dict):
+        """Configuration setter.
+
+        Set the configuration to `conf_dict` and write it to the JSON
+        file.
+
+        """
+        self._config = conf_dict
+        with open(self.filepath, 'w', encoding='utf-8') as confd:
+            json.dump(conf_dict, confd, indent=4, sort_keys=True)
+
+    def _del_config(self):
+        """Configuration deleter.
+
+        Delete both the configuration and its JSON file.
+
+        """
+        self._config = None
+        self.filepath.unlink(missing_ok=True)
+
+    config = property(
+        _get_config, _set_config, _del_config,
+        'A configuration dictionary linked to a JSON file.')
+
+
 class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
     """Definition and initialization of the iRODS login window.
 
@@ -28,6 +86,17 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
 
     def __init__(self):
         super().__init__()
+        self.icommands = False
+        self._connector = None
+        self._load_gui()
+        self._init_configs_and_logging()
+        self._init_envbox()
+        self._init_password()
+
+    def _load_gui(self):
+        """
+
+        """
         PyQt5.uic.loadUi('gui/ui-files/irodsLogin.ui', self)
         self.selectIcommandsButton.toggled.connect(self.setup_icommands)
         self.standardButton.toggled.connect(self.setup_standard)
@@ -35,47 +104,75 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         self.ticketButton.clicked.connect(self.ticket_login)
         self.passwordField.setEchoMode(PyQt5.QtWidgets.QLineEdit.Password)
 
-        self.icommands = False
-        self.ibridges_env_path = os.path.expanduser(os.path.join('~', '.ibridges'))
-        if not os.path.isdir(self.ibridges_env_path):
-            os.makedirs(self.ibridges_env_path)
-        self.irods_env_path = os.path.expanduser(os.path.join('~', '.irods'))
-        if not os.path.isdir(self.irods_env_path):
-            os.makedirs(self.irods_env_path)
-        utils.utils.setup_logger(self.ibridges_env_path, 'iBridgesGui')
-        self.config_file_path = os.path.join(self.ibridges_env_path, 'config.json')
-        if not os.path.isfile(self.config_file_path):
-            with open(self.config_file_path, 'w') as confd:
-                json.dump({}, confd)
-        self.init_envbox()
+    def _init_configs_and_logging(self):
+        """
 
-    @staticmethod
-    def _get_cipher():
-        """Create a unique cryptographic cipher.
+        """
+        # iBridges configuration
+        ibridges_path = pathlib.Path(
+            os.path.join('~', '.ibridges')).expanduser()
+        if not ibridges_path.is_dir():
+            ibridges_path.mkdir(parents=True)
+        self.ibridges_config = ibridges_path.joinpath('config.json')
+        self.ibridges = JsonConfig(self.ibridges_config)
+        if self.ibridges.config is None:
+            self.ibridges.config = {}
+        # iRODS configuration (environment)
+        self.irods = None
+        self.irods_path = pathlib.Path(
+            os.path.join('~', '.irods')).expanduser()
+        if not self.irods_path.is_dir():
+            self.irods_path.mkdir(parents=True)
+        # iBridges logging
+        utils.utils.setup_logger(ibridges_path, 'iBridgesGui')
+
+    def _init_envbox(self):
+        """Populate environment drop-down.
+
+        """
+        env_jsons = [
+            path.name for path in
+            self.irods_path.glob('irods_environment*json')]
+        if len(env_jsons) == 0:
+            self.envError.setText(f'ERROR: no "irods_environment*json" files found in {self.irods_path}')
+        self.envbox.clear()
+        self.envbox.addItems(env_jsons)
+        conf = self.ibridges.config
+        envname = ''
+        if 'last_ienv' in conf and conf['last_ienv'] in env_jsons:
+            envname = conf['last_ienv']
+        elif 'irods_environment.json' in env_jsons:
+            envname = 'irods_environment.json'
+        index = 0
+        if envname:
+            index = self.envbox.findText(envname)
+        self.envbox.setCurrentIndex(index)
+
+    def _init_password(self):
+        """
+
+        """
+        env_path = self.irods_path.joinpath(self.envbox.currentText())
+        ienv = JsonConfig(env_path).config
+        # Fish for a cached password
+        conn = self.connector(ienv=ienv, password='')
+        if conn.password is not None:
+            self.passwordField.setText(conn.password)
+
+    def _get_connector(self):
+        """iRODS connector getter (factory).
 
         Returns
         -------
-        cryptography.fernet.Fernet
+        IrodsConnector
+            iRODS session container.
 
         """
-        return cryptography.fernet.Fernet(cryptography.fernet.Fernet.generate_key())
+        if not self.icommands:
+            return utils.IrodsConnector.IrodsConnector
+        return utils.IrodsConnectorIcommands.IrodsConnectorIcommands
 
-    def _get_irods_connector(self, env_file, password, cipher):
-        """Construct an appropriate iRODS connector.
-
-        Parameters
-        ----------
-        env_file : str
-            Pathname of the iRODS environment file.
-        password : str
-            Given password.
-        cipher : cryptography.fernet.Fernet
-            Encryption cipher.
-
-        """
-        if self.icommands:
-            return utils.irodsConnectorIcommands.irodsConnectorIcommands(cipher.decrypt(password).decode())
-        return utils.irodsConnector.irodsConnector(env_file, cipher.decrypt(password).decode())
+    connector = property(_get_connector, None, None, 'IrodsConnector')
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text
@@ -91,7 +188,7 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
 
         """
         if self.standardButton.isChecked():
-            self.init_envbox()
+            self._init_envbox()
             self.icommands = False
 
     def setup_icommands(self):
@@ -103,7 +200,7 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         if self.selectIcommandsButton.isChecked():
             icommands_exist = False
             self.icommandsError.setText('')
-            with open(os.devnull, 'w') as devnull:
+            with open(os.devnull, 'w', encoding='utf-8') as devnull:
                 icommands_exist = subprocess.call(['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
             if icommands_exist:
                 self.icommands = True
@@ -111,112 +208,60 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
                 self.icommandsError.setText('ERROR: no iCommands installed')
                 self.standardButton.setChecked(True)
 
-    def init_envbox(self):
-        """Populate environment container.
-
-        """
-        env_jsons = []
-        for file in os.listdir(self.irods_env_path):
-            if file.startswith('irods_environment'):
-                env_jsons.append(file)
-        if len(env_jsons) == 0:
-            self.envError.setText(f'ERROR: no iRODS environment files found in {self.irods_env_path}')
-        self.envbox.clear()
-        self.envbox.addItems(env_jsons)
-        # Read config
-        if os.path.isfile(self.config_file_path):
-            with open(self.config_file_path) as confd:
-                conf = json.load(confd)
-            if ('last_ienv' in conf) and (conf['last_ienv'] != '') and (conf['last_ienv'] in env_jsons):
-                index = self.envbox.findText(conf['last_ienv'])
-                self.envbox.setCurrentIndex(index)
-                return
-        # Prefer default name
-        if "irods_environment.json" in env_jsons:
-            index = self.envbox.findText("irods_environment.json")
-            self.envbox.setCurrentIndex(index)
-
     def login_function(self):
-        """Check connectivity, log in to iRODS handling common errors.
+        """Check connectivity and log in to iRODS handling common errors.
 
         """
-        self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
-        cipher = self._get_cipher()
-        password = cipher.encrypt(bytes(self.passwordField.text(), 'utf-8'))
-        env_file = os.path.join(self.irods_env_path, self.envbox.currentText())
-        connect = False
-        with open(self.config_file_path) as confd:
-            conf = json.load(confd)
-        try:
-            with open(env_file) as envfd:
-                ienv = json.load(envfd)
-            connect = utils.utils.networkCheck(ienv['irods_host'])
+        env_path = self.irods_path.joinpath(self.envbox.currentText())
+        ienv = JsonConfig(env_path).config
+        if ienv is None:
+            self.passError.clear()
+            self.envError.setText('ERROR: iRODS environment file not found.')
+            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            return
+        if 'irods_host' in ienv:
+            connect = utils.utils.can_connect(ienv['irods_host'])
             if not connect:
                 logging.info('iRODS login: No network connection to server')
                 self.envError.setText('No network connection to server')
                 self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
                 return
-        except FileNotFoundError:
-            self.passError.clear()
-            # TODO test for missing certificate
-            self.envError.setText('ERROR: iRODS environment file or certificate not found.')
+        self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+        password = self.passwordField.text()
+        conn = self.connector(ienv=ienv, password=password)
+        # Add own filepath for easy saving.
+        conf = self.ibridges.config
+        conf['ui_ienvFilePath'] = str(env_path)
+        conf['last_ienv'] = env_path.name
+        # Save iBridges config to disk and combine with iRODS' config.
+        self.ibridges.config = conf
+        # TODO consider passing separate configurations
+        ienv.update(conf)
+        try:
+            # widget is a global variable
+            browser = gui.mainmenu(widget, conn, ienv)
+            if len(widget) == 1:
+                widget.addWidget(browser)
+            self._reset_mouse_and_error_labels()
+            # self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            widget.setCurrentIndex(widget.currentIndex()+1)
+        except (irods.exception.CAT_INVALID_AUTHENTICATION,
+                irods.exception.PAM_AUTH_PASSWORD_FAILED,
+                ConnectionRefusedError):
+            self.envError.clear()
+            self.passError.setText('ERROR: Wrong password.')
             self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-        except Exception as error:
-            message = f'ERROR IRODS LOGIN: {error}'
-            logging.info(message, exc_info=True)
+        except irods.exception.NetworkException:
             self.passError.clear()
-            # TODO discover what possible errors exist and avoid generic
-            # TODO connection error
-            self.envError.setText(f'iRODS login: {error}')
+            self.envError.setText('iRODS server ERROR: iRODS server down.')
             self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-            return
-
-        # TODO determine if this conditional is necessary
-        if connect:
-            try:
-                conn = self._get_irods_connector(env_file, password, cipher)
-                # Add own filepath for easy saving and update configurations
-                ienv['ui_ienvFilePath'] = env_file
-                conf['last_ienv'] = os.path.split(env_file)[-1]
-                ienv.update(conf)
-                with open(self.config_file_path, 'w') as confd:
-                    json.dump(conf, confd, indent=4, sort_keys=True)
-                # widget is a global variable
-                browser = gui.mainmenu(widget, conn, ienv)
-                if len(widget) == 1:
-                    widget.addWidget(browser)
-                self._reset_mouse_and_error_labels()
-                # self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-                widget.setCurrentIndex(widget.currentIndex()+1)
-            except (
-                    irods.exception.CAT_INVALID_AUTHENTICATION,
-                    irods.exception.PAM_AUTH_PASSWORD_FAILED,
-                    ConnectionRefusedError,
-                    ):
-                self.envError.clear()
-                self.passError.setText('ERROR: Wrong password.')
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-            except FileNotFoundError:
-                self.passError.clear()
-                # TODO test for missing certificate
-                self.envError.setText('ERROR: iRODS environment file or certificate not found.')
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-                raise
-            except IsADirectoryError:
-                self.passError.clear()
-                self.envError.setText('ERROR: File expected.')
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-            except irods.exception.NetworkException:
-                self.passError.clear()
-                self.envError.setText('iRODS server ERROR: iRODS server down.')
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-            except Exception as unknown:
-                message = f'Something went wrong: {unknown}'
-                logging.exception(message)
-                # logging.info(repr(error))
-                self.envError.setText(message)
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-                raise
+        except Exception as unknown:
+            message = f'Something went wrong: {unknown}'
+            logging.exception(message)
+            # logging.info(repr(error))
+            self.envError.setText(message)
+            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            raise unknown
 
     def ticket_login(self):
         """Log in to iRODS using a ticket.

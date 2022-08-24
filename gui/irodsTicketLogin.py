@@ -2,7 +2,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 from PyQt5 import QtCore
 from PyQt5.uic import loadUi
-from utils.irodsConnectorAnonymous import irodsConnectorAnonymous
+from utils.IrodsConnectorAnonymous import IrodsConnectorAnonymous
 from gui.checkableFsTree import checkableFsTreeModel
 from gui.popupWidgets import createDirectory
 from gui.dataTransfer import dataTransfer
@@ -47,7 +47,7 @@ class irodsTicketLogin():
         token = self.widget.ticketEdit.text().strip()
 
         try:
-            self.ic = irodsConnectorAnonymous(host, token, path)
+            self.ic = IrodsConnectorAnonymous(host, token, path)
             self.coll = self.ic.getData()
             self.loadTable()
             self.enableButtons(True)

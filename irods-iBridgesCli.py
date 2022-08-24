@@ -11,8 +11,8 @@ Implemented for:
 """
 
 from utils.elabConnector import elabConnector
-from utils.irodsConnector import irodsConnector
-from utils.irodsConnectorIcommands import irodsConnectorIcommands
+from utils.IrodsConnector import IrodsConnector
+from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
 from irods.exception import ResourceDoesNotExist
 
 import configparser
@@ -51,7 +51,7 @@ def connectIRODS(config):
     if os.path.exists(standardEnv) and \
             (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
         try:
-            ic = irodsConnectorIcommands()
+            ic = IrodsConnectorIcommands()
             print(BLUE+"INFO: Icommands and standard environment file are present.")
             print("INFO: Using icommands for data up and download."+DEFAULT)
         except ConnectionRefusedError:
@@ -64,7 +64,7 @@ def connectIRODS(config):
     elif os.path.exists(config['iRODS']['irodsenv']):
         passwd = getpass.getpass(
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-        ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
+        ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
         print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
 
     else:
@@ -83,7 +83,7 @@ def setupIRODS(config, operation):
 
     #set iRODS path
     try:
-        coll = ic.ensureColl(config['iRODS']['irodscoll'])
+        coll = ic.ensure_coll(config['iRODS']['irodscoll'])
         print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
     except:
         print(RED+"Collection path not set or invalid: "+ config['iRODS']['irodscoll']+DEFAULT)
@@ -93,7 +93,7 @@ def setupIRODS(config, operation):
         while not success:
             iPath = input('Choose iRODS collection: ')
             try:
-                coll = ic.ensureColl(iPath)
+                coll = ic.ensure_coll(iPath)
                 config['iRODS']['irodscoll'] = iPath
                 print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
                 success = True
@@ -103,15 +103,15 @@ def setupIRODS(config, operation):
     # set iRODS resource
     try:
         resc_name = config['iRODS']['irodsresc']
-        free_space = '{free}GiB'.format(free=round(ic.resourceSpace(resc_name) / 2**30))
+        free_space = '{free}GiB'.format(free=round(ic.resource_space(resc_name) / 2**30))
         print('{rname} upload capacity, free space: {free}'.format(rname=resc_name, free=free_space))
     except ResourceDoesNotExist:
         resc_name = config['iRODS']['irodsresc']
         print('{red}iRODS resource does not exist: {rname}{dflt}'.format(red=RED, rname=resc_name, dflt=DEFAULT))
-        resources = ic.listResources()
-        sizes = list(map(ic.resourceSpace, resources))
+        resources = ic.list_resources()
+        sizes = list(map(ic.resource_space, resources))
         largest_resc = resources[sizes.index(max(sizes))]
-        free_space = '{free}GiB'.format(free=round(ic.resourceSpace(largest_resc) / 2**30))
+        free_space = '{free}GiB'.format(free=round(ic.resource_space(largest_resc) / 2**30))
         menu = 'y'
         menu = input('Choose {rname} ({free} free)? (Yes/No) '.format(rname=largest_resc, free=free_space))
         if menu in ['Yes', 'yes', 'Y', 'y']:
@@ -164,7 +164,7 @@ def prepareUpload(dataPath, ic, config):
         pass 
 
     size = getSize([dataPath])
-    freeSpace = ic.getResource(config['iRODS']['irodsresc']).free_space
+    freeSpace = ic.get_resource(config['iRODS']['irodsresc']).free_space
 
     print('Checking storage capacity for '+dataPath+', '+str(float(size)/(1024**3))+'GB')
 
@@ -288,10 +288,10 @@ def main(argv):
                 iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
             else:
                 iPath = config['iRODS']['irodscoll']
-            ic.ensureColl(iPath)
+            ic.ensure_coll(iPath)
             print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
-            ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]))
+            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]))
         else:
             sys.exit(2)
         #tag data in iRODS and metadata store
@@ -321,7 +321,7 @@ def main(argv):
                 item = ic.session.collections.get(irodsDataPath)
             except:
                 item = ic.session.data_objects.get(irodsDataPath)
-            ic.downloadData(item, downloadDir, ic.getSize([irodsDataPath]), force = False)
+            ic.download_data(item, downloadDir, ic.getSize([irodsDataPath]), force = False)
             print()
             print(BLUE+'Download complete with the following parameters:')
             print(json.dumps(config, indent=4))

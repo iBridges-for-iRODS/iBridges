@@ -13,9 +13,9 @@ class irodsCreateTicket():
         self.irodsmodel.setHorizontalHeaderLabels([self.irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
-        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refreshSubTree)
-        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refreshSubTree)
-        self.irodsmodel.initTree()
+        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refresh_subtree)
+        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refresh_subtree)
+        self.irodsmodel.init_tree()
 
         self.widget.irodsFsTreeView.setHeaderHidden(True)
         self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
@@ -40,7 +40,7 @@ class irodsCreateTicket():
             self.widget.createTicketButton.setEnabled(True)
             return
 
-        acls = [(acl.user_name, acl.access_name) for acl in self.ic.getPermissions(path)]
+        acls = [(acl.user_name, acl.access_name) for acl in self.ic.get_permissions(path)]
         if (self.ic.session.username, "own") in acls:
             date = self.widget.calendar.selectedDate()
             #format of time string for irods: 2012-05-07.23:00:00
@@ -49,7 +49,7 @@ class irodsCreateTicket():
             self.widget.ticketInfoBrowser.append("iRODS server: \t"+self.ic.session.host)
             self.widget.ticketInfoBrowser.append("iRODS path:\t"+path)
             self.widget.ticketInfoBrowser.append("iRODS Ticket:\t"+ticket)
-            if self.ic.__name__ == "irodsConnector":
+            if self.ic.__name__ == "IrodsConnector":
                 self.widget.ticketInfoBrowser.append("Expiry date:\tNot set (linux only)")
             else:
                 self.widget.ticketInfoBrowser.append("Expiry date:\t"+expiryDate)

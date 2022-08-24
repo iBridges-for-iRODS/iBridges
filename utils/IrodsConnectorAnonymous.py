@@ -1,4 +1,4 @@
-"""irodsConnector for anonymous users
+"""IrodsConnector for anonymous users
 """
 from irods.session import iRODSSession
 from irods.ticket import Ticket
@@ -7,7 +7,7 @@ import irods.keywords as kw
 import irods
 import uuid
 
-from utils.irodsConnector import irodsConnector
+from utils.IrodsConnector import IrodsConnector
 from utils.utils import ensure_dir
 
 import os
@@ -24,7 +24,7 @@ DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
-class irodsConnectorAnonymous(irodsConnector):
+class IrodsConnectorAnonymous(IrodsConnector):
     def __init__(self, host, ticket, path):
         """
         iRODS anonymous login.
@@ -34,7 +34,7 @@ class irodsConnectorAnonymous(irodsConnector):
             path: iRODS path the ticket grants access to
 
         """
-        self.__name__="irodsConnectorAnonymous"
+        self.__name__="IrodsConnectorAnonymous"
         if path.endswith('/'):
             path = path[:-1]
         if not path.startswith("/"):
@@ -77,7 +77,6 @@ class irodsConnectorAnonymous(irodsConnector):
     def closeSession(self):
         self.__movePrevSessionConfigs(True)
 
-
     def __movePrevSessionConfigs(self, restore):
         if restore:
             if self.tempEnv:
@@ -97,7 +96,6 @@ class irodsConnectorAnonymous(irodsConnector):
                 os.rename(irodsAPath, irodsAPath+uid)
                 self.tempIrodsA = irodsAPath+uid
 
-
     def getData(self):
         ticket = Ticket(self.session, self.token)
         ticket.supply()
@@ -107,34 +105,12 @@ class irodsConnectorAnonymous(irodsConnector):
         except:
             raise
 
-    def getUserInfo(self):
-        pass
-
-    def getPermissions(self, iPath):
-        pass
-
-    def setPermissions(self, rights, user, path, zone, recursive = False):
-        pass
-
-    def ensureColl(self, collPath):
-        pass
-
-    def search(self, keyVals = None):
-        pass
-
-    def listResources(self):
-        pass
-
-    def getResource(self, resource):
+    def get_resource(self, resource):
         '''
         Raises:
             irods.exception.ResourceDoesNotExist
         '''
         return self.session.resources.get(resource)
-
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
-                         force = False, diffs = []):
-        pass
 
     def downloadIcommands(self, source, destination):
         if type(source) == irods.data_object.iRODSDataObject:
@@ -151,7 +127,6 @@ class irodsConnectorAnonymous(irodsConnector):
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
         logging.info('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
-
 
     def download(self, source, destination, diffs):
         (diff, onlyFS, onlyIrods, same) = diffs
@@ -193,8 +168,7 @@ class irodsConnectorAnonymous(irodsConnector):
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise
 
-
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs=[]):
+    def download_data(self, source, destination, size, buff = 1024**3, force = False, diffs=[]):
         '''
         Download object or collection.
         source: iRODS collection or data object
@@ -220,7 +194,6 @@ class irodsConnectorAnonymous(irodsConnector):
             logging.info('DOWNLOAD ERROR: No rights to write to destination.', 
                 exc_info=True)
             raise PermissionError("ERROR iRODS download: No rights to write to destination.")
-        
 
         if diffs == []:#Only download if not present or difference in files
             if self.session.collections.exists(source.path):
@@ -411,27 +384,6 @@ class irodsConnectorAnonymous(irodsConnector):
             irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
         return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
 
-
-    def addMetadata(self, items, key, value, units = None):
-        pass
-            
-    def updateMetadata(self, items, key, value, units = None):
-        pass
-
-    def deleteMetadata(self, items, key, value, units):
-        pass
-
-    def deleteData(self, item):
-        pass
-
-    def executeRule(self, ruleFile, params, output='ruleExecOut'):
-        pass
-
-
-    def createTicket(self, path, expiryString=""):
-        pass
-
-
     def getSize(self, itemPaths):
         '''
         Compute the size of the iRods dataobject or collection
@@ -443,7 +395,6 @@ class irodsConnectorAnonymous(irodsConnector):
         for path in itemPaths:
             #remove possible leftovers of windows fs separators
             path = path.replace("\\", "/")
-            
             if self.session.collections.exists(path):
                 coll = self.session.collections.get(path)
                 walk = [coll]
