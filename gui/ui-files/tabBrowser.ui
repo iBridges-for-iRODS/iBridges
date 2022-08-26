@@ -580,7 +580,7 @@ color: rgb(46, 52, 54);
          </property>
          <column>
           <property name="text">
-           <string>Resource name</string>
+           <string>Resource hierarchy</string>
           </property>
          </column>
          <column>
