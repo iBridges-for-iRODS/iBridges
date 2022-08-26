@@ -1,10 +1,7 @@
 """Provide the GUI with iRODS information
 """
-import irods
 import PyQt5
 import PyQt5.QtWidgets
-
-import utils
 
 
 class irodsInfo():
@@ -31,7 +28,7 @@ class irodsInfo():
         user_type, user_groups = self.ic.get_user_info()
         self.widget.typeLabel.setText(user_type)
         self.widget.groupsLabel.setText('\n'.join(user_groups))
-        # defaul resource
+        # default resource
         self.widget.rescLabel.setText(self.ic.default_resc)
         # irods server and version
         self.widget.serverLabel.setText(self.ic.session.host)
@@ -41,14 +38,9 @@ class irodsInfo():
         resc_names = self.ic.list_resources()
         resources = []
         for resc_name in resc_names:
-            try:
-                free_space = self.ic.resource_space(resc_name)
-                # Round to nearest GiB
-                resources.append((resc_name, str(round(free_space / 2**30))))
-            except utils.IrodsConnector.FreeSpaceNotSet:
-                resources.append((resc_name, "no information"))
-            except irods.exception.ResourceDoesNotExist:
-                resources.append((resc_name, "invalid resource"))
+            free_space = self.ic.resources[resc_name]['free_space']
+            # Round to nearest GiB
+            resources.append((resc_name, str(round(free_space / 2**30))))
         self.widget.rescTable.setRowCount(len(resources))
         row = 0
         for resc_name, free_space in resources:
