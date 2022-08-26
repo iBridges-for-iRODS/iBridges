@@ -32,6 +32,8 @@ META_DATA_ATTR_NAME = irods.models.DataObjectMeta.name
 META_DATA_ATTR_VALUE = irods.models.DataObjectMeta.value
 RESC_NAME = irods.models.Resource.name
 RESC_PARENT = irods.models.Resource.parent
+RESC_STATUS = irods.models.Resource.status
+RESC_CONTEXT = irods.models.Resource.context
 USER_GROUP_NAME = irods.models.UserGroup.name
 USER_NAME = irods.models.User.name
 USER_TYPE = irods.models.User.type
@@ -86,9 +88,9 @@ class IrodsConnector():
 
         """
         self.__name__ = 'IrodsConnector'
-        self._collections = None
         self._ienv = None
         self._password = None
+        self._resources = None
         self._session = None
         if ienv is not None:
             self.ienv = ienv
@@ -192,6 +194,42 @@ class IrodsConnector():
 
     password = property(
         _get_password, _set_password, _del_password, 'iRODS password')
+
+    def _get_resources(self):
+        """iRODS resources metadata getter method.
+
+        Returns
+        -------
+        dict
+            Name, parent, status, context, and free_space of all
+            resources.
+
+        NOTE: free_space of a resource is the free_space annotated, if
+              so annotated, otherwise it is the sum of the free_space of
+              all its children.
+
+        """
+        if self._resources is None:
+            query = self.session.query(
+                RESC_NAME, RESC_PARENT, RESC_STATUS, RESC_CONTEXT)
+            resc_dict = {}
+            for item in query.get_results():
+                name, parent, status, context = item.values()
+                free_space = 0
+                if parent is None:
+                    free_space = self.get_free_space(name)
+                metadata = {
+                    'parent': parent,
+                    'status': status,
+                    'context': context,
+                    'free_space': free_space,
+                }
+                resc_dict.setdefault(name, {}).update(metadata)
+            self._resources = resc_dict
+        return self._resources
+
+    resources = property(
+        _get_resources, None, None, 'iRODS resource metadata')
 
     def _get_session(self):
         """iRODS session getter method.
@@ -445,20 +483,30 @@ class IrodsConnector():
         return results
 
     def list_resources(self):
-        """Discover all root resources available in the current system.
+        """Discover all writable root resources available in the current
+        system that have free_space annotated.
 
         Returns
         -------
         list
-            Discovered resource names.
+            Discovered names of writable root resources.
 
         """
-        query = self.session.query(RESC_NAME, RESC_PARENT)
         resc_names = []
-        for item in query.get_results():
-            resc_name, parent = item.values()
-            if parent is None:
-                resc_names.append(resc_name)
+        for name, metadata in self.resources.items():
+            context = metadata['context']
+            if context is not None:
+                for kvp in context.split(';'):
+                    if 'write' in kvp:
+                        _, val = kvp.split('=')
+                        if float(val) == 0.0:
+                            continue
+            status = metadata['status']
+            if status is not None:
+                if 'down' in status:
+                    continue
+            if metadata['parent'] is None and metadata['free_space'] > 0:
+                resc_names.append(name)
         # XXX are these necessary to remove
         if 'bundleResc' in resc_names:
             resc_names.remove('bundleResc')
@@ -506,7 +554,7 @@ class IrodsConnector():
                 FreeSpaceNotSet if 'free_space' not set
 
         """
-        space = get_free_space(resc_name, self.session)
+        space = self.resources[resc_name]['free_space']
         if space == -1:
             logging.info(
                 'RESOURCE ERROR: Resource %s does not exist (typo?).',
@@ -520,6 +568,42 @@ class IrodsConnector():
             raise FreeSpaceNotSet(
                 'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
         return space
+
+    def get_free_space(self, resc_name):
+        """Determine free space in a resource hierarchy.
+
+        If the specified resource name has the free space annotated,
+        then report that.  If not, search for any resources in the tree
+        that have the free space annotated and report the sum all those
+        values.
+
+        Parameters
+        ----------
+        resc_name : str
+            Name of monolithic resource or the top of a resource tree.
+
+        Returns
+        -------
+        int
+            Number of bytes free in the resource hierarchy.
+
+        The return can have one of two possible values if not the actual
+        free space:
+
+            -1 if the resource does not exists (typo or otherwise)
+             0 if the no free space has been annotated in the specified
+               resource tree
+
+        """
+        try:
+            resc = self.session.resources.get(resc_name)
+        except irods.exception.ResourceDoesNotExist:
+            print(f'Resource with name {resc_name} not found')
+            return -1
+        if resc.free_space is not None:
+            return int(resc.free_space)
+        children = get_resource_children(resc)
+        return sum([int(child.free_space) for child in children if child.free_space is not None])
 
     def dataobject_exists(self, path):
         """Check if an iRODS data object exists.
@@ -1194,44 +1278,6 @@ def get_resource_children(resc):
     for child in resc.children:
         children.extend(get_resource_children(child))
     return resc.children + children
-
-
-def get_free_space(resc_name, session):
-    """Determine free space in a resource hierarchy.
-
-    If the specified resource name has the free space annotated, then
-    report that.  If not, search for any resources in the tree that have
-    the free space annotated and report the sum all those values.
-
-    Parameters
-    ----------
-    resc_name : str
-        Name of monolithic resource or the top of a resource tree.
-    session : iRODSSession
-        Open session for the current system/user.
-
-    Returns
-    -------
-    int
-        Number of bytes free in the resource hierarchy.
-
-    The return can have one of two possible values if not the actual
-    free space:
-
-        -1 if the resource does not exists (typo or otherwise)
-         0 if the no free space has been annotated in the specified
-           resource tree
-
-    """
-    try:
-        resc = session.resources.get(resc_name)
-    except irods.exception.ResourceDoesNotExist:
-        print(f'Resource with name {resc_name} not found')
-        return -1
-    if resc.free_space is not None:
-        return int(resc.free_space)
-    children = get_resource_children(resc)
-    return sum([int(child.free_space) for child in children if child.free_space is not None])
 
 
 def irods_dirname(path):
