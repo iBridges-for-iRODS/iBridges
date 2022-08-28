@@ -1,13 +1,15 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
-from PyQt5 import QtCore
-from PyQt5.uic import loadUi
+from PyQt6 import QtWidgets
+# from PyQt6.QtWidgets import QMainWindow, QHeaderView, QMessageBox
+from PyQt6.QtWidgets import QHeaderView
+from PyQt6 import QtCore
+# from PyQt6.uic import loadUi
 from utils.irodsConnectorAnonymous import irodsConnectorAnonymous
 from gui.checkableFsTree import checkableFsTreeModel
 from gui.popupWidgets import createDirectory
 from gui.dataTransfer import dataTransfer
 
 import os
+
 
 class irodsTicketLogin():
     def __init__(self, widget):
@@ -22,9 +24,9 @@ class irodsTicketLogin():
         self.widget.localFsTreeView.setColumnHidden(1, True)
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
-        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.HomeLocation)[0]
+                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.widget.localFsTreeView.setCurrentIndex(index)
         self.dirmodel.initial_expand()
@@ -38,7 +40,6 @@ class irodsTicketLogin():
         self.widget.collTable.clicked.connect(self.fillInfo)
         self.enableButtons(False)
         self.widget.connectButton.setEnabled(True)
-
 
     def irodsSession(self):
         self.widget.infoLabel.clear()
@@ -54,7 +55,6 @@ class irodsTicketLogin():
         except Exception as e:
             self.widget.infoLabel.setText("LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
 
-
     def enableButtons(self, enable):
         self.widget.connectButton.setEnabled(enable)
         self.widget.homeButton.setEnabled(enable)
@@ -62,14 +62,13 @@ class irodsTicketLogin():
         self.widget.downloadButton.setEnabled(enable)
         self.widget.downloadAllButton.setEnabled(enable)
         self.widget.localFsTreeView.setEnabled(enable)
-
     
-    def loadTable(self, update = None):
+    def loadTable(self, update=None):
         self.widget.infoLabel.clear()
-        if self.coll == None:
-            self.widget.infoLabel.setText("No data avalaible. Check ticket and iRODS path.")
+        if self.coll is None:
+            self.widget.infoLabel.setText("No data available. Check ticket and iRODS path.")
             return
-        if update == None or update == False:
+        if update is None or update is False:
             update = self.coll
 
         self.widget.collTable.setRowCount(0)
@@ -94,10 +93,9 @@ class irodsTicketLogin():
             row = row+1
         self.widget.collTable.resizeColumnsToContents()
 
-
     def browse(self, index):
         self.widget.infoLabel.clear()
-        col = index.column()
+        # col = index.column()
         row = index.row()
         if self.widget.collTable.item(row, 0).text() != '':
             path = self.widget.collTable.item(row, 0).text()
@@ -106,8 +104,7 @@ class irodsTicketLogin():
                 item = item[:-1]
             if self.ic.session.collections.exists(path+'/'+item):
                 coll = self.ic.session.collections.get(path+'/'+item)
-                self.loadTable(update = coll)
-
+                self.loadTable(update=coll)
 
     def fillInfo(self, index):
         self.widget.previewBrowser.clear()
@@ -122,18 +119,17 @@ class irodsTicketLogin():
             self.widget.infoLabel.setText(repr(e))
             raise
 
-
     def __fillPreview(self, value, path):
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
-        if self.ic.session.collections.exists(newPath): # collection
+        if self.ic.session.collections.exists(newPath):  # collection
             coll = self.ic.session.collections.get(newPath)
             content = ['Collections:', '-----------------'] +\
                       [c.name+'/' for c in coll.subcollections] + \
-                      ['\n', 'Data:', '-----------------']+\
+                      ['\n', 'Data:', '-----------------'] + \
                       [o.name for o in coll.data_objects]
             previewString = '\n'.join(content)
             self.widget.previewBrowser.append(previewString)
-        else: # object
+        else:  # object
             subcoll = self.ic.session.collections.get(path)
             obj = [o for o in subcoll.data_objects if o.name == value][0]
             # get mimetype
@@ -153,10 +149,8 @@ class irodsTicketLogin():
             else:
                 self.widget.previewBrowser.append("No preview for "+obj.path)
 
-
     def __fillMetadata(self, value, path):
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
-        metadata = []
         if value.endswith("/") and self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(
                         "/"+path.strip("/")+"/"+value.strip("/")
@@ -178,24 +172,21 @@ class irodsTicketLogin():
             row = row+1
         self.widget.metadataTable.resizeColumnsToContents()
 
-
     def createFolder(self):
         self.widget.infoLabel.clear()
         parent = self.dirmodel.get_checked()
-        if parent == None:
+        if parent is None:
             self.widget.infoLabel.setText("No parent folder selected.")
         else:
             createDirWidget = createDirectory(parent)
-            createDirWidget.exec_()
-            #self.dirmodel.initial_expand(previous_item = parent)
-
+            createDirWidget.exec()
+            # self.dirmodel.initial_expand(previous_item = parent)
 
     def downloadAll(self):
-        self.download(allData = True)
+        self.download(allData=True)
 
-
-    def download(self, allData = False):
-        #irods data
+    def download(self, allData=False):
+        # irods data
         self.enableButtons(False)
         self.widget.infoLabel.clear()
         if allData:
@@ -215,28 +206,25 @@ class irodsTicketLogin():
             self.enableButtons(True)
             return
 
-        #fielsystem data
+        # filesystem data
         destination = self.dirmodel.get_checked()
-        if destination == None or os.path.isfile(destination):
+        if destination is None or os.path.isfile(destination):
             self.widget.infoLabel.setText("No download folder selected.")
             self.enableButtons(True)
             return
         
         if self.ic.session.collections.exists(collPath+'/'+dataName):
             item = self.ic.session.collections.get(collPath+'/'+dataName)
-        else: #data object with workaround for bug
+        else:  # data object with workaround for bug
             parent = self.ic.session.collections.get(collPath)
             item = [obj for obj in parent.data_objects if obj.name == dataName][0]
         self.downloadWindow = dataTransfer(self.ic, False, destination, item)
         self.downloadWindow.finished.connect(self.finishedTransfer)
 
-
-    def finishedTransfer(self, succes, irodsIdx):
-        #Refreshes iRODS sub tree ad irodsIdx (set "None" if to skip)
-        #Saves upload parameters if check box is set
-        if succes == True:
-            self.widget.infoLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
-        self.uploadWindow = None # Release
+    def finishedTransfer(self, success, irodsIdx):
+        # Refreshes iRODS subtree and irodsIdx (set "None" if to skip)
+        # Saves upload parameters if check box is set
+        if success is True:
+            self.widget.infoLabel.setText("INFO UPLOAD/DOWNLOAD: completed.")
+        self.uploadWindow = None  # Release
         self.enableButtons(True)
-
-

@@ -1,14 +1,15 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QTableWidgetItem
-from PyQt5.uic import loadUi
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QDialog
+from PyQt6.uic import loadUi
+from PyQt6 import QtCore
+from PyQt6 import QtGui
 
-import sys
+# import sys
 import os
 import json
 import datetime
 import logging
+
 
 class irodsCreateCollection(QDialog):
     def __init__(self, parent, ic):
@@ -17,12 +18,12 @@ class irodsCreateCollection(QDialog):
         self.setWindowTitle("Create iRODS collection")
         self.ic = ic
         self.parent = parent
-        self.label.setText(self.parent+"/")
+        self.label.setText(self.parent + "/")
         self.buttonBox.accepted.connect(self.accept)
 
     def accept(self):
         if self.collPathLine.text() != "":
-            newCollPath = self.parent+"/"+self.collPathLine.text()
+            newCollPath = self.parent + "/" + self.collPathLine.text()
             try:
                 self.ic.ensureColl(newCollPath)
                 self.done(1)
@@ -39,12 +40,12 @@ class createDirectory(QDialog):
         loadUi("gui/ui-files/createCollection.ui", self)
         self.setWindowTitle("Create directory")
         self.parent = parent
-        self.label.setText(self.parent+os.sep)
+        self.label.setText(self.parent + os.sep)
         self.buttonBox.accepted.connect(self.accept)
 
     def accept(self):
         if self.collPathLine.text() != "":
-            newDirPath = self.parent+os.sep+self.collPathLine.text()
+            newDirPath = self.parent + os.sep + self.collPathLine.text()
             try:
                 os.makedirs(newDirPath)
                 self.done(1)
@@ -79,12 +80,12 @@ class irodsIndexPopup(QDialog):
 
     def formatJSON(self, irodsTarIndexFileList):
         index = json.loads('\n'.join(irodsTarIndexFileList))
-        self.collLabel.setText("Data objects of: "+ index['collection'])
+        self.collLabel.setText("Data objects of: " + index['collection'])
         objs = [obj for obj in index['items'] if obj['type'] == 'dataObj']
         table = [[obj['name'], obj['owner'], obj['size'], 
                     datetime.datetime.fromtimestamp(obj['created'])] for obj in objs]
 
-        #self.dataObjectTable.clear()
+        # self.dataObjectTable.clear()
         self.dataObjectTable.setRowCount(0)
         self.dataObjectTable.setRowCount(len(table))
         row = 0
@@ -97,30 +98,27 @@ class irodsIndexPopup(QDialog):
 
         self.dataObjectTable.resizeColumnsToContents()
 
-
     def enableButtons(self, enable):
         self.extractButton.setEnabled(enable)
         self.closeButton.setEnabled(enable)
-
 
     def extractSelection(self):
         self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.enableButtons(False)
 
-        ruleFile = os.path.join(os.getcwd(),'rules/tarExtractOne.r')
+        ruleFile = os.path.join(os.getcwd(), 'rules/tarExtractOne.r')
 
         selection = self.dataObjectTable.selectedIndexes()
         selectedRows = set([index.row() for index in selection])
         
-        logString = ""
-        extractParent = os.path.dirname(self.tarFilePath)+'/'+ \
+        extractParent = os.path.dirname(self.tarFilePath)+'/' + \
                         os.path.basename(self.tarFilePath).split('.irods')[0]
-        logString = "Archive File: "+self.tarFilePath+"\n"
+        logString = "Archive File: " + self.tarFilePath+"\n"
         for row in selectedRows:
             extractPath = self.dataObjectTable.item(row, 0).text()
             destination = extractParent+'/'+extractPath
             if self.ic.session.data_objects.exists(destination):
-                 logString = logString+"\t Data alreay exists: "+destination+"; skipping\n"
+                logString = logString+"\t Data already exists: "+destination+"; skipping\n"
             else:
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
@@ -133,11 +131,9 @@ class irodsIndexPopup(QDialog):
                 logging.info("iRODS user: "+self.ic.session.username)
                 logging.info("Rule file: "+ruleFile)
                 logging.info("params: "+str(params))
-                logString = logString+"\tScheduled for Extraction: Check in browser tab: "+\
+                logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \
                                       extractParent+"\n"
 
         self.enableButtons(True)
         self.errorLabel.setText(logString)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-
-
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))

@@ -1,7 +1,8 @@
 from utils.elabConnector import elabConnector
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtGui import QFileSystemModel
 from gui.checkableFsTree import checkableFsTreeModel
 
 import os
@@ -195,8 +196,8 @@ class elabUpload():
             buttonReply = QMessageBox.question(
                             self.elnUploadButton,
                             'Message Box', "Upload\n" + path + '\n'+str(size)+'MB',
-                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            upload = buttonReply == QMessageBox.Yes
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            upload = buttonReply == QMessageBox.StandardButton.Yes
             if upload:
                 self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
                 self.elnUploadButton.setEnabled(False)

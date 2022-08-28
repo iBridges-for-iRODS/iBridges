@@ -1,8 +1,8 @@
 from typing import ClassVar
-from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
-from PyQt5.QtGui import QMovie
+from PyQt6.uic import loadUi
+from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
+from PyQt6.QtGui import QMovie
 import logging
 from datetime import datetime
 
@@ -219,11 +219,11 @@ class getDataState(QObject):
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
-            updateSize =  self.ic.getSize(irodsDiffFiles)
+            updateSize = self.ic.getSize(irodsDiffFiles)
             onlyIrodsFullPath = onlyIrods.copy()
             for i in range(len(onlyIrodsFullPath)):
                 if not onlyIrods[i].startswith(self.coll.path):
-                     onlyIrodsFullPath[i] = self.coll.path+'/'+ onlyIrods[i]
+                     onlyIrodsFullPath[i] = self.coll.path+'/' + onlyIrods[i]
             addSize = self.ic.getSize(onlyIrodsFullPath)
             self.finished.emit(onlyIrods, diff, str(addSize), str(updateSize))
 

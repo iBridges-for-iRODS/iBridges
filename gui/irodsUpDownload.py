@@ -1,23 +1,21 @@
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
-from PyQt5 import QtCore
+from PyQt6.QtWidgets import QHeaderView, QMessageBox
+from PyQt6 import QtCore
 import os
 
 from gui.checkableFsTree import checkableFsTreeModel
-from gui.irodsTreeView  import IrodsModel
-from utils.utils import getSize, saveIenv
-from gui.continousUpload import contUpload
+from gui.irodsTreeView import IrodsModel
+from utils.utils import saveIenv
 
 from gui.popupWidgets import irodsCreateCollection, createDirectory
 from gui.dataTransfer import dataTransfer
 
-class irodsUpDownload():
+
+class irodsUpDownload:
     def __init__(self, widget, ic, ienv):
         self.ic = ic
         self.widget = widget
         self.ienv = ienv
-        self.syncing = False # syncing or not
-
-        rescs = self.ic.listResources()
+        self.syncing = False  # syncing or not
 
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)
@@ -26,14 +24,14 @@ class irodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(1, True)
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
-        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.HomeLocation)[0]
+                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.widget.localFsTreeView.setCurrentIndex(index)
         self.dirmodel.initial_expand()
         
-        # iRODS  zone info
+        # iRODS zone info
         self.widget.irodsZoneLabel.setText("/"+self.ic.session.zone+":")
         # iRODS tree
         self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
@@ -57,8 +55,8 @@ class irodsUpDownload():
         # Buttons
         self.widget.UploadButton.clicked.connect(self.upload)
         self.widget.DownloadButton.clicked.connect(self.download)
-        #self.widget.ContUplBut.clicked.connect(self.cont_upload)
-        self.widget.ContUplBut.setHidden(True) #fFor first release hide special buttons
+        # self.widget.ContUplBut.clicked.connect(self.cont_upload)
+        self.widget.ContUplBut.setHidden(True)  # For first release hide special buttons
         self.widget.uplSetGB_2.setHidden(True)
         self.widget.createFolderButton.clicked.connect(self.createFolder)
         self.widget.createCollButton.clicked.connect(self.createCollection)
@@ -73,27 +71,26 @@ class irodsUpDownload():
             index = self.widget.resourceBox.findText(ienv["default_resource_name"])
             self.widget.resourceBox.setCurrentIndex(index)
 
-        # Continious upload settings
+        # Continuous upload settings
         if ienv["irods_host"] in ["scomp1461.wur.nl", "npec-icat.irods.surfsara.nl"]:
-            #self.widget.uplSetGB_2.setVisible(True)
-            if ("ui_remLocalcopy" in ienv):
+            # self.widget.uplSetGB_2.setVisible(True)
+            if "ui_remLocalcopy" in ienv:
                 self.widget.rLocalcopyCB.setChecked(ienv["ui_remLocalcopy"])
-            if ("ui_uplMode" in ienv):
-                uplMode =  ienv["ui_uplMode"]
+            if "ui_uplMode" in ienv:
+                uplMode = ienv["ui_uplMode"]
                 if uplMode == "f500":
                     self.widget.uplF500RB.setChecked(True)
                 elif uplMode == "meta":
                     self.widget.uplMetaRB.setChecked(True)
                 else:
                     self.widget.uplAllRB.setChecked(True)
-            #self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
-            #self.widget.uplF500RB.toggled.connect(self.saveUIset)
-            #self.widget.uplMetaRB.toggled.connect(self.saveUIset)
-            #self.widget.uplAllRB.toggled.connect(self.saveUIset)
+            # self.widget.rLocalcopyCB.stateChanged.connect(self.saveUIset)
+            # self.widget.uplF500RB.toggled.connect(self.saveUIset)
+            # self.widget.uplMetaRB.toggled.connect(self.saveUIset)
+            # self.widget.uplAllRB.toggled.connect(self.saveUIset)
         else:
             self.widget.uplSetGB_2.hide()
             self.widget.ContUplBut.hide()
-
 
     def enableButtons(self, enable):
         self.widget.UploadButton.setEnabled(enable)
@@ -105,16 +102,13 @@ class irodsUpDownload():
         self.widget.localFsTreeView.setEnabled(enable)
         self.widget.localFsTreeView.setEnabled(enable)
 
-
     def infoPopup(self, message):
         QMessageBox.information(self.widget, 'Information', message)
-
 
     def saveUIset(self):
         self.ienv["ui_remLocalcopy"] = self.getRemLocalCopy()
         self.ienv["ui_uplMode"] = self.getUplMode()
         saveIenv(self.ienv)
-
 
     def getResource(self):
         return self.widget.resourceBox.currentText()
@@ -127,37 +121,34 @@ class irodsUpDownload():
             uplMode = "f500"
         elif self.widget.uplMetaRB.isChecked():
             uplMode = "meta"
-        else: # Default
+        else:  # Default
             uplMode = "all"
         return uplMode
 
-
     def createFolder(self):
         parent = self.dirmodel.get_checked()
-        if parent == None:
+        if parent is None:
             self.widget.errorLabel.setText("No parent folder selected.")
         else:
             createDirWidget = createDirectory(parent)
-            createDirWidget.exec_()
-            #self.dirmodel.initial_expand(previous_item = parent)
-
+            createDirWidget.exec()
+            # self.dirmodel.initial_expand(previous_item = parent)
 
     def createCollection(self):
         idx, parent = self.irodsmodel.get_checked()
-        if parent == None:
+        if parent is None:
             self.widget.errorLabel.setText("No parent collection selected.")
         else:
             creteCollWidget = irodsCreateCollection(parent, self.ic)
-            creteCollWidget.exec_()
+            creteCollWidget.exec()
             self.irodsmodel.refreshSubTree(idx)
-
 
     # Upload a file/folder to IRODS and refresh the TreeView
     def upload(self):
         self.enableButtons(False)
         self.widget.errorLabel.clear()
         (fsSource, irodsDestIdx, irodsDestPath) = self.getPathsFromTrees()
-        if fsSource == None or irodsDestPath == None: 
+        if fsSource is None or irodsDestPath is None:
             self.widget.errorLabel.setText(
                     "ERROR Up/Download: Please select source and destination.")
             self.enableButtons(True)
@@ -168,31 +159,29 @@ class irodsUpDownload():
             self.enableButtons(True)
             return
         destColl = self.ic.session.collections.get(irodsDestPath)
-        #if os.path.isdir(fsSource):
+        # if os.path.isdir(fsSource):
         self.uploadWindow = dataTransfer(self.ic, True, fsSource, destColl, 
-                                                irodsDestIdx, self.getResource())
+                                         irodsDestIdx, self.getResource())
         self.uploadWindow.finished.connect(self.finishedUpDownload)
 
-
-    def finishedUpDownload(self, succes, irodsIdx):
-        #Refreshes iRODS sub tree ad irodsIdx (set "None" if to skip)
-        #Saves upload parameters if check box is set
-        if succes == True:
-            if irodsIdx != None:
+    def finishedUpDownload(self, success, irodsIdx):
+        # Refreshes iRODS subtree ad irodsIdx (set "None" if to skip)
+        # Saves upload parameters if check box is set
+        if success is True:
+            if irodsIdx is not None:
                 self.irodsmodel.refreshSubTree(irodsIdx)
             if self.widget.saveSettings.isChecked():
                 print("FINISH UPLOAD/DOWNLOAD: saving ui parameters.")
                 self.saveUIset()
-            self.widget.errorLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
-        self.uploadWindow = None # Release
+            self.widget.errorLabel.setText("INFO UPLOAD/DOWNLOAD: completed.")
+        self.uploadWindow = None  # Release
         self.enableButtons(True)
-
 
     def download(self):
         self.enableButtons(False)
         self.widget.errorLabel.clear()
         (fsDest, irodsSourceIdx, irodsSourcePath) = self.getPathsFromTrees()
-        if fsDest == None or irodsSourcePath == None:
+        if fsDest is None or irodsSourcePath is None:
             self.widget.errorLabel.setText(
                     "ERROR Up/Download: Please select source and destination.")
             self.enableButtons(True)
@@ -210,13 +199,12 @@ class irodsUpDownload():
         self.uploadWindow = dataTransfer(self.ic, False, fsDest, irodsItem)
         self.uploadWindow.finished.connect(self.finishedUpDownload)
 
-
     # Helpers to check file paths before upload
     def getPathsFromTrees(self):
         source = self.dirmodel.get_checked()
-        if source == None:
+        if source is None:
             return (None, None, None)     
         destIdx, destPath = self.irodsmodel.get_checked()
-        if destIdx == None or os.path.isfile(destPath):
+        if destIdx is None or os.path.isfile(destPath):
             return (None, None, None)     
         return (source, destIdx, destPath)

@@ -12,7 +12,7 @@ def ensure_dir(path):
             os.makedirs(path)
         return True
     except:
-        return False 
+        return False
 
 
 def getSize(pathList):
@@ -37,17 +37,15 @@ def networkCheck(hostname):
     except socket.error as e:
         return False
 
-    s.close()
-
 
 def walkToDict(root):
-    #irods collection
+    # irods collection
     items = []
     for collection, subcolls, _ in root.walk():
         items.append(collection.path)
         items.extend([s.path for s in subcolls])
     walkDict = {key: None for key in sorted(set(items))}
-    for collection, _,  objs in root.walk():
+    for collection, _, objs in root.walk():
         walkDict[collection.path] = [o.name for o in objs]
 
     return walkDict
@@ -69,7 +67,7 @@ def saveIenv(ienv):
     if "ui_ienvFilePath" in ienv:
         envFile = ienv["ui_ienvFilePath"]
     else:
-        envFile = os.path.join(os.path.expanduser("~"), ".irods"+os.sep+"irods_environment.json")
+        envFile = os.path.join(os.path.expanduser("~"), ".irods" + os.sep + "irods_environment.json")
         ienv["ui_ienvFilePath"] = envFile
     with open(envFile, 'w') as f:
         dump(ienv, f, indent=4)
@@ -84,16 +82,19 @@ def get_filepath():
         file_path = os.path.dirname(__file__)
     return file_path
 
+
 # check if a given directory exists on the drive
-def check_direxists(dir):
-    if _check_exists(dir):
-        return os.path.isdir(dir)
+def check_direxists(thedir):
+    if _check_exists(thedir):
+        return os.path.isdir(thedir)
     return False
+
 
 def check_fileexists(file):
     if _check_exists(file):
         return os.path.isfile(file)
     return False
+
 
 def _check_exists(fname):
     if fname is None:
@@ -109,7 +110,7 @@ def setup_logger(irods_folder, app):
 
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     handlers = [logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
-    logging.basicConfig(format = log_format, level = logging.INFO, handlers = handlers)
+    logging.basicConfig(format=log_format, level=logging.INFO, handlers=handlers)
 
     # Indicate start of a new session
     with open(logfile, 'a') as f:
@@ -119,8 +120,7 @@ def setup_logger(irods_folder, app):
             underscores = underscores + "_"
         underscores = underscores + "\n"
         f.write(underscores)
-        f.write(underscores) 
+        f.write(underscores)
         f.write("\t\t" + datetime.now().strftime("%Y-%m-%dT%H:%M:%S") + "\n")
         f.write(underscores)
         f.write(underscores)
-    

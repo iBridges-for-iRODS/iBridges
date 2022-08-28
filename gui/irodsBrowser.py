@@ -1,8 +1,9 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt6 import QtWidgets
+# from PyQt6.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+# from PyQt6.uic import loadUi
+from PyQt6 import QtCore
+from PyQt6 import QtGui
 
 from gui.popupWidgets import irodsCreateCollection
 from utils.utils import walkToDict, getDownloadDir
@@ -10,32 +11,32 @@ import logging
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 
-import sys
+# import sys
 
 
-class irodsBrowser():
-    def __init__ (self, widget, ic):
+class irodsBrowser:
+    def __init__(self, widget, ic):
         
         self.ic = ic
         self.widget = widget
         self.widget.viewTabs.setCurrentIndex(0)
 
-        #Browser table
-        self.widget.collTable.setColumnWidth(1,399)
-        self.widget.collTable.setColumnWidth(2,199)
-        self.widget.collTable.setColumnWidth(3,399)
-        self.widget.collTable.setColumnWidth(0,20)
+        # Browser table
+        self.widget.collTable.setColumnWidth(1, 399)
+        self.widget.collTable.setColumnWidth(2, 199)
+        self.widget.collTable.setColumnWidth(3, 399)
+        self.widget.collTable.setColumnWidth(0, 20)
 
-        #Metadata table
-        self.widget.metadataTable.setColumnWidth(0,199)
-        self.widget.metadataTable.setColumnWidth(1,199)
-        self.widget.metadataTable.setColumnWidth(2,199)
+        # Metadata table
+        self.widget.metadataTable.setColumnWidth(0, 199)
+        self.widget.metadataTable.setColumnWidth(1, 199)
+        self.widget.metadataTable.setColumnWidth(2, 199)
 
-        #ACL table
-        self.widget.aclTable.setColumnWidth(0,299)
-        self.widget.aclTable.setColumnWidth(1,299)
+        # ACL table
+        self.widget.aclTable.setColumnWidth(0, 299)
+        self.widget.aclTable.setColumnWidth(1, 299)
 
-        #if user is not admin nor datasteward, hide ACL buttons
+        # if user is not admin nor datasteward, hide ACL buttons
         try:
             userType, userGroups = self.ic.getUserInfo()
         except NetworkException:
@@ -50,11 +51,11 @@ class irodsBrowser():
             self.widget.aclBox.setEnabled(False)
             self.widget.recurseBox.setEnabled(False)
 
-        #Resource table
-        self.widget.resourceTable.setColumnWidth(0,500)
-        self.widget.resourceTable.setColumnWidth(1,90)
+        # Resource table
+        self.widget.resourceTable.setColumnWidth(0, 500)
+        self.widget.resourceTable.setColumnWidth(1, 90)
 
-        #iRODS defaults
+        # iRODS defaults
         try:
             self.irodsRoot = self.ic.session.collections.get("/"+ic.session.zone+"/home")
         except CollectionDoesNotExist:
@@ -68,41 +69,37 @@ class irodsBrowser():
         self.currentBrowserRow = 0
         self.browse()
 
-
     def browse(self):
-        #update main table when iRODS paht is changed upon 'Enter'
+        # update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.homeButton.clicked.connect(self.resetPath)
-        #quick data upload and download (files only)
+        # quick data upload and download (files only)
         self.widget.UploadButton.clicked.connect(self.fileUpload)
         self.widget.DownloadButton.clicked.connect(self.fileDownload)
-        #new collection
+        # new collection
         self.widget.createCollButton.clicked.connect(self.createCollection)
         self.widget.dataDeleteButton.clicked.connect(self.deleteData)
         self.widget.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
-        #functionality to lower tabs for metadata, acls and resources
+        # functionality to lower tabs for metadata, acls and resources
         self.widget.collTable.doubleClicked.connect(self.updatePath)
         self.widget.collTable.clicked.connect(self.fillInfo)
         self.widget.metadataTable.clicked.connect(self.editMetadata)
         self.widget.aclTable.clicked.connect(self.editACL)
-        #actions to update iCat entries of metadata and acls
+        # actions to update iCat entries of metadata and acls
         self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
         self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
         self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
         self.widget.aclAddButton.clicked.connect(self.updateIcatAcl)
 
-
     # Util functions
     def __clearErrorLabel(self):
         self.widget.errorLabel.clear()
-
 
     def __clearViewTabs(self):
         self.widget.aclTable.setRowCount(0)
         self.widget.metadataTable.setRowCount(0)
         self.widget.resourceTable.setRowCount(0)
         self.widget.previewBrowser.clear()
-
 
     def __fillResc(self, value, path):
         self.widget.resourceTable.setRowCount(0)
@@ -119,11 +116,10 @@ class irodsBrowser():
                         QtWidgets.QTableWidgetItem(resources[i]))
                 if resources[i] in replicas:
                     item = QtWidgets.QTableWidgetItem()
-                    item.setCheckState(QtCore.Qt.Checked)
-                    item.setFlags(QtCore.Qt.ItemIsEnabled)
+                    item.setCheckState(QtCore.Qt.CheckState.Checked)
+                    item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
                     self.widget.resourceTable.setItem(i, 1, item)
         self.widget.resourceTable.resizeColumnsToContents()
-
 
     def __fillACLs(self, value, path):
         self.widget.aclTable.setRowCount(0)
@@ -148,13 +144,12 @@ class irodsBrowser():
         row = 0
         for acl in acls:
             self.widget.aclTable.setItem(row, 0, QtWidgets.QTableWidgetItem(acl.user_name))
-            self.widget.aclTable.setItem(row, 1,QtWidgets.QTableWidgetItem(acl.user_zone))
+            self.widget.aclTable.setItem(row, 1, QtWidgets.QTableWidgetItem(acl.user_zone))
             self.widget.aclTable.setItem(row, 2,
                 QtWidgets.QTableWidgetItem(acl.access_name.split(' ')[0].replace('modify', 'write')))
             row = row+1
 
         self.widget.aclTable.resizeColumnsToContents()
-
 
     def __fillMetadata(self, value, path):
         self.widget.metaKeyField.clear()
@@ -185,21 +180,20 @@ class irodsBrowser():
             row = row+1
         self.widget.metadataTable.resizeColumnsToContents()
 
-
     def __fillPreview(self, value, path):
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
-        if value.endswith("/") and self.ic.session.collections.exists(newPath): # collection
+        if value.endswith("/") and self.ic.session.collections.exists(newPath):  # collection
             coll = self.ic.session.collections.get(
                         "/"+path.strip("/")+"/"+value.strip("/")
                         )
             content = ['Collections:', '-----------------'] +\
                       [c.name+'/' for c in coll.subcollections] + \
-                      ['\n', 'Data:', '-----------------']+\
+                      ['\n', 'Data:', '-----------------'] + \
                       [o.name for o in coll.data_objects]
 
             previewString = '\n'.join(content)
             self.widget.previewBrowser.append(previewString)
-        elif self.ic.session.data_objects.exists(newPath): # object
+        elif self.ic.session.data_objects.exists(newPath):  # object
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
             obj = self.ic.session.data_objects.get(
@@ -222,9 +216,8 @@ class irodsBrowser():
                 self.widget.previewBrowser.append(
                     "No Preview for: " + "/"+self.widget.inputPath.text().strip("/")+"/"+value.strip("/"))
 
-
     def loadTable(self):
-        #loads main browser table
+        # loads main browser table
         try:
             self.__clearErrorLabel()
             self.__clearViewTabs()
@@ -258,13 +251,11 @@ class irodsBrowser():
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
-
     def resetPath(self):
         self.widget.inputPath.setText(self.irodsRoot.path)
         self.loadTable()
 
-
-    #@QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @QtCore.pyqtSlot(QtCore.QModelIndex)
     def updatePath(self, index):
         self.__clearErrorLabel()
         col = index.column()
@@ -274,12 +265,11 @@ class irodsBrowser():
         else:
             parent = self.widget.inputPath.text()
         value = self.widget.collTable.item(row, 1).text()
-        if value.endswith("/"): #collection
+        if value.endswith("/"):  # collection
             self.widget.inputPath.setText("/"+parent.strip("/")+"/"+value.strip("/"))
             self.loadTable()
 
-
-    #@QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @QtCore.pyqtSlot(QtCore.QModelIndex)
     def fillInfo(self, index):
         self.__clearErrorLabel()
         self.__clearViewTabs()
@@ -303,13 +293,12 @@ class irodsBrowser():
             self.__fillACLs(value, path)
             self.__fillResc(value, path)
         except Exception as e:
-            logging.info('ERROR in Browser',exc_info=True)
+            logging.info('ERROR in Browser', exc_info=True)
             self.widget.errorLabel.setText(repr(e))
 
-
     def loadSelection(self):
-        #loads selection from main table into delete tab
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        # loads selection from main table into delete tab
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.widget.deleteSelectionBrowser.clear()
         parent = self.widget.inputPath.text()
         row = self.widget.collTable.currentRow()
@@ -334,19 +323,19 @@ class irodsBrowser():
             except NetworkException:
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-
+                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
     def deleteData(self):
-        #Deletes all data in the deleteSelectionBrowser
+        # Deletes all data in the deleteSelectionBrowser
         self.widget.errorLabel.clear()
         data = self.widget.deleteSelectionBrowser.toPlainText().split('\n')
         if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
-            reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
+            reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.StandardButton.Yes,
+                                         QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
                 try:
                     if self.ic.session.collections.exists(deleteItem):
                         item = self.ic.session.collections.get(deleteItem)
@@ -363,19 +352,19 @@ class irodsBrowser():
     def createCollection(self):
         parent = "/"+self.widget.inputPath.text().strip("/")
         creteCollWidget = irodsCreateCollection(parent, self.ic)
-        creteCollWidget.exec_()
+        creteCollWidget.exec()
         self.loadTable()
-
 
     def fileUpload(self):
         from utils.utils import getSize
         dialog = QFileDialog(self.widget)
         fileSelect = QFileDialog.getOpenFileName(self.widget,
-                        "Open File", "","All Files (*);;Python Files (*.py)")
+                        "Open File", "", "All Files (*);;Python Files (*.py)")
         size = getSize([fileSelect[0]])
         buttonReply = QMessageBox.question(self.widget, 'Message Box', "Upload " + fileSelect[0],
-                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if buttonReply == QMessageBox.Yes:
+                                           QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                                           QMessageBox.StandardButton.No)
+        if buttonReply == QMessageBox.StandardButton.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
                 print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.defaultResc)
@@ -392,8 +381,8 @@ class irodsBrowser():
             pass
 
     def fileDownload(self):
-        #If table is filled
-        if self.widget.collTable.item(self.currentBrowserRow, 1) != None:
+        # If table is filled
+        if self.widget.collTable.item(self.currentBrowserRow, 1) is not None:
             objName = self.widget.collTable.item(self.currentBrowserRow, 1).text()
             if self.widget.collTable.item(self.currentBrowserRow, 0).text() == '':
                 parent = self.widget.inputPath.text()
@@ -405,7 +394,7 @@ class irodsBrowser():
                     buttonReply = QMessageBox.question(self.widget,
                                 'Message Box',
                                 'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
-                    if buttonReply == QMessageBox.Yes:
+                    if buttonReply == QMessageBox.StandardButton.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
                         self.ic.downloadData(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
@@ -416,8 +405,7 @@ class irodsBrowser():
                 print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
 
-
-    #@QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editMetadata(self, index):
         self.__clearErrorLabel()
         self.widget.metaValueField.clear()
@@ -431,8 +419,7 @@ class irodsBrowser():
         self.widget.metaUnitsField.setText(units)
         self.currentMetadata = (key, value, units)
 
-
-    #@QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @QtCore.pyqtSlot(QtCore.QModelIndex)
     def editACL(self, index):
         self.__clearErrorLabel()
         self.widget.aclUserField.clear()
@@ -446,7 +433,6 @@ class irodsBrowser():
         self.widget.aclZoneField.setText(zone)
         self.widget.aclBox.setCurrentText(acl)
         self.currentAcl = (user, acl)
-
 
     def updateIcatAcl(self):
         self.widget.errorLabel.clear()
@@ -469,7 +455,6 @@ class irodsBrowser():
 
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
-
 
     def updateIcatMeta(self):
         self.widget.errorLabel.clear()
@@ -498,7 +483,6 @@ class irodsBrowser():
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
 
-
     def addIcatMeta(self):
         self.widget.errorLabel.clear()
         newKey = self.widget.metaKeyField.text()
@@ -526,7 +510,6 @@ class irodsBrowser():
             except Exception as error:
                 self.widget.errorLabel.setText(repr(error))
 
-
     def deleteIcatMeta(self):
         self.widget.errorLabel.clear()
         key = self.widget.metaKeyField.text()
@@ -552,4 +535,3 @@ class irodsBrowser():
 
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
-

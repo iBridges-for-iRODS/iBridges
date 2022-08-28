@@ -1,9 +1,10 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.uic import loadUi
+from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.uic import loadUi
 import os
 from utils.utils import getDownloadDir
 import logging
+
 
 class irodsSearch(QDialog):
     def __init__(self, ic, collTable):
@@ -20,24 +21,22 @@ class irodsSearch(QDialog):
         self.downloadButton.clicked.connect(self.downloadData)
         self.searchExitButton.released.connect(self.close)
 
-
     def enableButtons(self, enabled=True):
         self.startSearchButton.setEnabled(enabled)
         self.selectSearchButton.setEnabled(enabled)
         self.downloadButton.setEnabled(enabled)
         self.searchExitButton.setEnabled(enabled)
 
-
     def search(self):
-        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.startSearchButton.setDisabled(True)
         self.searchResultTable.setRowCount(0)
-        #gather all input from input fields in dictionary 'criteria'
+        # gather all input from input fields in dictionary 'criteria'
         keyVals = dict(zip([key.text() for key in self.keys], [val.text() for val in self.vals]))
         
         criteria = {}
         if self.pathPattern.text():
-            criteria['path'] =  self.pathPattern.text()
+            criteria['path'] = self.pathPattern.text()
         if self.objPattern.text():
             criteria['object'] = self.objPattern.text()
         if self.checksumPattern.text():
@@ -48,7 +47,7 @@ class irodsSearch(QDialog):
             if keyVals[key]:
                 criteria[key] = keyVals[key]
         
-        #get search results as [[collname, objname, checksum]...[]]
+        # get search results as [[collname, objname, checksum]...[]]
         results = self.ic.search(criteria)
         
         row = 0 
@@ -65,8 +64,7 @@ class irodsSearch(QDialog):
                 row = row + 1
         self.searchResultTable.resizeColumnsToContents()
         self.startSearchButton.setDisabled(False)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
     def loadSearchResults(self):
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes() if idx.row() > 2])
@@ -75,11 +73,11 @@ class irodsSearch(QDialog):
         for row in rows:
             if self.searchResultTable.item(row, 1).text() == '':
                 self.collTable.setItem(i, 0,
-                    QtWidgets.QTableWidgetItem(os.path.dirname( \
-                    self.searchResultTable.item(row, 0).text())))
+                    QtWidgets.QTableWidgetItem(os.path.dirname(
+                        self.searchResultTable.item(row, 0).text())))
                 self.collTable.setItem(i, 1,
-                    QtWidgets.QTableWidgetItem(os.path.basename( \
-                    self.searchResultTable.item(row, 0).text())+'/'))
+                    QtWidgets.QTableWidgetItem(os.path.basename(
+                        self.searchResultTable.item(row, 0).text())+'/'))
             else:
                 self.collTable.setItem(i, 0, 
                     QtWidgets.QTableWidgetItem(self.searchResultTable.item(row, 0).text()))
@@ -94,17 +92,16 @@ class irodsSearch(QDialog):
         self.collTable.resizeColumnsToContents()
         self.close()
 
-
     def downloadData(self):
         self.enableButtons(enabled=False)
         rows = set([idx.row() for idx in self.searchResultTable.selectedIndexes() if idx.row() > 2])
         irodsPaths = []
         for row in rows:
             if self.searchResultTable.item(row, 1).text() == '':
-                irodsPaths.append(os.path.dirname(self.searchResultTable.item(row, 0).text()) \
+                irodsPaths.append(os.path.dirname(self.searchResultTable.item(row, 0).text())
                     + '/' + os.path.basename(self.searchResultTable.item(row, 0).text()))
             else:
-                irodsPaths.append(self.searchResultTable.item(row, 0).text() \
+                irodsPaths.append(self.searchResultTable.item(row, 0).text()
                     + '/' + self.searchResultTable.item(row, 1).text())
         if len(irodsPaths) > 0:
             downloadDir = getDownloadDir()
@@ -112,8 +109,8 @@ class irodsSearch(QDialog):
                                 'Message Box',
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)
 
-            if buttonReply == QMessageBox.Yes:
-                self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            if buttonReply == QMessageBox.StandardButton.Yes:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
                         if self.ic.session.collections.exists(p):
@@ -129,7 +126,5 @@ class irodsSearch(QDialog):
                                 "SEARCH widget ERROR: "+p+" not an irods item.")
                 except Exception as e:
                     logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons()
-
-

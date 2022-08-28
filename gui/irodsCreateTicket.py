@@ -1,7 +1,8 @@
-from PyQt5 import QtGui, QtCore
-from gui.irodsTreeView  import IrodsModel
+from PyQt6 import QtGui, QtCore
+from gui.irodsTreeView import IrodsModel
 
-class irodsCreateTicket():
+
+class irodsCreateTicket:
     def __init__(self, widget, ic, ienv):
 
         self.ic = ic
@@ -29,21 +30,21 @@ class irodsCreateTicket():
     def createTicket(self):
         self.widget.infoLabel.clear()
         self.widget.ticketInfoBrowser.clear()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.widget.createTicketButton.setEnabled(False)
 
-        #gather info
+        # gather info
         idx, path = self.irodsmodel.get_checked()
-        if path == None or self.ic.session.data_objects.exists(path):
+        if path is None or self.ic.session.data_objects.exists(path):
             self.widget.infoLabel.setText("ERROR: Please select a collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
 
         acls = [(acl.user_name, acl.access_name) for acl in self.ic.getPermissions(path)]
         if (self.ic.session.username, "own") in acls:
             date = self.widget.calendar.selectedDate()
-            #format of time string for irods: 2012-05-07.23:00:00
+            # format of time string for irods: 2012-05-07.23:00:00
             expiryString = str(date.toPyDate())+'.23:59:59'
             ticket, expiryDate = self.ic.createTicket(path, expiryString)
             self.widget.ticketInfoBrowser.append("iRODS server: \t"+self.ic.session.host)
@@ -56,9 +57,9 @@ class irodsCreateTicket():
 
         else:
             self.widget.infoLabel.setText("ERROR: Insufficient rights, you need to be owner.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
     
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.widget.createTicketButton.setEnabled(True)
