@@ -32,7 +32,7 @@ class irodsLogin(QDialog):
         super(irodsLogin, self).__init__()
         loadUi("gui/ui-files/irodsLogin.ui", self)
         ensure_dir(os.path.expanduser('~') + os.sep + ".irods")
-        
+        self.this_application = 'iBridgesGui'
         self.irodsEnvPath = os.path.expanduser('~') + os.sep + ".irods"
         setup_logger(self.irodsEnvPath, "iBridgesGui")
         if not os.path.isdir(self.irodsEnvPath):
@@ -53,9 +53,9 @@ class irodsLogin(QDialog):
     
     def __irodsLogin(self, envFile, password, cipher):
         if self.icommands:
-            ic = irodsConnectorIcommands(cipher.decrypt(password).decode())
+            ic = irodsConnectorIcommands(cipher.decrypt(password).decode(), application_name=self.this_application)
         else:
-            ic = irodsConnector(envFile, cipher.decrypt(password).decode())
+            ic = irodsConnector(envFile, cipher.decrypt(password).decode(), application_name=self.this_application)
         return ic
 
     def __resetErrorLabelsAndMouse(self):

@@ -17,6 +17,8 @@ class irodsTicketLogin():
         self.coll = None
         self.widget = widget
 
+        self.this_application = 'iBridgesGui'
+
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.widget.localFsTreeView)
         self.widget.localFsTreeView.setModel(self.dirmodel)
@@ -48,7 +50,7 @@ class irodsTicketLogin():
         token = self.widget.ticketEdit.text().strip()
 
         try:
-            self.ic = irodsConnectorAnonymous(host, token, path)
+            self.ic = irodsConnectorAnonymous(host, token, path, application_name=self.this_application)
             self.coll = self.ic.getData()
             self.loadTable()
             self.enableButtons(True)

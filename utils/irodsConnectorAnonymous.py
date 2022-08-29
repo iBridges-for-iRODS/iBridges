@@ -23,7 +23,7 @@ BLUE = '\x1b[1;34m'
 
 
 class irodsConnectorAnonymous(irodsConnector):
-    def __init__(self, host, ticket, path):
+    def __init__(self, host, ticket, path, application_name=None):
         """
         iRODS anonymous login.
         Input:
@@ -46,7 +46,8 @@ class irodsConnectorAnonymous(irodsConnector):
                                     password='',
                                     zone=zone,
                                     port=1247,
-                                    host=host)
+                                    host=host,
+                                    application_name=application_name)
         self.token = ticket
         self.path = path
 
