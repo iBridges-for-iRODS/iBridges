@@ -944,7 +944,9 @@ class IrodsConnector():
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
                     src_path, dst_path)
-                self.irods_get(str(src_path), str(dst_path), **options)
+                self.irods_get(
+                    str(src_path), str(dst_path.joinpath(src_path.name)),
+                    **options)
             # Collection
             else:
                 logging.info("IRODS DOWNLOAD started:")
@@ -962,7 +964,7 @@ class IrodsConnector():
                     local_path = dst_path.joinpath(
                         src_path.name).joinpath(rel_path)
                     if not local_path.parent.is_dir():
-                        local_path.mkdir()
+                        local_path.parent.mkdir()
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
