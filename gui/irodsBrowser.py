@@ -14,12 +14,6 @@ from PyQt5 import QtGui
 from gui.popupWidgets import irodsCreateCollection
 from utils.utils import walkToDict, getDownloadDir
 
-PERMISIONS_MAP = {
-    'null': 'none',
-    'read object': 'read',
-    'modify object': 'write',
-    'own': 'own',
-}
 
 class irodsBrowser():
     """
@@ -163,7 +157,7 @@ class irodsBrowser():
             acls = self.ic.session.permissions.get(obj)
             self.widget.aclTable.setRowCount(len(acls))
             for row, acl in enumerate(acls):
-                acl_access_name = PERMISIONS_MAP[acl.access_name]
+                acl_access_name = self.ic.permissions[acl.access_name]
                 self.widget.aclTable.setItem(
                     row, 0, QtWidgets.QTableWidgetItem(acl.user_name))
                 self.widget.aclTable.setItem(

@@ -90,6 +90,7 @@ class IrodsConnector():
         self.__name__ = 'IrodsConnector'
         self._ienv = None
         self._password = None
+        self._permissions = None
         self._resources = None
         self._session = None
         if ienv is not None:
@@ -194,6 +195,30 @@ class IrodsConnector():
 
     password = property(
         _get_password, _set_password, _del_password, 'iRODS password')
+
+    def _get_permissions(self):
+        """iRODS permissions mapping getter method.
+
+        Returns
+        -------
+        dict
+            Correct permissions mapping for the current server version.
+
+        """
+        if self._permissions is None:
+            self._permissions = {
+                'null': 'none',
+                'read_object': 'read',
+                'modify_object': 'write',
+                'own': 'own',
+            }
+            if self.session.server_version < (4, 3, 0):
+                self._permissions.update(
+                    {'read object': 'read', 'modify object': 'write'})
+        return self._permissions
+
+    permissions = property(
+        _get_permissions, None, None, 'iRODS permissions mapping')
 
     def _get_resources(self):
         """iRODS resources metadata getter method.
