@@ -100,9 +100,6 @@ class IrodsConnector():
         self.default_resc = None
         if 'irods_default_resource' in self.ienv:
             self.default_resc = self.ienv['irods_default_resource']
-        # XXX is this default needed?
-        else:
-            self.default_resc = 'demoResc'
         # FIXME move iBridges parameters to iBridges configuration
         self.davrods = None
         if 'davrods_server' in self.ienv:
@@ -253,6 +250,27 @@ class IrodsConnector():
             resc_dict.update(
                 sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
+            # Check for inclusion of default resource.
+            resc_names = []
+            for name, metadata in self.resources.items():
+                context = metadata['context']
+                if context is not None:
+                    for kvp in context.split(';'):
+                        if 'write' in kvp:
+                            _, val = kvp.split('=')
+                            if float(val) == 0.0:
+                                continue
+                status = metadata['status']
+                if status is not None:
+                    if 'down' in status:
+                        continue
+                if metadata['parent'] is None and metadata['free_space'] > 0:
+                    resc_names.append(name)
+            if self.default_resc not in resc_names:
+                print('    -=WARNING=-    '*4)
+                print(f'The default resource ({self.default_resc}) not found in available resources!')
+                print('Check "irods_default_resource" and "force_unknown_free_space" settings.')
+                print('    -=WARNING=-    '*4)
         return self._resources
 
     resources = property(

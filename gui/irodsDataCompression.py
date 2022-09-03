@@ -11,23 +11,18 @@ import json
 
 class irodsDataCompression():
     def __init__(self, widget, ic, ienv):
-        self.ic = ic
         self.widget = widget
+        self.ic = ic
         self.ienv = ienv
-        resc_names, _ = self.ic.list_resources()
-        if ic.default_resc not in resc_names:
-            self.infoPopup('ERROR resource config: "irods_default_resource" invalid:\n'\
-                           +ic.default_resc \
-                           +'\nDataCompression view not setup.')
-            return
-
-        ruleFiles = [path.join(getcwd(),'rules/tarCollection.r'), 
-                     path.join(getcwd(),'rules/tarReadIndex.r'), 
-                     path.join(getcwd(),'rules/tarExtract.r')]
+        ruleFiles = [
+            path.join(getcwd(), 'rules/tarCollection.r'),
+            path.join(getcwd(), 'rules/tarReadIndex.r'),
+            path.join(getcwd(), 'rules/tarExtract.r'),
+        ]
         for rule in ruleFiles:
             if not path.isfile(rule):
-                self.infoPopup('ERROR rules not configured:\n'+rule\
-                           +'\nDataCompression view not setup.')
+                self.infoPopup(
+                    f'ERROR rules not configured:\n{rule}\nDataCompression view not setup.')
                 return
 
         self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
