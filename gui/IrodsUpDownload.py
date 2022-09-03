@@ -9,7 +9,6 @@ import PyQt5.QtWidgets
 import gui
 import utils
 
-DEFAULT_RESC = 'irods_default_resource'
 REMOVE_LOCAL = 'ui_remLocalcopy'
 UPLOAD_HOSTS = [
     "scomp1461.wur.nl",
@@ -122,13 +121,20 @@ class IrodsUpDownload():
         """Create resource drop-down menu.
 
         """
-        ienv = self.ienv
-        available_resources = self.ic.list_resources()
+        default_resc = self.ic.default_resc
+        names_spaces = list(zip(*self.ic.list_resources()))
+        if not self.ic.ienv.get('force_unknown_free_space'):
+            names, spaces = zip(*((name, space) for name, space in names_spaces if space != 0))
+        else:
+            names, spaces = zip(*names_spaces)
+        resources = [
+            f'{name} / {round(space / 2**30)}' for name, space in
+            zip(names, spaces)]
         self.widget.resourceBox.clear()
-        self.widget.resourceBox.addItems(available_resources)
-        if (DEFAULT_RESC in ienv and ienv[DEFAULT_RESC] != '' and
-                ienv[DEFAULT_RESC] in available_resources):
-            index = self.widget.resourceBox.findText(ienv[DEFAULT_RESC])
+        self.widget.resourceBox.addItems(resources)
+        if default_resc in names:
+            ridx = names.index(default_resc)
+            index = self.widget.resourceBox.findText(resources[ridx])
             self.widget.resourceBox.setCurrentIndex(index)
 
     def _configure_continuous_upload(self):

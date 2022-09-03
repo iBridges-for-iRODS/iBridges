@@ -14,8 +14,8 @@ class irodsDataCompression():
         self.ic = ic
         self.widget = widget
         self.ienv = ienv
-        rescs = self.ic.list_resources()
-        if ic.default_resc not in rescs:
+        resc_names, _ = self.ic.list_resources()
+        if ic.default_resc not in resc_names:
             self.infoPopup('ERROR resource config: "irods_default_resource" invalid:\n'\
                            +ic.default_resc \
                            +'\nDataCompression view not setup.')
@@ -79,11 +79,22 @@ class irodsDataCompression():
         return model
 
     def setupResourceButton(self, button):
+        default_resc = self.ic.default_resc
+        names_spaces = list(zip(*self.ic.list_resources()))
+        if not self.ic.ienv.get('force_unknown_free_space'):
+            names, spaces = zip(*(
+                (name, space) for name, space in names_spaces
+                if space != 0))
+        else:
+            names, spaces = zip(*names_spaces)
+        resources = [
+            f'{name} / {round(space / 2**30)}' for name, space in
+            zip(names, spaces)]
         button.clear()
-        resources = self.ic.list_resources()
         button.addItems(resources)
-        if self.ic.default_resc in resources:
-            index = button.findText(self.ic.default_resc)
+        if default_resc in names:
+            ridx = names.index(default_resc)
+            index = button.findText(resources[ridx])
             button.setCurrentIndex(index)
 
     def enableButtons(self, enable):
