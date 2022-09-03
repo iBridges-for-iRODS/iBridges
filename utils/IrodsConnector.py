@@ -237,7 +237,7 @@ class IrodsConnector():
         if self._resources is None:
             query = self.session.query(
                 RESC_NAME, RESC_PARENT, RESC_STATUS, RESC_CONTEXT)
-            resc_dict = {}
+            resc_list, resc_dict = [], {}
             for item in query.get_results():
                 name, parent, status, context = item.values()
                 free_space = 0
@@ -249,7 +249,9 @@ class IrodsConnector():
                     'context': context,
                     'free_space': free_space,
                 }
-                resc_dict.setdefault(name, {}).update(metadata)
+                resc_list.append((name, metadata))
+            resc_dict.update(
+                sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
         return self._resources
 
@@ -509,15 +511,18 @@ class IrodsConnector():
 
     def list_resources(self):
         """Discover all writable root resources available in the current
-        system that have free_space annotated.
+        system producing 2 lists, one with resource names and another
+        the value of the free_space annotation.  A value of 0 indicates
+        no free space annotated.
 
         Returns
         -------
-        list
-            Discovered names of writable root resources.
+        tuple
+            Discovered names of writable root resources: (names,
+            free_space).
 
         """
-        resc_names = []
+        resc_names, free_spaces = [], []
         for name, metadata in self.resources.items():
             context = metadata['context']
             if context is not None:
@@ -530,14 +535,10 @@ class IrodsConnector():
             if status is not None:
                 if 'down' in status:
                     continue
-            if metadata['parent'] is None and metadata['free_space'] > 0:
+            if metadata['parent'] is None:
                 resc_names.append(name)
-        # XXX are these necessary to remove
-        if 'bundleResc' in resc_names:
-            resc_names.remove('bundleResc')
-        if 'demoResc' in resc_names:
-            resc_names.remove('demoResc')
-        return resc_names
+                free_spaces.append(metadata['free_space'])
+        return resc_names, free_spaces
 
     def get_resource(self, resc_name):
         '''Instantiate an iRODS resource.
