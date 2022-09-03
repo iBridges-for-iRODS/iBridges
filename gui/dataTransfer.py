@@ -241,6 +241,7 @@ class UpDownload(QObject):
         self.resource = resource
         self.diff = diff
         self.addFiles = addFiles
+        self.force = ic.ienv.get('force_unknown_free_space', False)
 
     def run(self):    
         try:
@@ -248,7 +249,7 @@ class UpDownload(QObject):
                 diffs = (self.diff, self.addFiles, [], [])
                 self.ic.upload_data(self.localFS, self.Coll, 
                                    self.resource, int(self.totalSize), buff = 1024**3, 
-                                   force = False, diffs = diffs)
+                                   force=self.force, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])
