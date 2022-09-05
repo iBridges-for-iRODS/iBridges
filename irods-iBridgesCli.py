@@ -108,7 +108,7 @@ def setupIRODS(config, operation):
     except ResourceDoesNotExist:
         resc_name = config['iRODS']['irodsresc']
         print('{red}iRODS resource does not exist: {rname}{dflt}'.format(red=RED, rname=resc_name, dflt=DEFAULT))
-        resc_names, free_spaces = ic.list_resources()
+        resc_names, free_spaces = ic.list_resources_based_on_force_flag()
         largest_resc = resc_names[free_spaces.index(max(free_spaces))]
         free_space = '{free}GiB'.format(free=round(ic.resource_space(largest_resc) / 2**30))
         menu = 'y'

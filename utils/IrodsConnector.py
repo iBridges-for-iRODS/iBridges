@@ -526,7 +526,7 @@ class IrodsConnector():
                             res[list(res.keys())[2]]])
         return results
 
-    def list_resources(self):
+    def _list_resources(self):
         """Discover all writable root resources available in the current
         system producing 2 lists, one with resource names and another
         the value of the free_space annotation.  A value of 0 indicates
@@ -572,7 +572,7 @@ class IrodsConnector():
             free_space).
        
         """ 
-        names_spaces = list(zip(*self.list_resources()))
+        names_spaces = list(zip(*self._list_resources()))
         if not self.ienv.get('force_unknown_free_space'):
             names, spaces = zip(*(
                 (name, space) for name, space in names_spaces
