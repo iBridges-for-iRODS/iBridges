@@ -45,6 +45,9 @@ class irodsBrowser():
         except NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
+        # TODO : in a local docker environment these conditions are not met. 
+        # Still it would be nice to be able to test the full features even if one is not 
+        # rodsadmin
         if user_type != 'rodsadmin' and \
            'datastewards' not in user_groups and \
            'training' not in user_groups:
