@@ -97,7 +97,7 @@ color: rgb(217, 174, 23);
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>Migrate data bundle to:</string>
+            <string>Select: resource / free GiB</string>
            </property>
           </widget>
          </item>
@@ -261,7 +261,7 @@ color: rgb(217, 174, 23);
          <item>
           <widget class="QLabel" name="label_4">
            <property name="text">
-            <string>Migrate extracted data to:</string>
+            <string>Select: resource / free GiB</string>
            </property>
           </widget>
          </item>

@@ -103,17 +103,16 @@ def setupIRODS(config, operation):
     # set iRODS resource
     try:
         resc_name = config['iRODS']['irodsresc']
-        free_space = '{free}GiB'.format(free=round(ic.resource_space(resc_name) / 2**30))
-        print('{rname} upload capacity, free space: {free}'.format(rname=resc_name, free=free_space))
+        free_space = f'{ic.resources[resc_name]["free_space"]}GiB'
+        print(f'{resc_name} upload capacity, free space: {free_space}')
     except ResourceDoesNotExist:
         resc_name = config['iRODS']['irodsresc']
-        print('{red}iRODS resource does not exist: {rname}{dflt}'.format(red=RED, rname=resc_name, dflt=DEFAULT))
-        resources = ic.list_resources()
-        sizes = list(map(ic.resource_space, resources))
-        largest_resc = resources[sizes.index(max(sizes))]
-        free_space = '{free}GiB'.format(free=round(ic.resource_space(largest_resc) / 2**30))
+        print(f'{RED}iRODS resource does not exist: {resc_name}{DEFAULT}')
+        resc_names, free_spaces = ic.list_resources()
+        largest_resc = resc_names[free_spaces.index(max(free_spaces))]
+        max_free_space = f'{max(free_spaces)}GiB'
         menu = 'y'
-        menu = input('Choose {rname} ({free} free)? (Yes/No) '.format(rname=largest_resc, free=free_space))
+        menu = input(f'Choose {largest_resc} ({max_free_space} free)? (Yes/No) ')
         if menu in ['Yes', 'yes', 'Y', 'y']:
             config['iRODS']['irodsresc'] = largest_resc
         else:
