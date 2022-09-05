@@ -97,9 +97,7 @@ class IrodsConnector():
             self.ienv = ienv
         if password is not None:
             self.password = password
-        self.default_resc = None
-        if 'irods_default_resource' in self.ienv:
-            self.default_resc = self.ienv['irods_default_resource']
+        self.default_resc = self.ienv.get('irods_default_resource', None)
         # FIXME move iBridges parameters to iBridges configuration
         self.davrods = None
         if 'davrods_server' in self.ienv:
@@ -234,7 +232,7 @@ class IrodsConnector():
         if self._resources is None:
             query = self.session.query(
                 RESC_NAME, RESC_PARENT, RESC_STATUS, RESC_CONTEXT)
-            resc_list, resc_dict = [], {}
+            resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
                 free_space = 0
@@ -247,12 +245,12 @@ class IrodsConnector():
                     'free_space': free_space,
                 }
                 resc_list.append((name, metadata))
-            resc_dict.update(
-                sorted(resc_list, key=lambda item: str.casefold(item[0])))
+            resc_dict = {
+                sorted(resc_list, key=lambda item: str.casefold(item[0]))}
             self._resources = resc_dict
             # Check for inclusion of default resource.
             resc_names = []
-            for name, metadata in self.resources.items():
+            for name, metadata in self._resources.items():
                 context = metadata['context']
                 if context is not None:
                     for kvp in context.split(';'):
@@ -276,6 +274,7 @@ class IrodsConnector():
     resources = property(
         _get_resources, None, None, 'iRODS resource metadata')
 
+    
     def _get_session(self):
         """iRODS session getter method.
 
@@ -557,6 +556,30 @@ class IrodsConnector():
                 resc_names.append(name)
                 free_spaces.append(metadata['free_space'])
         return resc_names, free_spaces
+    
+    
+    def list_resources_based_on_force_flag(self):
+        """Discover all writable root resources available in the current
+        system producing 2 lists, one with resource names and another
+        the value of the free_space annotation. When the force_unknown_free_space 
+        is set, it returns all resources. A value of 0 indicates
+        no free space annotated.
+
+        Returns
+        -------
+        tuple
+            Discovered names of the root resources: (names,
+            free_space).
+       
+        """ 
+        names_spaces = list(zip(*self.list_resources()))
+        if not self.ienv.get('force_unknown_free_space'):
+            names, spaces = zip(*(
+                (name, space) for name, space in names_spaces
+                if space != 0))
+        else:
+            names, spaces = zip(*names_spaces)
+        return names, spaces
 
     def get_resource(self, resc_name):
         '''Instantiate an iRODS resource.

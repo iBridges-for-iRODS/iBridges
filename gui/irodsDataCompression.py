@@ -25,9 +25,9 @@ class irodsDataCompression():
                     f'ERROR rules not configured:\n{rule}\nDataCompression view not setup.')
                 return
 
-        self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
-        self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
-        self.irodsRootColl = '/'+ic.session.zone
+        self.widget.irodsZoneLabel1.setText(f"/{self.ic.session.zone}:")
+        self.widget.irodsZoneLabel2.setText(f"/{self.ic.session.zone}:")
+        self.irodsRootColl = f'/{ic.session.zone}'
         index = self.widget.decompressRescButton.findText(ic.default_resc)
         self.widget.decompressRescButton.setCurrentIndex(index)
 
@@ -74,19 +74,15 @@ class irodsDataCompression():
         return model
 
     def setupResourceButton(self, button):
-        default_resc = self.ic.default_resc
-        names_spaces = list(zip(*self.ic.list_resources()))
-        if not self.ic.ienv.get('force_unknown_free_space'):
-            names, spaces = zip(*(
-                (name, space) for name, space in names_spaces
-                if space != 0))
-        else:
-            names, spaces = zip(*names_spaces)
+        
+        names, spaces = self.ic.list_resources_based_on_force_flag()
         resources = [
             f'{name} / {round(space / 2**30)}' for name, space in
             zip(names, spaces)]
+        
         button.clear()
         button.addItems(resources)
+        default_resc = self.ic.default_resc
         if default_resc in names:
             ridx = names.index(default_resc)
             index = button.findText(resources[ridx])

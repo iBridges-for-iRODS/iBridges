@@ -35,13 +35,7 @@ class irodsInfo():
         self.widget.versionLabel.setText(
             '.'.join(str(num) for num in self.ic.session.server_version))
         # irods resources
-        names_spaces = list(zip(*self.ic.list_resources()))
-        if not self.ic.ienv.get('force_unknown_free_space'):
-            names, spaces = zip(*(
-                (name, space) for name, space in names_spaces
-                if space != 0))
-        else:
-            names, spaces = zip(*names_spaces)
+        names, spaces = self.ic.list_resources_based_on_force_flag()
         resources = [
             (name, f'{round(space / 2**30)}') for name, space in
             zip(names, spaces)]
