@@ -245,8 +245,7 @@ class IrodsConnector():
                     'free_space': free_space,
                 }
                 resc_list.append((name, metadata))
-            resc_dict = {
-                sorted(resc_list, key=lambda item: str.casefold(item[0]))}
+            resc_dict = dict(sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
             # Check for inclusion of default resource.
             resc_names = []
