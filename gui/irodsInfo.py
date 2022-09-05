@@ -35,17 +35,12 @@ class irodsInfo():
         self.widget.versionLabel.setText(
             '.'.join(str(num) for num in self.ic.session.server_version))
         # irods resources
-        names, spaces = self.ic.list_resources_based_on_force_flag()
-        resources = [
-            (name, f'{round(space / 2**30)}') for name, space in
-            zip(names, spaces)]
-        self.widget.rescTable.setRowCount(len(resources))
-        row = 0
-        for name, space in resources:
+        names, spaces = self.ic.list_resources()
+        self.widget.rescTable.setRowCount(len(names))
+        for row, (name, space) in enumerate(zip(names, spaces)):
             resc = self.ic.get_resource(name)
             self.widget.rescTable.setItem(row, 0, PyQt5.QtWidgets.QTableWidgetItem(name))
-            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(space))
+            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(str(space)))
             self.widget.rescTable.setItem(row, 2, PyQt5.QtWidgets.QTableWidgetItem(resc.status))
-            row = row + 1
         self.widget.rescTable.resizeColumnsToContents()
         self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))

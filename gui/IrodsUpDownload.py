@@ -122,10 +122,9 @@ class IrodsUpDownload():
 
         """
         default_resc = self.ic.default_resc
-        names, spaces = self.ic.list_resources_based_on_force_flag()
+        names, spaces = self.ic.list_resources()
         resources = [
-            f'{name} / {round(space / 2**30)}' for name, space in
-            zip(names, spaces)]
+            f'{name} / {space}' for name, space in zip(names, spaces)]
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(resources)
         if default_resc in names:

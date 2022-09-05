@@ -47,7 +47,6 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
-        
 
     def infoPopup(self, message):
         QMessageBox.information(self.widget, 'Information', message)
@@ -74,12 +73,9 @@ class irodsDataCompression():
         return model
 
     def setupResourceButton(self, button):
-        
-        names, spaces = self.ic.list_resources_based_on_force_flag()
+        names, spaces = self.ic.list_resources()
         resources = [
-            f'{name} / {round(space / 2**30)}' for name, space in
-            zip(names, spaces)]
-        
+            f'{name} / {space}' for name, space in zip(names, spaces)]
         button.clear()
         button.addItems(resources)
         default_resc = self.ic.default_resc
