@@ -165,7 +165,12 @@ class IrodsConnector():
             if os.path.exists(auth_file):
                 with open(auth_file, encoding='utf-8') as authfd:
                     encoded = authfd.read()
-                self._password = irods.password_obfuscation.decode(encoded)
+                try:
+                    uid = os.getuid()
+                except AttributeError:
+                    uid = 1000
+                self._password = irods.password_obfuscation.decode(
+                    encoded, uid=uid)
         return self._password
 
     def _set_password(self, password):
@@ -182,7 +187,11 @@ class IrodsConnector():
                 auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
             else:
                 auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
-            encoded = irods.password_obfuscation.encode(password)
+            try:
+                uid = os.getuid()
+            except AttributeError:
+                uid = 1000
+            encoded = irods.password_obfuscation.encode(password, uid=uid)
             with open(auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(encoded)
             self._password = password
