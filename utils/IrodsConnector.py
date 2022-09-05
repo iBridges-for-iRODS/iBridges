@@ -46,6 +46,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 # Misc
 BUFF_SIZE = 2**30
+MULTIPLIER = 1 / 2**30
 NUM_THREADS = 4
 
 
@@ -245,7 +246,8 @@ class IrodsConnector():
                     'free_space': free_space,
                 }
                 resc_list.append((name, metadata))
-            resc_dict = dict(sorted(resc_list, key=lambda item: str.casefold(item[0])))
+            resc_dict = dict(
+                sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
             # Check for inclusion of default resource.
             resc_names = []
@@ -273,7 +275,6 @@ class IrodsConnector():
     resources = property(
         _get_resources, None, None, 'iRODS resource metadata')
 
-    
     def _get_session(self):
         """iRODS session getter method.
 
@@ -525,11 +526,12 @@ class IrodsConnector():
                             res[list(res.keys())[2]]])
         return results
 
-    def _list_resources(self):
+    def list_resources(self):
         """Discover all writable root resources available in the current
         system producing 2 lists, one with resource names and another
-        the value of the free_space annotation.  A value of 0 indicates
-        no free space annotated.
+        the value of the free_space annotation.  When the
+        force_unknown_free_space is set, it returns all root resources.
+        A value of 0 indicates no free space annotated.
 
         Returns
         -------
@@ -554,31 +556,11 @@ class IrodsConnector():
             if metadata['parent'] is None:
                 resc_names.append(name)
                 free_spaces.append(metadata['free_space'])
+        if not self.ienv.get('force_unknown_free_space', False):
+            names_spaces = (
+                (name, space) for name, space in zip(resc_names, free_spaces) if space != 0)
+            resc_names, free_spaces = zip(*names_spaces)
         return resc_names, free_spaces
-    
-    
-    def list_resources_based_on_force_flag(self):
-        """Discover all writable root resources available in the current
-        system producing 2 lists, one with resource names and another
-        the value of the free_space annotation. When the force_unknown_free_space 
-        is set, it returns all resources. A value of 0 indicates
-        no free space annotated.
-
-        Returns
-        -------
-        tuple
-            Discovered names of the root resources: (names,
-            free_space).
-       
-        """ 
-        names_spaces = list(zip(*self._list_resources()))
-        if not self.ienv.get('force_unknown_free_space'):
-            names, spaces = zip(*(
-                (name, space) for name, space in names_spaces
-                if space != 0))
-        else:
-            names, spaces = zip(*names_spaces)
-        return names, spaces
 
     def get_resource(self, resc_name):
         '''Instantiate an iRODS resource.
@@ -635,7 +617,7 @@ class IrodsConnector():
                 'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
         return space
 
-    def get_free_space(self, resc_name):
+    def get_free_space(self, resc_name, multiplier=MULTIPLIER):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -647,6 +629,9 @@ class IrodsConnector():
         ----------
         resc_name : str
             Name of monolithic resource or the top of a resource tree.
+        multiplier : int
+            Factor to convert to desired units (e.g., 1 / 2**30 for
+            GiB).
 
         Returns
         -------
@@ -667,9 +652,12 @@ class IrodsConnector():
             print(f'Resource with name {resc_name} not found')
             return -1
         if resc.free_space is not None:
-            return int(resc.free_space)
+            return round(int(resc.free_space) * multiplier)
         children = get_resource_children(resc)
-        return sum([int(child.free_space) for child in children if child.free_space is not None])
+        free_space = sum((
+            int(child.free_space) for child in children
+            if child.free_space is not None))
+        return round(free_space * multiplier)
 
     def dataobject_exists(self, path):
         """Check if an iRODS data object exists.
