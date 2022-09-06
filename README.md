@@ -115,11 +115,14 @@ The client works on Mac, Windows and Linux distributions.  On Mac and Windows it
         "tabUpDownload",  # requires "irods_default_resource" (not demoResc!)
         "tabELNData", 
         "tabDataCompression"  # requires "irods_default_resource" (not demoResc!)
-    ]
+    ],
+    "force_unknown_free_space": false  # show resources with no free space annotated
 }
 ```
 
 *PLEASE NOTE: the comments denoted by the hashes `#` will need to be removed as they will cause a JSON error.*
+
+The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
 
 The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directory/folder.
 

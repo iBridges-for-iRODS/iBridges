@@ -41,6 +41,7 @@ class contUpload(Thread):
         self.destColl = destColl
         self.upload_mode = upload_mode
         self.r_local_copy = r_local_copy
+        self.force = ic.ienv.get('force_unknown_free_space', False)
         Thread.__init__(self)
 
 
@@ -54,7 +55,7 @@ class contUpload(Thread):
                 if filename == "metadata.json":
                     if filepath in self.tosync_dictionary:
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
-                        self.ic.upload_data(filepath, self.destColl, None, None, force = True)
+                        self.ic.upload_data(filepath, self.destColl, None, None, force=self.force)
                     else:
                         print("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
@@ -70,7 +71,7 @@ class contUpload(Thread):
                 print("TODO figure out how to do the F500 upload")
                 
             else: # "all"
-                self.ic.upload_data(new_file, self.destColl, None, None, force = True)
+                self.ic.upload_data(new_file, self.destColl, None, None, force=self.force)
             
         # Stop file watcher
         self.fWatcher.stop()

@@ -11,28 +11,23 @@ import json
 
 class irodsDataCompression():
     def __init__(self, widget, ic, ienv):
-        self.ic = ic
         self.widget = widget
+        self.ic = ic
         self.ienv = ienv
-        rescs = self.ic.list_resources()
-        if ic.default_resc not in rescs:
-            self.infoPopup('ERROR resource config: "irods_default_resource" invalid:\n'\
-                           +ic.default_resc \
-                           +'\nDataCompression view not setup.')
-            return
-
-        ruleFiles = [path.join(getcwd(),'rules/tarCollection.r'), 
-                     path.join(getcwd(),'rules/tarReadIndex.r'), 
-                     path.join(getcwd(),'rules/tarExtract.r')]
+        ruleFiles = [
+            path.join(getcwd(), 'rules/tarCollection.r'),
+            path.join(getcwd(), 'rules/tarReadIndex.r'),
+            path.join(getcwd(), 'rules/tarExtract.r'),
+        ]
         for rule in ruleFiles:
             if not path.isfile(rule):
-                self.infoPopup('ERROR rules not configured:\n'+rule\
-                           +'\nDataCompression view not setup.')
+                self.infoPopup(
+                    f'ERROR rules not configured:\n{rule}\nDataCompression view not setup.')
                 return
 
-        self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
-        self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
-        self.irodsRootColl = '/'+ic.session.zone
+        self.widget.irodsZoneLabel1.setText(f"/{self.ic.session.zone}:")
+        self.widget.irodsZoneLabel2.setText(f"/{self.ic.session.zone}:")
+        self.irodsRootColl = f'/{ic.session.zone}'
         index = self.widget.decompressRescButton.findText(ic.default_resc)
         self.widget.decompressRescButton.setCurrentIndex(index)
 
@@ -52,7 +47,6 @@ class irodsDataCompression():
         self.widget.createButton.clicked.connect(self.createDataBundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
-        
 
     def infoPopup(self, message):
         QMessageBox.information(self.widget, 'Information', message)
@@ -79,11 +73,15 @@ class irodsDataCompression():
         return model
 
     def setupResourceButton(self, button):
+        names, spaces = self.ic.list_resources()
+        resources = [
+            f'{name} / {space}' for name, space in zip(names, spaces)]
         button.clear()
-        resources = self.ic.list_resources()
         button.addItems(resources)
-        if self.ic.default_resc in resources:
-            index = button.findText(self.ic.default_resc)
+        default_resc = self.ic.default_resc
+        if default_resc in names:
+            ridx = names.index(default_resc)
+            index = button.findText(resources[ridx])
             button.setCurrentIndex(index)
 
     def enableButtons(self, enable):

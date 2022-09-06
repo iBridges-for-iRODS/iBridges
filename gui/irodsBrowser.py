@@ -24,6 +24,7 @@ class irodsBrowser():
         """
 
         """
+        self.force = ic.ienv.get('force_unknown_free_space', False)
         self.ic = ic
         self.widget = widget
         self.widget.viewTabs.setCurrentIndex(0)
@@ -114,7 +115,8 @@ class irodsBrowser():
         self.widget.previewBrowser.clear()
 
     def _fill_resources_tab(self, obj_name, path_name):
-        """Populate the table in the Resources tab.
+        """Populate the table in the Resources tab with the resource
+        hierarchy of the replicas of the selected data object.
 
         Parameters
         ----------
@@ -395,7 +397,7 @@ class irodsBrowser():
                 parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
                 print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
                 self.ic.upload_data(fileSelect[0], parentColl,
-                        None, size, force=True)
+                        None, size, force=self.force)
                 self.loadTable()
             except NetworkException:
                 self.widget.errorLabel.setText(

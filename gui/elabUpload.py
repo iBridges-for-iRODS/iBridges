@@ -240,6 +240,7 @@ class Worker(QObject):
         self.expUrl = expUrl
         self.elab = elab
         self.errorLabel = errorLabel
+        self.force = ic.ienv.get('force_unknown_free_space', False)
 
         print("Start worker: ")
 
@@ -247,12 +248,12 @@ class Worker(QObject):
     def run(self):
         try:
             if os.path.isfile(self.filePath):
-                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=self.force)
                 item = self.ic.session.data_objects.get(
                         self.coll.path+'/'+os.path.basename(self.filePath))
                 self.ic.addMetadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=self.force)
                 upColl = self.ic.session.collections.get(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]

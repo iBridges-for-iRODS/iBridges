@@ -35,19 +35,12 @@ class irodsInfo():
         self.widget.versionLabel.setText(
             '.'.join(str(num) for num in self.ic.session.server_version))
         # irods resources
-        resc_names = self.ic.list_resources()
-        resources = []
-        for resc_name in resc_names:
-            free_space = self.ic.resources[resc_name]['free_space']
-            # Round to nearest GiB
-            resources.append((resc_name, str(round(free_space / 2**30))))
-        self.widget.rescTable.setRowCount(len(resources))
-        row = 0
-        for resc_name, free_space in resources:
-            resc = self.ic.get_resource(resc_name)
-            self.widget.rescTable.setItem(row, 0, PyQt5.QtWidgets.QTableWidgetItem(resc_name))
-            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(free_space))
+        names, spaces = self.ic.list_resources()
+        self.widget.rescTable.setRowCount(len(names))
+        for row, (name, space) in enumerate(zip(names, spaces)):
+            resc = self.ic.get_resource(name)
+            self.widget.rescTable.setItem(row, 0, PyQt5.QtWidgets.QTableWidgetItem(name))
+            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(str(space)))
             self.widget.rescTable.setItem(row, 2, PyQt5.QtWidgets.QTableWidgetItem(resc.status))
-            row = row + 1
         self.widget.rescTable.resizeColumnsToContents()
         self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))

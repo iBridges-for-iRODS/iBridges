@@ -46,6 +46,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 # Misc
 BUFF_SIZE = 2**30
+MULTIPLIER = 1 / 2**30
 NUM_THREADS = 4
 
 
@@ -97,12 +98,7 @@ class IrodsConnector():
             self.ienv = ienv
         if password is not None:
             self.password = password
-        self.default_resc = None
-        if 'irods_default_resource' in self.ienv:
-            self.default_resc = self.ienv['irods_default_resource']
-        # XXX is this default needed?
-        else:
-            self.default_resc = 'demoResc'
+        self.default_resc = self.ienv.get('irods_default_resource', None)
         # FIXME move iBridges parameters to iBridges configuration
         self.davrods = None
         if 'davrods_server' in self.ienv:
@@ -237,7 +233,7 @@ class IrodsConnector():
         if self._resources is None:
             query = self.session.query(
                 RESC_NAME, RESC_PARENT, RESC_STATUS, RESC_CONTEXT)
-            resc_dict = {}
+            resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
                 free_space = 0
@@ -249,8 +245,31 @@ class IrodsConnector():
                     'context': context,
                     'free_space': free_space,
                 }
-                resc_dict.setdefault(name, {}).update(metadata)
+                resc_list.append((name, metadata))
+            resc_dict = dict(
+                sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
+            # Check for inclusion of default resource.
+            resc_names = []
+            for name, metadata in self._resources.items():
+                context = metadata['context']
+                if context is not None:
+                    for kvp in context.split(';'):
+                        if 'write' in kvp:
+                            _, val = kvp.split('=')
+                            if float(val) == 0.0:
+                                continue
+                status = metadata['status']
+                if status is not None:
+                    if 'down' in status:
+                        continue
+                if metadata['parent'] is None and metadata['free_space'] > 0:
+                    resc_names.append(name)
+            if self.default_resc not in resc_names:
+                print('    -=WARNING=-    '*4)
+                print(f'The default resource ({self.default_resc}) not found in available resources!')
+                print('Check "irods_default_resource" and "force_unknown_free_space" settings.')
+                print('    -=WARNING=-    '*4)
         return self._resources
 
     resources = property(
@@ -509,15 +528,19 @@ class IrodsConnector():
 
     def list_resources(self):
         """Discover all writable root resources available in the current
-        system that have free_space annotated.
+        system producing 2 lists, one with resource names and another
+        the value of the free_space annotation.  When the
+        force_unknown_free_space is set, it returns all root resources.
+        A value of 0 indicates no free space annotated.
 
         Returns
         -------
-        list
-            Discovered names of writable root resources.
+        tuple
+            Discovered names of writable root resources: (names,
+            free_space).
 
         """
-        resc_names = []
+        resc_names, free_spaces = [], []
         for name, metadata in self.resources.items():
             context = metadata['context']
             if context is not None:
@@ -530,14 +553,14 @@ class IrodsConnector():
             if status is not None:
                 if 'down' in status:
                     continue
-            if metadata['parent'] is None and metadata['free_space'] > 0:
+            if metadata['parent'] is None:
                 resc_names.append(name)
-        # XXX are these necessary to remove
-        if 'bundleResc' in resc_names:
-            resc_names.remove('bundleResc')
-        if 'demoResc' in resc_names:
-            resc_names.remove('demoResc')
-        return resc_names
+                free_spaces.append(metadata['free_space'])
+        if not self.ienv.get('force_unknown_free_space', False):
+            names_spaces = (
+                (name, space) for name, space in zip(resc_names, free_spaces) if space != 0)
+            resc_names, free_spaces = zip(*names_spaces)
+        return resc_names, free_spaces
 
     def get_resource(self, resc_name):
         '''Instantiate an iRODS resource.
@@ -594,7 +617,7 @@ class IrodsConnector():
                 'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
         return space
 
-    def get_free_space(self, resc_name):
+    def get_free_space(self, resc_name, multiplier=MULTIPLIER):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -606,6 +629,9 @@ class IrodsConnector():
         ----------
         resc_name : str
             Name of monolithic resource or the top of a resource tree.
+        multiplier : int
+            Factor to convert to desired units (e.g., 1 / 2**30 for
+            GiB).
 
         Returns
         -------
@@ -626,9 +652,12 @@ class IrodsConnector():
             print(f'Resource with name {resc_name} not found')
             return -1
         if resc.free_space is not None:
-            return int(resc.free_space)
+            return round(int(resc.free_space) * multiplier)
         children = get_resource_children(resc)
-        return sum([int(child.free_space) for child in children if child.free_space is not None])
+        free_space = sum((
+            int(child.free_space) for child in children
+            if child.free_space is not None))
+        return round(free_space * multiplier)
 
     def dataobject_exists(self, path):
         """Check if an iRODS data object exists.
