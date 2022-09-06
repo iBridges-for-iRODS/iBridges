@@ -20,7 +20,7 @@ class IrodsModel(QStandardItemModel):
         Initializes the Treeview with the root node and first level. 
         """
         super(IrodsModel, self).__init__(parent)
-        self._checked_indices = set()
+        #self._checked_indices = set()
         self.ic = irods_session
         # Groups which the user id member of to check access rights on tree
         try:
@@ -39,59 +39,6 @@ class IrodsModel(QStandardItemModel):
         self.TreeView = TreeView
         self.clear()  # Empty tree
         rootnode = self.invisibleRootItem()
-
-    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
-        if role == Qt.ItemDataRole.CheckStateRole:
-            if index in self._checked_indices:
-                return Qt.CheckState.Checked
-            else:
-                return Qt.CheckState.Unchecked
-        return super(IrodsModel, self).data(index, role)
-
-    def flags(self, index):
-        return super(IrodsModel, self).flags(index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsAutoTristate
-
-    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
-
-        if role == Qt.ItemDataRole.CheckStateRole:
-            if value == Qt.CheckState.Checked:
-                # check irods ACLs for access rights
-                path = self.irodsPathFromTreeIdx(index)
-                try:
-                    reqAcls = [('own', path, group, self.ic.session.zone) for group in self.userGroups]
-                    reqAcls.extend([('write', path, group, self.ic.session.zone)
-                                    for group in self.userGroups])
-                    reqAcls.extend([('read object', path, group, self.ic.session.zone)
-                                    for group in self.userGroups])
-
-                    acls = set([(acl.access_name, acl.path, acl.user_name, acl.user_zone) 
-                            for acl in self.ic.getPermissions(path)])
-                    # Block checking of home item (found no easy way to remove the checkbox)
-                    if acls.intersection(reqAcls) == set():
-                        message = "ERROR, insufficient rights:\nCannot select "+path
-                        QMessageBox.information(self.TreeView, 'Error', message)
-                        # logging.info("Filedownload:" + message)
-                        return False
-                except:
-                    logging.info('IRODS TREE ERROR', exc_info=True)
-                    return False
-                # Enforce single select
-                while self._checked_indices:
-                    selected_index = self._checked_indices.pop()
-                    super(IrodsModel, self).setData(selected_index, Qt.CheckState.Unchecked, role)
-                # Add newly selected item
-                self._checked_indices.add(index)
-            else:
-                self._checked_indices.discard(index)
-            self.TreeView.repaint() # force refresh
-            return True
-        return super(self).setData(self, index, value, role)
-
-    def get_checked(self):
-        if len(self._checked_indices) < 1:
-            return (None, None)
-        checked_item = list(self._checked_indices)[0]
-        return (checked_item, self.irodsPathFromTreeIdx(checked_item))
 
     def initIrodsFsData(self):
         """

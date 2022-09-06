@@ -24,6 +24,7 @@ class dataTransfer(QDialog):
         loadUi("gui/ui-files/dataTransferState.ui", self)
 
         self.ic = ic
+        self.force = False
         self.localFsPath = localFsPath
         self.coll = irodsColl
         self.TreeInd = irodsTreeIdx
@@ -97,7 +98,7 @@ class dataTransfer(QDialog):
         else:
             self.worker = UpDownload(self.ic, self.upload, 
                                      self.localFsPath, self.coll, 
-                                     total_size, self.resource, self.diff, self.addFiles)
+                                     total_size, self.resource, self.diff, self.addFiles, self.force)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.thread.quit)
@@ -152,7 +153,12 @@ class dataTransfer(QDialog):
             self.statusLbl.setText("Update complete.")
         else:
             self.statusLbl.setText(statusmessage)
+            print(statusmessage)
             self.confirmBtn.setText("Retry")
+            if "No size set on iRODS resource" in statusmessage:
+                self.force = True
+                self.confirmBtn.setText("Retry and force upload?")
+            
 
 
 # Background worker to load the menu
@@ -231,7 +237,7 @@ class getDataState(QObject):
 # Background worker for the up/download
 class UpDownload(QObject):
     finished = pyqtSignal(bool, str)
-    def __init__(self, ic, upload, localFS, Coll, totalSize, resource, diff, addFiles):
+    def __init__(self, ic, upload, localFS, Coll, totalSize, resource, diff, addFiles, force):
         super(UpDownload, self).__init__()
         self.ic = ic
         self.upload = upload
@@ -241,6 +247,7 @@ class UpDownload(QObject):
         self.resource = resource
         self.diff = diff
         self.addFiles = addFiles
+        self.force = force
 
     def run(self):    
         try:
@@ -248,7 +255,7 @@ class UpDownload(QObject):
                 diffs = (self.diff, self.addFiles, [], [])
                 self.ic.uploadData(self.localFS, self.Coll, 
                                    self.resource, self.totalSize, buff = 1024**3, 
-                                   force = False, diffs = diffs)
+                                   force = self.force, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])

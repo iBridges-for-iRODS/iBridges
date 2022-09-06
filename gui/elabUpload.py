@@ -25,11 +25,21 @@ class elabUpload():
         #Config ok check
         self.groupIdLabel = widget.groupIdLabel
         self.experimentIdLabel = widget.experimentIdLabel
+        
         #Selecting and uploading local files and folders
-        self.dirmodel = checkableFsTreeModel(widget.localFsTable)
+        self.dirmodel = QFileSystemModel(self.widget.localFsTable)
         widget.localFsTable.setModel(self.dirmodel)
         self.localFsTable = widget.localFsTable
-        
+        self.widget.localFsTable.setColumnHidden(1, True)
+        self.widget.localFsTable.setColumnHidden(2, True)
+        self.widget.localFsTable.setColumnHidden(3, True) 
+        #self.widget.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        home_location = QtCore.QStandardPaths.standardLocations(
+                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
+        index = self.dirmodel.setRootPath(home_location)
+        self.widget.localFsTable.setCurrentIndex(index)
+
+
         self.elnUploadButton = widget.elnUploadButton
         #Showing result
         self.elnPreviewBrowser = widget.elnPreviewBrowser
@@ -57,13 +67,12 @@ class elabUpload():
                 self.elnGroupTable.setItem(row, 1, QTableWidgetItem(group[1]))
                 row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
-            self.loadLocalFileView()
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as e:
             logging.info("elabUpload: "+repr(e))
             self.errorLabel.setText(
                 "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
     
     def selectExperiment(self, expId):
@@ -78,7 +87,7 @@ class elabUpload():
     def loadExperiments(self):
         self.errorLabel.clear()
         self.elnExperimentTable.setRowCount(0)
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         row = self.elnGroupTable.currentRow()
         if row > -1:
             groupId = self.elnGroupTable.item(row, 0).text()
@@ -105,32 +114,19 @@ class elabUpload():
                 logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(e)+"\n You might not have permissions for that group.")
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return
 
         self.elnExperimentTable.resizeColumnsToContents()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
-
-    def loadLocalFileView(self):
-        #Load current directory in self.localFsTable
-        home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.HomeLocation)[0]
-        index = self.dirmodel.setRootPath(home_location)
-        self.localFsTable.setColumnHidden(1, True)
-        self.localFsTable.setColumnHidden(2, True)
-        self.localFsTable.setColumnHidden(3, True)
-        self.localFsTable.setCurrentIndex(index)
-        self.localFsTable.setIndentation(20)
-        self.localFsTable.setColumnWidth(0, 400)
-
 
     def reportProgress(self, n):
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploading ...")
 
 
     def reportFinished(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
         self.showPreview()
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
@@ -150,24 +146,25 @@ class elabUpload():
 
 
     def uploadData(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.elnPreviewBrowser.clear()
         self.errorLabel.clear()
         groupId = self.groupIdLabel.text()
         expId = self.experimentIdLabel.text()
-        path = self.dirmodel.get_checked()
+        index = self.widget.localFsTable.selectedIndexes()[0]
+        path = self.dirmodel.filePath(index)
 
         if groupId == "":
             self.errorLabel.setText("ERROR: No group selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
         if expId == "":
             self.errorLabel.setText("ERROR: No experiment selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
         if path == "":
             self.errorLabel.setText("ERROR: No data selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 	
         try:
@@ -199,7 +196,7 @@ class elabUpload():
                             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
             upload = buttonReply == QMessageBox.StandardButton.Yes
             if upload:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+                #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
                 self.elnUploadButton.setEnabled(False)
                 #start own thread for the upload 
                 self.thread = QThread()
@@ -214,14 +211,14 @@ class elabUpload():
                 self.worker.progress.connect(self.reportProgress)
                 self.thread.start()
                 self.thread.finished.connect(self.reportFinished)
-            else:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #else:
+                #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
         except Exception as e:
             logging.info("ElabUpload UploadData: "+repr(e))
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
 class Worker(QObject):

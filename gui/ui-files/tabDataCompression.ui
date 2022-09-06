@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>502</height>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -43,7 +43,6 @@ color: rgb(217, 174, 23);
      <property name="font">
       <font>
        <pointsize>13</pointsize>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -86,7 +85,7 @@ color: rgb(217, 174, 23);
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>
@@ -150,7 +149,6 @@ color: rgb(217, 174, 23);
         <widget class="QPushButton" name="createButton">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -207,7 +205,6 @@ color: rgb(217, 174, 23);
      <property name="font">
       <font>
        <pointsize>13</pointsize>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -250,7 +247,7 @@ color: rgb(217, 174, 23);
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>
@@ -294,7 +291,6 @@ color: rgb(217, 174, 23);
         <widget class="QPushButton" name="unpackButton">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>

@@ -34,7 +34,8 @@ class irodsCreateTicket:
         self.widget.createTicketButton.setEnabled(False)
 
         # gather info
-        idx, path = self.irodsmodel.get_checked()
+        idx = self.widget.irodsFsTreeView.selectedIndexes()[0]
+        path = self.irodsmodel.irodsPathFromTreeIdx(idx)
         if path is None or self.ic.session.data_objects.exists(path):
             self.widget.infoLabel.setText("ERROR: Please select a collection.")
             self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
