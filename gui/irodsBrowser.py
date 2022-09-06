@@ -13,6 +13,7 @@ from PyQt5 import QtGui
 
 from gui.popupWidgets import irodsCreateCollection
 from utils.utils import walkToDict, getDownloadDir
+from meta import metadataFileParser
 
 
 class irodsBrowser():
@@ -96,6 +97,7 @@ class irodsBrowser():
         self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
         self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
         self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
+        self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
         self.widget.aclAddButton.clicked.connect(self.updateIcatAcl)
 
     # Util functions
@@ -571,3 +573,12 @@ class irodsBrowser():
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
 
+    def loadMetadataFile(self):
+        path, filter = QtWidgets.QFileDialog.getOpenFileName(None, 'Select file',
+                                                             '', 'Metadata files (*.csv, *.json, *.xml);;All files (*)')
+        if path:
+            self.widget.errorLabel.clear()
+
+            avus = metadataFileParser.parse(path)
+
+            # self.widget.metaValueField.setText(avus)
