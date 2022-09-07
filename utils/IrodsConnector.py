@@ -557,9 +557,9 @@ class IrodsConnector():
                 resc_names.append(name)
                 free_spaces.append(metadata['free_space'])
         if not self.ienv.get('force_unknown_free_space', False):
-            names_spaces = (
-                (name, space) for name, space in zip(resc_names, free_spaces) if space != 0)
-            resc_names, free_spaces = zip(*names_spaces)
+            names_spaces = [
+                (name, space) for name, space in zip(resc_names, free_spaces) if space != 0]
+            resc_names, free_spaces = zip(*names_spaces) if names_spaces else [],[]
         return resc_names, free_spaces
 
     def get_resource(self, resc_name):
