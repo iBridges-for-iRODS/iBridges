@@ -12,10 +12,9 @@ type_mapper = {
     #     'func': get_metadata_list_from_json,
     #     'description': 'Json file containing '
     #     },
-    'xml': {
+    '.xml': {
         'func': get_metadata_list_xml,
-        'description': '',
-        'reference': '',
+        'description': ''
     },
 }
 
@@ -27,4 +26,6 @@ def parse(file_path):
 
     file_extension = Path(file_path).suffix
     if file_extension in type_mapper:
-        return type_mapper[file_extension].func
+        return type_mapper[file_extension]['func'](file_path)
+    else:
+        return []
