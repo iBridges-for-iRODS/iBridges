@@ -265,7 +265,6 @@ class irodsBrowser():
 
     def _get_selected_objects(self):
         rows = {row.row() for row in self.widget.collTable.selectedIndexes()}
-        print(rows)
         objects = []
         for row in rows:
             item = self._get_irods_item_of_table_row(row)
@@ -278,7 +277,7 @@ class irodsBrowser():
         try:
             self._clear_error_label()
             self._clear_view_tabs()
-            obj_path = "/"+self.widget.inputPath.text().strip("/")
+            obj_path = iRODSPath(self.widget.inputPath.text())
             if self.ic.session.collections.exists(obj_path):
                 coll = self.ic.session.collections.get(obj_path)
                 self.widget.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
