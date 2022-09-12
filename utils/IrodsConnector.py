@@ -540,7 +540,7 @@ class IrodsConnector():
             free_space).
 
         """
-        resc_names, free_spaces = [], []
+        names, spaces = [], []
         for name, metadata in self.resources.items():
             context = metadata['context']
             if context is not None:
@@ -554,13 +554,14 @@ class IrodsConnector():
                 if 'down' in status:
                     continue
             if metadata['parent'] is None:
-                resc_names.append(name)
-                free_spaces.append(metadata['free_space'])
+                names.append(name)
+                spaces.append(metadata['free_space'])
         if not self.ienv.get('force_unknown_free_space', False):
             names_spaces = [
-                (name, space) for name, space in zip(resc_names, free_spaces) if space != 0]
-            resc_names, free_spaces = zip(*names_spaces) if names_spaces else [],[]
-        return resc_names, free_spaces
+                (name, space) for name, space in zip(names, spaces)
+                if space != 0]
+            names, spaces = zip(*names_spaces) if names_spaces else ([], [])
+        return names, spaces
 
     def get_resource(self, resc_name):
         '''Instantiate an iRODS resource.
