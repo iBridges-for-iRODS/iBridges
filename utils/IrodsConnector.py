@@ -15,6 +15,7 @@ import string
 import irods
 import irods.rule
 import irods.ticket
+import irods.meta
 
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
@@ -1178,7 +1179,24 @@ class IrodsConnector():
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
                 raise cnap("ERROR UPDATE META: no permissions")
 
-    def updateMetadata(self, items, key, value, units = None):
+    def addMultipleMetadata(self, items, avus):
+        list_of_tags = [
+            irods.meta.AVUOperation(operation='add',
+                                    avu=irods.meta.iRODSMeta(a, v, u))
+            for (a, v, u) in avus]
+        for item in items:
+            try:
+                item.metadata.apply_atomic_operations(*list_of_tags)
+            except irods.meta.BadAVUOperationValue:
+                print(f"{RED}INFO ADD MULTIPLE META: bad metadata value{DEFAULT}")
+            except irods.meta.InvalidAtomicAVURequest:
+                print(f"{RED}INFO ADD MULTIPLE META: invalid metadata request{DEFAULT}")
+            except Exception as e:
+                print(f"{RED}INFO ADD MULTIPLE META: unexpected error{DEFAULT}")
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+                raise cnap("ERROR UPDATE META: no permissions") from cnap
+
+    def updateMetadata(self, items, key, value, units=None):
         """
         Updates a metadata entry to all items
         items: list of iRODS data objects or iRODS collections
@@ -1203,7 +1221,7 @@ class IrodsConnector():
                 else:
                     self.addMetadata(items, key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-            raise cnap("ERROR UPDATE META: no permissions "+item.path)
+            raise cnap(f"ERROR UPDATE META: no permissions {item.path}") from cnap
 
     def deleteMetadata(self, items, key, value, units):
         """
