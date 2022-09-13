@@ -262,28 +262,35 @@ class Worker(QObject):
             logging.info("ElabUpload data upload and annotation worker: "+repr(e))
             print(repr(e))
 
-        self.annotateElab()
+        self.annotateElab({ "Data size": str(self.size) + "Bytes", 
+                            "iRODS path": self.coll.path, 
+                            "iRODS server": self.ic.session.host, 
+                            "iRODS user": self.ic.session.username})
 
 
-    def annotateElab(self):
+    def annotateElab(self, metadata):
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
-        if self.ic.davrods and "yoda" in self.ic.session.host:
+        # YODA: webdav URL does not contain "home", but iRODS path does!
+        if self.ic.davrods and ("yoda" in self.ic.session.host or "uu.nl" in self.ic.session.host):
             self.elab.addMetadata(
                 self.ic.davrods+'/'+self.coll.path.split('home/')[1].strip(),
+                meta=metadata,
                 title='Data in iRODS')
         elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
                 self.elab.addMetadata(
                     self.ic.davrods+'/'+self.coll.path.split(
                         self.ic.session.zone)[1].strip('/'), 
+                    meta=metadata,
                     title='Data in iRODS')
         elif self.ic.davrods:
             self.elab.addMetadata(
                     self.ic.davrods+'/'+self.coll.path.strip('/'), 
+                    meta=metadata,
                     title='Data in iRODS')
         else:
             self.elab.addMetadata('{'+self.ic.session.host+', \n'\
                                     +self.ic.session.zone+', \n'\
                                     +self.ic.session.username+', \n'\
                                     +str(self.ic.session.port)+'}\n'+
-                                    self.coll.path, title='Data in iRODS')
-    
+                                    self.coll.path, meta=metadata,
+                                    title='Data in iRODS') 

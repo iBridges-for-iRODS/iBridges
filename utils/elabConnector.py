@@ -150,6 +150,15 @@ class elabConnector():
         except:
             raise
 
-    def addMetadata(self, info, title='Title'):
+    def addMetadata(self, url, meta=None, title='Title'):
+        if 'http' in url and '://' in url:
+            info = '<a href="' + url + '">Experiment data in iRODS</a>'
+        else:
+            info = url
+        if not meta == None:
+            info = info + '<br><table style="width: 500px;" cellspacing="1" cellpadding="1" border="1"><tbody>'
+            for key, value in meta.items():
+                info = info + '<tr><td>' + key + '</td><td>' + value + '</td></tr>'
+            info = info + '</tbody></table>'
         self.experiment.add(info, title)
         return True
