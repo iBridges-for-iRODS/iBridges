@@ -98,8 +98,10 @@ class irodsConnector():
 
         if "default_resource_name" in ienv:
             self.defaultResc = ienv["default_resource_name"]
-        else:
+        elif "demoResc" in self.listResources():
             self.defaultResc = "demoResc"
+        else:
+            self.defaultResc = ""
 
         if "davrods_server" in ienv:
             self.davrods = ienv["davrods_server"].strip('/')
@@ -255,10 +257,8 @@ class irodsConnector():
             if parent is None:
                 resources.append(rescName)
 
-        if 'bundleResc' in resources:
-            resources.remove('bundleResc')
-        if 'demoResc' in resources:
-            resources.remove('demoResc')
+        #if 'bundleResc' in resources:
+        #    resources.remove('bundleResc')
 
         return resources
 
