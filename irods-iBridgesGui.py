@@ -15,6 +15,7 @@ from PyQt6 import QtGui
 
 from utils.irodsConnector import irodsConnector
 from utils.irodsConnectorIcommands import irodsConnectorIcommands
+from utils.utils import ensure_dir
 from irods.exception import CAT_INVALID_AUTHENTICATION, PAM_AUTH_PASSWORD_FAILED
 from irods.exception import NetworkException
 # from irods.exception import CollectionDoesNotExist
@@ -25,8 +26,12 @@ from utils.utils import networkCheck, setup_logger
 
 class irodsLogin(QDialog):
     def __init__(self):
+        import setproctitle
+        setproctitle.setproctitle('iBridgesGUI')
+
         super(irodsLogin, self).__init__()
         loadUi("gui/ui-files/irodsLogin.ui", self)
+        ensure_dir(os.path.expanduser('~') + os.sep + ".irods")
         
         self.irodsEnvPath = os.path.expanduser('~') + os.sep + ".irods"
         setup_logger(self.irodsEnvPath, "iBridgesGui")
