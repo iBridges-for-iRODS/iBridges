@@ -58,7 +58,7 @@ acPostProcForDelete { }
 - Python packages
 	- Cryptography
 	- PyQt5
-	- python-irodsclient-1.0.0
+	- python-irodsclient
 	- elabjournal
 	- watchdog
 
