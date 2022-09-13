@@ -181,7 +181,7 @@ class elabUpload():
             print("ELN DATA UPLOAD experiment: \n"+expUrl)
     
             #get upload total size to inform user
-            size = round(getSize([path])/1024**2)
+            size = getSize([path])
             #if user specifies a different path than standard home
             if self.elnIrodsPath.text() == '/zone/home/user':
                 collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
