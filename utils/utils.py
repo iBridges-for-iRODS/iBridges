@@ -25,6 +25,7 @@ def getSize(pathList):
                     size += os.path.getsize(f)
         elif os.path.isfile(p):
             size = size + os.path.getsize(p)
+    print("UTILS size: "+str(size))
     return size
 
 

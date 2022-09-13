@@ -620,7 +620,7 @@ class irodsConnector():
         """
         for item in items:
             try:
-                item.metadata.add(key.upper(), value, units)
+                item.metadata.add(key, value, units)
             except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 print(RED+"INFO ADD META: Metadata already present"+DEFAULT)
             except CAT_NO_ACCESS_PERMISSION:
