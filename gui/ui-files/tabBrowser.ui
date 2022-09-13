@@ -91,6 +91,9 @@ color: rgb(46, 52, 54);
      </item>
      <item row="0" column="3">
       <widget class="QPushButton" name="parentButton">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
        <property name="text">
         <string/>
        </property>

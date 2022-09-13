@@ -8,6 +8,7 @@ from PyQt6 import QtGui
 from gui.popupWidgets import irodsCreateCollection
 from utils.utils import walkToDict, getDownloadDir
 import logging
+from pathlib import Path
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 
@@ -72,7 +73,9 @@ class irodsBrowser:
     def browse(self):
         # update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
+        self.widget.refreshButton.clicked.connect(self.loadTable)
         self.widget.homeButton.clicked.connect(self.resetPath)
+        self.widget.parentButton.clicked.connect(self.setParentPath)
         # quick data upload and download (files only)
         self.widget.UploadButton.clicked.connect(self.fileUpload)
         self.widget.DownloadButton.clicked.connect(self.fileDownload)
@@ -252,6 +255,12 @@ class irodsBrowser:
             logging.exception("Something went wrong")
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
+
+    def setParentPath(self):
+        currentPath = self.widget.inputPath.text()
+        self.widget.inputPath.setText(str(Path(currentPath).parent))
+        self.loadTable()
+
 
     def resetPath(self):
         self.widget.inputPath.setText(self.irodsRoot.path)
