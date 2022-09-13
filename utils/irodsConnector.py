@@ -251,16 +251,26 @@ class irodsConnector():
         Returns list of all root resources, that accept data.
         """
         query = self.session.query(Resource.name, Resource.parent)
-        resources = []
+        rescParents = []
         for item in query.get_results():
             rescName, parent = item.values()
             if parent is None:
-                resources.append(rescName)
-
-        #if 'bundleResc' in resources:
-        #    resources.remove('bundleResc')
-
+            	rescParents.append(rescName)
+        #find all storage resources to the roots
+        resources = [] #list of (root. storage)
+        for root in rescParents:
+            children = self.getResource(root).children
+            if children == []:
+                resources.append(("", root))
+            else:
+                while children:
+                    child = children.pop()
+                    if child.children:
+                        children.extend(child.children)
+                    else:
+                        resources.append((root, child.name))
         return resources
+
 
     def getResource(self, resource):
         """
@@ -268,6 +278,7 @@ class irodsConnector():
             irods.exception.ResourceDoesNotExist
         """
         return self.session.resources.get(resource)
+
 
     def resourceSize(self, resource):
         """
