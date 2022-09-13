@@ -19,7 +19,7 @@ BLUE = '\x1b[1;34m'
 
 
 class irodsConnectorIcommands(irodsConnector):
-    def __init__(self, password=''):
+    def __init__(self, password='', application_name=None):
         """
         iRODS authentication.
         Input:
@@ -58,7 +58,7 @@ class irodsConnectorIcommands(irodsConnector):
             if errLogin != b'':
                 logging.info("AUTHENTICATION ERROR: Wrong iRODS password provided.")
                 raise ConnectionRefusedError('Wrong iRODS password provided.')
-            self.session = iRODSSession(irods_env_file=envFile)
+            self.session = iRODSSession(irods_env_file=envFile, application_name=application_name)
         else:
             logging.info("Password cached, trying ils:")
             p = Popen(['ils'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
@@ -71,7 +71,7 @@ class irodsConnectorIcommands(irodsConnector):
                 if errLogin != b'':
                     logging.info('AUTHENTICATION ERROR: Wrong iRODS password provided.')
                     raise ConnectionRefusedError('Wrong iRODS password provided.')
-            self.session = iRODSSession(irods_env_file=envFile)
+            self.session = iRODSSession(irods_env_file=envFile, application_name=application_name)
         try:
             colls = self.session.collections.get("/" + self.session.zone + "/home").subcollections
         except CollectionDoesNotExist:

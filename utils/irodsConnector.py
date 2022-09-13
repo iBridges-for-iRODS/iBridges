@@ -30,7 +30,7 @@ BLUE = '\x1b[1;34m'
 
 
 class irodsConnector():
-    def __init__(self, envFile, password=""):
+    def __init__(self, envFile, password="", application_name=None):
         """
         iRODS authentication with python.
         Input:
@@ -56,7 +56,7 @@ class irodsConnector():
                 raise CAT_INVALID_AUTHENTICATION("No password provided.")
 
             else:
-                self.session = iRODSSession(**ienv, password=password)
+                self.session = iRODSSession(**ienv, password=password, application_name=application_name)
                 testcoll = self.session.collections.get(
                         "/"+self.session.zone+"/home")
         except PlainTextPAMPasswordError:
@@ -71,7 +71,7 @@ class irodsConnector():
                             'encryption_salt_size': 8,
                             'ssl_context': ssl_context}
                 self.session = iRODSSession(
-                                **ienv, password=password, **ssl_settings)
+                                **ienv, password=password, application_name=application_name, **ssl_settings)
             except:
                 raise
 
