@@ -78,13 +78,6 @@ color: rgb(46, 52, 54);
        </property>
       </widget>
      </item>
-     <item row="0" column="5">
-      <widget class="QPushButton" name="createCollButton">
-       <property name="text">
-        <string>Create Collection</string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label_2">
        <property name="font">
@@ -98,7 +91,28 @@ color: rgb(46, 52, 54);
        </property>
       </widget>
      </item>
-     <item row="0" column="2">
+     <item row="1" column="3">
+      <widget class="QPushButton" name="DownloadButton">
+       <property name="text">
+        <string>File Download</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="6">
+      <widget class="QPushButton" name="UploadButton">
+       <property name="text">
+        <string>File Upload</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QPushButton" name="createCollButton">
+       <property name="text">
+        <string>Create Collection</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="6">
       <widget class="QPushButton" name="homeButton">
        <property name="text">
         <string/>
@@ -109,17 +123,25 @@ color: rgb(46, 52, 54);
        </property>
       </widget>
      </item>
-     <item row="1" column="5">
-      <widget class="QPushButton" name="UploadButton">
+     <item row="0" column="2">
+      <widget class="QPushButton" name="refreshButton">
        <property name="text">
-        <string>File Upload</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/refresh.png</normaloff>../icons/refresh.png</iconset>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
-      <widget class="QPushButton" name="DownloadButton">
+     <item row="0" column="3">
+      <widget class="QPushButton" name="parentButton">
        <property name="text">
-        <string>File Download</string>
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/arrow-up.png</normaloff>../icons/arrow-up.png</iconset>
        </property>
       </widget>
      </item>
