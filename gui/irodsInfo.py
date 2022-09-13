@@ -34,7 +34,7 @@ class irodsInfo():
         self.widget.versionLabel.setText(
             '.'.join(str(num) for num in self.ic.session.server_version))
         # irods resources
-        resourceNames = self.ic.listResources()
+        resourceNames = set([i[0] for i in self.ic.listResources()])
         resources = []
         for name in resourceNames:
             size = self.ic.resourceSize(name)

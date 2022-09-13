@@ -111,14 +111,18 @@ class irodsBrowser:
                     "/"+path.strip("/")+"/"+value.strip("/")
                     )
             replicas = [resc.resource_name for resc in obj.replicas]
+            print(replicas)
             for i in range(len(resources)):
                 self.widget.resourceTable.setItem(i, 0, 
-                        QtWidgets.QTableWidgetItem(resources[i]))
-                if resources[i] in replicas:
+                        QtWidgets.QTableWidgetItem(resources[i][0]))
+                self.widget.resourceTable.setItem(i, 1,
+                        QtWidgets.QTableWidgetItem(resources[i][1]))
+                if resources[i][1] in replicas:
+                    print("resources[i][1]")
                     item = QtWidgets.QTableWidgetItem()
                     item.setCheckState(QtCore.Qt.CheckState.Checked)
                     item.setFlags(QtCore.Qt.ItemFlag.ItemIsEnabled)
-                    self.widget.resourceTable.setItem(i, 1, item)
+                    self.widget.resourceTable.setItem(i, 2, item)
         self.widget.resourceTable.resizeColumnsToContents()
 
     def __fillACLs(self, value, path):

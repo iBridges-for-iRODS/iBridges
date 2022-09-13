@@ -261,7 +261,7 @@ class irodsConnector():
         for root in rescParents:
             children = self.getResource(root).children
             if children == []:
-                resources.append(("", root))
+                resources.append((root, ""))
             else:
                 while children:
                     child = children.pop()

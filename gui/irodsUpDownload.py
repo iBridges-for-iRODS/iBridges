@@ -62,7 +62,7 @@ class irodsUpDownload:
         self.widget.createCollButton.clicked.connect(self.createCollection)
 
         # Resource selector
-        available_resources = self.ic.listResources()
+        available_resources = set([i[0] for i in self.ic.listResources()])
         self.widget.resourceBox.clear()
         self.widget.resourceBox.addItems(available_resources)
         if ("default_resource_name" in ienv) and \

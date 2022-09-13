@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1278</width>
-    <height>807</height>
+    <height>813</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -573,9 +573,17 @@ color: rgb(46, 52, 54);
          <property name="selectionBehavior">
           <enum>QAbstractItemView::SelectRows</enum>
          </property>
+         <property name="columnCount">
+          <number>3</number>
+         </property>
          <column>
           <property name="text">
-           <string>Resource name</string>
+           <string>Resource Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Storage Name</string>
           </property>
          </column>
          <column>
