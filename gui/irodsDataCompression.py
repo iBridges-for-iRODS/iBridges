@@ -1,207 +1,255 @@
-from gui.irodsTreeView  import IrodsModel
-from gui.popupWidgets import irodsIndexPopup
+"""Compress/bundle window residing in a tab.
 
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal
-from PyQt5 import QtGui, QtCore
+"""
+import os
+import pathlib
 
-from os import path, getcwd
-import json
+import PyQt5.QtCore
+import PyQt5.QtGui
+import PyQt5.QtWidgets
+
+import gui
+
+CWD = os.getcwd()
+
 
 class irodsDataCompression():
+    """Main class for window creation.
+
+    """
+
     def __init__(self, widget, ic, ienv):
+        """Create initial window elements.
+
+        Parameters
+        ----------
+        widget : QtWidgets
+            Common widget container.
+        ic : IrodsConnector
+            Connection to an iRODS session.
+        ienv : dict
+            iRODS environment settings.
+
+        """
         self.widget = widget
         self.ic = ic
         self.ienv = ienv
-        ruleFiles = [
-            path.join(getcwd(), 'rules/tarCollection.r'),
-            path.join(getcwd(), 'rules/tarReadIndex.r'),
-            path.join(getcwd(), 'rules/tarExtract.r'),
+        self.thread_create = None
+        self.thread_extract = None
+        self.worker_create = None
+        self.worker_extract = None
+        # TODO convert these to string versions to eliminate this path depenency
+        self.bundle_rule_file = pathlib.Path(CWD, 'rules/tarCollection.r')
+        self.index_rule_file = pathlib.Path(CWD, 'rules/tarCollection.r')
+        self.extract_rule_file = pathlib.Path(CWD, 'rules/tarCollection.r')
+        paths = [
+            self.bundle_rule_file,
+            self.index_rule_file,
+            self.extract_rule_file,
         ]
-        for rule in ruleFiles:
-            if not path.isfile(rule):
-                self.infoPopup(
-                    f'ERROR rules not configured:\n{rule}\nDataCompression view not setup.')
+        for path in paths:
+            if not path.exists():
+                self.info_popup(
+                    f'ERROR {path.name} not found in:\n{path.parent}\nDataCompression view not setup.')
                 return
-
-        self.widget.irodsZoneLabel1.setText(f"/{self.ic.session.zone}:")
-        self.widget.irodsZoneLabel2.setText(f"/{self.ic.session.zone}:")
-        self.irodsRootColl = f'/{ic.session.zone}'
+        self.root_path = f'/{ic.session.zone}'
+        self.widget.irodsZoneLabel1.setText(f'{self.root_path}:')
+        self.widget.irodsZoneLabel2.setText(f'{self.root_path}:')
         index = self.widget.decompressRescButton.findText(ic.default_resc)
         self.widget.decompressRescButton.setCurrentIndex(index)
-
-        #irodsCollectionTree
-        self.collectionTreeModel = self.setupFsTree(self.widget.irodsCollectionTree)
-        self.widget.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refresh_subtree)
-        #self.widget.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refresh_subtree)
-        #irodsCompressionTree
-        self.compressionTreeModel = self.setupFsTree(self.widget.irodsCompressionTree)
-        self.widget.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refresh_subtree)
-        #self.widget.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refresh_subtree)
-        #resource buttons
-        self.setupResourceButton(self.widget.compressRescButton)
-        self.setupResourceButton(self.widget.decompressRescButton)
-
-        #Create/Unpack/Index buttons
-        self.widget.createButton.clicked.connect(self.createDataBundle)
+        # irodsCollectionTree
+        self.collection_tree_model = self.setup_fs_tree(self.widget.irodsCollectionTree)
+        self.widget.irodsCollectionTree.expanded.connect(self.collection_tree_model.refresh_subtree)
+        # irodsCompressionTree
+        self.compression_tree_model = self.setup_fs_tree(self.widget.irodsCompressionTree)
+        self.widget.irodsCompressionTree.expanded.connect(self.compression_tree_model.refresh_subtree)
+        # resource buttons
+        self.setup_resource_selector(self.widget.compressRescButton)
+        self.setup_resource_selector(self.widget.decompressRescButton)
+        # Create/Unpack/Index buttons
+        self.widget.createButton.clicked.connect(self.create_data_bundle)
         self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
         self.widget.indexButton.clicked.connect(self.getIndex)
 
-    def infoPopup(self, message):
-        QMessageBox.information(self.widget, 'Information', message)
+    def info_popup(self, message):
+        """Display an informational pop-up with the `message`.
 
+        Parameters
+        ----------
+        message : str
+            Text to display in pop-up.
 
-    def setupFsTree(self, treeView):
-        model = IrodsModel(self.ic, treeView)
-        treeView.setModel(model)
-        model.setHorizontalHeaderLabels([self.irodsRootColl,
-                                              'Level', 'iRODS ID',
-                                              'parent ID', 'type'])
+        """
+        PyQt5.QtWidgets.QMessageBox.information(self.widget, 'Information', message)
 
-        treeView.expanded.connect(model.refresh_subtree)
-        treeView.clicked.connect(model.refresh_subtree)
+    def setup_fs_tree(self, tree_view):
+        """Initialize an iRODS tree view.
+
+        tree_view : QtWidget
+            The widget for this tree view.
+
+        Returns
+        -------
+        IrodsModel
+            Constructed tree view.
+
+        """
+        model = gui.irodsTreeView.IrodsModel(self.ic, tree_view)
+        tree_view.setModel(model)
+        model.setHorizontalHeaderLabels(
+            [self.root_path, 'Level', 'iRODS ID', 'parent ID', 'type'])
+        tree_view.expanded.connect(model.refresh_subtree)
+        tree_view.clicked.connect(model.refresh_subtree)
         model.init_tree()
-
-        treeView.setHeaderHidden(True)
-        treeView.header().setDefaultSectionSize(180)
-        treeView.setColumnHidden(1, True)
-        treeView.setColumnHidden(2, True)
-        treeView.setColumnHidden(3, True)
-        treeView.setColumnHidden(4, True)
-
+        tree_view.setHeaderHidden(True)
+        tree_view.header().setDefaultSectionSize(180)
+        tree_view.setColumnHidden(1, True)
+        tree_view.setColumnHidden(2, True)
+        tree_view.setColumnHidden(3, True)
+        tree_view.setColumnHidden(4, True)
         return model
 
-    def setupResourceButton(self, button):
+    def setup_resource_selector(self, selector):
+        """Initialize a resource drop-down menu.
+
+        Parameters
+        ----------
+        selector : QtWidget
+
+        """
         names, spaces = self.ic.list_resources()
         resources = [
             f'{name} / {space}' for name, space in zip(names, spaces)]
-        button.clear()
-        button.addItems(resources)
+        selector.clear()
+        selector.addItems(resources)
         default_resc = self.ic.default_resc
         if default_resc in names:
             ridx = names.index(default_resc)
-            index = button.findText(resources[ridx])
-            button.setCurrentIndex(index)
+            index = selector.findText(resources[ridx])
+            selector.setCurrentIndex(index)
 
-    def enableButtons(self, enable):
+    def enable_buttons(self, enable):
+        """Allow "buttons" to be pressed.
+
+        Parameters
+        ----------
+        enable : bool
+            Should "buttons" be pressable?
+
+        """
         self.widget.compressRescButton.setEnabled(enable)
         self.widget.decompressRescButton.setEnabled(enable)
-        #Create/Unpack/Index buttons
         self.widget.createButton.setEnabled(enable)
         self.widget.unpackButton.setEnabled(enable)
         self.widget.indexButton.setEnabled(enable)
 
+    def create_data_bundle(self):
+        """Run an iRODS bundle rule on selected collection.
 
-    def createDataBundle(self):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        self.enableButtons(False)
-
+        """
+        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+        self.enable_buttons(False)
         self.widget.createStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarCollection.r')
-        idx, source = self.collectionTreeModel.get_checked()
-
+        rule_file = os.path.join(os.getcwd(), 'rules/tarCollection.r')
+        _, source = self.collection_tree_model.get_checked()
         if not self.ic.session.collections.exists(source):
             self.widget.createStatusLabel.setText("ERROR: No collection selected.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            self.enableButtons(True)
+            self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.enable_buttons(True)
             return
-
-        #data bundling only allowed for collections in home/user
+        # TODO find a better test (add permissions too)
         if len(source.split('/')) < 5:
             self.widget.createStatusLabel.setText(
-                    "ERROR: Selected collection is not a user collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-            self.enableButtons(True)
+                'ERROR: Collection must be within a user/group collection.')
+            self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.enable_buttons(True)
             return
-
         compress = self.widget.compressCheckBox.isChecked()
         remove = self.widget.removeCheckBox.isChecked()
-        migrateResc = self.widget.compressRescButton.currentText()
+        resc_name = self.widget.compressRescButton.currentText()
         params = {
-                '*coll': '"'+source+'"',
-                '*resource': '"'+migrateResc+'"',
-                '*compress': '"'+str(compress).lower()+'"',
-                '*delete': '"'+str(remove).lower()+'"'
+                '*coll': f'"{source}"',
+                '*resource': f'"{resc_name}"',
+                '*compress': f'"{str(compress).lower()}"',
+                '*delete': f'"{str(remove).lower()}"'
                 }
-
-        self.threadCreate = QThread()
+        # XXX can self.thread_create be simply thread
+        self.thread_create = PyQt5.QtCore.QThread()
         self.widget.createStatusLabel.setText("STATUS: compressing "+source)
-        self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "create")
-        self.worker.moveToThread(self.threadCreate)
-        self.threadCreate.started.connect(self.worker.run)
-        self.worker.finished.connect(self.threadCreate.quit)
-        self.worker.finished.connect(self.dataCreateExtractFinished)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.threadCreate.finished.connect(self.threadCreate.deleteLater)
-        self.threadCreate.start()
-
+        self.worker_create = dataBundleCreateExtract(self.ic, rule_file, params, "create")
+        self.worker_create.moveToThread(self.thread_create)
+        self.thread_create.started.connect(self.worker_create.run)
+        self.worker_create.finished.connect(self.thread_create.quit)
+        self.worker_create.finished.connect(self.dataCreateExtractFinished)
+        self.worker_create.finished.connect(self.worker_create.deleteLater)
+        self.thread_create.finished.connect(self.thread_create.deleteLater)
+        self.thread_create.start()
 
     def dataCreateExtractFinished(self, success, message, operation):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        self.enableButtons(True)
+        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+        self.enable_buttons(True)
         stdout, stderr = message
         if success and operation == "create":
-            idx, _ = self.collectionTreeModel.get_checked()
+            idx, _ = self.collection_tree_model.get_checked()
             self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
-            parent_index = self.collectionTreeModel.get_parent_index(idx)
-            self.collectionTreeModel.refresh_subtree(parent_index)
+            parent_index = self.collection_tree_model.get_parent_index(idx)
+            self.collection_tree_model.refresh_subtree(parent_index)
         elif not success and operation == "create":
             self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
         elif success and operation == "extract":
-            idx, _ = self.compressionTreeModel.get_checked()
+            idx, _ = self.compression_tree_model.get_checked()
             stdout, stderr = message
             self.widget.unpackStatusLabel.setText("STATUS: Extracted " + str(stdout))
-            parent_index = self.compressionTreeModel.get_parent_index(idx)
-            self.compressionTreeModel.refresh_subtree(parent_index)
+            parent_index = self.compression_tree_model.get_parent_index(idx)
+            self.compression_tree_model.refresh_subtree(parent_index)
         elif not success and operation == "extract":
             self.widget.unpackStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 
 
     def unpackDataBundle(self):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
-        idx, source = self.compressionTreeModel.get_checked()
+        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+        idx, source = self.compression_tree_model.get_checked()
 
         if not idx or (not source.endswith(".irods.tar") and not source.endswith(".irods.zip")):
             self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             return
-        extractPath = path.dirname(source)+'/'+path.basename(source).split('.irods')[0]
+        extractPath = os.path.dirname(source)+'/'+os.path.basename(source).split('.irods')[0]
         if self.ic.session.collections.exists(extractPath):
             extractColl = self.ic.session.collections.get(extractPath)
             if extractColl.subcollections != [] or extractColl.data_objects != []:
                 self.widget.unpackStatusLabel.setText("ERROR: Destination not empty: "+extractPath)
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
                 return
 
-        self.enableButtons(False)
+        self.enable_buttons(False)
 
         self.widget.unpackStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarExtract.r')
+        rule_file = os.path.join(os.getcwd(),'rules/tarExtract.r')
 
-        migrateResc = self.widget.decompressRescButton.currentText()
+        resc_name = self.widget.decompressRescButton.currentText()
         params = {
                 '*obj': '"'+source+'"',
-                '*resource': '"'+migrateResc+'"',
+                '*resource': '"'+resc_name+'"',
                 }
 
-        self.threadExtract = QThread()
+        self.thread_extract = PyQt5.QtCore.QThread()
         self.widget.unpackStatusLabel.setText("STATUS: extracting "+source)
-        self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "extract")
-        self.worker.moveToThread(self.threadExtract)
-        self.threadExtract.started.connect(self.worker.run)
-        self.worker.finished.connect(self.threadExtract.quit)
-        self.worker.finished.connect(self.dataCreateExtractFinished)
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.threadExtract.finished.connect(self.threadExtract.deleteLater)
-        self.threadExtract.start()
+        self.worker_extract = dataBundleCreateExtract(self.ic, rule_file, params, "extract")
+        self.worker_extract.moveToThread(self.thread_extract)
+        self.thread_extract.started.connect(self.worker_extract.run)
+        self.worker_extract.finished.connect(self.thread_extract.quit)
+        self.worker_extract.finished.connect(self.dataCreateExtractFinished)
+        self.worker_extract.finished.connect(self.worker_extract.deleteLater)
+        self.thread_extract.finished.connect(self.thread_extract.deleteLater)
+        self.thread_extract.start()
 
 
     def getIndex(self):
         self.widget.unpackStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarReadIndex.r')
+        rule_file = os.path.join(os.getcwd(),'rules/tarReadIndex.r')
 
-        idx, source = self.compressionTreeModel.get_checked()
+        idx, source = self.compression_tree_model.get_checked()
         if source == None:
             self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
             return
@@ -212,25 +260,24 @@ class irodsDataCompression():
         params = {
                 '*path': '"'+source+'"'
                 }
-        stdout, stderr = self.ic.executeRule(ruleFile, params)
+        stdout, stderr = self.ic.executeRule(rule_file, params)
         self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
-        indexPopup = irodsIndexPopup(self.ic, stdout[1:], source, self.widget.unpackStatusLabel)
+        indexPopup = gui.popupWidgets.irodsIndexPopup(self.ic, stdout[1:], source, self.widget.unpackStatusLabel)
         indexPopup.exec_()
 
 
-class dataBundleCreateExtract(QObject):
-    finished = pyqtSignal(bool, list, str)
-    def __init__(self, ic, ruleFile, params, operation):
+class dataBundleCreateExtract(PyQt5.QtCore.QObject):
+    finished = PyQt5.QtCore.pyqtSignal(bool, list, str)
+    def __init__(self, ic, rule_file, params, operation):
         super(dataBundleCreateExtract, self).__init__()
-        self.ruleFile = ruleFile
+        self.rule_file = rule_file
         self.params = params
         self.ic = ic
         self.operation = operation
 
     def run(self):
-        stdout, stderr = self.ic.executeRule(self.ruleFile, self.params)
+        stdout, stderr = self.ic.executeRule(self.rule_file, self.params)
         if stderr != []:
             self.finished.emit(False, [stdout, stderr], self.operation)
         else:
             self.finished.emit(True, [stdout, stderr], self.operation)
-
