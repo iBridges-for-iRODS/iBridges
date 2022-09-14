@@ -104,7 +104,7 @@ The client works on Mac, Windows and Linux distributions.  On Mac and Windows it
 
 ### iBridges config.json
 
-*iBridges* will create its own configuration file in `~/.ibridges/` containing the name if the last *iRODS* environment file used.  This `config.json` file can be updated to control other aspects of *iBridges*.  For example:
+*iBridges* will create its own configuration file in `~/.ibridges/` containing the name of the last *iRODS* environment file used.  This `config.json` file can be updated to control other aspects of *iBridges*.  For example:
 
 ```json
 {
