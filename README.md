@@ -53,19 +53,41 @@ acPostProcForDelete { }
 ### Python
 
 - Python 3
-	- Tested on 3.6 and 3.9.6
-- pip-21.1.3
+	- Tested on 3.10
+- pip-22.2.2
 - Python packages
 	- Cryptography
 	- PyQt5
-	- python-irodsclient-1.0.0
+	- python-irodsclient
 	- elabjournal
 	- watchdog
 
 ```
-pip install -r requirements.txt
+python3.10 -m pip install -r requirements.txt
 ```
 
+### Install Python 3.10
+- Ubuntu:
+
+  ```sh 
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install software-properties-common -y
+  sudo add-apt-repository ppa:deadsnakes/ppa
+  sudo apt install python3.10
+  curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+  python3.10 -m pip install --upgrade pip
+  sudo apt install python3.10-distutils
+  python3.10 -m pip install pyqt6
+  ```
+
+- Mac (homebrew):
+  ```sh
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  brew update
+  brew install python@3.10
+  /opt/homebrew/opt/python@3.10/libexec/bin/python -m pip install --upgrade pip
+  /opt/homebrew/opt/python@3.10/libexec/bin/pip install pyqt6
+  ```
 ### Operating system
 
 The client works on  Mac, Windows and Linux distributions. On Mac and Windows it makes use solely of the iRODS python API. On Linux, we implemented a switch: If the iRODS icommands are installed, you can choose at the login page to up and download data through the icommand `irsync`. This is recommended for large data transfers.
