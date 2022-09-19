@@ -3,3 +3,4 @@ elabjournal==0.0.19
 PyQt6==6.3.1
 python-irodsclient==1.0.0
 watchdog==2.1.5
+setproctitle
