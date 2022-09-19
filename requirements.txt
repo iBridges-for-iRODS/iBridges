@@ -1,5 +1,5 @@
 cryptography==37.0.4
 elabjournal==0.0.19
-PyQt5==5.15.4
 python-irodsclient==1.1.4
 watchdog==2.1.9
+PyQt6==6.3.1
