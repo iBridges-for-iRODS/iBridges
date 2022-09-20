@@ -34,7 +34,13 @@ class irodsCreateTicket:
         self.widget.createTicketButton.setEnabled(False)
 
         # gather info
-        idx = self.widget.irodsFsTreeView.selectedIndexes()[0]
+        selected_folders = self.widget.irodsFsTreeView.selectedIndexes()
+        if len(selected_folders) != 1:
+            self.widget.infoLabel.setText("ERROR: Please select one collection.")
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            self.widget.createTicketButton.setEnabled(True)
+            return
+        idx = selected_folders[0]
         path = self.irodsmodel.irodsPathFromTreeIdx(idx)
         if path is None or self.ic.session.data_objects.exists(path):
             self.widget.infoLabel.setText("ERROR: Please select a collection.")
