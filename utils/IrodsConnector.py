@@ -99,6 +99,7 @@ class IrodsConnector():
             self.ienv = ienv
         if password is not None:
             self.password = password
+        self.multiplier = MULTIPLIER
         self.default_resc = self.ienv.get('irods_default_resource', None)
         # FIXME move iBridges parameters to iBridges configuration
         self.davrods = None
@@ -1263,38 +1264,51 @@ class IrodsConnector():
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
                 raise irods.exception("ERROR IRODS DELETE: no permissions "+item.path)
 
+    def execute_rule(self, rule_file, params, output='ruleExecOut'):
+        """Execute an iRODS rule.
 
-    def executeRule(self, ruleFile, params, output='ruleExecOut'):
-        """
-        Executes and interactive rule. Returns stdout and stderr.
-        params: Depending on rule,
-                dictionary of variables for rule, will overwrite the default settings.
+        Parameters
+        ----------
+        rule_file : str, file-like
+            Name of the iRODS rule file, or a file-like object representing it.
+        params : dict
+            Rule arguments.
+        output : str
+            Rule output variable(s).
+
+        Returns
+        -------
+        tuple
+            (stdout, stderr)
+
         params format example:
         params = {  # extra quotes for string literals
             '*obj': '"/zone/home/user"',
             '*name': '"attr_name"',
             '*value': '"attr_value"'
         }
+
         """
         try:
-            rule = irods.rule.Rule(self.session, ruleFile, params=params, output=output)
+            rule = irods.rule.Rule(
+                self.session, rule_file, params=params, output=output,
+                instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
-        except Exception as e:
+        except Exception as error:
             logging.info('RULE EXECUTION ERROR', exc_info=True)
-            return [], [repr(e)]
-
-        stdout = []
-        stderr = []
+            return [], [repr(error)]
+        stdout, stderr = '', ''
         if len(out.MsParam_PI) > 0:
-            try:
-                stdout = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
-                stderr = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
-            except AttributeError:
-                logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
-                return stdout, stderr
-        
+            buffers = out.MsParam_PI[0].inOutStruct
+            stdout = (buffers.stdoutBuf.buf or b'').decode()
+            stderr = (buffers.stderrBuf.buf or b'').decode()
+            # try:
+            #     stdout = out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.decode()
+            #     stderr = out.MsParam_PI[0].inOutStruct.stderrBuf.buf.decode()
+            # except AttributeError:
+            #     logging.info(
+            #         f'RULE EXECUTION ERROR: {stdout} {stderr}', exc_info=True)
+            #     return stdout, stderr
         return stdout, stderr
 
 
