@@ -12,10 +12,19 @@ import shutil
 import ssl
 import string
 
-import irods
-import irods.rule
-import irods.ticket
+import irods.access
+import irods.collection
+import irods.column
+import irods.connection
+import irods.data_object
+import irods.exception
+import irods.keywords
 import irods.meta
+import irods.models
+import irods.password_obfuscation
+import irods.rule
+import irods.session
+import irods.ticket
 
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
@@ -67,14 +76,19 @@ class IrodsConnector():
     """Create a connection to an iRODS system.
 
     """
+    _ienv = {}
+    _password = ''
+    _permissions = None
+    _resources = None
+    _session = None
 
-    def __init__(self, ienv=None, password=None):
+    def __init__(self, irods_env_file='', password=''):
         """iRODS authentication with Python client.
 
         Parameters
         ----------
-        ienv : dict
-            iRODS environment.
+        irods_env_file : str
+            JSON document with iRODS connection parameters.
         password : str
             Plain text password.
 
@@ -90,82 +104,77 @@ class IrodsConnector():
 
         """
         self.__name__ = 'IrodsConnector'
-        self._ienv = None
-        self._password = None
-        self._permissions = None
-        self._resources = None
-        self._session = None
-        if ienv is not None:
-            self.ienv = ienv
-        if password is not None:
+        self.irods_env_file = irods_env_file
+        if password:
             self.password = password
-        self.default_resc = self.ienv.get('irods_default_resource', None)
-        # FIXME move iBridges parameters to iBridges configuration
-        self.davrods = None
-        if 'davrods_server' in self.ienv:
-            self.davrods = self.ienv['davrods_server'].strip('/')
 
-    def _get_ienv(self):
-        """iRODS environment getter method.
+    @property
+    def davrods(self):
+        """DavRODS server URL.
+
+        Returns
+        -------
+        str
+            URL of the configured DavRODS server.
+
+        """
+        # FIXME move iBridges parameters to iBridges configuration
+        return self.ienv.get('davrods_server', None)
+
+    @property
+    def default_resc(self):
+        """Default resource name from iRODS environment.
+
+        Returns
+        -------
+        str
+            Resource name.
+
+        """
+        return self.ienv.get('irods_default_resource', None)
+
+    @property
+    def ienv(self):
+        """iRODS environment dictionary.
 
         Returns
         -------
         dict
-            iRODS environmnent dictionary obtained but JSON file.
+            iRODS environment dictionary obtained from its JSON file.
 
         """
-        if self._ienv is None:
-            if 'IRODS_ENVIRONMENT_FILE' in os.environ:
-                env_file = os.environ['IRODS_ENVIRONMENT_FILE']
-            else:
-                env_file = pathlib.Path(
-                    '~/.irods/irods_environment.json').expanduser()
-            with open(env_file, encoding='utf-8') as envfd:
-                self._ienv = json.load(envfd)
+        if not self._ienv:
+            irods_env_file = pathlib.Path(self.irods_env_file)
+            if irods_env_file.is_file():
+                with open(irods_env_file, encoding='utf-8') as envfd:
+                    self._ienv = json.load(envfd)
         return self._ienv
 
-    def _set_ienv(self, env_dict):
-        """iRODS environment setter method.
-
-        Pararmeters
-        -----------
-        env_dict : dict
-            iRODS environment.
-
-        """
-        self._ienv = env_dict
-
-    def _del_ienv(self):
-        """iRODS environment deleter method.
-
-        """
-        self._ienv = None
-
-    ienv = property(
-        _get_ienv, _set_ienv, _del_ienv, 'iRODS environment dictionary')
-
-    def _get_password(self):
-        """iRODS password getter method.
+    @property
+    def password(self):
+        """iRODS password.
 
         Returns
         -------
         str
             iRODS password pre-set or decoded from iRODS authentication
-            file.
+            file.  Can be a PAM negotiated password.
 
         """
-        if self._password in (None, ''):
-            if 'IRODS_AUTHENTICATION_FILE' in os.environ:
-                auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
-            else:
-                auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
-            if os.path.exists(auth_file):
-                with open(auth_file, encoding='utf-8') as authfd:
-                    encoded = authfd.read()
-                self._password = irods.password_obfuscation.decode(encoded)
+        if not self._password:
+            irods_auth_file = os.environ.get(
+                'IRODS_AUTHENTICATION_FILE', None)
+            if irods_auth_file is None:
+                irods_auth_file = pathlib.Path(
+                    '~/.irods/.irodsA').expanduser()
+            if irods_auth_file.exists():
+                with open(irods_auth_file, encoding='utf-8') as authfd:
+                    self._password = irods.password_obfuscation.decode(
+                        authfd.read())
         return self._password
 
-    def _set_password(self, password):
+    @password.setter
+    def password(self, password):
         """iRODS password setter method.
 
         Pararmeters
@@ -174,27 +183,19 @@ class IrodsConnector():
             Unencrypted iRODS password.
 
         """
-        if password not in (None, ''):
-            if 'IRODS_AUTHENTICATION_FILE' in os.environ:
-                auth_file = os.environ['IRODS_AUTHENTICATION_FILE']
-            else:
-                auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
-            encoded = irods.password_obfuscation.encode(password)
-            with open(auth_file, 'w', encoding='utf-8') as authfd:
-                authfd.write(encoded)
+        if password:
             self._password = password
 
-    def _del_password(self):
+    @password.deleter
+    def password(self):
         """iRODS password deleter method.
 
         """
-        self._password = None
+        self._password = ''
 
-    password = property(
-        _get_password, _set_password, _del_password, 'iRODS password')
-
-    def _get_permissions(self):
-        """iRODS permissions mapping getter method.
+    @property
+    def permissions(self):
+        """iRODS permissions mapping.
 
         Returns
         -------
@@ -214,11 +215,9 @@ class IrodsConnector():
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions
 
-    permissions = property(
-        _get_permissions, None, None, 'iRODS permissions mapping')
-
-    def _get_resources(self):
-        """iRODS resources metadata getter method.
+    @property
+    def resources(self):
+        """iRODS resources metadata.
 
         Returns
         -------
@@ -273,11 +272,9 @@ class IrodsConnector():
                 print('    -=WARNING=-    '*4)
         return self._resources
 
-    resources = property(
-        _get_resources, None, None, 'iRODS resource metadata')
-
-    def _get_session(self):
-        """iRODS session getter method.
+    @property
+    def session(self):
+        """iRODS session.
 
         Returns
         -------
@@ -286,48 +283,80 @@ class IrodsConnector():
 
         """
         if self._session is None:
-            options = self.ienv.copy()
-            if self.password is not None:
-                options['password'] = self.password
-            try:
-                self._session = irods.session.iRODSSession(**options)
-            except irods.connection.PlainTextPAMPasswordError:
+            options = {}
+            if self.ienv is not None:
+                options = self.ienv.copy()
+            # Compare given password with cached password.
+            irods_auth_file = os.environ.get(
+                'IRODS_AUTHENTICATION_FILE', None)
+            if irods_auth_file is None:
+                irods_auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
+            if self.password and irods_auth_file.exists():
+                with open(irods_auth_file, encoding='utf-8') as authfd:
+                    cached_pass = irods.password_obfuscation.decode(
+                        authfd.read())
+                if self.password != cached_pass:
+                    options['password'] = self.password
+            if 'password' not in options:
                 try:
-                    ssl_context = ssl.create_default_context(
-                        purpose=ssl.Purpose.SERVER_AUTH,
-                        cafile=None, capath=None, cadata=None)
-                    ssl_settings = {
-                        'client_server_negotiation':
-                            'request_server_negotiation',
-                        'client_server_policy': 'CS_NEG_REQUIRE',
-                        'encryption_algorithm': 'AES-256-CBC',
-                        'encryption_key_size': 32,
-                        'encryption_num_hash_rounds': 16,
-                        'encryption_salt_size': 8,
-                        'ssl_context': ssl_context,
-                    }
-                    options.update(ssl_settings)
+                    print('AUTH FILE SESSION')
+                    self._session = irods.session.iRODSSession(irods_env_file=self.irods_env_file)
+                except Exception as error:
+                    print(f'{RED}AUTH FILE LOGIN FAILED: {error!r}{DEFAULT}')
+            else:
+                try:
+                    print('FULL ENVIRONMENT SESSION')
                     self._session = irods.session.iRODSSession(**options)
-                except Exception as sslerror:
-                    raise sslerror
-            except Exception as autherror:
-                logging.info('AUTHENTICATION ERROR', exc_info=True)
-                print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
-                raise autherror
+                except irods.connection.PlainTextPAMPasswordError as ptppe:
+                    print(f'{RED}ENVIRONMENT INCOMPLETE? {ptppe!r}{DEFAULT}')
+                    try:
+                        ssl_context = ssl.create_default_context(
+                            purpose=ssl.Purpose.SERVER_AUTH,
+                            cafile=None, capath=None, cadata=None)
+                        ssl_settings = {
+                            'client_server_negotiation':
+                                'request_server_negotiation',
+                            'client_server_policy': 'CS_NEG_REQUIRE',
+                            'encryption_algorithm': 'AES-256-CBC',
+                            'encryption_key_size': 32,
+                            'encryption_num_hash_rounds': 16,
+                            'encryption_salt_size': 8,
+                            'ssl_context': ssl_context,
+                        }
+                        options.update(ssl_settings)
+                        print('PARTIAL ENVIRONMENT SESSION')
+                        self._session = irods.session.iRODSSession(**options)
+                    except Exception as error:
+                        print(f'{RED}PARTIAL ENVIRONMENT LOGIN FAILED: {error!r}{DEFAULT}')
+                        raise error
+                except Exception as autherror:
+                    logging.info('AUTHENTICATION ERROR', exc_info=True)
+                    print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
+                    raise autherror
+            try:
+                # Check for good authentication and cache PAM password
+                if 'password' in options:
+                    _ = self._session.pool.get_connection()
+                    pam_passwords = self._session.pam_pw_negotiated
+                    if len(pam_passwords):
+                        with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
+                            authfd.write(
+                                irods.password_obfuscation.encode(pam_passwords[0]))
+            except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
+                raise error
             print('Welcome to iRODS:')
             print(f'iRODS Zone: {self._session.zone}')
             print(f'You are: {self._session.username}')
             print(f'Default resource: {self.default_resc}')
             print('You have access to: \n')
             home_path = f'/{self._session.zone}/home'
-            colls = self.get_collection(home_path).subcollections
-            print('\n'.join([coll.path for coll in colls]))
+            if self._session.collections.exists(home_path):
+                colls = self._session.collections.get(home_path).subcollections
+                print('\n'.join([coll.path for coll in colls]))
             logging.info(
                 'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
                 self._session.zone, self._session.host)
         return self._session
-
-    session = property(_get_session, None, None, 'iRODSSession')
 
     def get_user_info(self):
         """Query for user type and groups.
@@ -1144,7 +1173,7 @@ class IrodsConnector():
                     #md5
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
                         stream = f.read()
-                        md5 = hashlib.md5(stream).hexdigest();
+                        md5 = hashlib.md5(stream).hexdigest()
                     if objCheck != md5:
                         diff.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
                     else:
@@ -1177,7 +1206,8 @@ class IrodsConnector():
             except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 print(RED+"INFO ADD META: Metadata already present"+DEFAULT)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                raise cnap("ERROR UPDATE META: no permissions")
+                print("ERROR UPDATE META: no permissions")
+                raise cnap
 
     def addMultipleMetadata(self, items, avus):
         list_of_tags = [
@@ -1189,12 +1219,11 @@ class IrodsConnector():
                 item.metadata.apply_atomic_operations(*list_of_tags)
             except irods.meta.BadAVUOperationValue:
                 print(f"{RED}INFO ADD MULTIPLE META: bad metadata value{DEFAULT}")
-            except irods.meta.InvalidAtomicAVURequest:
-                print(f"{RED}INFO ADD MULTIPLE META: invalid metadata request{DEFAULT}")
             except Exception as e:
                 print(f"{RED}INFO ADD MULTIPLE META: unexpected error{DEFAULT}")
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                raise cnap("ERROR UPDATE META: no permissions") from cnap
+                print("ERROR UPDATE META: no permissions")
+                raise cnap
 
     def updateMetadata(self, items, key, value, units=None):
         """
@@ -1221,7 +1250,8 @@ class IrodsConnector():
                 else:
                     self.addMetadata(items, key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-            raise cnap(f"ERROR UPDATE META: no permissions {item.path}") from cnap
+            print(f"ERROR UPDATE META: no permissions {item.path}")
+            raise cnap
 
     def deleteMetadata(self, items, key, value, units):
         """
@@ -1240,9 +1270,8 @@ class IrodsConnector():
             except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
                 print(RED+"INFO DELETE META: Metadata never existed"+DEFAULT)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                raise cnap("ERROR UPDATE META: no permissions "+item.path)
-
-
+                print("ERROR UPDATE META: no permissions "+item.path)
+                raise cnap
 
     def deleteData(self, item):
         """
@@ -1254,15 +1283,16 @@ class IrodsConnector():
             logging.info("IRODS DELETE: "+item.path)
             try:
                 item.remove(recurse = True, force = True)
-            except irods.exceptionCAT_NO_ACCESS_PERMISSION as cnap:
-                raise cnap("ERROR IRODS DELETE: no permissions")
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+                print("ERROR IRODS DELETE: no permissions")
+                raise cnap
         elif self.session.data_objects.exists(item.path):
             logging.info("IRODS DELETE: "+item.path)
             try:
                 item.unlink(force = True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                raise irods.exception("ERROR IRODS DELETE: no permissions "+item.path)
-
+                print("ERROR IRODS DELETE: no permissions "+item.path)
+                raise cnap
 
     def executeRule(self, ruleFile, params, output='ruleExecOut'):
         """
