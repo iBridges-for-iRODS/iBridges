@@ -43,7 +43,8 @@ class irodsLogin(QDialog):
         self.selectIcommandsButton.toggled.connect(self.setupIcommands)
         self.standardButton.toggled.connect(self.setupStandard)
         self.connectButton.clicked.connect(self.loginfunction)
-        self.ticketButton.clicked.connect(self.ticketLogin)
+        self.ticketButton.hide()
+        #self.ticketButton.clicked.connect(self.ticketLogin)
         self.passwordField.setEchoMode(QLineEdit.EchoMode.Password)
         self.icommands = False
 

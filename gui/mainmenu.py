@@ -52,20 +52,19 @@ class mainmenu(QMainWindow):
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
 
-            # needed for Search
+            # Data Transfers default for research Cloud, index 0
+            updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
+            self.tabWidget.addTab(updownloadWidget, "Data Transfers")
+            self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
+            log_handler = QPlainTextEditLogger(updownloadWidget.logs)
+            logging.getLogger().addHandler(log_handler)
+
+            # Browser, Dependency for search, index 1
             self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
             self.tabWidget.addTab(self.browserWidget, "Browser")
             self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
 
             if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
-    
-                # Setup up/download tab, index 1
-                if "tabUpDownload" in ienv["ui_tabs"]:
-                    updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-                    self.tabWidget.addTab(updownloadWidget, "Data Transfers")
-                    self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
-                    log_handler = QPlainTextEditLogger(updownloadWidget.logs)
-                    logging.getLogger().addHandler(log_handler)
     
                 # Elabjournal tab, index 2
                 if "tabELNData" in ienv["ui_tabs"]:
