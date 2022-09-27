@@ -12,7 +12,21 @@ from gui.irodsTicketLogin import irodsTicketLogin
 from utils.utils import saveIenv
 
 import sys
+import logging
 
+class QPlainTextEditLogger(logging.Handler):
+    def __init__(self, widget):
+        super(QPlainTextEditLogger, self).__init__()
+
+        self.widget = widget
+        self.widget.setReadOnly(True)
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.widget.appendPlainText(msg)
+
+    def write(self, m):
+        pass
 
 class mainmenu(QMainWindow):
     def __init__(self, widget, ic, ienv):
@@ -48,8 +62,10 @@ class mainmenu(QMainWindow):
                 # Setup up/download tab, index 1
                 if "tabUpDownload" in ienv["ui_tabs"]:
                     updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-                    self.tabWidget.addTab(updownloadWidget, "Up and Download")
+                    self.tabWidget.addTab(updownloadWidget, "Data Transfers")
                     self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
+                    log_handler = QPlainTextEditLogger(updownloadWidget.logs)
+                    logging.getLogger().addHandler(log_handler)
     
                 # Elabjournal tab, index 2
                 if "tabELNData" in ienv["ui_tabs"]:
