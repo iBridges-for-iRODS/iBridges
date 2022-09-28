@@ -137,32 +137,32 @@ class IrodsDataBundle():
             PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
-        _, source = self.irods_tree_model.get_checked()
-        if source is None:
+        _, coll_name = self.irods_tree_model.get_checked()
+        if coll_name is None:
             self.widget.statusLabel.setText(
-                'ERROR: Something must be selected')
+                'CREATE ERROR: Something must be selected')
             self.enable_buttons()
             return
-        if not self.ic.collection_exists(source):
+        if not self.ic.collection_exists(coll_name):
             self.widget.statusLabel.setText(
-                'ERROR: A collection must be selected')
+                'CREATE ERROR: A collection must be selected')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
             return
         # TODO find a better test (add permissions too)
-        if len(source.split('/')) < 5:
+        if len(coll_name.split('/')) < 5:
             self.widget.statusLabel.setText(
-                'ERROR: Collection must be within a user/group collection')
+                'CREATE ERROR: Collection must be within a user/group collection')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
             return
-        src_coll = self.ic.get_collection(source)
+        src_coll = self.ic.get_collection(coll_name)
         src_size = sum((sum((int(obj.size) for obj in objs)) for _, _, objs in src_coll.walk()))
         if src_size == 0:
             self.widget.statusLabel.setText(
-                'ERROR: Collection must have something in it')
+                'CREATE ERROR: Collection must have something in it')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
@@ -170,25 +170,29 @@ class IrodsDataBundle():
         resc_name, free_space = self.widget.resourceBox.currentText().split(' / ')
         if 2 * src_size * self.ic.multiplier > int(free_space):
             self.widget.statusLabel.setText(
-                'ERROR: Resource must have enough free space in it')
+                'CREATE ERROR: Resource must have enough free space in it')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
             return
-        compress = self.widget.compressCheckBox.isChecked()
-        remove = self.widget.removeCheckBox.isChecked()
+        obj_path = f'{coll_name}.tar'
+        if self.widget.compressCheckBox.isChecked():
+            obj_path = f'{coll_name}.zip'
+        remove_coll = str(self.widget.removeCheckBox.isChecked()).lower()
+        force_flag = 'force' if self.widget.forceCheckBox.isChecked() else ''
         params = {
-                '*coll': f'"{source}"',
-                '*resource': f'"{resc_name}"',
-                '*compress': f'"{str(compress).lower()}"',
-                '*delete': f'"{str(remove).lower()}"'
+                '*objPath': f'"{obj_path}"',
+                '*collName': f'"{coll_name}"',
+                '*rescName': f'"{resc_name}"',
+                '*forceFlag': f'"{force_flag}"',
+                '*removeColl': f'"{remove_coll}"'
                 }
         # XXX can self.thread_create be simply thread
         self.thread_create = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'STATUS: compressing {source}')
+            f'CREATE STATUS: Compressing {coll_name}')
         self.worker_create = RuleRunner(
-            self.ic, io.StringIO(BUNDLE_RULE), params, 'create')
+            self.ic, io.StringIO(BUNDLE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
         self.thread_create.started.connect(self.worker_create.run)
         self.worker_create.finished.connect(self.thread_create.quit)
@@ -209,14 +213,14 @@ class IrodsDataBundle():
         idx, source = self.irods_tree_model.get_checked()
         if source is None:
             self.widget.statusLabel.setText(
-                'ERROR: Nothing selected')
+                'EXTRACT ERROR: Nothing selected')
             self.enable_buttons()
             return
         source = pathlib.Path(source)
         file_type = ''.join(source.suffixes)[1:]
         if not idx or file_type not in EXTENSIONS:
             self.widget.statusLabel.setText(
-                f'ERROR: No bundle file ({", ".join(EXTENSIONS)}) selected')
+                f'EXTRACT ERROR: No bundle file ({", ".join(EXTENSIONS)}) selected')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
@@ -226,20 +230,24 @@ class IrodsDataBundle():
         if self.ic.collection_exists(extract_path):
             extract_coll = self.ic.get_collection(extract_path)
             if extract_coll.subcollections != [] or extract_coll.data_objects != []:
-                self.widget.statusLabel.setText(f'ERROR: Destination not empty: {extract_path}')
+                self.widget.statusLabel.setText(
+                    f'EXTRACT ERROR: Destination not empty: {extract_path}')
                 self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
                 self.enable_buttons()
                 return
         resc_name = self.widget.resourceBox.currentText().split(' / ')[0]
+        force = str(self.widget.forceCheckBox.isChecked()).lower()
         params = {
-                '*obj': f'"{source}"',
-                '*resource': f'"{resc_name}"',
+                '*objPath': f'"{source}"',
+                '*rescName': f'"{resc_name}"',
+                '*forceFlag': f'"{force}"',
+
                 }
         self.thread_extract = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'STATUS: extracting {source}')
+            f'EXTRACT STATUS: Extracting {source}')
         self.worker_extract = RuleRunner(
-            self.ic, io.StringIO(EXTRACT_RULE), params, 'extract')
+            self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
         self.worker_extract.moveToThread(self.thread_extract)
         self.thread_extract.started.connect(self.worker_extract.run)
         self.worker_extract.finished.connect(self.thread_extract.quit)
@@ -257,7 +265,7 @@ class IrodsDataBundle():
         stdouterr : tuple
             Output of the process: (stdout, stderr).
         operation : str
-            One of 'create' or 'extract'.
+            One of 'CREATE' or 'EXTRACT'.
 
         """
         self.widget.setCursor(
@@ -267,11 +275,11 @@ class IrodsDataBundle():
         stdout, stderr = stdouterr
         if success:
             idx, _ = self.irods_tree_model.get_checked()
-            self.widget.statusLabel.setText(f'STATUS: {operation} {stdout}')
+            self.widget.statusLabel.setText(f'{operation} STATUS: {stdout}')
             parent_index = self.irods_tree_model.get_parent_index(idx)
             self.irods_tree_model.refresh_subtree(parent_index)
         else:
-            self.widget.statusLabel.setText(f'ERROR: {operation} {stderr}')
+            self.widget.statusLabel.setText(f'{operation} ERROR: {stderr}')
 
     def index_data_bundle(self):
         """Extract the index listing from a bundle file with an iRODS
@@ -335,35 +343,36 @@ class RuleRunner(PyQt5.QtCore.QObject):
 
         """
         stdout, stderr = self.ic.execute_rule(self.rule_file, self.params)
-        if stderr != []:
-            self.finished.emit(False, (stdout, stderr), self.operation)
-        else:
+        if stderr == '':
             self.finished.emit(True, (stdout, stderr), self.operation)
+        else:
+            self.finished.emit(False, (stdout, stderr), self.operation)
 
 
-BUNDLE_RULE = """bundle {
-    # msiSplitPath(*coll, *parentColl, *collName);
-    # if(bool(*compress)) {
-    #     *tarFile = "*parentColl/*collName.zip"
-    # }
-    # else {
-    #     *tarFile = "*parentColl/*collName.tar"
-    # }
-    *tarFile = "*coll.tar"
-    writeLine("stderr", "DEBUG tarFile=*tarFile");
-    retVal = msiTarFileCreate(*tarFile, *coll, *resource);
-    writeLine("stderr", "DEBUG retVal=*retVal");
-    # writeLine("stderr", "outTar=*outTar");
-    # if(bool(*delete) && *outTar == 0) {
-    #     writeLine("stdout", "DEBUG tarCollection: Delete *coll")
-    #     msiRmColl(*coll, "forceFlag=", *out);
-    # }
-    # if(*outTar!=0) {
-    #     writeLine("stderr", "Tar failed.")
-    # }
+BUNDLE_RULE = '''bundle_rule {
+    *retBun = msiTarFileCreate(*objPath, *collName, *rescName, *forceFlag);
+    if(bool(*retBun)) {
+        writeLine("stderr", "(Return code: *retBun) Error creating *objPath");
+    }
+    else {
+        writeLine("stdout", "Created *objPath");
+        if(bool(*removeColl)) {
+            *keyValStr = ""
+            if(*forceFlag == "force") {
+                *keyValStr = "forceFlag="
+            }
+            msiRmColl(*collName, *keyValStr, *retRem);
+            if(bool(*retRem)) {
+                writeLine("stderr", "(Return code: *retRem) Error removing *collName");
+            }
+            else {
+                writeLine("stdout", "Removed *collName");
+            }
+        }
+    }
 }
 OUTPUT ruleExecOut
-"""
+'''
 
 EXTRACT_RULE = """extract {
     msiGetObjType(*obj, *objType);
