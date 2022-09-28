@@ -1291,7 +1291,7 @@ class IrodsConnector():
         """
         try:
             rule = irods.rule.Rule(
-                self.session, rule_file, params=params, output=output,
+                self.session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except Exception as error:
@@ -1301,14 +1301,9 @@ class IrodsConnector():
         if len(out.MsParam_PI) > 0:
             buffers = out.MsParam_PI[0].inOutStruct
             stdout = (buffers.stdoutBuf.buf or b'').decode()
+            # Remove garbage after terminal newline.
+            stdout = '\n'.join(stdout.split('\n')[:-1])
             stderr = (buffers.stderrBuf.buf or b'').decode()
-            # try:
-            #     stdout = out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.decode()
-            #     stderr = out.MsParam_PI[0].inOutStruct.stderrBuf.buf.decode()
-            # except AttributeError:
-            #     logging.info(
-            #         f'RULE EXECUTION ERROR: {stdout} {stderr}', exc_info=True)
-            #     return stdout, stderr
         return stdout, stderr
 
 
