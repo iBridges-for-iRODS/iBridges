@@ -54,7 +54,6 @@ class IrodsDataBundle():
         self.setup_resource_selector(self.widget.resourceBox)
         self.widget.createButton.clicked.connect(self.create_data_bundle)
         self.widget.extractButton.clicked.connect(self.extract_data_bundle)
-        self.widget.indexButton.clicked.connect(self.index_data_bundle)
 
     def info_popup(self, message):
         """Display an informational pop-up with the `message`.
@@ -119,7 +118,6 @@ class IrodsDataBundle():
         """
         self.widget.createButton.setEnabled(True)
         self.widget.extractButton.setEnabled(True)
-        self.widget.indexButton.setEnabled(True)
 
     def disable_buttons(self):
         """Disallow buttons from being pressed.
@@ -127,7 +125,6 @@ class IrodsDataBundle():
         """
         self.widget.createButton.setEnabled(False)
         self.widget.extractButton.setEnabled(False)
-        self.widget.indexButton.setEnabled(False)
 
     def create_data_bundle(self):
         """Run an iRODS bundle rule on selected collection.
@@ -141,6 +138,8 @@ class IrodsDataBundle():
         if coll_name is None:
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Something must be selected')
+            self.widget.setCursor(
+                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
             return
         if not self.ic.collection_exists(coll_name):
@@ -176,23 +175,27 @@ class IrodsDataBundle():
             self.enable_buttons()
             return
         obj_path = f'{coll_name}.tar'
-        if self.widget.compressCheckBox.isChecked():
-            obj_path = f'{coll_name}.zip'
-        remove_coll = str(self.widget.removeCheckBox.isChecked()).lower()
-        force_flag = 'force' if self.widget.forceCheckBox.isChecked() else ''
+        force = self.widget.forceCheckBox.isChecked()
+        if self.ic.dataobject_exists(obj_path):
+            if not force:
+                self.widget.statusLabel.setText(
+                    f'CREATE ERROR: Destination bundle ({obj_path}) exists.  Use force to override')
+                self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                self.enable_buttons()
+                return
+        force_flag = 'force' if force else ''
         params = {
                 '*objPath': f'"{obj_path}"',
                 '*collName': f'"{coll_name}"',
                 '*rescName': f'"{resc_name}"',
                 '*forceFlag': f'"{force_flag}"',
-                '*removeColl': f'"{remove_coll}"'
                 }
         # XXX can self.thread_create be simply thread
         self.thread_create = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'CREATE STATUS: Compressing {coll_name}')
+            f'CREATE STATUS: Creating {coll_name}')
         self.worker_create = RuleRunner(
-            self.ic, io.StringIO(BUNDLE_RULE), params, 'CREATE')
+            self.ic, io.StringIO(CREATE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
         self.thread_create.started.connect(self.worker_create.run)
         self.worker_create.finished.connect(self.thread_create.quit)
@@ -210,42 +213,55 @@ class IrodsDataBundle():
             PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
-        idx, source = self.irods_tree_model.get_checked()
-        if source is None:
+        idx, obj_path = self.irods_tree_model.get_checked()
+        if obj_path is None:
             self.widget.statusLabel.setText(
-                'EXTRACT ERROR: Nothing selected')
-            self.enable_buttons()
-            return
-        source = pathlib.Path(source)
-        file_type = ''.join(source.suffixes)[1:]
-        if not idx or file_type not in EXTENSIONS:
-            self.widget.statusLabel.setText(
-                f'EXTRACT ERROR: No bundle file ({", ".join(EXTENSIONS)}) selected')
+                'EXTRACT ERROR: Something must be selected')
             self.widget.setCursor(
                 PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
             self.enable_buttons()
             return
-        extract_path = str(source.parent)
-        # XXX allow updating/overwriting?
-        if self.ic.collection_exists(extract_path):
-            extract_coll = self.ic.get_collection(extract_path)
-            if extract_coll.subcollections != [] or extract_coll.data_objects != []:
-                self.widget.statusLabel.setText(
-                    f'EXTRACT ERROR: Destination not empty: {extract_path}')
-                self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
-                self.enable_buttons()
-                return
+        if not self.ic.dataobject_exists(obj_path):
+            self.widget.statusLabel.setText(
+                'EXTRACT ERROR: A data object must be selected')
+            self.widget.setCursor(
+                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.enable_buttons()
+            return
+        obj_path = pathlib.Path(obj_path)
+        file_type = ''.join(obj_path.suffixes)[1:]
+        if not idx or file_type not in EXTENSIONS:
+            self.widget.statusLabel.setText(
+                f'EXTRACT ERROR: A bundle file ({", ".join(EXTENSIONS)}) must be selected')
+            self.widget.setCursor(
+                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.enable_buttons()
+            return
+        force = self.widget.forceCheckBox.isChecked()
+        coll_name = str(obj_path.with_suffix('').with_suffix(''))
+        if self.ic.collection_exists(coll_name):
+            bund_coll = self.ic.get_collection(coll_name)
+            if len(bund_coll.subcollections) or len(bund_coll.data_objects):
+                if not force:
+                    self.widget.statusLabel.setText(
+                        f'EXTRACT ERROR: Destination collection ({coll_name}) must be empty.  Use force to override')
+                    self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                    self.enable_buttons()
+                    return
+                else:
+                    bund_coll.remove(force=force)
+        self.ic.ensure_coll(coll_name)
         resc_name = self.widget.resourceBox.currentText().split(' / ')[0]
-        force = str(self.widget.forceCheckBox.isChecked()).lower()
+        force_flag = 'force' if force else ''
         params = {
-                '*objPath': f'"{source}"',
+                '*objPath': f'"{obj_path}"',
+                '*collName': f'"{coll_name}"',
                 '*rescName': f'"{resc_name}"',
-                '*forceFlag': f'"{force}"',
-
+                '*forceFlag': f'"{force_flag}"',
                 }
         self.thread_extract = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'EXTRACT STATUS: Extracting {source}')
+            f'EXTRACT STATUS: Extracting {obj_path}')
         self.worker_extract = RuleRunner(
             self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
         self.worker_extract.moveToThread(self.thread_extract)
@@ -261,7 +277,7 @@ class IrodsDataBundle():
         """Round out the process thread.
 
         success : bool
-            Did the proceess succeed?
+            Did the process succeed?
         stdouterr : tuple
             Output of the process: (stdout, stderr).
         operation : str
@@ -280,35 +296,6 @@ class IrodsDataBundle():
             self.irods_tree_model.refresh_subtree(parent_index)
         else:
             self.widget.statusLabel.setText(f'{operation} ERROR: {stderr}')
-
-    def index_data_bundle(self):
-        """Extract the index listing from a bundle file with an iRODS
-        rule.
-
-        """
-        self.disable_buttons()
-        self.widget.statusLabel.clear()
-        _, source = self.irods_tree_model.get_checked()
-        if source is None:
-            self.widget.statusLabel.setText(
-                'ERROR: Nothing selected')
-            self.enable_buttons()
-            return
-        file_type = ''.join(pathlib.Path(source).suffixes)[1:]
-        if file_type not in EXTENSIONS:
-            self.widget.statusLabel.setText(
-                f'ERROR: No bundle file ({", ".join(EXTENSIONS)}) selected')
-            self.enable_buttons()
-            return
-        params = {
-                '*path': f'"{source}"'
-                }
-        self.disable_buttons()
-        stdout, _ = self.ic.execute_rule(io.StringIO(INDEX_RULE), params)
-        self.widget.statusLabel.setText(f'INFO: Loaded Index of {source}')
-        index_popup = gui.popupWidgets.irodsIndexPopup(
-            self.ic, stdout, source, self.widget.statusLabel)
-        index_popup.exec_()
 
 
 class RuleRunner(PyQt5.QtCore.QObject):
@@ -349,84 +336,25 @@ class RuleRunner(PyQt5.QtCore.QObject):
             self.finished.emit(False, (stdout, stderr), self.operation)
 
 
-BUNDLE_RULE = '''bundle_rule {
-    *retBun = msiTarFileCreate(*objPath, *collName, *rescName, *forceFlag);
-    if(bool(*retBun)) {
-        writeLine("stderr", "(Return code: *retBun) Error creating *objPath");
+CREATE_RULE = '''create_rule {
+    *retCre = msiTarFileCreate(*objPath, *collName, *rescName, *forceFlag);
+    if(bool(*retCre)) {
+        writeLine("stderr", "Error creating *objPath from *collName");
     }
     else {
-        writeLine("stdout", "Created *objPath");
-        if(bool(*removeColl)) {
-            *keyValStr = ""
-            if(*forceFlag == "force") {
-                *keyValStr = "forceFlag="
-            }
-            msiRmColl(*collName, *keyValStr, *retRem);
-            if(bool(*retRem)) {
-                writeLine("stderr", "(Return code: *retRem) Error removing *collName");
-            }
-            else {
-                writeLine("stdout", "Removed *collName");
-            }
-        }
+        writeLine("stdout", "Created *objPath from *collName");
     }
 }
 OUTPUT ruleExecOut
 '''
 
-EXTRACT_RULE = """extract {
-    msiGetObjType(*obj, *objType);
-    writeLine("stdout", "*obj, *objType");
-    msiSplitPath(*obj, *parentColl, *objName);
-    *suffix = substr(*obj, strlen(*obj)-9, strlen(*obj));
-    *objName = substr(*objName, 0, strlen(*objName)-10);
-    writeLine("stdout", "DEBUG tarExtract *parentColl");
-    writeLine("stdout", "DEBUG tarExtract *objName, *suffix");
-    *run = true;
-    if(*objType != '-d') {
-        *run = false;
-        writeLine("stderr", "ERROR tarExtract: not a data object, *path")
-    }
-    if(*suffix != "irods.tar" && *suffix != "irods.zip") {
-        *run = false;
-        writeLine("stderr", "ERROR tarExtract: not an irods.tar file, *path")
-    }
-    if(*run== true) {
-        writeLine("stdout", "STATUS tarExtract: Create collection *parentColl/*objName");
-        msiCollCreate("*parentColl/*objName", 1, *collCreateOut);
-        if(*collCreateOut == 0) {
-            writeLine("stdout", "STATUS tarExtract: Extract *obj to *parentColl/*objName");
-            msiArchiveExtract(*obj, "*parentColl/*objName", "null", *resource, *outTarExtract);
-            if(*outTarExtract != 0) {
-                writeLine("stderr", "ERROR tarExtract: Failed to extract data");
-            }
-        }
-        else {
-            writeLine("stderr", "ERROR tarExtract: Failed to create *parentColl/*objName")
-        }
+EXTRACT_RULE = """extract_rule {
+    msiTarFileExtract(*objPath, *collName, *rescName, *retExt);
+    if(bool(*retExt)) {
+        writeLine("stderr", "Error extracting *objPath to *collName");
     }
     else {
-        writeLine("stdout", "DEBUG tarExtract: no action.")
-    }
-}
-OUTPUT ruleExecOut
-"""
-
-INDEX_RULE = """index {
-    msiGetObjType(*path, *objType);
-    *suffix = substr(*path, strlen(*path)-9, strlen(*path));
-    *run = true;
-    writeLine("stdout", "DEBUG tarReadIndex: *suffix");
-    if(*suffix != "irods.tar" && *suffix != "irods.zip") {
-        *run = false;
-        writeLine("stderr", "ERROR tarReadIndex: not an irods.tar file, *path")
-    }
-    if(*run == true) {
-        msiArchiveIndex(*path, *out);
-        writeLine("stdout", *out)
-    }
-    else {
-        writeLine("stdout", "DEBUG tarReadIndex: no action.")
+        writeLine("stdout", "Extracted *objPath into *collName");
     }
 }
 OUTPUT ruleExecOut
