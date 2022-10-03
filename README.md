@@ -140,6 +140,36 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 
 ## Remarks
 
+### Data (un)bundling
+
+iRODS 4.2.x currently has no support for compressed structured files outside the iCommand `ibun`.  Therefore, without custom microservices installed on a given iRODS server, only uncompressed TAR files are supported.
+
+#### TAR file format
+
+The `ibun` help gives the example to use the `-C` option to change into the directory containing the potential contents of the TAR file.  The bundling done with iBridges assumes this same format and creates TAR files likewise.  For example bundling the contents of the collection `/testZone/home/user/testColl` containing:
+
+```commandline
+/testZone/home/user/testColl/file1.ext
+/testZone/home/user/testColl/file2.ext
+/testZone/home/user/testColl/file3.ext
+```
+
+stores only the three data objects:
+
+```commandline
+file1.ext
+file2.ext
+file3.ext
+```
+
+into `/testZone/home/user/testColl.tar`.  Unbundling this data object recreates the `/testZone/home/user/testColl` collection if it does not exist and deposits the data objects into it.  If there are already data objects or collections existing there, an error will result and the bundle will not be extracted.
+
+#### (Un)bundle options
+
+iBridges has one option for (un)bundling data: `Force operations`.  If the option is checked, two types of operations will be forced: one is to overwrite a bundle/collection that already exists, and the other is to remove the bundle files or collection contents without first sending them to the bin.  **If this behavior is undesirable, DO NOT USE THIS FORCE OPTION.**
+
+It is recommended that any kind of destructive actions be done in a separate step.
+
 ### Performance
 
 - When the client is started for the first time it, might take some time to launch.
