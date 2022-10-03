@@ -566,7 +566,7 @@ class IrodsConnector():
         return names, spaces
 
     def get_resource(self, resc_name):
-        '''Instantiate an iRODS resource.
+        """Instantiate an iRODS resource.
 
         Prameters
         ---------
@@ -581,7 +581,7 @@ class IrodsConnector():
         Raises:
             irods.exception.ResourceDoesNotExist
 
-        '''
+        """
         try:
             return self.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
