@@ -283,65 +283,21 @@ class IrodsConnector():
 
         """
         if self._session is None:
-            options = {}
+            options = {'irods_env_file': self.irods_env_file}
             if self.ienv is not None:
-                options = self.ienv.copy()
-            # Compare given password with cached password.
-            irods_auth_file = os.environ.get(
-                'IRODS_AUTHENTICATION_FILE', None)
-            if irods_auth_file is None:
-                irods_auth_file = pathlib.Path('~/.irods/.irodsA').expanduser()
-            if self.password and irods_auth_file.exists():
-                with open(irods_auth_file, encoding='utf-8') as authfd:
-                    cached_pass = irods.password_obfuscation.decode(
-                        authfd.read())
-                if self.password != cached_pass:
-                    options['password'] = self.password
-            if 'password' not in options:
-                try:
-                    print('AUTH FILE SESSION')
-                    self._session = irods.session.iRODSSession(irods_env_file=self.irods_env_file)
-                except Exception as error:
-                    print(f'{RED}AUTH FILE LOGIN FAILED: {error!r}{DEFAULT}')
-            else:
-                try:
-                    print('FULL ENVIRONMENT SESSION')
-                    self._session = irods.session.iRODSSession(**options)
-                except irods.connection.PlainTextPAMPasswordError as ptppe:
-                    print(f'{RED}ENVIRONMENT INCOMPLETE? {ptppe!r}{DEFAULT}')
-                    try:
-                        ssl_context = ssl.create_default_context(
-                            purpose=ssl.Purpose.SERVER_AUTH,
-                            cafile=None, capath=None, cadata=None)
-                        ssl_settings = {
-                            'client_server_negotiation':
-                                'request_server_negotiation',
-                            'client_server_policy': 'CS_NEG_REQUIRE',
-                            'encryption_algorithm': 'AES-256-CBC',
-                            'encryption_key_size': 32,
-                            'encryption_num_hash_rounds': 16,
-                            'encryption_salt_size': 8,
-                            'ssl_context': ssl_context,
-                        }
-                        options.update(ssl_settings)
-                        print('PARTIAL ENVIRONMENT SESSION')
-                        self._session = irods.session.iRODSSession(**options)
-                    except Exception as error:
-                        print(f'{RED}PARTIAL ENVIRONMENT LOGIN FAILED: {error!r}{DEFAULT}')
-                        raise error
-                except Exception as autherror:
-                    logging.info('AUTHENTICATION ERROR', exc_info=True)
-                    print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
-                    raise autherror
+                options.update(self.ienv.copy())
+            # Compare given password with potentially cached password.
+            given_pass = self.password
+            del self.password
+            cached_pass = self.password
+            if given_pass != cached_pass:
+                options['password'] = given_pass
+            self._session = self._get_irods_session(options)
             try:
                 # Check for good authentication and cache PAM password
                 if 'password' in options:
-                    _ = self._session.pool.get_connection()
-                    pam_passwords = self._session.pam_pw_negotiated
-                    if len(pam_passwords):
-                        with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
-                            authfd.write(
-                                irods.password_obfuscation.encode(pam_passwords[0]))
+                    self._session.pool.get_connection()
+                    self._write_pam_password()
             except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
                 raise error
             print('Welcome to iRODS:')
@@ -357,6 +313,72 @@ class IrodsConnector():
                 'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
                 self._session.zone, self._session.host)
         return self._session
+
+    @staticmethod
+    def _get_irods_session(options):
+        """Run through different types of authentication methods and
+        instantiate an iRODS session.
+
+        Parameters
+        ----------
+        options : dict
+            Initial iRODS settings for the session.
+
+        Returns
+        -------
+        iRODSSession
+            iRODS connection based on given environment and password.
+
+        """
+        if 'password' not in options:
+            try:
+                print('AUTH FILE SESSION')
+                return irods.session.iRODSSession(
+                    irods_env_file=options['irods_env_file'])
+            except Exception as error:
+                print(f'{RED}AUTH FILE LOGIN FAILED: {error!r}{DEFAULT}')
+        else:
+            try:
+                print('FULL ENVIRONMENT SESSION')
+                return irods.session.iRODSSession(**options)
+            except irods.connection.PlainTextPAMPasswordError as ptppe:
+                print(f'{RED}ENVIRONMENT INCOMPLETE? {ptppe!r}{DEFAULT}')
+                try:
+                    ssl_context = ssl.create_default_context(
+                        purpose=ssl.Purpose.SERVER_AUTH,
+                        cafile=None, capath=None, cadata=None)
+                    ssl_settings = {
+                        'client_server_negotiation':
+                            'request_server_negotiation',
+                        'client_server_policy': 'CS_NEG_REQUIRE',
+                        'encryption_algorithm': 'AES-256-CBC',
+                        'encryption_key_size': 32,
+                        'encryption_num_hash_rounds': 16,
+                        'encryption_salt_size': 8,
+                        'ssl_context': ssl_context,
+                    }
+                    options.update(ssl_settings)
+                    print('PARTIAL ENVIRONMENT SESSION')
+                    return irods.session.iRODSSession(**options)
+                except Exception as error:
+                    print(f'{RED}PARTIAL ENVIRONMENT LOGIN FAILED: {error!r}{DEFAULT}')
+                    raise error
+            except Exception as autherror:
+                logging.info('AUTHENTICATION ERROR', exc_info=True)
+                print(f'{RED}AUTHENTICATION ERROR: {autherror!r}{DEFAULT}')
+                raise autherror
+
+    def _write_pam_password(self):
+        """Store the returned PAM/LDAP password in the iRODS
+        authentication file in obfuscated form.
+
+        """
+        pam_passwords = self._session.pam_pw_negotiated
+        if len(pam_passwords):
+            irods_auth_file = self._session.get_irods_password_file()
+            with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
+                authfd.write(
+                    irods.password_obfuscation.encode(pam_passwords[0]))
 
     def get_user_info(self):
         """Query for user type and groups.
