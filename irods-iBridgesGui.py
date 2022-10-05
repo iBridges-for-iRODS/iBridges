@@ -10,7 +10,8 @@ import subprocess
 import sys
 
 import irods.exception
-import PyQt5
+import PyQt5.QtCore
+import PyQt5.QtGui
 import PyQt5.QtWidgets
 import PyQt5.uic
 
@@ -21,7 +22,7 @@ app = PyQt5.QtWidgets.QApplication(sys.argv)
 widget = PyQt5.QtWidgets.QStackedWidget()
 
 
-class JsonConfig():
+class JsonConfig:
     """A configuration stored in a JSON file.
 
     """
@@ -152,15 +153,17 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         """
 
         """
-        env_path = self.irods_path.joinpath(self.envbox.currentText())
-        ienv = JsonConfig(env_path).config
+        # irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
+        # ienv = JsonConfig(irods_env_file).config
         # Fish for a cached password
-        conn = self.connector(ienv=ienv, password='')
-        if conn.password is not None:
+        # conn = self.connector(irods_env_file=str(irods_env_file), password='')
+        conn = self.connector()
+        if conn.password:
             self.passwordField.setText(conn.password)
 
-    def _get_connector(self):
-        """iRODS connector getter (factory).
+    @property
+    def connector(self):
+        """IrodsConnector factory.
 
         Returns
         -------
@@ -171,8 +174,6 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         if not self.icommands:
             return utils.IrodsConnector.IrodsConnector
         return utils.IrodsConnectorIcommands.IrodsConnectorIcommands
-
-    connector = property(_get_connector, None, None, 'IrodsConnector')
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text
@@ -198,7 +199,6 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
 
         """
         if self.selectIcommandsButton.isChecked():
-            icommands_exist = False
             self.icommandsError.setText('')
             with open(os.devnull, 'w', encoding='utf-8') as devnull:
                 icommands_exist = subprocess.call(['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
@@ -212,8 +212,9 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         """Check connectivity and log in to iRODS handling common errors.
 
         """
-        env_path = self.irods_path.joinpath(self.envbox.currentText())
-        ienv = JsonConfig(env_path).config
+        irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
+        # TODO expand JsonConfig usage to all relevant modules
+        ienv = JsonConfig(irods_env_file).config
         if ienv is None:
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment file not found.')
@@ -228,12 +229,12 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
                 return
         self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
         password = self.passwordField.text()
-        conn = self.connector(ienv=ienv, password=password)
+        conn = self.connector(irods_env_file=str(irods_env_file), password=password)
         # Add own filepath for easy saving.
         conf = self.ibridges.config
-        conf['ui_ienvFilePath'] = str(env_path)
-        conf['last_ienv'] = env_path.name
-        # Save iBridges config to disk and combine with iRODS' config.
+        conf['ui_ienvFilePath'] = str(irods_env_file)
+        conf['last_ienv'] = irods_env_file.name
+        # Save iBridges config to disk and combine with iRODS config.
         self.ibridges.config = conf
         # TODO consider passing separate configurations
         ienv.update(conf)
