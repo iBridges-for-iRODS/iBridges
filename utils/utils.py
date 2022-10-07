@@ -1,9 +1,10 @@
-import os
-import sys
-import socket
+import datetime
 import logging
-from datetime import datetime
-from json import dump
+import json
+import os
+import pathlib
+import socket
+import sys
 
 
 def ensure_dir(path):
@@ -83,7 +84,7 @@ def saveIenv(ienv):
         envFile = os.path.join(os.path.expanduser("~"), ".irods"+os.sep+"irods_environment.json")
         ienv["ui_ienvFilePath"] = envFile
     with open(envFile, 'w') as f:
-        dump(ienv, f, indent=4)
+        json.dump(ienv, f, indent=4)
     return envFile
 
 
@@ -119,12 +120,13 @@ def setup_logger(logdir, appname):
 
     Parameters
     ----------
-    logdir : str
+    logdir : str, pathlib.Path
         Path to logging location.
     appname : str
         Base name for the log file.
 
     """
+    logdir = pathlib.Path(logdir)
     logfile = logdir.joinpath(f'{appname}.log')
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
     handlers = [
@@ -139,6 +141,6 @@ def setup_logger(logdir, appname):
         underscores = f'{"_"*50}\n'
         logfd.write(underscores)
         logfd.write(underscores)
-        logfd.write(f'\t\t{datetime.now().isoformat()}\n')
+        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
         logfd.write(underscores)
         logfd.write(underscores)
