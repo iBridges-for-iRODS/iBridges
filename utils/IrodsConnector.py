@@ -169,9 +169,14 @@ class IrodsConnector():
                 irods_auth_file = pathlib.Path(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
+                try:
+                    uid = os.getuid()
+                except AttributeError:
+                    # Spoof UID for Non-POSIX
+                    uid = sum((ord(char) for char in os.getlogin()))
                 with open(irods_auth_file, encoding='utf-8') as authfd:
                     self._password = irods.password_obfuscation.decode(
-                        authfd.read())
+                        authfd.read(), uid=uid)
         return self._password
 
     @password.setter
@@ -377,9 +382,14 @@ class IrodsConnector():
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
+            try:
+                uid = os.getuid()
+            except AttributeError:
+                # Spoof UID for Non-POSIX
+                uid = sum((ord(char) for char in os.getlogin()))
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0]))
+                    irods.password_obfuscation.encode(pam_passwords[0]), uid=uid)
 
     def get_user_info(self):
         """Query for user type and groups.
