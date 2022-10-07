@@ -370,6 +370,7 @@ class IrodsConnector():
             iRODS ACL instances.
 
         """
+        logging.info('GET PERMISSIONS', exc_info=True)
         if isinstance(path, str) and path:
             try:
                 return self.session.permissions.get(
@@ -377,8 +378,6 @@ class IrodsConnector():
             except irods.exception.CollectionDoesNotExist:
                 return self.session.permissions.get(
                     self.session.data_objects.get(path))
-            finally:
-                logging.info('GET PERMISSIONS', exc_info=True)
         if self.is_dataobject_or_collection(obj):
             return self.session.permissions.get(obj)
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
@@ -617,7 +616,7 @@ class IrodsConnector():
                 'RESOURCE ERROR: Resource "free_space" is not set for %s.',
                 resc_name, exc_info=True)
             raise FreeSpaceNotSet(
-                'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
+                f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
         return space
 
     def get_free_space(self, resc_name, multiplier=MULTIPLIER):
@@ -1243,8 +1242,6 @@ class IrodsConnector():
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
                 raise cnap("ERROR UPDATE META: no permissions "+item.path)
 
-
-
     def deleteData(self, item):
         """
         Delete a data object or a collection recursively.
@@ -1294,9 +1291,15 @@ class IrodsConnector():
                 self.session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
+        except irods.exception.NetworkException as netexc:
+            logging.info('Lost connection to iRODS server.')
+            return '', repr(netexc)
+        except irods.exception.SYS_HEADER_READ_LEN_ERR as shrle:
+            logging.info('iRODS server hiccuped.  Check the results and try again.')
+            return "", repr(shrle)
         except Exception as error:
             logging.info('RULE EXECUTION ERROR', exc_info=True)
-            return [], [repr(error)]
+            return '', repr(error)
         stdout, stderr = '', ''
         if len(out.MsParam_PI) > 0:
             buffers = out.MsParam_PI[0].inOutStruct
@@ -1305,7 +1308,6 @@ class IrodsConnector():
             stdout = '\n'.join(stdout.split('\n')[:-1])
             stderr = (buffers.stderrBuf.buf or b'').decode()
         return stdout, stderr
-
 
     def getSize(self, itemPaths):
         '''
