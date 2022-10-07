@@ -17,7 +17,7 @@ from gui.irodsBrowser import irodsBrowser
 from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
 from gui.IrodsUpDownload import IrodsUpDownload
-from gui.irodsDataCompression import irodsDataCompression
+from gui.IrodsDataBundle import IrodsDataBundle
 from gui.irodsInfo import irodsInfo
 from gui.irodsCreateTicket import irodsCreateTicket
 from gui.irodsTicketLogin import irodsTicketLogin
@@ -67,11 +67,11 @@ class mainmenu(QMainWindow):
                     elabUploadWidget = loadUi('gui/ui-files/tabELNData.ui')
                     self.tabWidget.addTab(elabUploadWidget, 'ELN Data upload')
                     self.elnTab = elabUpload(elabUploadWidget, ic)
-                # Data compression tab, index 3
-                if 'tabDataCompression' in ienv['ui_tabs']:
-                    dataCompressWidget = loadUi('gui/ui-files/tabDataCompression.ui')
-                    self.tabWidget.addTab(dataCompressWidget, 'Compress/bundle data')
-                    self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
+                # Data (un)bundle tab, index 3
+                if 'tabDataBundle' in ienv['ui_tabs']:
+                    dataBundleWidget = loadUi('gui/ui-files/tabDataBundle.ui')
+                    self.tabWidget.addTab(dataBundleWidget, '(Un)Bundle data')
+                    self.bundleTab = IrodsDataBundle(dataBundleWidget, ic, self.ienv)
                 # Grant access by tickets, index 4
                 if 'tabCreateTicket' in ienv['ui_tabs']:
                     createTicketWidget = loadUi('gui/ui-files/tabTicketCreate.ui')

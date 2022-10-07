@@ -107,6 +107,7 @@ class IrodsConnector():
         self.irods_env_file = irods_env_file
         if password:
             self.password = password
+        self.multiplier = MULTIPLIER
 
     @property
     def davrods(self):
@@ -420,6 +421,7 @@ class IrodsConnector():
             iRODS ACL instances.
 
         """
+        logging.info('GET PERMISSIONS', exc_info=True)
         if isinstance(path, str) and path:
             try:
                 return self.session.permissions.get(
@@ -427,8 +429,6 @@ class IrodsConnector():
             except irods.exception.CollectionDoesNotExist:
                 return self.session.permissions.get(
                     self.session.data_objects.get(path))
-            finally:
-                logging.info('GET PERMISSIONS', exc_info=True)
         if self.is_dataobject_or_collection(obj):
             return self.session.permissions.get(obj)
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
@@ -616,7 +616,7 @@ class IrodsConnector():
         return names, spaces
 
     def get_resource(self, resc_name):
-        '''Instantiate an iRODS resource.
+        """Instantiate an iRODS resource.
 
         Prameters
         ---------
@@ -631,7 +631,7 @@ class IrodsConnector():
         Raises:
             irods.exception.ResourceDoesNotExist
 
-        '''
+        """
         try:
             return self.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
@@ -667,7 +667,7 @@ class IrodsConnector():
                 'RESOURCE ERROR: Resource "free_space" is not set for %s.',
                 resc_name, exc_info=True)
             raise FreeSpaceNotSet(
-                'RESOURCE ERROR: Resource "free_space" is not set for {rescname}.')
+                f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
         return space
 
     def get_free_space(self, resc_name, multiplier=MULTIPLIER):
@@ -1316,39 +1316,54 @@ class IrodsConnector():
                 print("ERROR IRODS DELETE: no permissions "+item.path)
                 raise cnap
 
-    def executeRule(self, ruleFile, params, output='ruleExecOut'):
-        """
-        Executes and interactive rule. Returns stdout and stderr.
-        params: Depending on rule,
-                dictionary of variables for rule, will overwrite the default settings.
-        params format example:
+    def execute_rule(self, rule_file, params, output='ruleExecOut'):
+        """Execute an iRODS rule.
+
+        Parameters
+        ----------
+        rule_file : str, file-like
+            Name of the iRODS rule file, or a file-like object representing it.
+        params : dict
+            Rule arguments.
+        output : str
+            Rule output variable(s).
+
+        Returns
+        -------
+        tuple
+            (stdout, stderr)
+
+        `params` format example:
+
         params = {  # extra quotes for string literals
             '*obj': '"/zone/home/user"',
             '*name': '"attr_name"',
             '*value': '"attr_value"'
         }
+
         """
         try:
-            rule = irods.rule.Rule(self.session, ruleFile, params=params, output=output)
+            rule = irods.rule.Rule(
+                self.session, rule_file=rule_file, params=params, output=output,
+                instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
-        except Exception as e:
+        except irods.exception.NetworkException as netexc:
+            logging.info('Lost connection to iRODS server.')
+            return '', repr(netexc)
+        except irods.exception.SYS_HEADER_READ_LEN_ERR as shrle:
+            logging.info('iRODS server hiccuped.  Check the results and try again.')
+            return '', repr(shrle)
+        except Exception as error:
             logging.info('RULE EXECUTION ERROR', exc_info=True)
-            return [], [repr(e)]
-
-        stdout = []
-        stderr = []
+            return '', repr(error)
+        stdout, stderr = '', ''
         if len(out.MsParam_PI) > 0:
-            try:
-                stdout = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
-                stderr = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
-            except AttributeError:
-                logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
-                return stdout, stderr
-        
+            buffers = out.MsParam_PI[0].inOutStruct
+            stdout = (buffers.stdoutBuf.buf or b'').decode()
+            # Remove garbage after terminal newline.
+            stdout = '\n'.join(stdout.split('\n')[:-1])
+            stderr = (buffers.stderrBuf.buf or b'').decode()
         return stdout, stderr
-
 
     def getSize(self, itemPaths):
         '''

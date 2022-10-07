@@ -4,7 +4,7 @@ from PyQt5.uic import loadUi
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 
-import sys
+import io
 import os
 import json
 import datetime
@@ -107,8 +107,6 @@ class irodsIndexPopup(QDialog):
         self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         self.enableButtons(False)
 
-        ruleFile = os.path.join(os.getcwd(),'rules/tarExtractOne.r')
-
         selection = self.dataObjectTable.selectedIndexes()
         selectedRows = set([index.row() for index in selection])
         
@@ -128,10 +126,10 @@ class irodsIndexPopup(QDialog):
                         '*resource': '"'+self.ic.default_resc+'"',
                         '*extract': '"'+extractPath+'"',
                         }
-                stdout, stderr = self.ic.executeRule(ruleFile, params)
+                self.ic.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
                 logging.info("TAR EXTRACT SCHEDULED: ")
                 logging.info("iRODS user: "+self.ic.session.username)
-                logging.info("Rule file: "+ruleFile)
+                logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: "+\
                                       extractParent+"\n"
@@ -141,3 +139,40 @@ class irodsIndexPopup(QDialog):
         self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
 
 
+EXTRACT_ONE_RULE = '''extractOne {
+    msiGetObjType(*obj, *objType);
+    writeLine("stdout", "*obj, *objType");
+    msiSplitPath(*obj, *parentColl, *objName);
+    *suffix = substr(*obj, strlen(*obj)-9, strlen(*obj));
+    *objName = substr(*objName, 0, strlen(*objName)-10);
+    writeLine("stdout", "DEBUG tarExtract *parentColl");
+    writeLine("stdout", "DEBUG tarExtract *objName, *suffix");
+    *run = true;
+    if(*objType != '-d'){
+        *run = false;
+        writeLine("stderr", "ERROR tarExtract: not a data object, *path")
+    }
+    if(*suffix != "irods.tar" && *suffix != "irods.zip"){
+        *run = false;
+        writeLine("stderr", "ERROR tarExtract: not an irods.tar file, *path")
+    }
+    if(*run==true && *extract!="null"){
+        writeLine("stdout", "STATUS tarExtract: Create collection *parentColl/*objName");
+        msiCollCreate("*parentColl/*objName", 1, *collCreateOut);
+        if(*collCreateOut == 0) {
+            writeLine("stdout", "STATUS tarExtract: Extract *extract to *parentColl/*objName");
+            msiArchiveExtract(*obj, "*parentColl/*objName", *extract,  *resource, *outTarExtract);
+            if(*outTarExtract != 0) {
+                writeLine("stderr", "ERROR tarExtract: Failed to extract data");
+            }
+        }
+        else {
+            writeLine("stderr", "ERROR tarExtract: Failed to create *parentColl/*objName")
+        }
+    }
+    else {
+        writeLine("stdout", "DEBUG tarExtract: no action.")
+    }
+}
+OUTPUT ruleExecOut
+'''

@@ -116,7 +116,7 @@ def setupIRODS(config, operation):
         if menu in ['Yes', 'yes', 'Y', 'y']:
             config['iRODS']['irodsresc'] = largest_resc
         else:
-            print("Aborted: no iRODS reosurce set.")
+            print("Aborted: no iRODS resource set.")
             sys.exit(2)
 
     return ic

@@ -110,19 +110,25 @@ The client works on Mac, Windows and Linux distributions.  On Mac and Windows it
 {
     "last_ienv": "irods_environment.json", 
     "davrods_server": "https://server.fqdn.nl", 
-    "ui_tabs": [  # Activated tabs for the user beyond just the Browser and Info tabs
-        "tabBrowser",  # default
-        "tabUpDownload",  # requires "irods_default_resource" (not demoResc!)
+    "ui_tabs": [ 
+        "tabUpDownload", 
         "tabELNData", 
-        "tabDataCompression"  # requires "irods_default_resource" (not demoResc!)
-    ],
-    "force_unknown_free_space": false  # show resources with no free space annotated
+        "tabDataBundle", 
+        "tabCreateTicket" 
+    ], 
+    "force_unknown_free_space": false 
 }
 ```
+Options:
+- `davrods_server`: for annotation of eLabJournal data
+- `ui_tabs`: configure which tabs are shown (Browser and Info tabs always are)
+  - `tabUpDownload`: a two-pane upload/download tab
+  - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
+  - `tabDataBundle`: (un)bundle datasets from/to four supported formats
+  - `tabCreateTicket`: create iRODS tickets for anonymous access
+- `force_unknown_free_space`: ignore if resources' free space is unannotated
 
-*PLEASE NOTE: the comments denoted by the hashes `#` will need to be removed as they will cause a JSON error.*
-
-The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
+The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
 
 The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directory/folder.
 
@@ -133,6 +139,36 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 ```
 
 ## Remarks
+
+### Data (un)bundling
+
+iRODS 4.2.x currently has no support for compressed structured files outside the iCommand `ibun`.  Therefore, without custom microservices installed on a given iRODS server, only uncompressed TAR files are supported.
+
+#### TAR file format
+
+The `ibun` help gives the example to use the `-C` option to change into the directory containing the potential contents of the TAR file.  The bundling done with iBridges assumes this same format and creates TAR files likewise.  For example bundling the contents of the collection `/testZone/home/user/testColl` containing:
+
+```commandline
+/testZone/home/user/testColl/file1.ext
+/testZone/home/user/testColl/file2.ext
+/testZone/home/user/testColl/file3.ext
+```
+
+stores only the three data objects:
+
+```commandline
+file1.ext
+file2.ext
+file3.ext
+```
+
+into `/testZone/home/user/testColl.tar`.  Unbundling this data object recreates the `/testZone/home/user/testColl` collection if it does not exist and deposits the data objects into it.  If there are already data objects or collections existing there, an error will result and the bundle will not be extracted.
+
+#### (Un)bundle options
+
+iBridges has one option for (un)bundling data: `Force operations`.  If the option is checked, two types of operations will be forced: one is to overwrite a bundle/collection that already exists, and the other is to remove the bundle files or collection contents without first sending them to the bin.  **If this behavior is undesirable, DO NOT USE THIS FORCE OPTION.**
+
+It is recommended that any kind of destructive actions be done in a separate step.
 
 ### Performance
 
@@ -145,13 +181,13 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
   - default: Upload performance is depending on network speed and performance of the iRODS python API: https://github.com/chStaiger/irods-performances
   - 4GB from home network through python API takes about 30 minutes.
 
-### Elabjournal
+### eLabJournal
 
-- Data Upload to Elabjournal works in an own thread.  Hence, you can continue working in other Tabs of the application.
-- The laoding of Projects and Experiments takes quite long and depends on the performance of the Elabjournal server and the Elabjournal python library.
-- After clicking 'Upload' the application also waits for some response of the Elabjournal and seems to 'hang'.
+- Data Upload to eLabJournal works in an own thread.  Hence, you can continue working in other Tabs of the application.
+- The loading of Projects and Experiments takes quite long and depends on the performance of the eLabJournal server and the eLabJournal python library.
+- After clicking 'Upload' the application also waits for some response of the eLabJournal and seems to 'hang'.
 - Before data is uploaded, there is a check whether data fits on th iRODS resource.
-- Small hickup after Data upload to Elabjournal finished.  The stopping and cleaning up of the thread is done in the main application and affects all Tabs for a short moment.
+- Small hickup after Data upload to eLabJournal finished.  The stopping and cleaning up of the thread is done in the main application and affects all Tabs for a short moment.
 
 ## Delete function
 

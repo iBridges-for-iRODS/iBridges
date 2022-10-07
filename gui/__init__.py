@@ -6,7 +6,7 @@ from . import dataTransfer
 from . import elabUpload
 from . import irodsBrowser
 from . import irodsCreateTicket
-from . import irodsDataCompression
+from . import IrodsDataBundle
 from . import irodsInfo
 from . import irodsSearch
 from . import irodsTicketLogin
