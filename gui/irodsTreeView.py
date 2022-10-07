@@ -15,6 +15,14 @@ import PyQt5.QtCore
 import PyQt5.QtGui
 import PyQt5.QtWidgets
 
+ACCESS_NAMES = [
+    'own',
+    'modify object',
+    'read object',
+    'modify_object',
+    'read_object',
+]
+
 
 class IrodsModel(PyQt5.QtGui.QStandardItemModel):
     """Model for an iRODS tree view.
@@ -115,7 +123,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                 try:
                     zone = self.ic.session.zone
                     req_acls = []
-                    for access_name in ['own', 'write', 'read object']:
+                    for access_name in ACCESS_NAMES:
                         req_acls.extend([
                             (
                                 access_name,
