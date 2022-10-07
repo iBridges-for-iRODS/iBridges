@@ -79,7 +79,7 @@ QLabel#passError, QLabel#envError, QLabel#icommandsError
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Up-/Download with icommands (linux only.):</string>
+       <string>Up-/Download with iCommands (linux only):</string>
       </property>
      </widget>
     </item>
