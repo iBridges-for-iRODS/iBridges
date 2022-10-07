@@ -193,7 +193,7 @@ class IrodsDataBundle():
         # XXX can self.thread_create be simply thread
         self.thread_create = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'CREATE STATUS: Creating {coll_name}')
+            f'CREATE STATUS: Creating {obj_path}')
         self.worker_create = RuleRunner(
             self.ic, io.StringIO(CREATE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
@@ -261,7 +261,7 @@ class IrodsDataBundle():
                 }
         self.thread_extract = PyQt5.QtCore.QThread()
         self.widget.statusLabel.setText(
-            f'EXTRACT STATUS: Extracting {obj_path}')
+            f'EXTRACT STATUS: Extracting {coll_name}')
         self.worker_extract = RuleRunner(
             self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
         self.worker_extract.moveToThread(self.thread_extract)
