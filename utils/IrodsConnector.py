@@ -389,7 +389,7 @@ class IrodsConnector():
                 uid = sum((ord(char) for char in os.getlogin()))
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0]), uid=uid)
+                    irods.password_obfuscation.encode(pam_passwords[0], uid=uid))
 
     def get_user_info(self):
         """Query for user type and groups.
