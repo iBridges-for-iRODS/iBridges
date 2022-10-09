@@ -934,10 +934,10 @@ class IrodsConnector():
         if diffs is None:
             if src_path.is_file():
                 diff, only_fs, _, _ = self.diffObjFile(
-                    str(dst_path), str(src_path), scope='checksum')
+                    dst_path, src_path, scope='checksum')
             else:
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(
-                    dst_coll, str(src_path))
+                    dst_coll, src_path)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
@@ -953,31 +953,30 @@ class IrodsConnector():
             if src_path.is_file() and len(diff + only_fs) > 0:
                 logging.info(
                     'IRODS UPLOADING file %s to %s', src_path, dst_path)
-                self.irods_put(str(src_path), str(dst_path), **options)
+                self.irods_put(src_path, dst_path, **options)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
                 for irods_path, local_path in diff:
                     # Upload files to distinct data objects.
-                    _ = self.ensure_coll(str(irods_dirname(irods_path)))
+                    _ = self.ensure_coll(irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
-                    self.irods_put(str(local_path), str(irods_path),
-                        **options)
+                    self.irods_put(local_path, irods_path, **options)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
-                    rel_path = utils.utils.Path(rel_path)
+                    rel_path = utils.utils.BasePath(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
                         new_path = dst_path.joinpath(rel_path.parent)
                     else:
                         new_path = dst_path
-                    _ = self.ensure_coll(str(new_path))
+                    _ = self.ensure_coll(new_path)
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
-                    self.irods_put(str(local_path), str(irods_path), **options)
+                    self.irods_put(local_path, irods_path, **options)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
@@ -1037,12 +1036,12 @@ class IrodsConnector():
             dst_path = dst_path.joinpath(src_path.name)
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
-                    str(src_path), str(dst_path), scope="checksum")
+                    src_path, dst_path, scope="checksum")
             else:
                 if not dst_path.is_dir():
                     os.mkdir(dst_path)
                 diff, _, only_irods, _ = self.diffIrodsLocalfs(
-                    src_obj, str(dst_path), scope="checksum")
+                    src_obj, dst_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -1061,8 +1060,7 @@ class IrodsConnector():
                     'IRODS DOWNLOADING object: %s to %s',
                     src_path, dst_path)
                 self.irods_get(
-                    str(src_path), str(dst_path.joinpath(src_path.name)),
-                    **options)
+                    src_path, dst_path.joinpath(src_path.name), **options)
             # Collection
             else:
                 logging.info("IRODS DOWNLOAD started:")
@@ -1070,12 +1068,12 @@ class IrodsConnector():
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, local_path, **options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
-                    rel_path = utils.utils.Path(rel_path)
+                    rel_path = utils.utils.BasePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
                     local_path = dst_path.joinpath(
                         src_path.name).joinpath(rel_path)
@@ -1084,7 +1082,7 @@ class IrodsConnector():
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, strlocal_path, **options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
