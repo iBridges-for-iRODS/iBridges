@@ -1,3 +1,4 @@
+import builtins
 import datetime
 import logging
 import logging.handlers
@@ -145,3 +146,222 @@ def setup_logger(logdir, appname):
         logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
         logfd.write(underscores)
         logfd.write(underscores)
+
+
+class BasePath(builtins.str):
+    """Combine the best of str with pathlib.
+
+    """
+
+    def __init__(self, *args, posix: bool = True, **kwargs) -> None:
+        """A new Path from whole paths, segments of paths, absolute or
+        logical.
+
+        Parameters
+        ----------
+        posix : bool
+            Force posix path handling.
+        """
+        if posix is None:
+            posix = True
+            if sys.platform in ['cygwin', 'nt', 'win32']:
+                posix = False
+        if posix:
+            self.path = pathlib.PosixPath(*args, **kwargs)
+        else:
+            self.path = pathlib.WindowsPath(*args, **kwargs)
+
+    def expanduser(self):
+        """Return a new path with expanded ~ and ~user constructs (as
+        returned by os.path.expanduser)
+
+        Returns
+        -------
+        Path
+            User-expanded Path.
+        """
+        return type(self)(str(self.path.expanduser()))
+
+    def joinpath(self, *args):
+        """Combine this path with one or several arguments, and return
+        a new path representing either a subpath (if all arguments are
+        relative paths) or a totally different path (if one of the
+        arguments is anchored).
+
+        Returns
+        -------
+        Path
+            Joined Path.
+
+        """
+        return type(self)(str(self.path.joinpath(*args)))
+
+    def with_suffix(self, suffix: str):
+        """Create a new path with the file `suffix` changed.  If the
+        path has no `suffix`, add given `suffix`.  If the given
+        `suffix` is an empty string, remove the `suffix` from the path.
+
+        Parameters
+        ----------
+        suffix : str
+            New extension for the file 'stem'.
+
+        Returns
+        -------
+        Path
+            Suffix-updated Path.
+
+        """
+        return type(self)(str(self.path.with_suffix(suffix)))
+
+    @property
+    def name(self) -> str:
+        """The final path component, if any.
+
+        Returns
+        -------
+        str
+            Name of the Path.
+
+        """
+        return self.path.name
+
+    @property
+    def parent(self):
+        """The logical parent of the path.
+
+        Returns
+        -------
+        Path
+            Parent of the Path.
+
+        """
+        return type(self)(str(self.path.parent))
+
+    @property
+    def parts(self) -> tuple:
+        """An object providing sequence-like access to the components
+        in the filesystem path.
+
+        Returns
+        -------
+        tuple
+            Parts of the Path.
+
+        """
+        return self.path.parts
+
+    @property
+    def stem(self) -> str:
+        """The final path component, minus its last suffix.
+
+        Returns
+        -------
+        str
+            Stem of the Path.
+
+        """
+        return self.path.stem
+
+    @property
+    def suffix(self) -> str:
+        """The final component's last suffix, if any.  This includes
+        the leading period. For example: '.txt'.
+
+        Returns
+        -------
+        str
+            Suffix of the path.
+
+        """
+        return self.path.suffix
+
+    @property
+    def suffixes(self) -> list[str]:
+        """A list of the final component's suffixes, if any.  These
+        include the leading periods. For example: ['.tar', '.gz'].
+
+        Returns
+        -------
+        list[str]
+            Suffixes of the path.
+
+        """
+        return self.path.suffixes
+
+
+class IrodsPath(BasePath):
+    """Combine the best of str and pathlib for an inherently POSIX
+    path.  No filesystem access is expected.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        """A new IrodsPath from whole paths segments of paths,
+        absolute or logical.
+
+        """
+        super().__init__(*args, posix=True, **kwargs)
+
+
+class LocalPath(BasePath):
+    """Combine the best of str and pathlib for a local path expected to
+    be in the local filesystem.
+
+    """
+
+    def __init__(self, *args, **kwargs):
+        """A new LocalPath from whole paths segments of paths, absolute
+        or logical.
+
+        """
+        super().__init__(*args, **kwargs)
+
+    def exists(self) -> bool:
+        """Whether this path exists.
+
+        Returns
+        -------
+        bool
+            Path exists or not.
+
+        """
+        return self.path.exists()
+
+    def is_dir(self) -> bool:
+        """Whether this path is a directory.
+
+        Returns
+        -------
+        bool
+            Is a directory (folder) or not.
+
+        """
+        return self.path.is_dir()
+
+    def is_file(self) -> bool:
+        """Whether this path is a regular file (also True for symlinks
+        pointing to regular files)
+
+        Returns
+        -------
+        bool
+            Is a regular file (symlink) or not.
+
+        """
+        return self.path.is_file()
+
+    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False):
+        """Create a new directory at this given path.
+
+        Parameters
+        ----------
+        mode : int
+            Creation mode of the directory (folder).
+        parents : bool
+            Create the parents too?
+        exist_ok : bool
+            Okay if directory already exists?
+
+        """
+        self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)

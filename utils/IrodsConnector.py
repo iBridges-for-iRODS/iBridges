@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import os
-import pathlib
 import random
 import shutil
 import ssl
@@ -25,6 +24,8 @@ import irods.password_obfuscation
 import irods.rule
 import irods.session
 import irods.ticket
+
+import utils
 
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
@@ -145,7 +146,7 @@ class IrodsConnector():
 
         """
         if not self._ienv:
-            irods_env_file = pathlib.Path(self.irods_env_file)
+            irods_env_file = utils.utils.LocalPath(self.irods_env_file)
             if irods_env_file.is_file():
                 with open(irods_env_file, encoding='utf-8') as envfd:
                     self._ienv = json.load(envfd)
@@ -166,7 +167,7 @@ class IrodsConnector():
             irods_auth_file = os.environ.get(
                 'IRODS_AUTHENTICATION_FILE', None)
             if irods_auth_file is None:
-                irods_auth_file = pathlib.Path(
+                irods_auth_file = utils.utils.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
                 try:
@@ -910,12 +911,11 @@ class IrodsConnector():
         logging.info(
             'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
             resc_name)
-        # Handle both POSIX and non-POSIX paths.
-        src_path = pathlib.Path(src_path)
+        src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
-                dst_path = pathlib.Path(dst_coll.path).joinpath(
-                    src_path.name)
+                dst_path = utils.utils.IrodsPath(
+                    dst_coll.path).joinpath(src_path.name)
             else:
                 raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
@@ -967,7 +967,7 @@ class IrodsConnector():
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.Path(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
                         new_path = dst_path.joinpath(rel_path.parent)
@@ -1013,14 +1013,13 @@ class IrodsConnector():
             FORCE_FLAG_KW: '',
             REG_CHKSUM_KW: '',
         }
-        # Handle both POSIX and non-POSIX paths.
         if self.is_dataobject_or_collection(src_obj):
-            src_path = pathlib.Path(src_obj.path)
+            src_path = utils.utils.IrodsPath(src_obj.path)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS download: not a valid source path'
             )
-        dst_path = pathlib.Path(dst_path)
+        dst_path = utils.utils.LocalPath(dst_path)
         if not dst_path.is_dir():
             logging.info(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
@@ -1076,7 +1075,7 @@ class IrodsConnector():
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.Path(rel_path)
                     irods_path = src_path.joinpath(rel_path)
                     local_path = dst_path.joinpath(
                         src_path.name).joinpath(rel_path)
@@ -1446,4 +1445,4 @@ def irods_dirname(path):
         iRODS path less the element after the final '/'
 
     """
-    return pathlib.Path(path).parent
+    return utils.utils.IrodsPath(path).parent
