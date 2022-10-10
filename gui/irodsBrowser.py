@@ -155,6 +155,7 @@ class irodsBrowser:
             row = row+1
 
         self.widget.aclTable.resizeColumnsToContents()
+        self.widget.owner_label.setText("Owner: "+item.owner_name)
 
     def __fillMetadata(self, value, path):
         self.widget.metaKeyField.clear()
