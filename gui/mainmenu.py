@@ -2,9 +2,14 @@ from PyQt6.QtWidgets import QMainWindow, QMessageBox
 from PyQt6.uic import loadUi
 
 from gui.irodsBrowser import irodsBrowser
+from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
 from gui.irodsUpDownload import irodsUpDownload
+from gui.irodsDataCompression import irodsDataCompression
 from gui.irodsInfo import irodsInfo
+from gui.irodsCreateTicket import irodsCreateTicket
+from gui.irodsTicketLogin import irodsTicketLogin
+from utils.utils import saveIenv
 
 import sys
 import logging
@@ -47,18 +52,39 @@ class mainmenu(QMainWindow):
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
 
-            # Data Transfers default for research Cloud, index 0
-            updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-            self.tabWidget.addTab(updownloadWidget, "Data Transfers")
-            self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
-            log_handler = QPlainTextEditLogger(updownloadWidget.logs)
-            logging.getLogger().addHandler(log_handler)
-
-            # Browser, Dependency for search, index 1
+            # needed for Search
             self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
             self.tabWidget.addTab(self.browserWidget, "Browser")
             self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
 
+            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
+    
+                # Setup up/download tab, index 1
+                if "tabUpDownload" in ienv["ui_tabs"]:
+                    updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
+                    self.tabWidget.addTab(updownloadWidget, "Data Transfers")
+                    self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
+                    log_handler = QPlainTextEditLogger(updownloadWidget.logs)
+                    logging.getLogger().addHandler(log_handler)
+    
+                # Elabjournal tab, index 2
+                if "tabELNData" in ienv["ui_tabs"]:
+                    elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
+                    self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
+                    self.elnTab = elabUpload(elabUploadWidget, ic)
+    
+                # Data compression tab, index 3
+                if "tabDataCompression" in ienv["ui_tabs"]:
+                    dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
+                    self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
+                    self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
+    
+                # Grant access by tickets, index 4
+                if "tabCreateTicket" in ienv["ui_tabs"]:
+                    createTicketWidget = loadUi("gui/ui-files/tabTicketCreate.ui")
+                    self.tabWidget.addTab(createTicketWidget, "Create access tokens")
+                    self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
+    
             # general info
             self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
             self.tabWidget.addTab(self.infoWidget, "Info")
