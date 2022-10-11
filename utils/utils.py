@@ -153,34 +153,44 @@ class BasePath(builtins.str):
 
     """
 
-    def __init__(self, *args, posix: bool = True, **kwargs) -> None:
-        """A new Path from whole paths, segments of paths, absolute or
-        logical.
 
-        Parameters
-        ----------
-        posix : bool
-            Force posix path handling.
+class PurePath(BasePath):
+    """A platform-dependent pure path without file system functionality
+    based on the best of str and pathlib.
+
+    """
+
+    def __new__(cls, *args):
+        """Instantiate a PurePath.
+
         """
-        if posix is None:
-            posix = True
-            if sys.platform in ['cygwin', 'nt', 'win32']:
-                posix = False
-        if posix:
-            self.path = pathlib.PosixPath(*args, **kwargs)
+        if 'win' in sys.platform:
+            path = str(pathlib.PureWindowsPath(*args))
         else:
-            self.path = pathlib.WindowsPath(*args, **kwargs)
+            path = str(pathlib.PurePosixPath(*args))
+        return super().__new__(cls, path)
 
-    def expanduser(self):
-        """Return a new path with expanded ~ and ~user constructs (as
-        returned by os.path.expanduser)
+    def __init__(self, *args) -> None:
+        """Initialize a PurePath from whole paths segments of paths,
+        absolute or logical.
 
-        Returns
-        -------
-        Path
-            User-expanded Path.
         """
-        return type(self)(str(self.path.expanduser()))
+        if 'win' in sys.platform:
+            self.path = pathlib.PureWindowsPath(*args)
+        else:
+            self.path = pathlib.PurePosixPath(*args)
+
+    def __str__(self):
+        """Render Paths into a string.
+
+        """
+        return self.path.__str__()
+
+    def __repr__(self):
+        """Render Paths into a representation.
+
+        """
+        return f'{self.__class__.__name__}({self.__str__()})'
 
     def joinpath(self, *args):
         """Combine this path with one or several arguments, and return
@@ -290,32 +300,52 @@ class BasePath(builtins.str):
         return self.path.suffixes
 
 
-class IrodsPath(BasePath):
-    """Combine the best of str and pathlib for an inherently POSIX
-    path.  No filesystem access is expected.
+class IrodsPath(PurePath):
+    """A pure POSIX path without file system functionality based on the
+    best of str and pathlib.
 
     """
 
-    def __init__(self, *args, **kwargs):
-        """A new IrodsPath from whole paths segments of paths,
+    def __new__(cls, *args):
+        """Instantiate an IrodsPath.
+
+        """
+        path = str(pathlib.PurePosixPath(*args))
+        return super().__new__(cls, path)
+
+    def __init__(self, *args) -> None:
+        """Initialize a IrodsPath from whole paths segments of paths,
         absolute or logical.
 
         """
-        super().__init__(*args, posix=True, **kwargs)
+        self.path = pathlib.PurePosixPath(*args)
 
 
-class LocalPath(BasePath):
-    """Combine the best of str and pathlib for a local path expected to
-    be in the local filesystem.
+class LocalPath(PurePath):
+    """A pure POSIX path with file system functionality based on the
+    best of str and pathlib.
 
     """
 
-    def __init__(self, *args, **kwargs):
-        """A new LocalPath from whole paths segments of paths, absolute
-        or logical.
+    def __new__(cls, *args):
+        """Instantiate a LocalPath.
 
         """
-        super().__init__(*args, **kwargs)
+        if 'win' in sys.platform:
+            path = str(pathlib.PureWindowsPath(*args))
+        else:
+            path = str(pathlib.PurePosixPath(*args))
+        return super().__new__(cls, path)
+
+    def __init__(self, *args) -> None:
+        """Initialize a LocalPath from whole paths, segments of paths,
+        absolute or logical.
+
+        """
+        if 'win' in sys.platform:
+            self.path = pathlib.WindowsPath(*args)
+        else:
+            self.path = pathlib.PosixPath(*args)
 
     def exists(self) -> bool:
         """Whether this path exists.
@@ -326,7 +356,42 @@ class LocalPath(BasePath):
             Path exists or not.
 
         """
-        return self.path.exists()
+        try:
+            return self.path.exists()
+        except AttributeError:
+            return os.path.exists(self.path)
+
+    def expanduser(self):
+        """Return a new path with expanded ~ and ~user constructs (as
+        returned by os.path.expanduser)
+
+        Returns
+        -------
+        Path
+            User-expanded Path.
+        """
+        try:
+            return type(self)(str(self.path.expanduser()))
+        except AttributeError:
+            return type(self)(os.path.expanduser(self.path))
+
+    def glob(self, pattern: str) -> iter:
+        """Iterate over this subtree and yield all existing files (of
+        any kind, including directories) matching the given relative
+        `pattern`.
+
+        Parameters
+        ----------
+        pattern : str
+            Wildcard patter to match files.
+
+        Returns
+        -------
+        iter
+            Generator of matches.
+
+        """
+        return self.path.glob(pattern=pattern)
 
     def is_dir(self) -> bool:
         """Whether this path is a directory.
@@ -337,7 +402,10 @@ class LocalPath(BasePath):
             Is a directory (folder) or not.
 
         """
-        return self.path.is_dir()
+        try:
+            return self.path.is_dir()
+        except AttributeError:
+            return os.path.isdir(self.path)
 
     def is_file(self) -> bool:
         """Whether this path is a regular file (also True for symlinks
@@ -349,9 +417,12 @@ class LocalPath(BasePath):
             Is a regular file (symlink) or not.
 
         """
-        return self.path.is_file()
+        try:
+            return self.path.is_file()
+        except AttributeError:
+            return os.path.isfile(os.path)
 
-    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False):
+    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
         """Create a new directory at this given path.
 
         Parameters
@@ -364,4 +435,7 @@ class LocalPath(BasePath):
             Okay if directory already exists?
 
         """
-        self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
+        try:
+            self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
+        except AttributeError:
+            pass
