@@ -245,7 +245,7 @@ class IrodsConnector():
                 name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
-                    free_space = self.get_free_space(name)
+                    free_space = self.get_free_space(name, multiplier=MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
@@ -679,9 +679,10 @@ class IrodsConnector():
                 resc_name, exc_info=True)
             raise FreeSpaceNotSet(
                 f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
-        return space
+        # For convenience, free_space is stored multiplied by MULTIPLIER.
+        return int(space / MULTIPLIER)
 
-    def get_free_space(self, resc_name, multiplier=MULTIPLIER):
+    def get_free_space(self, resc_name, multiplier=1):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -966,7 +967,7 @@ class IrodsConnector():
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
-                    rel_path = utils.utils.BasePath(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
                         new_path = dst_path.joinpath(rel_path.parent)
@@ -1073,7 +1074,7 @@ class IrodsConnector():
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
-                    rel_path = utils.utils.BasePath(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
                     local_path = dst_path.joinpath(
                         src_path.name).joinpath(rel_path)
