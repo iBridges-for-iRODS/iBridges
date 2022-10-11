@@ -277,7 +277,7 @@ class irodsBrowser():
             self._clear_view_tabs()
             obj_path = utils.utils.IrodsPath(self.widget.inputPath.text())
             if self.ic.collection_exists(obj_path):
-                coll = self.ic.get_collection.get(obj_path)
+                coll = self.ic.get_collection(obj_path)
                 self.widget.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
                 row = 0
                 for subcoll in coll.subcollections:

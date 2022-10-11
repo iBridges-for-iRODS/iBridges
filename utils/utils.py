@@ -164,7 +164,7 @@ class PurePath(BasePath):
         """Instantiate a PurePath.
 
         """
-        if 'win' in sys.platform:
+        if sys.platform in ['win32', 'cygwin']:
             path = str(pathlib.PureWindowsPath(*args))
         else:
             path = str(pathlib.PurePosixPath(*args))
@@ -175,7 +175,7 @@ class PurePath(BasePath):
         absolute or logical.
 
         """
-        if 'win' in sys.platform:
+        if sys.platform in ['win32', 'cygwin']:
             self.path = pathlib.PureWindowsPath(*args)
         else:
             self.path = pathlib.PurePosixPath(*args)
@@ -331,7 +331,7 @@ class LocalPath(PurePath):
         """Instantiate a LocalPath.
 
         """
-        if 'win' in sys.platform:
+        if sys.platform in ['win32', 'cygwin']:
             path = str(pathlib.PureWindowsPath(*args))
         else:
             path = str(pathlib.PurePosixPath(*args))
@@ -342,7 +342,7 @@ class LocalPath(PurePath):
         absolute or logical.
 
         """
-        if 'win' in sys.platform:
+        if sys.platform in ['win32', 'cygwin']:
             self.path = pathlib.WindowsPath(*args)
         else:
             self.path = pathlib.PosixPath(*args)
