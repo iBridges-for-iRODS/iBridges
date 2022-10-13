@@ -179,6 +179,7 @@ class PurePath(BasePath):
             self.path = pathlib.PureWindowsPath(*args)
         else:
             self.path = pathlib.PurePosixPath(*args)
+        super().__init__(self, self.path.__str__())
 
     def __str__(self):
         """Render Paths into a string.
@@ -190,7 +191,7 @@ class PurePath(BasePath):
         """Render Paths into a representation.
 
         """
-        return f'{self.__class__.__name__}({self.__str__()})'
+        return f'{self.__class__.__name__}("{self.path.__str__()}")'
 
     def joinpath(self, *args):
         """Combine this path with one or several arguments, and return
