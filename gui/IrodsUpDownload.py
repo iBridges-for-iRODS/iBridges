@@ -200,7 +200,7 @@ class IrodsUpDownload():
             Current iRODS resource name.
 
         """
-        return self.widget.resourceBox.currentText()
+        return self.widget.resourceBox.currentText().split(' / ')[0]
 
     def get_remote_local_copy_state(self):
         """Get state of remote/local copy button.
