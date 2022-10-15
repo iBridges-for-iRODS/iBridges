@@ -148,38 +148,43 @@ def setup_logger(logdir, appname):
         logfd.write(underscores)
 
 
-class BasePath(builtins.str):
-    """Combine the best of str with pathlib.
-
-    """
-
-
-class PurePath(BasePath):
+# class PurePath(BasePath):
+class PurePath(builtins.str):
     """A platform-dependent pure path without file system functionality
     based on the best of str and pathlib.
 
     """
 
+    _path = None
+
     def __new__(cls, *args):
-        """Instantiate a PurePath.
-
-        """
-        if sys.platform in ['win32', 'cygwin']:
-            path = str(pathlib.PureWindowsPath(*args))
-        else:
-            path = str(pathlib.PurePosixPath(*args))
-        return super().__new__(cls, path)
-
-    def __init__(self, *args) -> None:
-        """Initialize a PurePath from whole paths segments of paths,
+        """Instantiate a PurePath from whole paths or segments of paths,
         absolute or logical.
 
         """
         if sys.platform in ['win32', 'cygwin']:
-            self.path = pathlib.PureWindowsPath(*args)
+            path = pathlib.PureWindowsPath(*args)
         else:
-            self.path = pathlib.PurePosixPath(*args)
-        super().__init__(self, self.path.__str__())
+            path = pathlib.PurePosixPath(*args)
+        return super().__new__(cls, path.__str__())
+
+    def __init__(self, *args) -> None:
+        """Initialize a PurePath.
+
+        """
+        self.args = args
+
+    @property
+    def path(self) -> pathlib.Path:
+        """A pathlib.Path instance providing extra functionality.
+
+        """
+        if self._path is None:
+            if sys.platform in ['win32', 'cygwin']:
+                self._path = pathlib.PureWindowsPath(*self.args)
+            else:
+                self._path = pathlib.PurePosixPath(*self.args)
+        return self._path
 
     def __str__(self):
         """Render Paths into a string.
@@ -311,42 +316,47 @@ class IrodsPath(PurePath):
         """Instantiate an IrodsPath.
 
         """
-        path = str(pathlib.PurePosixPath(*args))
-        return super().__new__(cls, path)
+        path = pathlib.PurePosixPath(*args)
+        return super().__new__(cls, path.__str__())
 
-    def __init__(self, *args) -> None:
-        """Initialize a IrodsPath from whole paths segments of paths,
-        absolute or logical.
+    @property
+    def path(self) -> pathlib.PurePosixPath:
+        """A pathlib.PurePosixPath instance providing extra
+        functionality.
 
         """
-        self.path = pathlib.PurePosixPath(*args)
+        if self._path is None:
+            self._path = pathlib.PurePosixPath(*self.args)
+        return self._path
 
 
 class LocalPath(PurePath):
-    """A pure POSIX path with file system functionality based on the
+    """A local path with file system functionality based on the
     best of str and pathlib.
 
     """
 
-    def __new__(cls, *args):
+    def __new__(cls, *args, **kwargs):
         """Instantiate a LocalPath.
 
         """
         if sys.platform in ['win32', 'cygwin']:
-            path = str(pathlib.PureWindowsPath(*args))
+            path = pathlib.WindowsPath(*args)
         else:
-            path = str(pathlib.PurePosixPath(*args))
-        return super().__new__(cls, path)
+            path = pathlib.PosixPath(*args)
+        return super().__new__(cls, path.__str__())
 
-    def __init__(self, *args) -> None:
-        """Initialize a LocalPath from whole paths, segments of paths,
-        absolute or logical.
+    @property
+    def path(self) -> pathlib.Path:
+        """A pathlib.Path instance providing extra functionality.
 
         """
-        if sys.platform in ['win32', 'cygwin']:
-            self.path = pathlib.WindowsPath(*args)
-        else:
-            self.path = pathlib.PosixPath(*args)
+        if self._path is None:
+            if sys.platform in ['win32', 'cygwin']:
+                self._path = pathlib.WindowsPath(*self.args)
+            else:
+                self._path = pathlib.PosixPath(*self.args)
+        return self._path
 
     def exists(self) -> bool:
         """Whether this path exists.
