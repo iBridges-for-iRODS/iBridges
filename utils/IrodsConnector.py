@@ -436,10 +436,10 @@ class IrodsConnector():
         if isinstance(path, str) and path:
             try:
                 return self.session.permissions.get(
-                    self.session.collections.get(str(path)))
+                    self.session.collections.get(path))
             except irods.exception.CollectionDoesNotExist:
                 return self.session.permissions.get(
-                    self.session.data_objects.get(str(path)))
+                    self.session.data_objects.get(path))
         if self.is_dataobject_or_collection(obj):
             return self.session.permissions.get(obj)
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
@@ -462,9 +462,9 @@ class IrodsConnector():
             Apply ACL to all children of `path`.
 
         """
-        acl = irods.access.iRODSAccess(perm, str(path), user, zone)
+        acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if self.session.collections.exists(str(path)):
+            if self.session.collections.exists(path):
                 self.session.permissions.set(acl, recursive=recursive)
         except irods.exception.CAT_INVALID_USER as ciu:
             print(f'{RED}ACL ERROR: user unknown{DEFAULT}')
@@ -738,7 +738,7 @@ class IrodsConnector():
             Existence of the data object with `path`.
 
         """
-        return self.session.data_objects.exists(str(path))
+        return self.session.data_objects.exists(path)
 
     def collection_exists(self, path):
         """Check if an iRODS collection exists.
@@ -754,7 +754,7 @@ class IrodsConnector():
             Existance of the collection with `path`.
 
         """
-        return self.session.collections.exists(str(path))
+        return self.session.collections.exists(path)
 
     def get_dataobject(self, path):
         """Instantiate an iRODS data object.
@@ -770,8 +770,8 @@ class IrodsConnector():
             Instance of the data object with `path`.
 
         """
-        if self.dataobject_exists(str(path)):
-            return self.session.data_objects.get(str(path))
+        if self.dataobject_exists(path):
+            return self.session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
 
     def get_collection(self, path):
@@ -788,9 +788,9 @@ class IrodsConnector():
             Instance of the collection with `path`.
 
         """
-        if self.collection_exists(str(path)):
-            return self.session.collections.get(str(path))
-        raise irods.exception.CollectionDoesNotExist(str(path))
+        if self.collection_exists(path):
+            return self.session.collections.get(path)
+        raise irods.exception.CollectionDoesNotExist(path)
 
     def irods_put(self, local_path, irods_path, **options):
         """Upload `local_path` to `irods_path` following iRODS
@@ -1383,11 +1383,11 @@ class IrodsConnector():
         for path in itemPaths:
             #remove possible leftovers of windows fs separators
             path = path.replace("\\", "/")
-            if self.session.data_objects.exists(str(path)):
-                size = size + self.session.data_objects.get(str(path)).size
+            if self.session.data_objects.exists(path):
+                size = size + self.session.data_objects.get(path).size
 
-            elif self.session.collections.exists(str(path)):
-                coll = self.session.collections.get(str(path))
+            elif self.session.collections.exists(path):
+                coll = self.session.collections.get(path)
                 walk = [coll]
                 while walk:
                     try:
@@ -1404,7 +1404,7 @@ class IrodsConnector():
     def createTicket(self, path, expiryString=""):
         ticket = irods.ticket.Ticket(self.session, 
                         ''.join(random.choice(string.ascii_letters) for _ in range(20)))
-        ticket.issue("read", str(path))
+        ticket.issue("read", path)
         logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
         #returns False when no expiry date is set
         return ticket.ticket, False
