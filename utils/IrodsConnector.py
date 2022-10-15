@@ -1083,7 +1083,7 @@ class IrodsConnector():
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(irods_path, strlocal_path, **options)
+                    self.irods_get(irods_path, local_path, **options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
@@ -1400,13 +1400,13 @@ class IrodsConnector():
                         raise
         return size
 
-
     def createTicket(self, path, expiryString=""):
-        ticket = irods.ticket.Ticket(self.session, 
-                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
+        ticket = irods.ticket.Ticket(
+            self.session, ''.join(
+                random.choice(string.ascii_letters) for _ in range(20)))
         ticket.issue("read", path)
         logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
-        #returns False when no expiry date is set
+        # returns False when no expiry date is set
         return ticket.ticket, False
 
 
