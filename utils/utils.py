@@ -1,4 +1,3 @@
-import builtins
 import datetime
 import logging
 import logging.handlers
@@ -148,8 +147,7 @@ def setup_logger(logdir, appname):
         logfd.write(underscores)
 
 
-# class PurePath(BasePath):
-class PurePath(builtins.str):
+class PurePath(str):
     """A platform-dependent pure path without file system functionality
     based on the best of str and pathlib.
 
@@ -160,6 +158,11 @@ class PurePath(builtins.str):
     def __new__(cls, *args):
         """Instantiate a PurePath from whole paths or segments of paths,
         absolute or logical.
+
+        Returns
+        -------
+        PurePath
+            Uninitialized instance.
 
         """
         if sys.platform in ['win32', 'cygwin']:
@@ -174,9 +177,36 @@ class PurePath(builtins.str):
         """
         self.args = args
 
+    def __str__(self) -> str:
+        """Render Paths into a string.
+
+        Returns
+        -------
+        str
+            String value of the pathlib.Path.
+
+        """
+        return self.path.__str__()
+
+    def __repr__(self) -> str:
+        """Render Paths into a representation.
+
+        Returns
+        -------
+        str
+            Representation of the pathlib.Path.
+
+        """
+        return f'{self.__class__.__name__}("{self.path.__str__()}")'
+
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> pathlib.PurePath:
         """A pathlib.Path instance providing extra functionality.
+
+        Returns
+        -------
+        pathlib.PurePath
+            Initialized from self.args.
 
         """
         if self._path is None:
@@ -186,18 +216,6 @@ class PurePath(builtins.str):
                 self._path = pathlib.PurePosixPath(*self.args)
         return self._path
 
-    def __str__(self):
-        """Render Paths into a string.
-
-        """
-        return self.path.__str__()
-
-    def __repr__(self):
-        """Render Paths into a representation.
-
-        """
-        return f'{self.__class__.__name__}("{self.path.__str__()}")'
-
     def joinpath(self, *args):
         """Combine this path with one or several arguments, and return
         a new path representing either a subpath (if all arguments are
@@ -206,7 +224,7 @@ class PurePath(builtins.str):
 
         Returns
         -------
-        Path
+        PurePath
             Joined Path.
 
         """
@@ -224,7 +242,7 @@ class PurePath(builtins.str):
 
         Returns
         -------
-        Path
+        PurePath
             Suffix-updated Path.
 
         """
@@ -248,7 +266,7 @@ class PurePath(builtins.str):
 
         Returns
         -------
-        Path
+        PurePath
             Parent of the Path.
 
         """
@@ -315,6 +333,11 @@ class IrodsPath(PurePath):
     def __new__(cls, *args):
         """Instantiate an IrodsPath.
 
+        Returns
+        -------
+        IrodsPath
+            Uninitialized instance.
+
         """
         path = pathlib.PurePosixPath(*args)
         return super().__new__(cls, path.__str__())
@@ -323,6 +346,11 @@ class IrodsPath(PurePath):
     def path(self) -> pathlib.PurePosixPath:
         """A pathlib.PurePosixPath instance providing extra
         functionality.
+
+        Returns
+        -------
+        pathlib.PurePosixPath
+            Initialized from self.args.
 
         """
         if self._path is None:
@@ -339,6 +367,11 @@ class LocalPath(PurePath):
     def __new__(cls, *args, **kwargs):
         """Instantiate a LocalPath.
 
+        Returns
+        -------
+        LocalPath
+            Uninitialized instance.
+
         """
         if sys.platform in ['win32', 'cygwin']:
             path = pathlib.WindowsPath(*args)
@@ -349,6 +382,11 @@ class LocalPath(PurePath):
     @property
     def path(self) -> pathlib.Path:
         """A pathlib.Path instance providing extra functionality.
+
+        Returns
+        -------
+        pathlib.Path
+            Initialized from self.args.
 
         """
         if self._path is None:
@@ -367,10 +405,10 @@ class LocalPath(PurePath):
             Path exists or not.
 
         """
-        try:
-            return self.path.exists()
-        except AttributeError:
-            return os.path.exists(self.path)
+        # try:
+        return self.path.exists()
+        # except AttributeError:
+        #     return os.path.exists(self.path)
 
     def expanduser(self):
         """Return a new path with expanded ~ and ~user constructs (as
@@ -378,7 +416,7 @@ class LocalPath(PurePath):
 
         Returns
         -------
-        Path
+        LocalPath
             User-expanded Path.
         """
         try:
@@ -413,10 +451,10 @@ class LocalPath(PurePath):
             Is a directory (folder) or not.
 
         """
-        try:
-            return self.path.is_dir()
-        except AttributeError:
-            return os.path.isdir(self.path)
+        # try:
+        return self.path.is_dir()
+        # except AttributeError:
+        #     return os.path.isdir(self.path)
 
     def is_file(self) -> bool:
         """Whether this path is a regular file (also True for symlinks
@@ -428,10 +466,10 @@ class LocalPath(PurePath):
             Is a regular file (symlink) or not.
 
         """
-        try:
-            return self.path.is_file()
-        except AttributeError:
-            return os.path.isfile(os.path)
+        # try:
+        return self.path.is_file()
+        # except AttributeError:
+        #     return os.path.isfile(os.path)
 
     def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
         """Create a new directory at this given path.
