@@ -154,6 +154,7 @@ class PurePath(str):
     """
 
     _path = None
+    _posix = None
 
     def __new__(cls, *args):
         """Instantiate a PurePath from whole paths or segments of paths,
@@ -165,7 +166,7 @@ class PurePath(str):
             Uninitialized instance.
 
         """
-        if sys.platform in ['win32', 'cygwin']:
+        if sys.platform in ['win32', 'cygwin'] and not cls._posix:
             path = pathlib.PureWindowsPath(*args)
         else:
             path = pathlib.PurePosixPath(*args)
@@ -339,6 +340,7 @@ class IrodsPath(PurePath):
             Uninitialized instance.
 
         """
+        cls._posix = True
         path = pathlib.PurePosixPath(*args)
         return super().__new__(cls, path.__str__())
 
