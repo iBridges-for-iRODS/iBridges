@@ -1,6 +1,7 @@
 import os
 import sys
 import socket
+from logging.handlers import RotatingFileHandler
 import logging
 from datetime import datetime
 from json import dump
@@ -110,7 +111,7 @@ def setup_logger(irods_folder, app):
     logfile = irods_folder + os.sep + app + ".log"
 
     log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
+    handlers = [RotatingFileHandler(logfile, 'a', 100000, 1), logging.StreamHandler(sys.stdout)]
     logging.basicConfig(format=log_format, level=logging.INFO, handlers=handlers)
 
     # Indicate start of a new session

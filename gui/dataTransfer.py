@@ -81,6 +81,7 @@ class dataTransfer(QDialog):
         total_size = self.updateSize + self.addSize
         self.loading_movie.start()
         self.loadingLbl.setHidden(False)
+        self.confirmBtn.setEnabled(False)
         now = datetime.now()
         if self.upload:
             self.statusLbl.setText(
@@ -149,12 +150,14 @@ class dataTransfer(QDialog):
         if status == True:
             self.confirmBtn.disconnect() # remove callback
             self.confirmBtn.setText("Close")
+            self.confirmBtn.setEnabled(True)
             self.confirmBtn.clicked.connect(self.closeAfterUpDownl)
             self.statusLbl.setText("Update complete.")
         else:
             self.statusLbl.setText(statusmessage)
             print(statusmessage)
             self.confirmBtn.setText("Retry")
+            self.confirmBtn.setEnabled(True)
             if "No size set on iRODS resource" in statusmessage:
                 self.force = True
                 self.confirmBtn.setText("Retry and force upload?")

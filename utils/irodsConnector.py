@@ -3,13 +3,14 @@ from irods.access import iRODSAccess
 from irods.ticket import Ticket
 from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, \
                             CAT_NO_ACCESS_PERMISSION, CAT_SUCCESS_BUT_WITH_NO_INFO, \
-                            CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION
+                            CAT_INVALID_ARGUMENT, CAT_INVALID_USER, CAT_INVALID_AUTHENTICATION,\
+                            NO_RULE_OR_MSI_FUNCTION_FOUND_ERR
 
 from irods.exception import CollectionDoesNotExist
 from irods.connection import PlainTextPAMPasswordError
-from irods.models import Collection, DataObject, Resource, CollectionMeta, DataObjectMeta
+from irods.models import Collection, DataObject, Resource, ResourceMeta, CollectionMeta, DataObjectMeta
 from irods.models import User, UserGroup
-from irods.column import Like
+from irods.column import Like, Between, In
 import irods.keywords as kw
 from irods.rule import Rule
 
@@ -385,7 +386,7 @@ class irodsConnector():
                 sourcePath = os.path.join(source, o)
                 if len(o.split(os.sep)) > 1:
                     subColl = self.session.collections.create(
-                                destination.path+'/'+os.path.basename(source)+'/'+os.path.dirname(o))
+                                destination.path+'/'+os.path.basename(source)+'/'+os.path.dirname(o).replace(os.sep,'/'))
                 else:
                     subColl = self.session.collections.create(
                             destination.path+'/'+os.path.basename(source))
@@ -564,7 +565,7 @@ class irodsConnector():
         if coll is not None:
             for root, subcolls, obj in coll.walk():
                 for o in obj:
-                    listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
+                    listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/').replace("/", os.sep))
 
         diff = []
         same = []
@@ -725,10 +726,16 @@ class irodsConnector():
         stderr = []
         if len(out.MsParam_PI) > 0:
             try:
-                stdout = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
-                stderr = [o.decode() 
-                    for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
+                if out.MsParam_PI[0].inOutStruct.stdoutBuf.buf != None:
+                    stdout = [o.decode() 
+                        for o in (out.MsParam_PI[0].inOutStruct.stdoutBuf.buf.strip(b'\x00')).split(b'\n')]
+                else:
+                    stdout = ""
+                if out.MsParam_PI[0].inOutStruct.stderrBuf.buf != None:
+                    stderr = [o.decode() 
+                        for o in (out.MsParam_PI[0].inOutStruct.stderrBuf.buf.strip(b'\x00')).split(b'\n')]
+                else:
+                    stderr = ""
             except AttributeError:
                 logging.info('RULE EXECUTION ERROR: '+str(stdout+stderr), exc_info=True)
                 return stdout, stderr
