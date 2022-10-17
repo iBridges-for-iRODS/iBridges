@@ -6,11 +6,11 @@ import pathlib
 
 from irods.exception import CollectionDoesNotExist, NetworkException
 from irods.path import iRODSPath
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QFileDialog, QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QFileDialog, QMessageBox
+from PyQt6.uic import loadUi
+from PyQt6 import QtCore
+from PyQt6 import QtGui
 
 from gui.popupWidgets import irodsCreateCollection
 from meta import metadataFileParser
@@ -346,7 +346,7 @@ class irodsBrowser():
 
     def loadSelection(self):
         # loads selection from main table into delete tab
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.widget.deleteSelectionBrowser.clear()
         path_name = self.widget.inputPath.text()
         row = self.widget.collTable.currentRow()
@@ -371,8 +371,8 @@ class irodsBrowser():
             except NetworkException:
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
 
     def deleteData(self):
@@ -382,8 +382,8 @@ class irodsBrowser():
         if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
-            reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
-            if reply == QMessageBox.Yes:
+            reply = QMessageBox.question(self.widget, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+            if reply == QMessageBox.StandardButton.Yes:
                 try:
                     if self.ic.session.collections.exists(deleteItem):
                         item = self.ic.session.collections.get(deleteItem)
@@ -400,7 +400,7 @@ class irodsBrowser():
     def createCollection(self):
         parent = "/"+self.widget.inputPath.text().strip("/")
         creteCollWidget = irodsCreateCollection(parent, self.ic)
-        creteCollWidget.exec_()
+        creteCollWidget.exec()
         self.loadTable()
 
 
@@ -411,8 +411,8 @@ class irodsBrowser():
                         "Open File", "","All Files (*);;Python Files (*.py)")
         size = getSize([fileSelect[0]])
         buttonReply = QMessageBox.question(self.widget, 'Message Box', "Upload " + fileSelect[0],
-                                           QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if buttonReply == QMessageBox.Yes:
+                                           QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+        if buttonReply == QMessageBox.StandardButton.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
                 print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
@@ -443,7 +443,7 @@ class irodsBrowser():
                     buttonReply = QMessageBox.question(self.widget,
                                 'Message Box',
                                 'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
-                    if buttonReply == QMessageBox.Yes:
+                    if buttonReply == QMessageBox.StandardButton.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
                         self.ic.download_data(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)

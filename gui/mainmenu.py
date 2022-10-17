@@ -1,17 +1,17 @@
 """Main menu window definition
 
 """
-import PyQt5
-import PyQt5.QtWidgets
-import PyQt5.uic
+import PyQt6
+import PyQt6.QtWidgets
+import PyQt6.uic
 
 
 
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
-from PyQt5.uic import loadUi
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
+from PyQt6.uic import loadUi
+from PyQt6 import QtCore
+from PyQt6 import QtGui
 
 from gui.irodsBrowser import irodsBrowser
 from gui.elabUpload import elabUpload
@@ -87,8 +87,8 @@ class mainmenu(QMainWindow):
     # Connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -100,8 +100,8 @@ class mainmenu(QMainWindow):
 
     def newSession(self):
         quit_msg = "Are you sure you want to disconnect?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.Yes, QMessageBox.No)
-        if reply == QMessageBox.Yes:
+        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
+        if reply == QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -116,7 +116,7 @@ class mainmenu(QMainWindow):
 
     def search(self):
         search = irodsSearch(self.ic, self.browserWidget.collTable)
-        search.exec_()
+        search.exec()
 
 
     def saveConfig(self):

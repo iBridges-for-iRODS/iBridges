@@ -5,9 +5,9 @@ import io
 import os
 import pathlib
 
-import PyQt5.QtCore
-import PyQt5.QtGui
-import PyQt5.QtWidgets
+import PyQt6.QtCore
+import PyQt6.QtGui
+import PyQt6.QtWidgets
 
 import gui
 
@@ -64,7 +64,7 @@ class IrodsDataBundle():
             Text to display in pop-up.
 
         """
-        PyQt5.QtWidgets.QMessageBox.information(self.widget, 'Information', message)
+        PyQt6.QtWidgets.QMessageBox.information(self.widget, 'Information', message)
 
     def setup_fs_tree(self, tree_view):
         """Initialize the iRODS tree view.
@@ -131,7 +131,7 @@ class IrodsDataBundle():
 
         """
         self.widget.setCursor(
-            PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+            PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
         _, coll_name = self.irods_tree_model.get_checked()
@@ -139,14 +139,14 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Something must be selected')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         if not self.ic.collection_exists(coll_name):
             self.widget.statusLabel.setText(
                 'CREATE ERROR: A collection must be selected')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         # TODO find a better test (add permissions too)
@@ -154,7 +154,7 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Collection must be within a user/group collection')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         src_coll = self.ic.get_collection(coll_name)
@@ -163,7 +163,7 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Collection must have something in it')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         resc_name, free_space = self.widget.resourceBox.currentText().split(' / ')
@@ -171,7 +171,7 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Resource must have enough free space in it')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         obj_path = f'{coll_name}.tar'
@@ -180,7 +180,7 @@ class IrodsDataBundle():
             if not force:
                 self.widget.statusLabel.setText(
                     f'CREATE ERROR: Destination bundle ({obj_path}) exists.  Use force to override')
-                self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
                 self.enable_buttons()
                 return
         force_flag = 'force' if force else ''
@@ -191,7 +191,7 @@ class IrodsDataBundle():
                 '*forceFlag': f'"{force_flag}"',
                 }
         # XXX can self.thread_create be simply thread
-        self.thread_create = PyQt5.QtCore.QThread()
+        self.thread_create = PyQt6.QtCore.QThread()
         self.widget.statusLabel.setText(
             f'CREATE STATUS: Creating {obj_path}')
         self.worker_create = RuleRunner(
@@ -210,7 +210,7 @@ class IrodsDataBundle():
 
         """
         self.widget.setCursor(
-            PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+            PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
         idx, obj_path = self.irods_tree_model.get_checked()
@@ -218,14 +218,14 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 'EXTRACT ERROR: Something must be selected')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         if not self.ic.dataobject_exists(obj_path):
             self.widget.statusLabel.setText(
                 'EXTRACT ERROR: A data object must be selected')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         obj_path = pathlib.Path(obj_path)
@@ -234,7 +234,7 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(
                 f'EXTRACT ERROR: A bundle file ({", ".join(EXTENSIONS)}) must be selected')
             self.widget.setCursor(
-                PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         force = self.widget.forceCheckBox.isChecked()
@@ -245,7 +245,7 @@ class IrodsDataBundle():
                 if not force:
                     self.widget.statusLabel.setText(
                         f'EXTRACT ERROR: Destination collection ({coll_name}) must be empty.  Use force to override')
-                    self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                    self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
                     self.enable_buttons()
                     return
                 else:
@@ -259,7 +259,7 @@ class IrodsDataBundle():
                 '*rescName': f'"{resc_name}"',
                 '*forceFlag': f'"{force_flag}"',
                 }
-        self.thread_extract = PyQt5.QtCore.QThread()
+        self.thread_extract = PyQt6.QtCore.QThread()
         self.widget.statusLabel.setText(
             f'EXTRACT STATUS: Extracting {coll_name}')
         self.worker_extract = RuleRunner(
@@ -285,7 +285,7 @@ class IrodsDataBundle():
 
         """
         self.widget.setCursor(
-            PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         self.enable_buttons()
         self.widget.statusLabel.clear()
         stdout, stderr = stdouterr
@@ -298,12 +298,12 @@ class IrodsDataBundle():
             self.widget.statusLabel.setText(f'{operation} ERROR: {stderr}')
 
 
-class RuleRunner(PyQt5.QtCore.QObject):
+class RuleRunner(PyQt6.QtCore.QObject):
     """Run an iRODS rule in a Qt thread.
 
     """
 
-    finished = PyQt5.QtCore.pyqtSignal(bool, tuple, str)
+    finished = PyQt6.QtCore.pyqtSignal(bool, tuple, str)
 
     def __init__(self, ic, rule_file, params, operation):
         """

@@ -1,7 +1,7 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QMainWindow, QHeaderView, QMessageBox
-from PyQt5 import QtCore
-from PyQt5.uic import loadUi
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QMainWindow, QHeaderView, QMessageBox
+from PyQt6 import QtCore
+from PyQt6.uic import loadUi
 from utils.IrodsConnectorAnonymous import IrodsConnectorAnonymous
 from gui.checkableFsTree import checkableFsTreeModel
 from gui.popupWidgets import createDirectory
@@ -22,9 +22,9 @@ class irodsTicketLogin():
         self.widget.localFsTreeView.setColumnHidden(1, True)
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
-        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.widget.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.HomeLocation)[0]
+                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.widget.localFsTreeView.setCurrentIndex(index)
         self.dirmodel.initial_expand()
@@ -186,7 +186,7 @@ class irodsTicketLogin():
             self.widget.infoLabel.setText("No parent folder selected.")
         else:
             createDirWidget = createDirectory(parent)
-            createDirWidget.exec_()
+            createDirWidget.exec()
             #self.dirmodel.initial_expand(previous_item = parent)
 
 

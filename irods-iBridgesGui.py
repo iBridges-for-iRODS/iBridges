@@ -10,16 +10,16 @@ import subprocess
 import sys
 
 import irods.exception
-import PyQt5.QtCore
-import PyQt5.QtGui
-import PyQt5.QtWidgets
-import PyQt5.uic
+import PyQt6.QtCore
+import PyQt6.QtGui
+import PyQt6.QtWidgets
+import PyQt6.uic
 
 import gui
 import utils
 
-app = PyQt5.QtWidgets.QApplication(sys.argv)
-widget = PyQt5.QtWidgets.QStackedWidget()
+app = PyQt6.QtWidgets.QApplication(sys.argv)
+widget = PyQt6.QtWidgets.QStackedWidget()
 
 
 class JsonConfig:
@@ -80,7 +80,7 @@ class JsonConfig:
         'A configuration dictionary linked to a JSON file.')
 
 
-class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
+class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
     """Definition and initialization of the iRODS login window.
 
     """
@@ -98,12 +98,12 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         """
 
         """
-        PyQt5.uic.loadUi('gui/ui-files/irodsLogin.ui', self)
+        PyQt6.uic.loadUi('gui/ui-files/irodsLogin.ui', self)
         self.selectIcommandsButton.toggled.connect(self.setup_icommands)
         self.standardButton.toggled.connect(self.setup_standard)
         self.connectButton.clicked.connect(self.login_function)
         self.ticketButton.clicked.connect(self.ticket_login)
-        self.passwordField.setEchoMode(PyQt5.QtWidgets.QLineEdit.Password)
+        self.passwordField.setEchoMode(PyQt6.QtWidgets.QLineEdit.EchoMode.Password)
 
     def _init_configs_and_logging(self):
         """
@@ -179,7 +179,7 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         """Reset cursor and clear error text
 
         """
-        self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         self.passError.setText('')
         self.envError.setText('')
 
@@ -218,16 +218,16 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         if ienv is None:
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment file not found.')
-            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if 'irods_host' in ienv:
             connect = utils.utils.can_connect(ienv['irods_host'])
             if not connect:
                 logging.info('iRODS login: No network connection to server')
                 self.envError.setText('No network connection to server')
-                self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+                self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
                 return
-        self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         password = self.passwordField.text()
         conn = self.connector(irods_env_file=str(irods_env_file), password=password)
         # Add own filepath for easy saving.
@@ -244,24 +244,24 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
             if len(widget) == 1:
                 widget.addWidget(browser)
             self._reset_mouse_and_error_labels()
-            # self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            # self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             widget.setCurrentIndex(widget.currentIndex()+1)
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
                 ConnectionRefusedError):
             self.envError.clear()
             self.passError.setText('ERROR: Wrong password.')
-            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         except irods.exception.NetworkException:
             self.passError.clear()
             self.envError.setText('iRODS server ERROR: iRODS server down.')
-            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         except Exception as unknown:
             message = f'Something went wrong: {unknown}'
             logging.exception(message)
             # logging.info(repr(error))
             self.envError.setText(message)
-            self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             raise unknown
 
     def ticket_login(self):
@@ -275,7 +275,7 @@ class IrodsLoginWindow(PyQt5.QtWidgets.QDialog):
         if len(widget) == 1:
             widget.addWidget(browser)
         self._reset_mouse_and_error_labels()
-        # self.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+        # self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         widget.setCurrentIndex(widget.currentIndex()+1)
 
 
@@ -286,7 +286,7 @@ def main():
     login_window = IrodsLoginWindow()
     widget.addWidget(login_window)
     widget.show()
-    app.exec_()
+    app.exec()
 
 
 if __name__ == "__main__":
