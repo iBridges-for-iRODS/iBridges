@@ -59,14 +59,13 @@ For more complex resource hierarchies, the top of the resource tree (the _root_ 
 ### Python
 
 - Python 3 (>= 3.6)
-  - Tested on 3.6 and 3.9.6
+  - Tested on versions up to 3.10 on multiple platforms
 - pip-21.1.3
 - Python packages
-  - Cryptography
-  - PyQt5
-  - python-irodsclient (>=1.0.0)
-  - elabjournal
-  - watchdog
+  - elabjournal==0.0.19
+  - PyQt6==6.4.0
+  - python-irodsclient==1.1.5
+  - watchdog==2.1.9
 
 ```
 pip install -r requirements.txt
