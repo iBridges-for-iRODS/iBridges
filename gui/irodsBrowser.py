@@ -299,7 +299,7 @@ class irodsBrowser():
             else:
                 self.widget.collTable.setRowCount(0)
                 self.widget.errorLabel.setText("Collection does not exist.")
-        except irods.excpetion.NetworkException:
+        except irods.exception.NetworkException:
             logging.exception("Something went wrong")
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
@@ -363,7 +363,7 @@ class irodsBrowser():
                         for item in irodsDict[key]:
                             self.widget.deleteSelectionBrowser.append('\t'+item)
                 self.widget.deleteSelectionBrowser.append('...')
-            except irods.excpetion.NetworkException:
+            except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
                 self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
@@ -417,7 +417,7 @@ class irodsBrowser():
                 self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=self.force)
                 self.loadTable()
-            except irods.excpetion.NetworkException:
+            except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
@@ -445,7 +445,7 @@ class irodsBrowser():
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
                         self.ic.download_data(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
-            except irods.excpetion.NetworkException:
+            except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
@@ -493,7 +493,7 @@ class irodsBrowser():
             self.ic.set_permissions(rights, obj_path, user, zone, recursive)
             self._fill_acls_tab(obj_path)
 
-        except irods.excpetion.NetworkException:
+        except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
@@ -512,7 +512,7 @@ class irodsBrowser():
                 self.ic.updateMetadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
-        except irods.excpetion.NetworkException:
+        except irods.exception.NetworkException:
             self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
 
         except Exception as error:
@@ -529,7 +529,7 @@ class irodsBrowser():
                 self.ic.addMetadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
-            except irods.excpetion.NetworkException:
+            except irods.exception.NetworkException:
                 self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
 
             except Exception as error:
@@ -546,7 +546,7 @@ class irodsBrowser():
                 self.ic.deleteMetadata([item], key, val, units)
 
                 self._fill_metadata_tab(item.path)
-        except irods.excpetion.NetworkException:
+        except irods.exception.NetworkException:
             self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
 
         except Exception as error:
