@@ -3,8 +3,8 @@
 """
 import os
 
-import PyQt5.QtCore
-import PyQt5.QtWidgets
+import PyQt6.QtCore
+import PyQt6.QtWidgets
 
 import gui
 import utils
@@ -62,9 +62,9 @@ class IrodsUpDownload():
         self.widget.localFsTreeView.setColumnHidden(2, True)
         self.widget.localFsTreeView.setColumnHidden(3, True)
         self.widget.localFsTreeView.header().setSectionResizeMode(
-            PyQt5.QtWidgets.QHeaderView.ResizeToContents)
-        home_location = PyQt5.QtCore.QStandardPaths.standardLocations(
-            PyQt5.QtCore.QStandardPaths.HomeLocation)[0]
+            PyQt6.QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        home_location = PyQt6.QtCore.QStandardPaths.standardLocations(
+            PyQt6.QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.localmodel.setRootPath(home_location)
         self.widget.localFsTreeView.setCurrentIndex(index)
         self.localmodel.initial_expand()
@@ -98,7 +98,7 @@ class IrodsUpDownload():
         self.widget.irodsFsTreeView.setColumnHidden(4, True)
         # XXX unsuccessful attempt to open home in tree view
         # index = self.irodsmodel.indexFromItem(
-        #     PyQt5.QtGui.QStandardItem(self.irodsmodel.base_path))
+        #     PyQt6.QtGui.QStandardItem(self.irodsmodel.base_path))
         # self.widget.irodsFsTreeView.setCurrentIndex(index)
         # self.widget.irodsFsTreeView.scrollTo(index)
         # XXX
@@ -179,7 +179,7 @@ class IrodsUpDownload():
         """Display `message` in a pop-up subwindow.
 
         """
-        PyQt5.QtWidgets.QMessageBox.information(
+        PyQt6.QtWidgets.QMessageBox.information(
             self.widget, 'Information', message)
 
     # FIXME Move these parameters to the iBridges settings.
@@ -239,7 +239,7 @@ class IrodsUpDownload():
             self.widget.errorLabel.setText('No parent folder selected.')
         else:
             create_dir_widget = gui.popupWidgets.createDirectory(parent)
-            create_dir_widget.exec_()
+            create_dir_widget.exec()
             # self.localmodel.initial_expand(previous_item = parent)
 
     def create_collection(self):
@@ -253,7 +253,7 @@ class IrodsUpDownload():
         else:
             create_coll_widget = gui.popupWidgets.irodsCreateCollection(
                 parent, self.ic)
-            create_coll_widget.exec_()
+            create_coll_widget.exec()
             self.irodsmodel.refresh_subtree(index)
 
     def upload(self):

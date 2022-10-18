@@ -1,7 +1,7 @@
 """Provide the GUI with iRODS information
 """
-import PyQt5
-import PyQt5.QtWidgets
+import PyQt6
+import PyQt6.QtWidgets
 
 
 class irodsInfo():
@@ -19,7 +19,7 @@ class irodsInfo():
         including the availble top-level resources.
         """
         self.widget.rescTable.setRowCount(0)
-        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.WaitCursor))
+        self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # irods Zone
         self.widget.zoneLabel.setText(self.ic.session.zone)
         # irods user
@@ -39,8 +39,8 @@ class irodsInfo():
         self.widget.rescTable.setRowCount(len(names))
         for row, (name, space) in enumerate(zip(names, spaces)):
             resc = self.ic.get_resource(name)
-            self.widget.rescTable.setItem(row, 0, PyQt5.QtWidgets.QTableWidgetItem(name))
-            self.widget.rescTable.setItem(row, 1, PyQt5.QtWidgets.QTableWidgetItem(str(space)))
-            self.widget.rescTable.setItem(row, 2, PyQt5.QtWidgets.QTableWidgetItem(resc.status))
+            self.widget.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
+            self.widget.rescTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(str(space)))
+            self.widget.rescTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(resc.status))
         self.widget.rescTable.resizeColumnsToContents()
-        self.widget.setCursor(PyQt5.QtGui.QCursor(PyQt5.QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))

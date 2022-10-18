@@ -1,6 +1,6 @@
-from PyQt5 import QtWidgets, QtGui, QtCore
-from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.uic import loadUi
+from PyQt6 import QtWidgets, QtGui, QtCore
+from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.uic import loadUi
 import os
 from utils.utils import getDownloadDir
 import logging
@@ -29,7 +29,7 @@ class irodsSearch(QDialog):
 
 
     def search(self):
-        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.startSearchButton.setDisabled(True)
         self.searchResultTable.setRowCount(0)
         #gather all input from input fields in dictionary 'criteria'
@@ -65,7 +65,7 @@ class irodsSearch(QDialog):
                 row = row + 1
         self.searchResultTable.resizeColumnsToContents()
         self.startSearchButton.setDisabled(False)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
 
     def loadSearchResults(self):
@@ -112,8 +112,8 @@ class irodsSearch(QDialog):
                                 'Message Box',
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)
 
-            if buttonReply == QMessageBox.Yes:
-                self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+            if buttonReply == QMessageBox.StandardButton.Yes:
+                self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
                         if self.ic.session.collections.exists(p):
@@ -129,7 +129,7 @@ class irodsSearch(QDialog):
                                 "SEARCH widget ERROR: "+p+" not an irods item.")
                 except Exception as e:
                     logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons()
 
 

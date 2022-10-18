@@ -1,7 +1,7 @@
 from utils.elabConnector import elabConnector
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QMessageBox, QTableWidgetItem, QFileSystemModel
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from gui.checkableFsTree import checkableFsTreeModel
 
 import os
@@ -59,12 +59,12 @@ class elabUpload():
                 row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
             self.loadLocalFileView()
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         except Exception as e:
             logging.info("elabUpload: "+repr(e))
             self.errorLabel.setText(
                 "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
     
     def selectExperiment(self, expId):
@@ -79,7 +79,7 @@ class elabUpload():
     def loadExperiments(self):
         self.errorLabel.clear()
         self.elnExperimentTable.setRowCount(0)
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         row = self.elnGroupTable.currentRow()
         if row > -1:
             groupId = self.elnGroupTable.item(row, 0).text()
@@ -106,17 +106,17 @@ class elabUpload():
                 logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(e)+"\n You might not have permissions for that group.")
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
                 return
 
         self.elnExperimentTable.resizeColumnsToContents()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
     
 
     def loadLocalFileView(self):
         #Load current directory in self.localFsTable
         home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.HomeLocation)[0]
+                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setColumnHidden(1, True)
         self.localFsTable.setColumnHidden(2, True)
@@ -131,7 +131,7 @@ class elabUpload():
 
 
     def reportFinished(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
         self.showPreview()
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
@@ -151,7 +151,7 @@ class elabUpload():
 
 
     def upload_data(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.elnPreviewBrowser.clear()
         self.errorLabel.clear()
         groupId = self.groupIdLabel.text()
@@ -160,15 +160,15 @@ class elabUpload():
 
         if groupId == "":
             self.errorLabel.setText("ERROR: No group selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         if expId == "":
             self.errorLabel.setText("ERROR: No experiment selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         if path == "":
             self.errorLabel.setText("ERROR: No data selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
 	
         try:
@@ -197,10 +197,10 @@ class elabUpload():
             buttonReply = QMessageBox.question(
                             self.elnUploadButton,
                             'Message Box', "Upload\n" + path + '\n'+str(size)+'MB',
-                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            upload = buttonReply == QMessageBox.Yes
+                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+            upload = buttonReply == QMessageBox.StandardButton.Yes
             if upload:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 self.elnUploadButton.setEnabled(False)
                 #start own thread for the upload 
                 self.thread = QThread()
@@ -216,13 +216,13 @@ class elabUpload():
                 self.thread.start()
                 self.thread.finished.connect(self.reportFinished)
             else:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
     
         except Exception as e:
             logging.info("ElabUpload UploadData: "+repr(e))
             self.errorLabel.setText(repr(e))
             self.elnUploadButton.setEnabled(True)
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
 
 class Worker(QObject):

@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider, QMessageBox
-from PyQt5.QtCore import QFile, Qt, QDir
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt6.QtWidgets import QFileIconProvider, QMessageBox
+from PyQt6.QtCore import QFile, Qt, QDir
+from PyQt6.QtGui import QFileSystemModel, QStandardItemModel, QStandardItem
 from sys import platform
 from time import sleep
 import logging
@@ -28,26 +28,26 @@ class checkableFsTreeModel(QFileSystemModel):
             index = self.index(previous_item, 0)
             self.TreeView.scrollTo(index)
             self._checked_indexes.add(index)
-            self.setData(index, Qt.Checked, Qt.CheckStateRole)
+            self.setData(index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
 
 
     # Used to update the UI
-    def data(self, index, role= Qt.DisplayRole):
-        if role == Qt.CheckStateRole:
+    def data(self, index, role= Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.CheckStateRole:
             if index in self._checked_indexes:
-                return Qt.Checked
+                return Qt.CheckState.Checked
             else:
-                return Qt.Unchecked
+                return Qt.CheckState.Unchecked
         return QFileSystemModel.data(self, index, role)
 
     def flags(self, index):
-        return QFileSystemModel.flags(self, index) | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate
+        return QFileSystemModel.flags(self, index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsAutoTristate
 
 
     # Callback of the checkbox
-    def setData(self, index, value, role=Qt.EditRole):
-        if role == Qt.CheckStateRole:
-            if value == Qt.Checked:
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if value == Qt.CheckState.Checked:
                 path = self.data(index, QFileSystemModel.FilePathRole)
                 if not os.access(path, os.W_OK):
                     message = "ERROR, insufficient rights:\nCannot select "+path
@@ -57,7 +57,7 @@ class checkableFsTreeModel(QFileSystemModel):
                 # Enforce single select
                 while self._checked_indexes:
                     selected_index = self._checked_indexes.pop()
-                    self.setData(selected_index, Qt.Unchecked, role)
+                    self.setData(selected_index, Qt.CheckState.Unchecked, role)
                 self._checked_indexes.add(index)
             else:
                 self._checked_indexes.discard(index)
