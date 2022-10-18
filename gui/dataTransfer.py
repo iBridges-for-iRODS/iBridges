@@ -1,8 +1,8 @@
 from typing import ClassVar
-from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
-from PyQt5.QtGui import QMovie
+from PyQt6.uic import loadUi
+from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
+from PyQt6.QtGui import QMovie
 import logging
 from datetime import datetime
 

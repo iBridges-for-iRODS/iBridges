@@ -9,11 +9,11 @@ import logging
 import os
 
 import irods
-import PyQt5
+import PyQt6
 
-import PyQt5.QtCore
-import PyQt5.QtGui
-import PyQt5.QtWidgets
+import PyQt6.QtCore
+import PyQt6.QtGui
+import PyQt6.QtWidgets
 
 ACCESS_NAMES = [
     'own',
@@ -24,7 +24,7 @@ ACCESS_NAMES = [
 ]
 
 
-class IrodsModel(PyQt5.QtGui.QStandardItemModel):
+class IrodsModel(PyQt6.QtGui.QStandardItemModel):
     """Model for an iRODS tree view.
 
     """
@@ -41,7 +41,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         ----------
         irods_connector : IrodsConnector
             iRODS session container.
-        tree_view : PyQt5.QtWidgets
+        tree_view : PyQt6.QtWidgets
             Defined iRODS tree view UI element.
 
         """
@@ -58,7 +58,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         # Empty tree
         self.clear()
 
-    def data(self, index, role=PyQt5.QtCore.Qt.DisplayRole):
+    def data(self, index, role=PyQt6.QtCore.Qt.ItemDataRole.DisplayRole):
         """Check data?
 
         Parameters
@@ -70,14 +70,14 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
 
         Returns
         -------
-        PyQt5.QtCore.Qt.(Un)checked
+        PyQt6.QtCore.Qt.(Un)checked
             Status of indexes?
 
         """
-        if role == PyQt5.QtCore.Qt.CheckStateRole:
+        if role == PyQt6.QtCore.Qt.ItemDataRole.CheckStateRole:
             if index in self._checked_indexes:
-                return PyQt5.QtCore.Qt.Checked
-            return PyQt5.QtCore.Qt.Unchecked
+                return PyQt6.QtCore.Qt.CheckState.Checked
+            return PyQt6.QtCore.Qt.CheckState.Unchecked
         return super().data(index, role)
 
     def flags(self, index):
@@ -94,11 +94,11 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
             Success in getting the tree view flags?
 
         """
-        checkable = PyQt5.QtCore.Qt.ItemIsUserCheckable
-        auto_tristate = PyQt5.QtCore.Qt.ItemIsAutoTristate
+        checkable = PyQt6.QtCore.Qt.ItemFlag.ItemIsUserCheckable
+        auto_tristate = PyQt6.QtCore.Qt.ItemFlag.ItemIsAutoTristate
         return super().flags(index) | checkable | auto_tristate
 
-    def setData(self, index, value, role=PyQt5.QtCore.Qt.EditRole):
+    def setData(self, index, value, role=PyQt6.QtCore.Qt.ItemDataRole.EditRole):
         """Set the tree view data?
 
         Parameters
@@ -116,8 +116,8 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
             Success in setting the tree view data?
 
         """
-        if role == PyQt5.QtCore.Qt.CheckStateRole:
-            if value == PyQt5.QtCore.Qt.Checked:
+        if role == PyQt6.QtCore.Qt.ItemDataRole.CheckStateRole:
+            if value == PyQt6.QtCore.Qt.CheckState.Checked:
                 # Check irods ACLs for access rights.
                 path = self.irods_path_from_tree_index(index)
                 try:
@@ -144,7 +144,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                     # remove the checkbox?)
                     if acls.intersection(req_acls) == set():
                         message = f'ERROR, insufficient rights:\nCannot select {path}'
-                        PyQt5.QtWidgets.QMessageBox.information(
+                        PyQt6.QtWidgets.QMessageBox.information(
                             self.tree_view, 'Error', message)
                         # logging.info("Filedownload:" + message)
                         return False
@@ -156,7 +156,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                 while self._checked_indexes:
                     selected_index = self._checked_indexes.pop()
                     super().setData(
-                        selected_index, PyQt5.QtCore.Qt.Unchecked, role)
+                        selected_index, PyQt6.QtCore.Qt.CheckState.Unchecked, role)
                 # Add newly selected item.
                 self._checked_indexes.add(index)
             else:
@@ -258,7 +258,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
         """Draw the first levels of an iRODS filesystem as a tree.
 
         """
-        icon_provider = PyQt5.QtWidgets.QFileIconProvider()
+        icon_provider = PyQt6.QtWidgets.QFileIconProvider()
         self.setRowCount(0)
         root = self.invisibleRootItem()
         # First levels of iRODS data
@@ -277,19 +277,19 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                     continue
                 parent = nodes_in_tree[pid]
             irods_id = value['irodsID']
-            display = PyQt5.QtGui.QStandardItem(value['shortName'])
+            display = PyQt6.QtGui.QStandardItem(value['shortName'])
             if value['type'] == 'd':
                 display.setIcon(icon_provider.icon(
-                    PyQt5.QtWidgets.QFileIconProvider.IconType.File))
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.File))
             if value['type'] == 'C':
                 display.setIcon(icon_provider.icon(
-                    PyQt5.QtWidgets.QFileIconProvider.IconType.Folder))
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.Folder))
             row = [
                 display,
-                PyQt5.QtGui.QStandardItem(str(value['level'])),
-                PyQt5.QtGui.QStandardItem(str(value['irodsID'])),
-                PyQt5.QtGui.QStandardItem(str(value['parentID'])),
-                PyQt5.QtGui.QStandardItem(value['type']),
+                PyQt6.QtGui.QStandardItem(str(value['level'])),
+                PyQt6.QtGui.QStandardItem(str(value['irodsID'])),
+                PyQt6.QtGui.QStandardItem(str(value['parentID'])),
+                PyQt6.QtGui.QStandardItem(value['type']),
             ]
             parent.appendRow(row)
             nodes_in_tree[irods_id] = parent.child(parent.rowCount() - 1)
@@ -379,7 +379,7 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
             ???
 
         """
-        icon_provider = PyQt5.QtWidgets.QFileIconProvider()
+        icon_provider = PyQt6.QtWidgets.QFileIconProvider()
         values = collections.deque(irods_fs_subtree_data)
         nodes_in_tree = {}
         while values:
@@ -393,19 +393,19 @@ class IrodsModel(PyQt5.QtGui.QStandardItemModel):
                     continue
                 parent = nodes_in_tree[pid]
             irods_id = value['irodsID']
-            display = PyQt5.QtGui.QStandardItem(value['shortName'])
+            display = PyQt6.QtGui.QStandardItem(value['shortName'])
             if value['type'] == 'd':
                 display.setIcon(icon_provider.icon(
-                    PyQt5.QtWidgets.QFileIconProvider.IconType.File))
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.File))
             if value['type'] == 'C':
                 display.setIcon(icon_provider.icon(
-                    PyQt5.QtWidgets.QFileIconProvider.IconType.Folder))
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.Folder))
             row = [
                 display,
-                PyQt5.QtGui.QStandardItem(str(value['level'])),
-                PyQt5.QtGui.QStandardItem(str(value['irodsID'])),
-                PyQt5.QtGui.QStandardItem(str(value['parentID'])),
-                PyQt5.QtGui.QStandardItem(value['type']),
+                PyQt6.QtGui.QStandardItem(str(value['level'])),
+                PyQt6.QtGui.QStandardItem(str(value['irodsID'])),
+                PyQt6.QtGui.QStandardItem(str(value['parentID'])),
+                PyQt6.QtGui.QStandardItem(value['type']),
             ]
             parent.appendRow(row)
             nodes_in_tree[irods_id] = parent.child(parent.rowCount() - 1)

@@ -1,4 +1,4 @@
-from PyQt5 import QtGui, QtCore
+from PyQt6 import QtGui, QtCore
 from gui.irodsTreeView  import IrodsModel
 
 class irodsCreateTicket():
@@ -29,14 +29,14 @@ class irodsCreateTicket():
     def createTicket(self):
         self.widget.infoLabel.clear()
         self.widget.ticketInfoBrowser.clear()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.widget.createTicketButton.setEnabled(False)
 
         #gather info
         idx, path = self.irodsmodel.get_checked()
         if path == None or self.ic.session.data_objects.exists(path):
             self.widget.infoLabel.setText("ERROR: Please select a collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
 
@@ -56,9 +56,9 @@ class irodsCreateTicket():
 
         else:
             self.widget.infoLabel.setText("ERROR: Insufficient rights, you need to be owner.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.widget.createTicketButton.setEnabled(True)
             return
     
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.widget.createTicketButton.setEnabled(True)

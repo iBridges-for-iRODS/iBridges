@@ -1,8 +1,8 @@
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QDialog, QTableWidgetItem
-from PyQt5.uic import loadUi
-from PyQt5 import QtCore
-from PyQt5 import QtGui
+from PyQt6 import QtWidgets
+from PyQt6.QtWidgets import QDialog, QTableWidgetItem
+from PyQt6.uic import loadUi
+from PyQt6 import QtCore
+from PyQt6 import QtGui
 
 import io
 import os
@@ -104,7 +104,7 @@ class irodsIndexPopup(QDialog):
 
 
     def extractSelection(self):
-        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.enableButtons(False)
 
         selection = self.dataObjectTable.selectedIndexes()
@@ -136,7 +136,7 @@ class irodsIndexPopup(QDialog):
 
         self.enableButtons(True)
         self.errorLabel.setText(logString)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
 
 
 EXTRACT_ONE_RULE = '''extractOne {
