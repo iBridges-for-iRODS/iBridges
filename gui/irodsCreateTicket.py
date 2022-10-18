@@ -1,72 +1,80 @@
+import sys
 from PyQt6 import QtGui, QtCore
+from PyQt6.QtWidgets import QWidget
+from PyQt6.uic import loadUi
+
 from gui.irodsTreeView import IrodsModel
+from gui.ui_files.tabTicketCreate import Ui_tabticketCreate
 
-
-class irodsCreateTicket:
-    def __init__(self, widget, ic, ienv):
-
+class irodsCreateTicket(QWidget, Ui_tabticketCreate):
+    def __init__(self, ic, ienv):
         self.ic = ic
-        self.widget = widget
+        super(irodsCreateTicket, self).__init__()
+        if getattr(sys, 'frozen', False):
+            super(irodsCreateTicket, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/tabTicketCreate.ui", self)
 
-        self.irodsmodel = IrodsModel(ic, self.widget.irodsFsTreeView)
-        self.widget.irodsFsTreeView.setModel(self.irodsmodel)
+
+        self.irodsmodel = IrodsModel(ic, self.irodsFsTreeView)
+        self.irodsFsTreeView.setModel(self.irodsmodel)
         self.irodsRootColl = '/'+ic.session.zone
         self.irodsmodel.setHorizontalHeaderLabels([self.irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
-        self.widget.irodsFsTreeView.expanded.connect(self.irodsmodel.refreshSubTree)
-        self.widget.irodsFsTreeView.clicked.connect(self.irodsmodel.refreshSubTree)
+        self.irodsFsTreeView.expanded.connect(self.irodsmodel.refreshSubTree)
+        self.irodsFsTreeView.clicked.connect(self.irodsmodel.refreshSubTree)
         self.irodsmodel.initTree()
 
-        self.widget.irodsFsTreeView.setHeaderHidden(True)
-        self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
-        self.widget.irodsFsTreeView.setColumnHidden(1, True)
-        self.widget.irodsFsTreeView.setColumnHidden(2, True)
-        self.widget.irodsFsTreeView.setColumnHidden(3, True)
-        self.widget.irodsFsTreeView.setColumnHidden(4, True)
+        self.irodsFsTreeView.setHeaderHidden(True)
+        self.irodsFsTreeView.header().setDefaultSectionSize(180)
+        self.irodsFsTreeView.setColumnHidden(1, True)
+        self.irodsFsTreeView.setColumnHidden(2, True)
+        self.irodsFsTreeView.setColumnHidden(3, True)
+        self.irodsFsTreeView.setColumnHidden(4, True)
 
-        self.widget.createTicketButton.clicked.connect(self.createTicket)
+        self.createTicketButton.clicked.connect(self.createTicket)
 
     def createTicket(self):
-        self.widget.infoLabel.clear()
-        self.widget.ticketInfoBrowser.clear()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
-        self.widget.createTicketButton.setEnabled(False)
+        self.infoLabel.clear()
+        self.ticketInfoBrowser.clear()
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+        self.createTicketButton.setEnabled(False)
 
         # gather info
-        selected_folders = self.widget.irodsFsTreeView.selectedIndexes()
+        selected_folders = self.irodsFsTreeView.selectedIndexes()
         if len(selected_folders) != 1:
-            self.widget.infoLabel.setText("ERROR: Please select one collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-            self.widget.createTicketButton.setEnabled(True)
+            self.infoLabel.setText("ERROR: Please select one collection.")
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            self.createTicketButton.setEnabled(True)
             return
         idx = selected_folders[0]
         path = self.irodsmodel.irodsPathFromTreeIdx(idx)
         if path is None or self.ic.session.data_objects.exists(path):
-            self.widget.infoLabel.setText("ERROR: Please select a collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-            self.widget.createTicketButton.setEnabled(True)
+            self.infoLabel.setText("ERROR: Please select a collection.")
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            self.createTicketButton.setEnabled(True)
             return
 
         acls = [(acl.user_name, acl.access_name) for acl in self.ic.getPermissions(path)]
         if (self.ic.session.username, "own") in acls:
-            date = self.widget.calendar.selectedDate()
+            date = self.calendar.selectedDate()
             # format of time string for irods: 2012-05-07.23:00:00
             expiryString = str(date.toPyDate())+'.23:59:59'
             ticket, expiryDate = self.ic.createTicket(path, expiryString)
-            self.widget.ticketInfoBrowser.append("iRODS server: \t"+self.ic.session.host)
-            self.widget.ticketInfoBrowser.append("iRODS path:\t"+path)
-            self.widget.ticketInfoBrowser.append("iRODS Ticket:\t"+ticket)
+            self.ticketInfoBrowser.append("iRODS server: \t"+self.ic.session.host)
+            self.ticketInfoBrowser.append("iRODS path:\t"+path)
+            self.ticketInfoBrowser.append("iRODS Ticket:\t"+ticket)
             if self.ic.__name__ == "irodsConnector":
-                self.widget.ticketInfoBrowser.append("Expiry date:\tNot set (linux only)")
+                self.ticketInfoBrowser.append("Expiry date:\tNot set (linux only)")
             else:
-                self.widget.ticketInfoBrowser.append("Expiry date:\t"+expiryDate)
+                self.ticketInfoBrowser.append("Expiry date:\t"+expiryDate)
 
         else:
-            self.widget.infoLabel.setText("ERROR: Insufficient rights, you need to be owner.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-            self.widget.createTicketButton.setEnabled(True)
+            self.infoLabel.setText("ERROR: Insufficient rights, you need to be owner.")
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            self.createTicketButton.setEnabled(True)
             return
     
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-        self.widget.createTicketButton.setEnabled(True)
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        self.createTicketButton.setEnabled(True)

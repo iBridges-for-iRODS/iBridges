@@ -1,15 +1,22 @@
+import os
+import sys
+import logging
 from PyQt6 import QtWidgets, QtGui, QtCore
 from PyQt6.QtWidgets import QDialog, QMessageBox
 from PyQt6.uic import loadUi
-import os
+
 from utils.utils import getDownloadDir
-import logging
+from gui.ui_files.searchDialog import Ui_searchDialog
 
 
-class irodsSearch(QDialog):
+
+class irodsSearch(QDialog, Ui_searchDialog):
     def __init__(self, ic, collTable):
         super(irodsSearch, self).__init__()
-        loadUi("gui/ui-files/searchDialog.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(irodsSearch, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/searchDialog.ui", self)
         self.ic = ic
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]

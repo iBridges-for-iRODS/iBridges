@@ -22,15 +22,19 @@ from irods.exception import NetworkException
 
 from gui.mainmenu import mainmenu
 from utils.utils import networkCheck, setup_logger
+from gui.ui_files.irodsLogin import Ui_irodsLogin
 
 
-class irodsLogin(QDialog):
+
+class irodsLogin(QDialog, Ui_irodsLogin):
     def __init__(self):
         import setproctitle
         setproctitle.setproctitle('iBridgesGUI')
-
         super(irodsLogin, self).__init__()
-        loadUi("gui/ui-files/irodsLogin.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(irodsLogin, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/irodsLogin.ui", self)
         ensure_dir(os.path.expanduser('~') + os.sep + ".irods")
         self.this_application = 'iBridgesGui'
         self.irodsEnvPath = os.path.expanduser('~') + os.sep + ".irods"

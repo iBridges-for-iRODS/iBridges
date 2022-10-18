@@ -1,49 +1,42 @@
-from utils.elabConnector import elabConnector
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
-from PyQt6.QtGui import QFileSystemModel
-from gui.checkableFsTree import checkableFsTreeModel
-
 import os
-from utils.utils import getSize, walkToDict
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+import sys
 import logging
 
-class elabUpload():
-    def __init__(self, widget, ic):
-        self.widget = widget
+from utils.elabConnector import elabConnector
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtGui import QFileSystemModel
+from PyQt6.uic import loadUi
+from gui.checkableFsTree import checkableFsTreeModel
+from gui.ui_files.tabELNData import Ui_tabELNData
+
+from utils.utils import getSize, walkToDict
+from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+
+
+class elabUpload(QWidget, Ui_tabELNData):
+    def __init__(self, ic):
         self.elab = None
         self.coll = None
         self.ic = ic
-        # Return errors to:
-        self.errorLabel = widget.errorLabel
-        #Gathering Eln configuration
-        self.elnTokenInput = widget.elnTokenInput
-        self.elnGroupTable = widget.elnGroupTable
-        self.elnExperimentTable = widget.elnExperimentTable
-        #Config ok check
-        self.groupIdLabel = widget.groupIdLabel
-        self.experimentIdLabel = widget.experimentIdLabel
-        
+        super(elabUpload, self).__init__()
+        if getattr(sys, 'frozen', False):
+            super(elabUpload, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/tabELNData.ui", self)
+
         #Selecting and uploading local files and folders
-        self.dirmodel = QFileSystemModel(self.widget.localFsTable)
-        widget.localFsTable.setModel(self.dirmodel)
-        self.localFsTable = widget.localFsTable
-        self.widget.localFsTable.setColumnHidden(1, True)
-        self.widget.localFsTable.setColumnHidden(2, True)
-        self.widget.localFsTable.setColumnHidden(3, True) 
-        #self.widget.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.dirmodel = QFileSystemModel(self.localFsTable)
+        self.localFsTable.setModel(self.dirmodel)
+        self.localFsTable.setColumnHidden(1, True)
+        self.localFsTable.setColumnHidden(2, True)
+        self.localFsTable.setColumnHidden(3, True) 
+        #self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
                                QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
-        self.widget.localFsTable.setCurrentIndex(index)
-
-
-        self.elnUploadButton = widget.elnUploadButton
-        #Showing result
-        self.elnPreviewBrowser = widget.elnPreviewBrowser
-        self.elnIrodsPath = widget.elnIrodsPath
+        self.localFsTable.setCurrentIndex(index)
 
         #defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
@@ -67,12 +60,12 @@ class elabUpload():
                 self.elnGroupTable.setItem(row, 1, QTableWidgetItem(group[1]))
                 row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
-            #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         except Exception as e:
             logging.info("elabUpload: "+repr(e))
             self.errorLabel.setText(
                 "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
-            #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
     
     def selectExperiment(self, expId):
@@ -87,7 +80,7 @@ class elabUpload():
     def loadExperiments(self):
         self.errorLabel.clear()
         self.elnExperimentTable.setRowCount(0)
-        #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
         row = self.elnGroupTable.currentRow()
         if row > -1:
             groupId = self.elnGroupTable.item(row, 0).text()
@@ -111,14 +104,14 @@ class elabUpload():
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
                     row = row+1
             except Exception as e:
-                logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
+                logging.info("ElabUpload groupId "+str(groupId)+": "+repr(e))
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(e)+"\n You might not have permissions for that group.")
-                #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
                 return
 
         self.elnExperimentTable.resizeColumnsToContents()
-        #self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        #self.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
     
 
     def reportProgress(self, n):
@@ -151,7 +144,7 @@ class elabUpload():
         self.errorLabel.clear()
         groupId = self.groupIdLabel.text()
         expId = self.experimentIdLabel.text()
-        index = self.widget.localFsTable.selectedIndexes()[0]
+        index = self.localFsTable.selectedIndexes()[0]
         path = self.dirmodel.filePath(index)
 
         if groupId == "":
