@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabBrowser</class>
+ <widget class="QWidget" name="tabBrowser">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -108,6 +108,7 @@ color: rgb(46, 52, 54);
        <property name="font">
         <font>
          <pointsize>16</pointsize>
+         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -253,6 +254,7 @@ color: rgb(46, 52, 54);
      <widget class="QWidget" name="preview">
       <property name="font">
        <font>
+        <weight>50</weight>
         <bold>false</bold>
        </font>
       </property>
@@ -342,6 +344,7 @@ color: rgb(46, 52, 54);
           <widget class="QPushButton" name="metaUpdateButton">
            <property name="font">
             <font>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -357,6 +360,7 @@ color: rgb(46, 52, 54);
           <widget class="QPushButton" name="metaAddButton">
            <property name="font">
             <font>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -370,6 +374,7 @@ color: rgb(46, 52, 54);
            <property name="font">
             <font>
              <pointsize>20</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -396,6 +401,7 @@ color: rgb(46, 52, 54);
           <widget class="QPushButton" name="metaDeleteButton">
            <property name="font">
             <font>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -463,6 +469,7 @@ color: rgb(46, 52, 54);
            <property name="font">
             <font>
              <pointsize>20</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -565,6 +572,7 @@ color: rgb(46, 52, 54);
           <widget class="QPushButton" name="aclAddButton">
            <property name="font">
             <font>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -666,6 +674,7 @@ color: rgb(46, 52, 54);
            <property name="font">
             <font>
              <pointsize>13</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>

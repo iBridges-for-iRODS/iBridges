@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabELNData</class>
+ <widget class="QWidget" name="tabELNData">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -330,6 +330,7 @@ QLabel#errorLabel{
            <property name="font">
             <font>
              <pointsize>13</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>

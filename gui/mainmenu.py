@@ -1,3 +1,4 @@
+import sys
 from PyQt6.QtWidgets import QMainWindow, QMessageBox
 from PyQt6.uic import loadUi
 
@@ -9,6 +10,7 @@ from gui.irodsDataCompression import irodsDataCompression
 from gui.irodsInfo import irodsInfo
 from gui.irodsCreateTicket import irodsCreateTicket
 from gui.irodsTicketLogin import irodsTicketLogin
+from gui.ui_files.MainMenu import Ui_MainWindow
 from utils.utils import saveIenv
 
 import sys
@@ -28,10 +30,13 @@ class QPlainTextEditLogger(logging.Handler):
     def write(self, m):
         pass
 
-class mainmenu(QMainWindow):
+class mainmenu(QMainWindow, Ui_MainWindow):
     def __init__(self, widget, ic, ienv):
         super(mainmenu, self).__init__()
-        loadUi("gui/ui-files/MainMenu.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(mainmenu, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/MainMenu.ui", self)
         self.ic = ic
         self.widget = widget  # stackedWidget
         self.ienv = ienv
@@ -43,53 +48,43 @@ class mainmenu(QMainWindow):
         if not ienv or not ic:
             self.actionSearch.setEnabled(False)
             self.actionSaveConfig.setEnabled(False)
-            ticketAccessWidget = loadUi("gui/ui-files/tabTicketAccess.ui")
-            self.tabWidget.addTab(ticketAccessWidget, "Ticket Access")
-            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
-
+            self.ticketAccessTab = irodsTicketLogin()
+            self.tabWidget.addTab(self.ticketAccessTab, "Ticket Access")
         else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
 
             # needed for Search
-            self.browserWidget = loadUi("gui/ui-files/tabBrowser.ui")
-            self.tabWidget.addTab(self.browserWidget, "Browser")
-            self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
+            self.irodsBrowser = irodsBrowser(ic)
+            self.tabWidget.addTab(self.irodsBrowser, "Browser")
 
             if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
-    
                 # Setup up/download tab, index 1
                 if "tabUpDownload" in ienv["ui_tabs"]:
-                    updownloadWidget = loadUi("gui/ui-files/tabUpDownload.ui")
-                    self.tabWidget.addTab(updownloadWidget, "Data Transfers")
-                    self.updownload = irodsUpDownload(updownloadWidget, ic, self.ienv)
-                    log_handler = QPlainTextEditLogger(updownloadWidget.logs)
+                    self.updownload = irodsUpDownload(ic, self.ienv)
+                    self.tabWidget.addTab(self.updownload, "Data Transfers")
+                    log_handler = QPlainTextEditLogger(self.updownload.logs)
                     logging.getLogger().addHandler(log_handler)
     
                 # Elabjournal tab, index 2
                 if "tabELNData" in ienv["ui_tabs"]:
-                    elabUploadWidget = loadUi("gui/ui-files/tabELNData.ui")
-                    self.tabWidget.addTab(elabUploadWidget, "ELN Data upload")
-                    self.elnTab = elabUpload(elabUploadWidget, ic)
+                    self.elnTab = elabUpload(ic)
+                    self.tabWidget.addTab(self.elnTab, "ELN Data upload")
     
                 # Data compression tab, index 3
                 if "tabDataCompression" in ienv["ui_tabs"]:
-                    dataCompressWidget = loadUi("gui/ui-files/tabDataCompression.ui")
-                    self.tabWidget.addTab(dataCompressWidget, "Compress/bundle data")
-                    self.compressionTab = irodsDataCompression(dataCompressWidget, ic, self.ienv)
+                    self.compressionTab = irodsDataCompression(ic, self.ienv)
+                    self.tabWidget.addTab(self.compressionTab, "Compress/bundle data")
     
                 # Grant access by tickets, index 4
                 if "tabCreateTicket" in ienv["ui_tabs"]:
-                    createTicketWidget = loadUi("gui/ui-files/tabTicketCreate.ui")
-                    self.tabWidget.addTab(createTicketWidget, "Create access tokens")
-                    self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
-    
+                    self.createTicket = irodsCreateTicket(ic, self.ienv)
+                    self.tabWidget.addTab(self.createTicket, "Create access tokens")
+
             # general info
-            self.infoWidget = loadUi("gui/ui-files/tabInfo.ui")
-            self.tabWidget.addTab(self.infoWidget, "Info")
-            self.irodsInfo = irodsInfo(self.infoWidget, ic)
-    
+            self.irodsInfo = irodsInfo(ic)
+            self.tabWidget.addTab(self.irodsInfo, "Info")
             self.tabWidget.setCurrentIndex(0)
 
     # connect functions
@@ -124,7 +119,7 @@ class mainmenu(QMainWindow):
             pass
 
     def search(self):
-        search = irodsSearch(self.ic, self.browserWidget.collTable)
+        search = irodsSearch(self.ic, self.irodsBrowser.collTable)
         search.exec()
 
     def saveConfig(self):

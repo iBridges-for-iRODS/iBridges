@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>irodsLogin</class>
+ <widget class="QDialog" name="irodsLogin">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -64,6 +64,7 @@ QRadioButton
       <property name="font">
        <font>
         <pointsize>20</pointsize>
+        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -243,6 +244,7 @@ QRadioButton
       <property name="font">
        <font>
         <pointsize>13</pointsize>
+        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>

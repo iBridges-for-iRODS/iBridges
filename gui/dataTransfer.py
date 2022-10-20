@@ -1,27 +1,33 @@
+import os
+import sys
+import logging
 from typing import ClassVar
 from PyQt6.uic import loadUi
 from PyQt6.QtWidgets import QDialog, QMessageBox
 from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
 from PyQt6.QtGui import QMovie
-import logging
 from datetime import datetime
 
 from irods.keywords import NO_PARA_OP_KW
 
 from utils.utils import getSize
-import os
+from gui.ui_files.dataTransferState import Ui_dataTransferState
+
 
 
 # Loading symbol generator
 # http://www.ajaxload.info/#preview
 
 
-class dataTransfer(QDialog):
+class dataTransfer(QDialog, Ui_dataTransferState):
     finished = pyqtSignal(bool, object)
 
     def __init__(self, ic, upload, localFsPath, irodsColl, irodsTreeIdx = None, resource = None):
         super(dataTransfer, self).__init__()
-        loadUi("gui/ui-files/dataTransferState.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(dataTransfer, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/dataTransferState.ui", self)
 
         self.ic = ic
         self.force = False

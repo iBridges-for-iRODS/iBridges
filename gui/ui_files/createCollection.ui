@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>createCollection</class>
+ <widget class="QDialog" name="createCollection">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -111,7 +111,7 @@ QLabel#errorLabel
   <connection>
    <sender>buttonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>createCollection</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -127,7 +127,7 @@ QLabel#errorLabel
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>createCollection</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

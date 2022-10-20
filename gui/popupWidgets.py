@@ -4,17 +4,23 @@ from PyQt6.uic import loadUi
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 
-# import sys
+import sys
 import os
 import json
 import datetime
 import logging
 
+from gui.ui_files.createCollection import Ui_createCollection
+from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
-class irodsCreateCollection(QDialog):
+
+class irodsCreateCollection(QDialog, Ui_createCollection):
     def __init__(self, parent, ic):
         super(irodsCreateCollection, self).__init__()
-        loadUi("gui/ui-files/createCollection.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(irodsCreateCollection, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create iRODS collection")
         self.ic = ic
         self.parent = parent
@@ -34,10 +40,13 @@ class irodsCreateCollection(QDialog):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class createDirectory(QDialog):
+class createDirectory(QDialog, Ui_createCollection):
     def __init__(self, parent):
         super(createDirectory, self).__init__()
-        loadUi("gui/ui-files/createCollection.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(createDirectory, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create directory")
         self.parent = parent
         self.label.setText(self.parent + os.sep)
@@ -56,10 +65,13 @@ class createDirectory(QDialog):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class irodsIndexPopup(QDialog):
+class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
     def __init__(self, ic, irodsTarIndexFileList, tarFilePath, statusLabel):
         super(irodsIndexPopup, self).__init__()
-        loadUi("gui/ui-files/irodsIndexPopup.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(irodsIndexPopup, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/irodsIndexPopup.ui", self)
         self.setWindowTitle("iRODS Tar/Zip index.")
         self.indexLabel.setText("Index of " + tarFilePath + ":")
         self.tabWidget.setCurrentIndex(0)
