@@ -239,7 +239,7 @@ class IrodsConnector():
                 name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
-                    free_space = self.get_free_space(name)
+                    free_space = self.get_free_space(name, multiplier=MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
@@ -668,7 +668,8 @@ class IrodsConnector():
                 resc_name, exc_info=True)
             raise FreeSpaceNotSet(
                 f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
-        return space
+        # For convenience, free_space is stored multiplied by MULTIPLIER.
+        return int(space / MULTIPLIER)
 
     def get_free_space(self, resc_name, multiplier=MULTIPLIER):
         """Determine free space in a resource hierarchy.

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>502</height>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,19 +16,19 @@
   <property name="styleSheet">
    <string notr="true">QWidget
 {
- color: rgb(86, 184, 139);
- background-color: rgb(54, 54, 54);
- selection-background-color: rgb(58, 152, 112);
+    color: rgb(86, 184, 139);
+    background-color: rgb(54, 54, 54);
+    selection-background-color: rgb(58, 152, 112);
 }
 
 QTreeView
 {
- background-color: rgb(85, 87, 83);
+    background-color: rgb(85, 87, 83);
 }
 
 QLabel#statusLabel
 {
- color: rgb(217, 174, 23);
+    color: rgb(217, 174, 23);
 }
 </string>
   </property>
@@ -38,7 +38,6 @@ QLabel#statusLabel
      <property name="font">
       <font>
        <pointsize>13</pointsize>
-       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -81,7 +80,7 @@ QLabel#statusLabel
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>
@@ -138,7 +137,6 @@ QLabel#statusLabel
         <widget class="QPushButton" name="createButton">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -151,7 +149,6 @@ QLabel#statusLabel
         <widget class="QPushButton" name="extractButton">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>

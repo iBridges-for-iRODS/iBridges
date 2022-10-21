@@ -46,7 +46,6 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
 
         """
         super().__init__()
-        self._checked_indexes = set()
         self.ic = irods_connector
         self.tree_view = tree_view
         try:
@@ -57,128 +56,6 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
         self.base_path = f'{self.zone_path}/home'
         # Empty tree
         self.clear()
-
-    def data(self, index, role=PyQt6.QtCore.Qt.ItemDataRole.DisplayRole):
-        """Check data?
-
-        Parameters
-        ----------
-        index : int?
-            Index in tree view?
-        role : QtCore.Qt.*Role
-            Role of caller?
-
-        Returns
-        -------
-        PyQt6.QtCore.Qt.(Un)checked
-            Status of indexes?
-
-        """
-        if role == PyQt6.QtCore.Qt.ItemDataRole.CheckStateRole:
-            if index in self._checked_indexes:
-                return PyQt6.QtCore.Qt.CheckState.Checked
-            return PyQt6.QtCore.Qt.CheckState.Unchecked
-        return super().data(index, role)
-
-    def flags(self, index):
-        """Get result of set flags at `index`?
-
-        Parameters
-        ----------
-        index : int?
-            Index in tree view?
-
-        Returns
-        -------
-        bool
-            Success in getting the tree view flags?
-
-        """
-        checkable = PyQt6.QtCore.Qt.ItemFlag.ItemIsUserCheckable
-        auto_tristate = PyQt6.QtCore.Qt.ItemFlag.ItemIsAutoTristate
-        return super().flags(index) | checkable | auto_tristate
-
-    def setData(self, index, value, role=PyQt6.QtCore.Qt.ItemDataRole.EditRole):
-        """Set the tree view data?
-
-        Parameters
-        ----------
-        index : int?
-            Index in tree view?
-        value : QtCore.Qt.checked
-            Status of `index`?
-        role : QtCore.Qt.*Role
-            Role of caller?
-
-        Returns
-        -------
-        bool
-            Success in setting the tree view data?
-
-        """
-        if role == PyQt6.QtCore.Qt.ItemDataRole.CheckStateRole:
-            if value == PyQt6.QtCore.Qt.CheckState.Checked:
-                # Check irods ACLs for access rights.
-                path = self.irods_path_from_tree_index(index)
-                try:
-                    zone = self.ic.session.zone
-                    req_acls = []
-                    for access_name in ACCESS_NAMES:
-                        req_acls.extend([
-                            (
-                                access_name,
-                                path,
-                                group,
-                                zone,
-                            )
-                            for group in self.user_groups])
-                    acls = {
-                        (
-                            acl.access_name,
-                            acl.path,
-                            acl.user_name,
-                            acl.user_zone,
-                        )
-                        for acl in self.ic.get_permissions(path)}
-                    # FIXME Block checking of home item (no easy way to
-                    # remove the checkbox?)
-                    if acls.intersection(req_acls) == set():
-                        message = f'ERROR, insufficient rights:\nCannot select {path}'
-                        PyQt6.QtWidgets.QMessageBox.information(
-                            self.tree_view, 'Error', message)
-                        # logging.info("Filedownload:" + message)
-                        return False
-                # FIXME narrow down exception possibilities
-                except Exception:
-                    logging.info('IRODS TREE ERROR', exc_info=True)
-                    return False
-                # Enforce single select.
-                while self._checked_indexes:
-                    selected_index = self._checked_indexes.pop()
-                    super().setData(
-                        selected_index, PyQt6.QtCore.Qt.CheckState.Unchecked, role)
-                # Add newly selected item.
-                self._checked_indexes.add(index)
-            else:
-                self._checked_indexes.discard(index)
-            # Force refresh.
-            self.tree_view.repaint()
-            return True
-        return super().setData(self, index, value, role)
-
-    def get_checked(self):
-        """Get the selected index and its iRODS path.
-
-        Returns
-        -------
-        tuple
-            (<tree index>, <iRODS path>)
-
-        """
-        if len(self._checked_indexes) < 1:
-            return None, None
-        checked_item = list(self._checked_indexes)[0]
-        return checked_item, self.irods_path_from_tree_index(checked_item)
 
     def init_irods_fs_data(self):
         """Retrieve the first levels of an iRODS tree: /zone/home/*.
