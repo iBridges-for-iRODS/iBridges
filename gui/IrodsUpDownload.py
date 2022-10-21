@@ -4,6 +4,7 @@
 import os
 
 import PyQt6.QtCore
+import PyQt6.QtGui
 import PyQt6.QtWidgets
 
 import gui
@@ -47,14 +48,13 @@ class IrodsUpDownload():
         self._initialize_irods_model()
         self._create_buttons()
         self._create_resource_selector()
-        self._configure_continuous_upload()
         self.upload_window = None
 
     def _initialize_local_model(self):
         """Initialize local QTreeView.
 
         """
-        self.localmodel = gui.checkableFsTree.checkableFsTreeModel(
+        self.localmodel = PyQt6.QtGui.QFileSystemModel(
             self.widget.localFsTreeView)
         self.widget.localFsTreeView.setModel(self.localmodel)
         # Hide all columns except the Name
@@ -67,7 +67,6 @@ class IrodsUpDownload():
             PyQt6.QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.localmodel.setRootPath(home_location)
         self.widget.localFsTreeView.setCurrentIndex(index)
-        self.localmodel.initial_expand()
 
     def _initialize_irods_model(self):
         """Initialize iRODS QTreeView.
@@ -75,14 +74,6 @@ class IrodsUpDownload():
         """
         self.irodsmodel = gui.irodsTreeView.IrodsModel(
             self.ic, self.widget.irodsFsTreeView)
-        # header_labels = [
-        #     self.irodsmodel.zone_path,
-        #     'Level',
-        #     'iRODS ID',
-        #     'parent ID',
-        #     'type',
-        # ]
-        # self.irodsmodel.setHorizontalHeaderLabels(header_labels)
         self.widget.irodsFsTreeView.setModel(self.irodsmodel)
         self.widget.irodsZoneLabel.setText(f'{self.irodsmodel.zone_path}:')
         self.widget.irodsFsTreeView.expanded.connect(
@@ -90,8 +81,6 @@ class IrodsUpDownload():
         self.widget.irodsFsTreeView.clicked.connect(
             self.irodsmodel.refresh_subtree)
         self.irodsmodel.init_tree()
-        # self.widget.irodsFsTreeView.setHeaderHidden(True)
-        # self.widget.irodsFsTreeView.header().setDefaultSectionSize(180)
         self.widget.irodsFsTreeView.setColumnHidden(1, True)
         self.widget.irodsFsTreeView.setColumnHidden(2, True)
         self.widget.irodsFsTreeView.setColumnHidden(3, True)
@@ -109,10 +98,6 @@ class IrodsUpDownload():
         """
         self.widget.UploadButton.clicked.connect(self.upload)
         self.widget.DownloadButton.clicked.connect(self.download)
-        # self.widget.ContUplBut.clicked.connect(self.cont_upload)
-        # For first release hide special buttons
-        self.widget.ContUplBut.setHidden(True)
-        self.widget.uplSetGB_2.setHidden(True)
         self.widget.createFolderButton.clicked.connect(self.create_folder)
         self.widget.createCollButton.clicked.connect(
             self.create_collection)
@@ -132,32 +117,6 @@ class IrodsUpDownload():
             index = self.widget.resourceBox.findText(resources[ridx])
             self.widget.resourceBox.setCurrentIndex(index)
 
-    def _configure_continuous_upload(self):
-        """Configure upload settings.
-
-        """
-        if self.ienv['irods_host'] in UPLOAD_HOSTS:
-            # self.widget.uplSetGB_2.setVisible(True)
-            if REMOVE_LOCAL in self.ienv:
-                self.widget.rLocalcopyCB.setChecked(
-                    self.ienv[REMOVE_LOCAL])
-            if UPLOAD_MODE in self.ienv:
-                upload_mode = self.ienv[UPLOAD_MODE]
-                if upload_mode == "f500":
-                    self.widget.uplF500RB.setChecked(True)
-                elif upload_mode == "meta":
-                    self.widget.uplMetaRB.setChecked(True)
-                else:
-                    self.widget.uplAllRB.setChecked(True)
-            # self.widget.rLocalcopyCB.stateChanged.connect(
-            #     self.save_ui_settings)
-            # self.widget.uplF500RB.toggled.connect(self.save_ui_settings)
-            # self.widget.uplMetaRB.toggled.connect(self.save_ui_settings)
-            # self.widget.uplAllRB.toggled.connect(self.save_ui_settings)
-        else:
-            self.widget.uplSetGB_2.hide()
-            self.widget.ContUplBut.hide()
-
     def enable_buttons(self, enable):
         """Set the state for all buttons.
 
@@ -168,8 +127,6 @@ class IrodsUpDownload():
         """
         self.widget.UploadButton.setEnabled(enable)
         self.widget.DownloadButton.setEnabled(enable)
-        self.widget.ContUplBut.setEnabled(enable)
-        self.widget.uplSetGB_2.setEnabled(enable)
         self.widget.createFolderButton.setEnabled(enable)
         self.widget.createCollButton.setEnabled(enable)
         self.widget.localFsTreeView.setEnabled(enable)
@@ -181,15 +138,6 @@ class IrodsUpDownload():
         """
         PyQt6.QtWidgets.QMessageBox.information(
             self.widget, 'Information', message)
-
-    # FIXME Move these parameters to the iBridges settings.
-    def save_ui_settings(self):
-        """Save the UI settings in the iRODS environment.
-
-        """
-        self.ienv[REMOVE_LOCAL] = self.get_remote_local_copy_state()
-        self.ienv[UPLOAD_MODE] = self.get_upload_mode()
-        utils.utils.saveIenv(self.ienv)
 
     def get_resource(self):
         """Get the resource name from the resource box.
@@ -213,48 +161,38 @@ class IrodsUpDownload():
         """
         return self.widget.rLocalcopyCB.isChecked()
 
-    def get_upload_mode(self):
-        """Get upload mode.
-
-        Returns
-        -------
-        str
-            Upload mode.
-
-        """
-        if self.widget.uplF500RB.isChecked():
-            upload_mode = 'f500'
-        elif self.widget.uplMetaRB.isChecked():
-            upload_mode = 'meta'
-        else:
-            upload_mode = 'all'
-        return upload_mode
-
     def create_folder(self):
         """Create a directory/folder on the local filesystem.
 
         """
-        parent = self.localmodel.get_checked()
-        if parent is None:
-            self.widget.errorLabel.setText('No parent folder selected.')
+        indexes = self.widget.localFsTreeView.selectedIndexes()
+        if len(indexes):
+            parent = self.localmodel.filepath(indexes[0])
+            if os.path.isfile(parent):
+                self.widget.errorLabel.setText('No parent folder selected.')
+            else:
+                create_dir_widget = gui.popupWidgets.createDirectory(parent)
+                create_dir_widget.exec()
         else:
-            create_dir_widget = gui.popupWidgets.createDirectory(parent)
-            create_dir_widget.exec()
-            # self.localmodel.initial_expand(previous_item = parent)
+            self.widget.errorLabel.setText('No parent folder selected.')
 
     def create_collection(self):
         """Create collection on the remote iRODS system.
 
         """
-        index, parent = self.irodsmodel.get_checked()
-        if parent is None:
-            self.widget.errorLabel.setText(
-                "No parent collection selected.")
+        indexes = self.widget.irodsFsTreeView.selectedIndexes()
+        if len(indexes):
+            parent = self.irodsmodel.irods_path_from_tree_index(indexes[0])
+            if self.ic.dataobject_exists(parent):
+                self.widget.errorLabel.setText(
+                    "No parent collection selected.")
+            else:
+                create_coll_widget = gui.popupWidgets.irodsCreateCollection(
+                    parent, self.ic)
+                create_coll_widget.exec()
+                self.irodsmodel.refresh_subtree(index)
         else:
-            create_coll_widget = gui.popupWidgets.irodsCreateCollection(
-                parent, self.ic)
-            create_coll_widget.exec()
-            self.irodsmodel.refresh_subtree(index)
+            self.widget.errorLabel.setText("No parent collection selected.")
 
     def upload(self):
         """Upload a file or directory/folder to iRODS and refresh the
@@ -295,9 +233,6 @@ class IrodsUpDownload():
         if success:
             if irods_index is not None:
                 self.irodsmodel.refresh_subtree(irods_index)
-            if self.widget.saveSettings.isChecked():
-                print("FINISH UPLOAD/DOWNLOAD: saving ui parameters.")
-                self.save_ui_settings()
             self.widget.errorLabel.setText(
                 "INFO UPLOAD/DOWLOAD: completed.")
         self.upload_window = None
@@ -333,10 +268,12 @@ class IrodsUpDownload():
         """Get both local and iRODS path from the tree views.
 
         """
-        source = self.localmodel.get_checked()
-        if source is None:
-            return (None, None, None)
-        dest_index, dest_path = self.irodsmodel.get_checked()
-        if dest_index is None or os.path.isfile(dest_path):
-            return (None, None, None)
-        return (source, dest_index, dest_path)
+        src_index = self.widget.localFsTreeView.selectedIndexes()[0]
+        src_path = self.localmodel.filePath(src_index)
+        if src_path is None:
+            return None, None, None
+        dst_index = self.widget.irodsFsTreeView.selectedIndexes()[0]
+        dst_path = self.irodsmodel.irods_path_from_tree_index(dst_index)
+        if dst_index is None:
+            return None, None, None
+        return src_path, dst_index, dst_path

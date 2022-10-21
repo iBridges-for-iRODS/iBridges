@@ -134,14 +134,16 @@ class IrodsDataBundle():
             PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
-        _, coll_name = self.irods_tree_model.get_checked()
-        if coll_name is None:
+        coll_indexes = self.widget.irodsFsTreeView.selectedIndexes()
+        if not len(coll_indexes):
             self.widget.statusLabel.setText(
                 'CREATE ERROR: Something must be selected')
             self.widget.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
+        else:
+            coll_name = self.irods_tree_model.irods_path_from_tree_index(coll_indexes[0])
         if not self.ic.collection_exists(coll_name):
             self.widget.statusLabel.setText(
                 'CREATE ERROR: A collection must be selected')
@@ -213,14 +215,16 @@ class IrodsDataBundle():
             PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
         self.widget.statusLabel.clear()
-        idx, obj_path = self.irods_tree_model.get_checked()
-        if obj_path is None:
+        obj_indexes = self.widget.irodsFsTreeView.selectedIndexes()
+        if not len(obj_indexes):
             self.widget.statusLabel.setText(
                 'EXTRACT ERROR: Something must be selected')
             self.widget.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
+        else:
+            obj_path = self.irods_tree_model.irods_path_from_tree_index(obj_indexes[0])
         if not self.ic.dataobject_exists(obj_path):
             self.widget.statusLabel.setText(
                 'EXTRACT ERROR: A data object must be selected')
@@ -230,7 +234,7 @@ class IrodsDataBundle():
             return
         obj_path = utils.utils.IrodsPath(obj_path)
         file_type = ''.join(obj_path.suffixes)[1:]
-        if not idx or file_type not in EXTENSIONS:
+        if file_type not in EXTENSIONS:
             self.widget.statusLabel.setText(
                 f'EXTRACT ERROR: A bundle file ({", ".join(EXTENSIONS)}) must be selected')
             self.widget.setCursor(
@@ -290,10 +294,11 @@ class IrodsDataBundle():
         self.widget.statusLabel.clear()
         stdout, stderr = stdouterr
         if success:
-            idx, _ = self.irods_tree_model.get_checked()
-            self.widget.statusLabel.setText(f'{operation} STATUS: {stdout}')
-            parent_index = self.irods_tree_model.get_parent_index(idx)
-            self.irods_tree_model.refresh_subtree(parent_index)
+            indexes = self.widget.irodsFsTreeView.selectedIndexes()
+            if len(indexes):
+                self.widget.statusLabel.setText(f'{operation} STATUS: {stdout}')
+                parent_index = self.irods_tree_model.get_parent_index(indexes[0])
+                self.irods_tree_model.refresh_subtree(parent_index)
         else:
             self.widget.statusLabel.setText(f'{operation} ERROR: {stderr}')
 
