@@ -302,7 +302,7 @@ class irodsBrowser():
     def resetPath(self):
         self.widget.inputPath.setText(self.root_coll.path)
     
-    # @PyQt6.QtCore.pyqtSlot(PyQt5.QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def updatePath(self, index):
         self._clear_error_label()
         row = index.row()
@@ -310,7 +310,7 @@ class irodsBrowser():
         if obj_name.endswith("/"):  # collection
             self.widget.inputPath.setText(utils.utils.IrodsPath(parent, obj_name))
 
-    # @PyQt6.QtCore.pyqtSlot(PyQt5.QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def fillInfo(self, index):
         self._clear_error_label()
         self._clear_view_tabs()
@@ -447,7 +447,7 @@ class irodsBrowser():
                 print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
 
-    # @PyQt6.QtCore.pyqtSlot(PyQt5.QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def editMetadata(self, index):
         self._clear_error_label()
         self.widget.metaValueField.clear()
@@ -461,7 +461,7 @@ class irodsBrowser():
         self.widget.metaUnitsField.setText(units)
         self.currentMetadata = (key, value, units)
 
-    # @PyQt6.QtCore.pyqtSlot(PyQt5.QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def editACL(self, index):
         self._clear_error_label()
         self.widget.aclUserField.clear()
