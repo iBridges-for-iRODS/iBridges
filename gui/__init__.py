@@ -4,7 +4,7 @@ from . import checkableFsTree
 from . import continousUpload
 from . import dataTransfer
 from . import elabUpload
-from . import irodsBrowser
+from . import IrodsBrowser
 from . import irodsCreateTicket
 from . import IrodsDataBundle
 from . import irodsInfo
