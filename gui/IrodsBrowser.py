@@ -15,13 +15,15 @@ import meta
 import utils
 
 
-class irodsBrowser():
-    """
+class IrodsBrowser:
+    """Browser view for iRODS session.
 
     """
+
+    current_browser_row = -1
 
     def __init__(self, widget, ic):
-        """
+        """Initialize an iRODS browser view.
 
         """
         self.force = ic.ienv.get('force_unknown_free_space', False)
@@ -40,21 +42,15 @@ class irodsBrowser():
         # ACL table
         self.widget.aclTable.setColumnWidth(0, 299)
         self.widget.aclTable.setColumnWidth(1, 299)
-        # If user is not admin nor datasteward, hide ACL buttons.
+        # If user is not a rodsadmin, hide Admin controls.
+        user_type = ''
         try:
-            user_type, user_groups = ic.get_user_info()
+            user_type, _ = ic.get_user_info()
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-        # TODO : in a local docker environment these conditions are not met. 
-        # Still it would be nice to be able to test the full features even if one is not 
-        # rodsadmin
-        if user_type != 'rodsadmin' and \
-           'datastewards' not in user_groups and \
-           'training' not in user_groups:
-            self.widget.aclAddButton.hide()
-            self.widget.aclBox.setEnabled(False)
-            self.widget.recurseBox.setEnabled(False)
+        if user_type != 'rodsadmin':
+            self.widget.aclAdminBox.hide()
         # Resource table
         self.widget.resourceTable.setColumnWidth(0, 500)
         self.widget.resourceTable.setColumnWidth(1, 90)
@@ -72,11 +68,14 @@ class irodsBrowser():
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
                 'IRODS NETWORK ERROR: No Connection, please check network')
-        self.currentBrowserRow = 0
+        # self.current_browser_row = -1
         self.browse()   # defines the signals and slots  
         self.resetPath()
 
     def browse(self):
+        """Initialize browser view GUI elements.
+
+        """
         # update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.inputPath.textChanged.connect(self.loadTable)
@@ -95,14 +94,14 @@ class irodsBrowser():
         # functionality to lower tabs for metadata, acls and resources
         self.widget.collTable.doubleClicked.connect(self.updatePath)
         self.widget.collTable.clicked.connect(self.fillInfo)
-        self.widget.metadataTable.clicked.connect(self.editMetadata)
-        self.widget.aclTable.clicked.connect(self.editACL)
+        self.widget.metadataTable.clicked.connect(self.edit_metadata)
+        self.widget.aclTable.clicked.connect(self.edit_acl)
         # actions to update iCat entries of metadata and acls
         self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
         self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
         self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
         self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
-        self.widget.aclAddButton.clicked.connect(self.updateIcatAcl)
+        self.widget.aclAddButton.clicked.connect(self.update_icat_acl)
         
     # Util functions
     def _clear_error_label(self):
@@ -133,11 +132,11 @@ class irodsBrowser():
         self.widget.resourceTable.setRowCount(0)
         if self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
-            hierarchies = [repl.resc_hier for repl in obj.replicas]
+            hierarchies = [(repl.number, repl.resc_hier) for repl in obj.replicas]
             self.widget.resourceTable.setRowCount(len(hierarchies))
-            for index, hierarchy in enumerate(hierarchies):
+            for repl_num, hierarchy in hierarchies:
                 self.widget.resourceTable.setItem(
-                    index, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
+                    repl_num, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
         self.widget.resourceTable.resizeColumnsToContents()
 
     def _fill_acls_tab(self, obj_path):
@@ -159,7 +158,7 @@ class irodsBrowser():
         elif self.ic.dataobject_exists(obj_path):
             obj = self.ic.session.data_objects.get(obj_path)
         if obj is not None:
-            acls = self.ic.session.permissions.get(obj)
+            acls = self.ic.get_permissions(obj=obj)
             self.widget.aclTable.setRowCount(len(acls))
             for row, acl in enumerate(acls):
                 acl_access_name = self.ic.permissions[acl.access_name]
@@ -206,10 +205,8 @@ class irodsBrowser():
 
         Parameters
         ----------
-        obj_name : str
-            Name of iRODS collection or data object selected.
-        path_name : str
-            Name of path in which `obj_name` resides.
+        obj_path : str
+            Full name of iRODS collection or data object selected.
 
         """
         obj = None
@@ -239,25 +236,23 @@ class irodsBrowser():
                 self.widget.previewBrowser.append(
                     f'No Preview for: {obj_path}')
 
-    def _get_object_name_and_path(self, row):
-        obj_name = self.widget.collTable.item(row, 1).text()
+    def _get_object_path_name(self, row):
+        """"""
         if self.widget.collTable.item(row, 0).text() != '':
-            path_name = self.widget.collTable.item(row, 0).text()
+            obj_path = self.widget.collTable.item(row, 0).text()
         else:
-            path_name = self.widget.inputPath.text()
-        return obj_name, path_name
+            obj_path = self.widget.inputPath.text()
+        obj_name = self.widget.collTable.item(row, 1).text()
+        return obj_path, obj_name
 
     # @TODO: Add a proper data model for the table model
     def _get_irods_item_of_table_row(self, row):
-        cell, parent = self._get_object_name_and_path(row)
-        full_path = iRODSPath(parent, cell)
-        # TODOD: this is a rather arbitrary mode of determining whether
-        # object is a collection or data_object
-        if cell.endswith("/"):
-            item = self.ic.session.collections.get(full_path)
-        else:
-            item = self.ic.session.data_objects.get(full_path)
-
+        obj_path, obj_name = self._get_object_path_name(row)
+        full_path = iRODSPath(obj_path, obj_name)
+        try:
+            item = self.ic.get_collection(full_path)
+        except irods.exception.CollectionDoesNotExist:
+            item = self.ic.get_dataobject(full_path)
         return item
 
     def _get_selected_objects(self):
@@ -311,9 +306,10 @@ class irodsBrowser():
     def updatePath(self, index):
         self._clear_error_label()
         row = index.row()
-        obj_name, parent = self._get_object_name_and_path(row)
-        if obj_name.endswith("/"):  # collection
-            self.widget.inputPath.setText(iRODSPath(parent, obj_name))
+        obj_path, obj_name = self._get_object_path_name(row)
+        full_path = iRODSPath(obj_path, obj_name)
+        if self.ic.collection_exists(full_path):
+            self.widget.inputPath.setText(full_path)
 
     # @QtCore.pyqtSlot(QtCore.QModelIndex)
     def fillInfo(self, index):
@@ -325,9 +321,9 @@ class irodsBrowser():
         self.widget.resourceTable.setRowCount(0)
         
         row = index.row()
-        self.currentBrowserRow = row
-        obj_name, path_name = self._get_object_name_and_path(row)
-        obj_path = iRODSPath(path_name, obj_name)
+        self.current_browser_row = row
+        obj_path, obj_name = self._get_object_path_name(row)
+        obj_path = iRODSPath(obj_path, obj_name)
        
         self._clear_view_tabs()
         try:
@@ -428,13 +424,16 @@ class irodsBrowser():
             pass
 
     def fileDownload(self):
+        if self.current_browser_row == -1:
+            self.widget.errorLabel.setText('Please select an object first!')
+            return
         #If table is filled
-        if self.widget.collTable.item(self.currentBrowserRow, 1) != None:
-            objName = self.widget.collTable.item(self.currentBrowserRow, 1).text()
-            if self.widget.collTable.item(self.currentBrowserRow, 0).text() == '':
+        if self.widget.collTable.item(self.current_browser_row, 1) != None:
+            objName = self.widget.collTable.item(self.current_browser_row, 1).text()
+            if self.widget.collTable.item(self.current_browser_row, 0).text() == '':
                 parent = self.widget.inputPath.text()
             else:
-                parent = self.widget.collTable.item(self.currentBrowserRow, 0).text()
+                parent = self.widget.collTable.item(self.current_browser_row, 0).text()
             try:
                 if self.ic.session.data_objects.exists(parent+'/'+objName):
                     downloadDir = utils.utils.getDownloadDir()
@@ -453,7 +452,7 @@ class irodsBrowser():
                 self.widget.errorLabel.setText(repr(error))
 
     # @QtCore.pyqtSlot(QtCore.QModelIndex)
-    def editMetadata(self, index):
+    def edit_metadata(self, index):
         self._clear_error_label()
         self.widget.metaValueField.clear()
         self.widget.metaUnitsField.clear()
@@ -464,50 +463,64 @@ class irodsBrowser():
         self.widget.metaKeyField.setText(key)
         self.widget.metaValueField.setText(value)
         self.widget.metaUnitsField.setText(units)
-        self.currentMetadata = (key, value, units)
 
     # @QtCore.pyqtSlot(QtCore.QModelIndex)
-    def editACL(self, index):
+    def edit_acl(self, index):
         self._clear_error_label()
         self.widget.aclUserField.clear()
         self.widget.aclZoneField.clear()
         self.widget.aclBox.setCurrentText("----")
         row = index.row()
-        user = self.widget.aclTable.item(row, 0).text()
-        zone = self.widget.aclTable.item(row, 1).text()
-        acl = self.widget.aclTable.item(row, 2).text()
-        self.widget.aclUserField.setText(user)
-        self.widget.aclZoneField.setText(zone)
-        self.widget.aclBox.setCurrentText(acl)
-        self.currentAcl = (user, acl)
+        user_name = self.widget.aclTable.item(row, 0).text()
+        user_zone = self.widget.aclTable.item(row, 1).text()
+        acc_name = self.widget.aclTable.item(row, 2).text()
+        self.widget.aclUserField.setText(user_name)
+        self.widget.aclZoneField.setText(user_zone)
+        self.widget.aclBox.setCurrentText(acc_name)
 
-    def updateIcatAcl(self):
+    def update_icat_acl(self):
+        if self.current_browser_row == -1:
+            self.widget.errorLabel.setText('Please select an object first!')
+            return
         self.widget.errorLabel.clear()
-        user = self.widget.aclUserField.text()
-        rights = self.widget.aclBox.currentText()
-        recursive = self.widget.recurseBox.currentText() == 'True'
-        cell, parent = self._get_object_name_and_path(self.currentBrowserRow)
-        obj_path  = iRODSPath(parent, cell) 
-        zone = self.widget.aclZoneField.text()
+        errors = []
+        obj_path, obj_name = self._get_object_path_name(self.current_browser_row)
+        obj_path = iRODSPath(obj_path, obj_name)
+        user_name = self.widget.aclUserField.text()
+        if not user_name:
+            errors.append('User name')
+        user_zone = self.widget.aclZoneField.text()
+        if not user_zone:
+            errors.append('Zone name')
+        acc_name = self.widget.aclBox.currentText()
+        if not acc_name:
+            errors.append('Access name')
+        if len(errors):
+            self.widget.errorLabel.setText(f'Missing input: {", ".join(errors)}')
+            return
+        recursive = self.widget.aclRecurseBox.currentText() == 'True'
+        admin = self.widget.aclAdminBox.isChecked()
         try:
-            self.ic.set_permissions(rights, obj_path, user, zone, recursive)
+            self.ic.set_permissions(
+                acc_name, obj_path, user_name, user_zone, recursive, admin)
             self._fill_acls_tab(obj_path)
-
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
-
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
 
     def updateIcatMeta(self):
+        if self.current_browser_row == -1:
+            self.widget.errorLabel.setText('Please select an object first!')
+            return
         self.widget.errorLabel.clear()
         newKey = self.widget.metaKeyField.text()
         newVal = self.widget.metaValueField.text()
         newUnits = self.widget.metaUnitsField.text()
         try:
             if newKey != "" and newVal != "":
-                item = self._get_irods_item_of_table_row(self.currentBrowserRow)
+                item = self._get_irods_item_of_table_row(self.current_browser_row)
                 
                 self.ic.updateMetadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
@@ -519,13 +532,16 @@ class irodsBrowser():
             self.widget.errorLabel.setText(repr(error))
 
     def addIcatMeta(self):
+        if self.current_browser_row == -1:
+            self.widget.errorLabel.setText('Please select an object first!')
+            return
         self.widget.errorLabel.clear()
         newKey = self.widget.metaKeyField.text()
         newVal = self.widget.metaValueField.text()
         newUnits = self.widget.metaUnitsField.text()
         if newKey != "" and newVal != "":
             try:
-                item = self._get_irods_item_of_table_row(self.currentBrowserRow)
+                item = self._get_irods_item_of_table_row(self.current_browser_row)
                 self.ic.addMetadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
@@ -536,13 +552,16 @@ class irodsBrowser():
                 self.widget.errorLabel.setText(repr(error))
 
     def deleteIcatMeta(self):
+        if self.current_browser_row == -1:
+            self.widget.errorLabel.setText('Please select an object first!')
+            return
         self.widget.errorLabel.clear()
         key = self.widget.metaKeyField.text()
         val = self.widget.metaValueField.text()
         units = self.widget.metaUnitsField.text()
         try:
             if key != "" and val != "":
-                item = self._get_irods_item_of_table_row(self.currentBrowserRow)
+                item = self._get_irods_item_of_table_row(self.current_browser_row)
                 self.ic.deleteMetadata([item], key, val, units)
 
                 self._fill_metadata_tab(item.path)
