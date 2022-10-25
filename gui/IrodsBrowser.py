@@ -14,6 +14,13 @@ import gui
 import meta
 import utils
 
+OBJ_STATUS = {
+    '0': 'X',
+    '1': '&',
+    '2': '?',
+    '3': '?',
+}
+
 
 class IrodsBrowser:
     """Browser view for iRODS session.
@@ -79,30 +86,26 @@ class IrodsBrowser:
         # update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.inputPath.textChanged.connect(self.loadTable)
-        
         self.widget.homeButton.clicked.connect(self.resetPath)
-        
         # quick data upload and download (files only)
         self.widget.UploadButton.clicked.connect(self.fileUpload)
         self.widget.DownloadButton.clicked.connect(self.fileDownload)
-        
         # new collection
         self.widget.createCollButton.clicked.connect(self.createCollection)
         self.widget.dataDeleteButton.clicked.connect(self.deleteData)
         self.widget.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
-        
         # functionality to lower tabs for metadata, acls and resources
         self.widget.collTable.doubleClicked.connect(self.updatePath)
         self.widget.collTable.clicked.connect(self.fillInfo)
         self.widget.metadataTable.clicked.connect(self.edit_metadata)
         self.widget.aclTable.clicked.connect(self.edit_acl)
-        # actions to update iCat entries of metadata and acls
+        # actions to update ICAT entries of metadata and acls
         self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
         self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
         self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
         self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
         self.widget.aclAddButton.clicked.connect(self.update_icat_acl)
-        
+
     # Util functions
     def _clear_error_label(self):
         """Clear any error text.
@@ -127,7 +130,7 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Path of iRODS collection or data object selected.
-        
+
         """
         self.widget.resourceTable.setRowCount(0)
         if self.ic.dataobject_exists(obj_path):
@@ -146,7 +149,7 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Path of iRODS collection or data object selected.
-        
+
         """
         self.widget.aclTable.setRowCount(0)
         self.widget.aclUserField.clear()
@@ -182,12 +185,12 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Full name of iRODS collection or data object selected.
-        
+
         """
         self.widget.metaKeyField.clear()
         self.widget.metaValueField.clear()
         self.widget.metaUnitsField.clear()
-        
+
         obj = None
         if self.ic.collection_exists(obj_path):
             obj = self.ic.session.collections.get(obj_path)
@@ -280,21 +283,32 @@ class IrodsBrowser:
                 self.widget.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
                 row = 0
                 for subcoll in coll.subcollections:
-                    self.widget.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(subcoll.name+"/"))
-                    self.widget.collTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    self.widget.collTable.setItem(row, 3, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    self.widget.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    row = row+1
+                    self.widget.collTable.setItem(
+                        row, 0, PyQt6.QtWidgets.QTableWidgetItem("C -"))
+                    self.widget.collTable.setItem(
+                        row, 1, PyQt6.QtWidgets.QTableWidgetItem(subcoll.name))
+                    # TODO see if a collection size calculation can be backgrounded
+                    # coll_size = sum((sum(obj.size for obj in objs) for _, _, objs in subcoll.walk()))
+                    self.widget.collTable.setItem(
+                        row, 2, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.widget.collTable.setItem(
+                        row, 3, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.widget.collTable.setItem(
+                        row, 4, PyQt6.QtWidgets.QTableWidgetItem(str(subcoll.modify_time)))
+                    row += 1
                 for obj in coll.data_objects:
-                    self.widget.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(obj.name))
+                    statuses = ', '.join((OBJ_STATUS[repl.status] for repl in obj.replicas))
+                    self.widget.collTable.setItem(
+                        row, 0, PyQt6.QtWidgets.QTableWidgetItem(statuses))
+                    self.widget.collTable.setItem(
+                        row, 1, PyQt6.QtWidgets.QTableWidgetItem(obj.name))
                     self.widget.collTable.setItem(
                         row, 2, PyQt6.QtWidgets.QTableWidgetItem(str(obj.size)))
                     self.widget.collTable.setItem(
-                        row, 3, PyQt6.QtWidgets.QTableWidgetItem(str(obj.checksum)))
+                        row, 3, PyQt6.QtWidgets.QTableWidgetItem(obj.checksum))
                     self.widget.collTable.setItem(
                         row, 4, PyQt6.QtWidgets.QTableWidgetItem(str(obj.modify_time)))
-                    self.widget.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    row = row+1
+                    row += 1
                 self.widget.collTable.resizeColumnsToContents()
             else:
                 self.widget.collTable.setRowCount(0)

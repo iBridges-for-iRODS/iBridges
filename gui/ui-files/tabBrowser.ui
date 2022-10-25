@@ -169,7 +169,7 @@ QPushButton#dataDeleteButton
      </property>
      <column>
       <property name="text">
-       <string notr="true">Path</string>
+       <string notr="true">Status</string>
       </property>
       <property name="toolTip">
        <string notr="true"/>
