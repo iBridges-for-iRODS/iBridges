@@ -488,20 +488,25 @@ class IrodsBrowser:
             self.widget.errorLabel.setText('Please select an object first!')
             return
         self.widget.errorLabel.clear()
-        errors = []
+        errors = {}
         obj_path, obj_name = self._get_object_path_name(self.current_browser_row)
         obj_path = iRODSPath(obj_path, obj_name)
         user_name = self.widget.aclUserField.text()
         if not user_name:
-            errors.append('User name')
+            errors['User name'] = None
         user_zone = self.widget.aclZoneField.text()
-        if not user_zone:
-            errors.append('Zone name')
         acc_name = self.widget.aclBox.currentText()
         if not acc_name:
-            errors.append('Access name')
+            errors['Access name'] = None
+        if acc_name.endswith('inherit'):
+            if self.ic.dataobject_exists(obj_path):
+                self.widget.errorLabel.setText(
+                    'WARNING: (no)inherit is not applicable to data objects')
+                return
+            errors.pop('User name', None)
         if len(errors):
-            self.widget.errorLabel.setText(f'Missing input: {", ".join(errors)}')
+            self.widget.errorLabel.setText(
+                f'Missing input: {", ".join(errors.keys())}')
             return
         recursive = self.widget.aclRecurseBox.currentText() == 'True'
         admin = self.widget.aclAdminBox.isChecked()

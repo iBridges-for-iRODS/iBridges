@@ -434,7 +434,7 @@ class IrodsConnector():
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
         return []
 
-    def set_permissions(self, perm, path, user, zone, recursive=False, admin=False):
+    def set_permissions(self, perm, path, user='', zone='', recursive=False, admin=False):
         """Set permissions (ACL) for an iRODS collection or data object.
 
         Parameters
