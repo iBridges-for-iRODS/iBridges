@@ -435,6 +435,11 @@ QPushButton#dataDeleteButton
            <string>Access</string>
           </property>
          </column>
+         <column>
+          <property name="text">
+           <string>Inherit</string>
+          </property>
+         </column>
         </widget>
        </item>
        <item>
@@ -509,6 +514,11 @@ QPushButton#dataDeleteButton
            <item>
             <property name="text">
              <string>inherit</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>noinherit</string>
             </property>
            </item>
           </widget>

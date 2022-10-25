@@ -151,13 +151,16 @@ class IrodsBrowser:
         self.widget.aclTable.setRowCount(0)
         self.widget.aclUserField.clear()
         self.widget.aclZoneField.clear()
-        self.widget.aclBox.setCurrentText("----")
+        self.widget.aclBox.setCurrentText('')
         obj = None
         if self.ic.collection_exists(obj_path):
             obj = self.ic.session.collections.get(obj_path)
         elif self.ic.dataobject_exists(obj_path):
             obj = self.ic.session.data_objects.get(obj_path)
         if obj is not None:
+            inheritance = ''
+            if self.ic.is_collection(obj):
+                inheritance = obj.inheritance
             acls = self.ic.get_permissions(obj=obj)
             self.widget.aclTable.setRowCount(len(acls))
             for row, acl in enumerate(acls):
@@ -168,6 +171,8 @@ class IrodsBrowser:
                     row, 1, PyQt6.QtWidgets.QTableWidgetItem(acl.user_zone))
                 self.widget.aclTable.setItem(
                     row, 2, PyQt6.QtWidgets.QTableWidgetItem(acl_access_name))
+                self.widget.aclTable.setItem(
+                    row, 3, PyQt6.QtWidgets.QTableWidgetItem(str(inheritance)))
         self.widget.aclTable.resizeColumnsToContents()
 
     def _fill_metadata_tab(self, obj_path):
@@ -469,7 +474,7 @@ class IrodsBrowser:
         self._clear_error_label()
         self.widget.aclUserField.clear()
         self.widget.aclZoneField.clear()
-        self.widget.aclBox.setCurrentText("----")
+        self.widget.aclBox.setCurrentText('')
         row = index.row()
         user_name = self.widget.aclTable.item(row, 0).text()
         user_zone = self.widget.aclTable.item(row, 1).text()
