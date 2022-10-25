@@ -13,7 +13,7 @@ from PyQt6.uic import loadUi
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 
-from gui.irodsBrowser import irodsBrowser
+from gui.IrodsBrowser import IrodsBrowser
 from gui.elabUpload import elabUpload
 from gui.irodsSearch import irodsSearch
 from gui.IrodsUpDownload import IrodsUpDownload
@@ -54,7 +54,7 @@ class mainmenu(QMainWindow):
             # tabBrowser needed for Search
             self.browserWidget = loadUi('gui/ui-files/tabBrowser.ui')
             self.tabWidget.addTab(self.browserWidget, 'Browser')
-            self.irodsBrowser = irodsBrowser(self.browserWidget, ic)
+            self.irodsBrowser = IrodsBrowser(self.browserWidget, ic)
             # Optional tabs
             if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
                 # Setup up/download tab, index 1
