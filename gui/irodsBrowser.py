@@ -48,13 +48,13 @@ class irodsBrowser(QWidget, Ui_tabBrowser):
             self.errorLabel.setText(
                     "IRODS NETWORK ERROR: No Connection, please check network")
 
-        if "rodsadmin" not in userType and \
-           "datastewards" not in userGroups and \
-           "training" not in userGroups:
+        #if "rodsadmin" not in userType and \
+        #   "datastewards" not in userGroups and \
+        #   "training" not in userGroups:
 
-            self.aclAddButton.hide()
-            self.aclBox.setEnabled(False)
-            self.recurseBox.setEnabled(False)
+        #    self.aclAddButton.hide()
+        #    self.aclBox.setEnabled(False)
+        #    self.recurseBox.setEnabled(False)
 
         # Resource table
         self.resourceTable.setColumnWidth(0, 500)
