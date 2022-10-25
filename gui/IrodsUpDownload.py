@@ -182,7 +182,8 @@ class IrodsUpDownload():
         """
         indexes = self.widget.irodsFsTreeView.selectedIndexes()
         if len(indexes):
-            parent = self.irodsmodel.irods_path_from_tree_index(indexes[0])
+            index = indexes[0]
+            parent = self.irodsmodel.irods_path_from_tree_index(index)
             if self.ic.dataobject_exists(parent):
                 self.widget.errorLabel.setText(
                     "No parent collection selected.")
