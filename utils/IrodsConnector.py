@@ -445,7 +445,7 @@ class IrodsConnector():
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
         return []
 
-    def set_permissions(self, perm, path, user, zone, recursive=False):
+    def set_permissions(self, perm, path, user='', zone='', recursive=False, admin=False):
         """Set permissions (ACL) for an iRODS collection or data object.
 
         Parameters
@@ -460,12 +460,14 @@ class IrodsConnector():
             Name of user's zone.
         recursive : bool
             Apply ACL to all children of `path`.
+        admin : bool
+            If a 'rodsadmin' apply ACL for another user.
 
         """
         acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if self.session.collections.exists(path):
-                self.session.permissions.set(acl, recursive=recursive)
+            if self.dataobject_exists(path) or self.collection_exists(path):
+                self.session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as ciu:
             print(f'{RED}ACL ERROR: user unknown{DEFAULT}')
             raise ciu
