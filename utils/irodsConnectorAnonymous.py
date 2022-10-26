@@ -1,6 +1,6 @@
 from irods.session import iRODSSession
 from irods.ticket import Ticket
-from irods.exception import CollectionDoesNotExist, CAT_SQL_ERR
+from irods.exception import CAT_SQL_ERR
 import irods.keywords as kw
 import irods
 import uuid
@@ -13,17 +13,17 @@ from base64 import b64decode
 from shutil import disk_usage
 import hashlib
 import logging
-#import subprocess
-from subprocess         import Popen, PIPE
-from utils.utils        import saveIenv
+from subprocess import Popen, PIPE
+from utils.utils import saveIenv
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
+
 class irodsConnectorAnonymous(irodsConnector):
-    def __init__(self, host, ticket, path):
+    def __init__(self, host, ticket, path, application_name=None):
         """
         iRODS anonymous login.
         Input:
@@ -32,12 +32,12 @@ class irodsConnectorAnonymous(irodsConnector):
             path: iRODS path the ticket grants access to
 
         """
-        self.__name__="irodsConnectorAnonymous"
+        self.__name__ = "irodsConnectorAnonymous"
         if path.endswith('/'):
             path = path[:-1]
         if not path.startswith("/"):
             raise Exception("Not a valid iRODS path.")
-        
+
         self.tempEnv = None
         self.tempIrodsA = None
 
@@ -46,26 +46,27 @@ class irodsConnectorAnonymous(irodsConnector):
                                     password='',
                                     zone=zone,
                                     port=1247,
-                                    host=host)
+                                    host=host,
+                                    application_name=application_name)
         self.token = ticket
         self.path = path
-                
-        p = Popen(['which','iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+
+        p = Popen(['which', 'iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         outLogin, errLogin = p.communicate()
-        if p.returncode == 0: 
+        if p.returncode == 0:
             self.icommands = True
         else:
             self.icommands = False
         if self.icommands:
-            ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
-            #move previous iRODS sessions to tmp file (envFile and .irodsA file)
+            ensure_dir(os.path.expanduser('~' + os.sep + '.irods'))
+            # move previous iRODS sessions to tmp file (envFile and .irodsA file)
             self.__movePrevSessionConfigs(False)
-            env = {"irods_host": self.session.host, 
-                    "irods_port": 1247, 
-                    "irods_user_name": "anonymous", 
-                    "irods_zone_name": self.session.zone}
+            env = {"irods_host": self.session.host,
+                   "irods_port": 1247,
+                   "irods_user_name": "anonymous",
+                   "irods_zone_name": self.session.zone}
             saveIenv(env)
-            logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
+            logging.info('Anonymous Login: ' + self.session.host + ', ' + self.session.zone)
             p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             outLogin, errLogin = p.communicate()
             if errLogin != b'':
@@ -75,26 +76,24 @@ class irodsConnectorAnonymous(irodsConnector):
     def closeSession(self):
         self.__movePrevSessionConfigs(True)
 
-
     def __movePrevSessionConfigs(self, restore):
         if restore:
             if self.tempEnv:
-                os.rename(self.tempEnv, 
-                        os.path.expanduser('~'+os.sep+'.irods'+os.sep+'irods_environment.json'))
+                os.rename(self.tempEnv,
+                          os.path.expanduser('~' + os.sep + '.irods' + os.sep + 'irods_environment.json'))
             if self.tempIrodsA:
-                os.rename(self.tempIrodsA, 
-                        os.path.expanduser('~'+os.sep+'.irods'+os.sep+'.irodsA'))
+                os.rename(self.tempIrodsA,
+                          os.path.expanduser('~' + os.sep + '.irods' + os.sep + '.irodsA'))
         else:
             uid = str(uuid.uuid1())
-            envPath = os.path.expanduser('~'+os.sep+'.irods'+os.sep+'irods_environment.json')
-            irodsAPath = os.path.expanduser('~'+os.sep+'.irods'+os.sep+'.irodsA')
+            envPath = os.path.expanduser('~' + os.sep + '.irods' + os.sep + 'irods_environment.json')
+            irodsAPath = os.path.expanduser('~' + os.sep + '.irods' + os.sep + '.irodsA')
             if os.path.exists(envPath):
-                os.rename(envPath, envPath+uid)
-                self.tempEnv = envPath+uid
+                os.rename(envPath, envPath + uid)
+                self.tempEnv = envPath + uid
             if os.path.exists(irodsAPath):
-                os.rename(irodsAPath, irodsAPath+uid)
-                self.tempIrodsA = irodsAPath+uid
-
+                os.rename(irodsAPath, irodsAPath + uid)
+                self.tempIrodsA = irodsAPath + uid
 
     def getData(self):
         ticket = Ticket(self.session, self.token)
@@ -111,23 +110,23 @@ class irodsConnectorAnonymous(irodsConnector):
     def getPermissions(self, iPath):
         pass
 
-    def setPermissions(self, rights, user, path, zone, recursive = False):
+    def setPermissions(self, rights, user, path, zone, recursive=False):
         pass
 
     def ensureColl(self, collPath):
         pass
 
-    def search(self, keyVals = None):
+    def search(self, keyVals=None):
         pass
 
     def listResources(self):
         pass
 
     def getResource(self, resource):
-        '''
+        """
         Raises:
             irods.exception.ResourceDoesNotExist
-        '''
+        """
         return self.session.resources.get(resource)
 
     def resourceSize(self, resource):
@@ -142,74 +141,71 @@ class irodsConnectorAnonymous(irodsConnector):
             return size
         except Exception as error:
             logging.info('RESOURCE ERROR: Either resource does not exist or size not set.',
-                            exc_info=True)
+                         exc_info=True)
             raise error("RESOURCE ERROR: Either resource does not exist or size not set.")
-        
 
-    def uploadData(self, source, destination, resource, size, buff = 1024**3, 
-                         force = False, diffs = []):
-        pass 
-    
+    def uploadData(self, source, destination, resource, size, buff=1024 ** 3,
+                   force=False, diffs=[]):
+        pass
+
     def downloadIcommands(self, source, destination):
         if type(source) == irods.data_object.iRODSDataObject:
-            #-f overwrite, -K control checksum, -r recursive (collections)
-            cmd = 'iget -Kft '+self.token+' '+ \
-                    source.path+' '+destination+os.sep+os.path.basename(source.path)
+            # -f overwrite, -K control checksum, -r recursive (collections)
+            cmd = 'iget -Kft ' + self.token + ' ' + \
+                  source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         elif self.session.collections.exists(source.path):
-            cmd = 'iget -Kfrt '+self.token+' '+ \
-                    source.path+' '+destination+os.sep+os.path.basename(source.path)
+            cmd = 'iget -Kfrt ' + self.token + ' ' + \
+                  source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError("IRODS download: not a valid source.")
 
-        logging.info("IRODS DOWNLOAD: "+cmd)
+        logging.info("IRODS DOWNLOAD: " + cmd)
         p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
-        logging.info('IRODS DOWNLOAD INFO: out:'+str(out)+'\nerr: '+str(err))
-
+        logging.info('IRODS DOWNLOAD INFO: out:' + str(out) + '\nerr: ' + str(err))
 
     def download(self, source, destination, diffs):
         (diff, onlyFS, onlyIrods, same) = diffs
-        if type(source) == irods.data_object.iRODSDataObject and len(diff+onlyIrods) > 0:
+        if type(source) == irods.data_object.iRODSDataObject and len(diff + onlyIrods) > 0:
             try:
-                logging.info("IRODS DOWNLOADING object:"+ source.path+
-                                "to "+ destination)
+                logging.info("IRODS DOWNLOADING object:" + source.path +
+                             "to " + destination)
                 self.__get(source, os.path.join(destination, source.name))
                 return
             except:
-                logging.info('DOWNLOAD ERROR: '+source.path+"-->"+destination,
-                        exc_info=True)
+                logging.info('DOWNLOAD ERROR: ' + source.path + "-->" + destination,
+                             exc_info=True)
                 raise
 
-        try: #collections/folders
+        try:  # collections/folders
             subdir = os.path.join(destination, source.name)
             logging.info("IRODS DOWNLOAD started:")
             for d in diff:
-                #upload files to distinct data objects
-                logging.info("REPLACE: "+d[1]+" with "+d[0])
+                # upload files to distinct data objects
+                logging.info("REPLACE: " + d[1] + " with " + d[0])
                 _subcoll = self.session.collections.get(os.path.dirname(d[0]))
                 obj = [o for o in _subcoll.data_objects if o.path == d[0]][0]
                 self.__get(obj, d[1])
-                #self.session.data_objects.get(d[0], local_path=d[1], **options)
+                # self.session.data_objects.get(d[0], local_path=d[1], **options)
 
-            for IO in onlyIrods: #can contain files and folders
-                #Create subcollections and upload
+            for IO in onlyIrods:  # can contain files and folders
+                # Create subcollections and upload
                 sourcePath = source.path + "/" + IO
                 locO = IO.replace("/", os.sep)
                 destPath = os.path.join(subdir, locO)
                 if not os.path.isdir(os.path.dirname(destPath)):
                     os.makedirs(os.path.dirname(destPath))
-                logging.info('INFO: Downloading '+sourcePath+" to "+destPath)
+                logging.info('INFO: Downloading ' + sourcePath + " to " + destPath)
                 _subcoll = self.session.collections.get(os.path.dirname(sourcePath))
                 obj = [o for o in _subcoll.data_objects if o.path == sourcePath][0]
                 self.__get(obj, destPath)
-                #self.session.data_objects.get(sourcePath, local_path=destPath, **options)
+                # self.session.data_objects.get(sourcePath, local_path=destPath, **options)
         except:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise
 
-
-    def downloadData(self, source, destination, size, buff = 1024**3, force = False, diffs=[]):
-        '''
+    def downloadData(self, source, destination, size, buff=1024 ** 3, force=False, diffs=[]):
+        """
         Download object or collection.
         source: iRODS collection or data object
         destination: absolute path to download folder
@@ -219,24 +215,23 @@ class irodsConnectorAnonymous(irodsConnector):
         diffs: output of diff functions
 
         Since the data_object.get function does not work for anonymous sessions, we need to stream
-        '''
-        logging.info('iRODS DOWNLOAD: '+str(source)+'-->'+destination) 
-        #options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
+        """
+        logging.info('iRODS DOWNLOAD: ' + str(source) + '-->' + destination)
+        # options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
 
         if destination.endswith(os.sep):
-            destination = destination[:len(destination)-1]
+            destination = destination[:len(destination) - 1]
         if not os.path.isdir(destination):
-            logging.info('DOWNLOAD ERROR: destination path does not exist or is not directory', 
-                    exc_info=True)
+            logging.info('DOWNLOAD ERROR: destination path does not exist or is not directory',
+                         exc_info=True)
             raise FileNotFoundError(
                 "ERROR iRODS download: destination path does not exist or is not directory")
         if not os.access(destination, os.W_OK):
-            logging.info('DOWNLOAD ERROR: No rights to write to destination.', 
-                exc_info=True)
+            logging.info('DOWNLOAD ERROR: No rights to write to destination.',
+                         exc_info=True)
             raise PermissionError("ERROR iRODS download: No rights to write to destination.")
-        
 
-        if diffs == []:#Only download if not present or difference in files
+        if diffs == []:  # Only download if not present or difference in files
             if self.session.collections.exists(source.path):
                 subdir = os.path.join(destination, source.name)
                 if not os.path.isdir(os.path.join(destination, source.name)):
@@ -247,18 +242,18 @@ class irodsConnectorAnonymous(irodsConnector):
                 valObjs = [o for o in _subcoll.data_objects if o.path == source.path]
                 if len(valObjs) > 0:
                     diffs = self.diffObjFile(source.path,
-                                                    os.path.join(
-                                                    destination, os.path.basename(source.path)),
-                                                    scope="checksum")
+                                             os.path.join(
+                                                 destination, os.path.basename(source.path)),
+                                             scope="checksum")
             else:
                 raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
 
-        if not force:#Check space on destination
+        if not force:  # Check space on destination
             try:
                 space = disk_usage(destination).free
-                if int(size) > (int(space)-buff):
-                    logging.info('DOWNLOAD ERROR: Not enough space on disk.', 
-                            exc_info=True)
+                if int(size) > (int(space) - buff):
+                    logging.info('DOWNLOAD ERROR: Not enough space on disk.',
+                                 exc_info=True)
                     raise ValueError('ERROR iRODS download: Not enough space on disk.')
                 if buff < 0:
                     logging.info('DOWNLOAD ERROR: Negative disk buffer.', exc_info=True)
@@ -266,12 +261,11 @@ class irodsConnectorAnonymous(irodsConnector):
             except Exception as error:
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error()
-        
+
         if self.icommands:
             self.downloadIcommands(source, destination)
         else:
             self.download(source, destination, diffs)
-    
 
     def __get(self, obj, filename):
         """
@@ -279,9 +273,9 @@ class irodsConnectorAnonymous(irodsConnector):
         https://github.com/irods/python-irodsclient/issues/294
         """
         options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: '', kw.TICKET_KW: self.token}
-        #with obj.open('r') as stream:
+        # with obj.open('r') as stream:
         #    tmp = stream.read()
-        #with open(filename, 'wb') as f:
+        # with open(filename, 'wb') as f:
         #    f.write(tmp)
         #    f.close()
 
@@ -291,7 +285,6 @@ class irodsConnectorAnonymous(irodsConnector):
             pass
         except:
             raise
-
 
     def diffObjFile(self, objPath, fsPath, scope="size"):
         """
@@ -304,7 +297,7 @@ class irodsConnectorAnonymous(irodsConnector):
         if os.path.isdir(fsPath) and not os.path.isfile(fsPath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
         if self.session.collections.exists(objPath):
-            raise IsADirectoryError("IRODS FS DIFF: object exists already as collection. "+objPath)
+            raise IsADirectoryError("IRODS FS DIFF: object exists already as collection. " + objPath)
 
         coll = self.session.collections.get(os.path.dirname(objPath))
         obj = [o for o in coll.data_objects if o.path == objPath][0]
@@ -314,7 +307,7 @@ class irodsConnectorAnonymous(irodsConnector):
         elif not obj and os.path.isfile(fsPath):
             return ([], [fsPath], [], [])
 
-        #both, file and object exist
+        # both, file and object exist
         if scope == "size":
             objSize = obj.size
             fSize = os.path.getsize(fsPath)
@@ -324,43 +317,42 @@ class irodsConnectorAnonymous(irodsConnector):
                 return ([], [], [], [(objPath, fsPath)])
         elif scope == "checksum":
             objCheck = obj.checksum
-            if objCheck == None:
-                #obj.chksum()
-                #objCheck = obj.checksum
-                logging.info('No checksum available: '+obj.path)
-                return([(objPath, fsPath)], [], [], [])
+            if objCheck is None:
+                # obj.chksum()
+                # objCheck = obj.checksum
+                logging.info('No checksum available: ' + obj.path)
+                return ([(objPath, fsPath)], [], [], [])
             if objCheck.startswith("sha2"):
                 sha2Obj = b64decode(objCheck.split('sha2:')[1])
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
                 if sha2Obj != sha2:
-                    return([(objPath, fsPath)], [], [], [])
+                    return ([(objPath, fsPath)], [], [], [])
                 else:
                     return ([], [], [], [(objPath, fsPath)])
             elif objCheck:
-                #md5
+                # md5
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     md5 = hashlib.md5(stream).hexdigest()
                 if objCheck != md5:
-                    return([(objPath, fsPath)], [], [], [])
+                    return ([(objPath, fsPath)], [], [], [])
                 else:
-                    return ([], [], [], [(objPath, fsPath)]) 
-
+                    return ([], [], [], [(objPath, fsPath)])
 
     def diffIrodsLocalfs(self, coll, dirPath, scope="size"):
-        '''
+        """
         Compares and iRODS tree to a directory and lists files that are not in sync.
         Syncing scope can be 'size' or 'checksum'
-        Returns: zip([dataObjects][files]) where ther is a difference
+        Returns: zip([dataObjects][files]) where there is a difference
         collection: iRODS collection
         Implements workaround to
         https://github.com/irods/python-irodsclient/issues/294
-        '''
+        """
 
         listDir = []
-        if not dirPath == None:
+        if dirPath is not None:
             if not os.access(dirPath, os.R_OK):
                 raise PermissionError("IRODS FS DIFF: No rights to write to destination.")
             if not os.path.isdir(dirPath):
@@ -370,7 +362,7 @@ class irodsConnectorAnonymous(irodsConnector):
                     listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
 
         listColl = []
-        if not coll == None:
+        if coll is not None:
             for root, subcolls, obj in coll.walk():
                 for o in obj:
                     listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
@@ -390,11 +382,11 @@ class irodsConnectorAnonymous(irodsConnector):
                     same.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
             elif scope == "checksum":
                 objCheck = obj.checksum
-                if objCheck == None:
-                    #Anonymous user cannot calculate checksums
-                    #obj.chksum()
-                    #objCheck = obj.checksum
-                    diff.append((coll.path + '/' + iPartialPath, 
+                if objCheck is None:
+                    # Anonymous user cannot calculate checksums
+                    # obj.chksum()
+                    # objCheck = obj.checksum
+                    diff.append((coll.path + '/' + iPartialPath,
                                  os.path.join(dirPath, locPartialPath)))
                     continue
                 if objCheck.startswith("sha2"):
@@ -407,30 +399,29 @@ class irodsConnectorAnonymous(irodsConnector):
                     else:
                         same.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
                 elif objCheck:
-                    #md5
+                    # md5
                     with open(os.path.join(dirPath, locPartialPath), "rb") as f:
                         stream = f.read()
-                        md5 = hashlib.md5(stream).hexdigest();
+                        md5 = hashlib.md5(stream).hexdigest()
                     if objCheck != md5:
                         diff.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
                     else:
                         same.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
-            else: #same paths, no scope
+            else:  # same paths, no scope
                 diff.append((coll.path + '/' + iPartialPath, os.path.join(dirPath, locPartialPath)))
 
-        #adding files that are not on iRODS, only present on local FS
-        #adding files that are not on local FS, only present in iRODS
-        #adding files that are stored on both devices with the same checksum/size
+        # adding files that are not on iRODS, only present on local FS
+        # adding files that are not on local FS, only present in iRODS
+        # adding files that are stored on both devices with the same checksum/size
         irodsOnly = list(set(listColl).difference(listDir))
         for i in range(0, len(irodsOnly)):
             irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
         return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
 
-
-    def addMetadata(self, items, key, value, units = None):
+    def addMetadata(self, items, key, value, units=None):
         pass
-            
-    def updateMetadata(self, items, key, value, units = None):
+
+    def updateMetadata(self, items, key, value, units=None):
         pass
 
     def deleteMetadata(self, items, key, value, units):
@@ -442,23 +433,21 @@ class irodsConnectorAnonymous(irodsConnector):
     def executeRule(self, ruleFile, params, output='ruleExecOut'):
         pass
 
-
     def createTicket(self, path, expiryString=""):
         pass
 
-
     def getSize(self, itemPaths):
-        '''
+        """
         Compute the size of the iRods dataobject or collection
         Returns: size in bytes.
         itemPaths: list of irods paths pointing to collection or object
         Implementing workaround for bug
-        '''
+        """
         size = 0
         for path in itemPaths:
-            #remove possible leftovers of windows fs separators
+            # remove possible leftovers of windows fs separators
             path = path.replace("\\", "/")
-            
+
             if self.session.collections.exists(path):
                 coll = self.session.collections.get(path)
                 walk = [coll]
@@ -477,4 +466,3 @@ class irodsConnectorAnonymous(irodsConnector):
                 size = size + obj.size
 
         return size
-

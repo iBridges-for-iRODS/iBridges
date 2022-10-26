@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabELNData</class>
+ <widget class="QWidget" name="tabELNData">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -278,7 +278,7 @@ QLabel#errorLabel{
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>

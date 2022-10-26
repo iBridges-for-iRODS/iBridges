@@ -1,62 +1,66 @@
-from gui.irodsTreeView  import IrodsModel
-from gui.popupWidgets import irodsIndexPopup
-
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.uic import loadUi
-from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal
-from PyQt5 import QtGui, QtCore
-
+import sys
 from os import path, getcwd
-import json
+from PyQt6.QtWidgets import QMessageBox, QWidget
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6 import QtGui, QtCore
+from PyQt6.uic import loadUi
 
-class irodsDataCompression():
-    def __init__(self, widget, ic, ienv):
+from gui.irodsTreeView import IrodsModel
+from gui.popupWidgets import irodsIndexPopup
+from gui.ui_files.tabDataCompression import Ui_tabDataCompression
+
+class irodsDataCompression(QWidget, Ui_tabDataCompression):
+    def __init__(self, ic, ienv):
         self.ic = ic
-        self.widget = widget
         self.ienv = ienv
+
+        super(irodsDataCompression, self).__init__()
+        if getattr(sys, 'frozen', False):
+            super(irodsDataCompression, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/tabDataCompression.ui", self)
+
         rescs = self.ic.listResources()
         if ic.defaultResc not in rescs:
-            self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'\
-                           +ic.defaultResc \
-                           +'\nDataCompression view not setup.')
+            self.infoPopup('ERROR resource config: "default_resource_name" invalid:\n'
+                           + ic.defaultResc
+                           + '\nDataCompression view not setup.')
             return
 
-        ruleFiles = [path.join(getcwd(),'rules/tarCollection.r'), 
-                     path.join(getcwd(),'rules/tarReadIndex.r'), 
-                     path.join(getcwd(),'rules/tarExtract.r')]
+        ruleFiles = [path.join(getcwd(), 'rules/tarCollection.r'),
+                     path.join(getcwd(), 'rules/tarReadIndex.r'),
+                     path.join(getcwd(), 'rules/tarExtract.r')]
         for rule in ruleFiles:
             if not path.isfile(rule):
-                self.infoPopup('ERROR rules not configured:\n'+rule\
-                           +'\nDataCompression view not setup.')
+                self.infoPopup('ERROR rules not configured:\n' + rule
+                           + '\nDataCompression view not setup.')
                 return
 
-        self.widget.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
-        self.widget.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
+        self.irodsZoneLabel1.setText("/"+self.ic.session.zone+":")
+        self.irodsZoneLabel2.setText("/"+self.ic.session.zone+":")
         self.irodsRootColl = '/'+ic.session.zone
-        index = self.widget.decompressRescButton.findText(ic.defaultResc)
-        self.widget.decompressRescButton.setCurrentIndex(index)
+        index = self.decompressRescButton.findText(ic.defaultResc)
+        self.decompressRescButton.setCurrentIndex(index)
 
-        #irodsCollectionTree
-        self.collectionTreeModel = self.setupFsTree(self.widget.irodsCollectionTree)
-        self.widget.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refreshSubTree)
-        #self.widget.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refreshSubTree)
-        #irodsCompressionTree
-        self.compressionTreeModel = self.setupFsTree(self.widget.irodsCompressionTree)
-        self.widget.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refreshSubTree)
-        #self.widget.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refreshSubTree)
-        #resource buttons
-        self.setupResourceButton(self.widget.compressRescButton)
-        self.setupResourceButton(self.widget.decompressRescButton)
+        # irodsCollectionTree
+        self.collectionTreeModel = self.setupFsTree(self.irodsCollectionTree)
+        self.irodsCollectionTree.expanded.connect(self.collectionTreeModel.refreshSubTree)
+        # self.irodsCollectionTree.clicked.connect(self.collectionTreeModel.refreshSubTree)
+        # irodsCompressionTree
+        self.compressionTreeModel = self.setupFsTree(self.irodsCompressionTree)
+        self.irodsCompressionTree.expanded.connect(self.compressionTreeModel.refreshSubTree)
+        # self.irodsCompressionTree.clicked.connect(self.compressionTreeModel.refreshSubTree)
+        # resource buttons
+        self.setupResourceButton(self.compressRescButton)
+        self.setupResourceButton(self.decompressRescButton)
 
-        #Create/Unpack/Index buttons
-        self.widget.createButton.clicked.connect(self.createDataBundle)
-        self.widget.unpackButton.clicked.connect(self.unpackDataBundle)
-        self.widget.indexButton.clicked.connect(self.getIndex)
-        
+        # Create/Unpack/Index buttons
+        self.createButton.clicked.connect(self.createDataBundle)
+        self.unpackButton.clicked.connect(self.unpackDataBundle)
+        self.indexButton.clicked.connect(self.getIndex)
 
     def infoPopup(self, message):
-        QMessageBox.information(self.widget, 'Information', message)
-
+        QMessageBox.information(self, 'Information', message)
 
     def setupFsTree(self, treeView):
         model = IrodsModel(self.ic, treeView)
@@ -87,39 +91,38 @@ class irodsDataCompression():
             button.setCurrentIndex(index)
 
     def enableButtons(self, enable):
-        self.widget.compressRescButton.setEnabled(enable)
-        self.widget.decompressRescButton.setEnabled(enable)
-        #Create/Unpack/Index buttons
-        self.widget.createButton.setEnabled(enable)
-        self.widget.unpackButton.setEnabled(enable)
-        self.widget.indexButton.setEnabled(enable)
-
+        self.compressRescButton.setEnabled(enable)
+        self.decompressRescButton.setEnabled(enable)
+        # Create/Unpack/Index buttons
+        self.createButton.setEnabled(enable)
+        self.unpackButton.setEnabled(enable)
+        self.indexButton.setEnabled(enable)
 
     def createDataBundle(self):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.enableButtons(False)
 
-        self.widget.createStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarCollection.r')
+        self.createStatusLabel.clear()
+        ruleFile = path.join(getcwd(), 'rules/tarCollection.r')
         idx, source = self.collectionTreeModel.get_checked()
 
         if not self.ic.session.collections.exists(source):
-            self.widget.createStatusLabel.setText("ERROR: No collection selected.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.createStatusLabel.setText("ERROR: No collection selected.")
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.enableButtons(True)
             return
 
-        #data bundling only allowed for collections in home/user
+        # data bundling only allowed for collections in home/user
         if len(source.split('/')) < 5:
-            self.widget.createStatusLabel.setText(
+            self.createStatusLabel.setText(
                     "ERROR: Selected collection is not a user collection.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.enableButtons(True)
             return
 
-        compress = self.widget.compressCheckBox.isChecked()
-        remove = self.widget.removeCheckBox.isChecked()
-        migrateResc = self.widget.compressRescButton.currentText()
+        compress = self.compressCheckBox.isChecked()
+        remove = self.removeCheckBox.isChecked()
+        migrateResc = self.compressRescButton.currentText()
         params = {
                 '*coll': '"'+source+'"',
                 '*resource': '"'+migrateResc+'"',
@@ -128,7 +131,7 @@ class irodsDataCompression():
                 }
 
         self.threadCreate = QThread()
-        self.widget.createStatusLabel.setText("STATUS: compressing "+source)
+        self.createStatusLabel.setText("STATUS: compressing "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "create")
         self.worker.moveToThread(self.threadCreate)
         self.threadCreate.started.connect(self.worker.run)
@@ -138,57 +141,55 @@ class irodsDataCompression():
         self.threadCreate.finished.connect(self.threadCreate.deleteLater)
         self.threadCreate.start()
 
-
     def dataCreateExtractFinished(self, success, message, operation):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons(True)
         stdout, stderr = message
         if success and operation == "create":
             idx, source = self.collectionTreeModel.get_checked()
-            self.widget.createStatusLabel.setText("STATUS: Created " + str(stdout))
+            self.createStatusLabel.setText("STATUS: Created " + str(stdout))
             parentIdx = self.collectionTreeModel.getParentIdx(idx)
             self.collectionTreeModel.refreshSubTree(parentIdx)
         elif not success and operation == "create":
-            self.widget.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
+            self.createStatusLabel.setText("ERROR: Create failed: " + str(stderr))
         elif success and operation == "extract":
             idx, source = self.compressionTreeModel.get_checked()
             stdout, stderr = message
-            self.widget.unpackStatusLabel.setText("STATUS: Extracted " + str(stdout))
+            self.unpackStatusLabel.setText("STATUS: Extracted " + str(stdout))
             parentIdx = self.compressionTreeModel.getParentIdx(idx)
             self.compressionTreeModel.refreshSubTree(parentIdx)
         elif not success and operation == "extract":
-            self.widget.unpackStatusLabel.setText("ERROR: Create failed: " + str(stderr))
-
+            self.unpackStatusLabel.setText("ERROR: Create failed: " + str(stderr))
 
     def unpackDataBundle(self):
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         idx, source = self.compressionTreeModel.get_checked()
 
         if not idx or (not source.endswith(".irods.tar") and not source.endswith(".irods.zip")):
-            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            self.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+            self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         extractPath = path.dirname(source)+'/'+path.basename(source).split('.irods')[0]
         if self.ic.session.collections.exists(extractPath):
             extractColl = self.ic.session.collections.get(extractPath)
             if extractColl.subcollections != [] or extractColl.data_objects != []:
-                self.widget.unpackStatusLabel.setText("ERROR: Destination not empty: "+extractPath)
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
+                self.unpackStatusLabel.setText("ERROR: Destination not empty: "+extractPath)
+                self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
                 return
 
         self.enableButtons(False)
 
-        self.widget.unpackStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarExtract.r')
+        self.unpackStatusLabel.clear()
+        ruleFile = path.join(getcwd(), 'rules/tarExtract.r')
 
-        migrateResc = self.widget.decompressRescButton.currentText()
+        migrateResc = self.decompressRescButton.currentText()
         params = {
                 '*obj': '"'+source+'"',
                 '*resource': '"'+migrateResc+'"',
                 }
 
         self.threadExtract = QThread()
-        self.widget.unpackStatusLabel.setText("STATUS: extracting "+source)
+        self.unpackStatusLabel.setText("STATUS: extracting "+source)
         self.worker = dataBundleCreateExtract(self.ic, ruleFile, params, "extract")
         self.worker.moveToThread(self.threadExtract)
         self.threadExtract.started.connect(self.worker.run)
@@ -198,30 +199,30 @@ class irodsDataCompression():
         self.threadExtract.finished.connect(self.threadExtract.deleteLater)
         self.threadExtract.start()
 
-
     def getIndex(self):
-        self.widget.unpackStatusLabel.clear()
-        ruleFile = path.join(getcwd(),'rules/tarReadIndex.r')
+        self.unpackStatusLabel.clear()
+        ruleFile = path.join(getcwd(), 'rules/tarReadIndex.r')
 
         idx, source = self.compressionTreeModel.get_checked()
-        if source == None:
-            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+        if source is None:
+            self.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
             return
         if not source.endswith(".irods.tar") and not source.endswith(".irods.zip"):
-            self.widget.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
+            self.unpackStatusLabel.setText("ERROR: No *.irods.tar or *.irods.zip selected")
             return
 
         params = {
                 '*path': '"'+source+'"'
                 }
         stdout, stderr = self.ic.executeRule(ruleFile, params)
-        self.widget.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
-        indexPopup = irodsIndexPopup(self.ic, stdout[1:], source, self.widget.unpackStatusLabel)
-        indexPopup.exec_()
+        self.unpackStatusLabel.setText("INFO: Loaded Index of "+source)
+        indexPopup = irodsIndexPopup(self.ic, stdout[1:], source, self.unpackStatusLabel)
+        indexPopup.exec()
 
 
 class dataBundleCreateExtract(QObject):
     finished = pyqtSignal(bool, list, str)
+
     def __init__(self, ic, ruleFile, params, operation):
         super(dataBundleCreateExtract, self).__init__()
         self.ruleFile = ruleFile
@@ -235,4 +236,3 @@ class dataBundleCreateExtract(QObject):
             self.finished.emit(False, [stdout, stderr], self.operation)
         else:
             self.finished.emit(True, [stdout, stderr], self.operation)
-

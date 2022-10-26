@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabDataCompression</class>
+ <widget class="QWidget" name="tabDataCompression">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>640</width>
-    <height>502</height>
+    <height>532</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -86,7 +86,7 @@ color: rgb(217, 174, 23);
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>
@@ -250,7 +250,7 @@ color: rgb(217, 174, 23);
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
-        <enum>QAbstractItemView::NoSelection</enum>
+        <enum>QAbstractItemView::SingleSelection</enum>
        </property>
       </widget>
      </item>

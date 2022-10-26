@@ -1,29 +1,36 @@
-from typing import ClassVar
-from PyQt5.uic import loadUi
-from PyQt5.QtWidgets import QDialog, QMessageBox
-from PyQt5.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
-from PyQt5.QtGui import QMovie
+import os
+import sys
 import logging
+from typing import ClassVar
+from PyQt6.uic import loadUi
+from PyQt6.QtWidgets import QDialog, QMessageBox
+from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
+from PyQt6.QtGui import QMovie
 from datetime import datetime
 
 from irods.keywords import NO_PARA_OP_KW
 
 from utils.utils import getSize
-import os
+from gui.ui_files.dataTransferState import Ui_dataTransferState
+
 
 
 # Loading symbol generator
 # http://www.ajaxload.info/#preview
 
 
-class dataTransfer(QDialog):
+class dataTransfer(QDialog, Ui_dataTransferState):
     finished = pyqtSignal(bool, object)
 
     def __init__(self, ic, upload, localFsPath, irodsColl, irodsTreeIdx = None, resource = None):
         super(dataTransfer, self).__init__()
-        loadUi("gui/ui-files/dataTransferState.ui", self)
+        if getattr(sys, 'frozen', False):
+            super(dataTransfer, self).setupUi(self)
+        else:
+            loadUi("gui/ui_files/dataTransferState.ui", self)
 
         self.ic = ic
+        self.force = False
         self.localFsPath = localFsPath
         self.coll = irodsColl
         self.TreeInd = irodsTreeIdx
@@ -80,6 +87,7 @@ class dataTransfer(QDialog):
         total_size = self.updateSize + self.addSize
         self.loading_movie.start()
         self.loadingLbl.setHidden(False)
+        self.confirmBtn.setEnabled(False)
         now = datetime.now()
         if self.upload:
             self.statusLbl.setText(
@@ -97,7 +105,7 @@ class dataTransfer(QDialog):
         else:
             self.worker = UpDownload(self.ic, self.upload, 
                                      self.localFsPath, self.coll, 
-                                     total_size, self.resource, self.diff, self.addFiles)
+                                     total_size, self.resource, self.diff, self.addFiles, self.force)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.thread.quit)
@@ -148,11 +156,18 @@ class dataTransfer(QDialog):
         if status == True:
             self.confirmBtn.disconnect() # remove callback
             self.confirmBtn.setText("Close")
+            self.confirmBtn.setEnabled(True)
             self.confirmBtn.clicked.connect(self.closeAfterUpDownl)
             self.statusLbl.setText("Update complete.")
         else:
             self.statusLbl.setText(statusmessage)
+            print(statusmessage)
             self.confirmBtn.setText("Retry")
+            self.confirmBtn.setEnabled(True)
+            if "No size set on iRODS resource" in statusmessage:
+                self.force = True
+                self.confirmBtn.setText("Retry and force upload?")
+            
 
 
 # Background worker to load the menu
@@ -219,11 +234,11 @@ class getDataState(QObject):
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
-            updateSize =  self.ic.getSize(irodsDiffFiles)
+            updateSize = self.ic.getSize(irodsDiffFiles)
             onlyIrodsFullPath = onlyIrods.copy()
             for i in range(len(onlyIrodsFullPath)):
                 if not onlyIrods[i].startswith(self.coll.path):
-                     onlyIrodsFullPath[i] = self.coll.path+'/'+ onlyIrods[i]
+                     onlyIrodsFullPath[i] = self.coll.path+'/' + onlyIrods[i]
             addSize = self.ic.getSize(onlyIrodsFullPath)
             self.finished.emit(onlyIrods, diff, str(addSize), str(updateSize))
 
@@ -231,7 +246,7 @@ class getDataState(QObject):
 # Background worker for the up/download
 class UpDownload(QObject):
     finished = pyqtSignal(bool, str)
-    def __init__(self, ic, upload, localFS, Coll, totalSize, resource, diff, addFiles):
+    def __init__(self, ic, upload, localFS, Coll, totalSize, resource, diff, addFiles, force):
         super(UpDownload, self).__init__()
         self.ic = ic
         self.upload = upload
@@ -241,6 +256,7 @@ class UpDownload(QObject):
         self.resource = resource
         self.diff = diff
         self.addFiles = addFiles
+        self.force = force
 
     def run(self):    
         try:
@@ -248,7 +264,7 @@ class UpDownload(QObject):
                 diffs = (self.diff, self.addFiles, [], [])
                 self.ic.uploadData(self.localFS, self.Coll, 
                                    self.resource, self.totalSize, buff = 1024**3, 
-                                   force = False, diffs = diffs)
+                                   force = self.force, diffs = diffs)
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])

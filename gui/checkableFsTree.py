@@ -1,6 +1,6 @@
-from PyQt5.QtWidgets import QFileSystemModel, QFileIconProvider, QMessageBox
-from PyQt5.QtCore import QFile, Qt, QDir
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt6.QtWidgets import QFileIconProvider, QMessageBox
+from PyQt6.QtCore import QFile, Qt, QDir
+from PyQt6.QtGui import QStandardItemModel, QStandardItem, QFileSystemModel
 from sys import platform
 from time import sleep
 import logging
@@ -14,40 +14,40 @@ class checkableFsTreeModel(QFileSystemModel):
         Initializes the Treeview with the root node. 
         """
         QFileSystemModel.__init__(self, None)
-        self._checked_indeces = set() # keep track of the check files and folders...
+        self._checked_indices = set() # keep track of the check files and folders...
         self.TreeView = TreeView
         self.setRootPath(QDir.currentPath())
 
 
     def initial_expand(self, previous_item = None):
         """
-        Expands the Tree untill 'previous_item' and selects it.
+        Expands the Tree until 'previous_item' and selects it.
         Input: filepath till previously selected file or folder
         """
         if previous_item != None: 
             index = self.index(previous_item, 0)
             self.TreeView.scrollTo(index)
-            self._checked_indeces.add(index)
-            self.setData(index, Qt.Checked, Qt.CheckStateRole)
+            self._checked_indices.add(index)
+            self.setData(index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
 
 
     # Used to update the UI
-    def data(self, index, role= Qt.DisplayRole):
-        if role == Qt.CheckStateRole:
-            if index in self._checked_indeces:
-                return Qt.Checked
+    def data(self, index, role= Qt.ItemDataRole.DisplayRole):
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if index in self._checked_indices:
+                return Qt.CheckState.Checked
             else:
-                return Qt.Unchecked
+                return Qt.CheckState.Unchecked
         return QFileSystemModel.data(self, index, role)
 
     def flags(self, index):
-        return QFileSystemModel.flags(self, index) | Qt.ItemIsUserCheckable | Qt.ItemIsAutoTristate
+        return QFileSystemModel.flags(self, index) | Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsAutoTristate
 
 
     # Callback of the checkbox
-    def setData(self, index, value, role=Qt.EditRole):
-        if role == Qt.CheckStateRole:
-            if value == Qt.Checked:
+    def setData(self, index, value, role=Qt.ItemDataRole.EditRole):
+        if role == Qt.ItemDataRole.CheckStateRole:
+            if value == Qt.CheckState.Checked:
                 path = self.data(index, QFileSystemModel.FilePathRole)
                 if not os.access(path, os.W_OK):
                     message = "ERROR, insufficient rights:\nCannot select "+path
@@ -55,12 +55,12 @@ class checkableFsTreeModel(QFileSystemModel):
                     return False
 
                 # Enforce single select
-                while self._checked_indeces:
-                    selected_index = self._checked_indeces.pop()
-                    self.setData(selected_index, Qt.Unchecked, role)
-                self._checked_indeces.add(index)
+                while self._checked_indices:
+                    selected_index = self._checked_indices.pop()
+                    self.setData(selected_index, Qt.CheckState.Unchecked, role)
+                self._checked_indices.add(index)
             else:
-                self._checked_indeces.discard(index)
+                self._checked_indices.discard(index)
             self.TreeView.repaint()
             return True
         return QFileSystemModel.setData(self, index, value, role)
@@ -68,8 +68,8 @@ class checkableFsTreeModel(QFileSystemModel):
 
     # Returns the last selected item
     def get_checked(self):
-        if len(self._checked_indeces) < 1:
+        if len(self._checked_indices) < 1:
             return None
-        checked_item = list(self._checked_indeces)[0]
+        checked_item = list(self._checked_indices)[0]
         filepath = self.filePath(checked_item)
         return filepath

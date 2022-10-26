@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>irodsLogin</class>
+ <widget class="QDialog" name="irodsLogin">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -24,11 +24,13 @@
 {
 	background-color: rgb(54, 54, 54);
 	color: rgb(86, 184, 139);
+    border-color: rgb(217, 174, 23);
 }
 
 QLineEdit
 {
 	background-color: rgb(85, 87, 83);
+	border-color: rgb(217, 174, 23);
 }
 
 QRadioButton
@@ -39,7 +41,13 @@ QRadioButton
 QLabel#passError, QLabel#envError, QLabel#icommandsError
 {
 	color: rgb(217, 174, 23);
-}</string>
+}
+
+QRadioButton
+{ 
+	selection-color: rgb(217, 174, 23);
+}
+</string>
   </property>
   <widget class="QWidget" name="gridLayoutWidget">
    <property name="geometry">
