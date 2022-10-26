@@ -255,7 +255,8 @@ class irodsBrowser(QWidget, Ui_tabBrowser):
 
     def setParentPath(self):
         currentPath = self.inputPath.text()
-        self.inputPath.setText(str(Path(currentPath).parent))
+        p = currentPath.split("/") # python Path module takes system delimiters, hence split by hand and assemble again
+        self.inputPath.setText('/'.join(tmp[:len(tmp)-1]))
         self.loadTable()
 
 
