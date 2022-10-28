@@ -3,13 +3,13 @@
 """
 import io
 import os
-import pathlib
 
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
 
 import gui
+import utils
 
 CWD = os.getcwd()
 EXTENSIONS = [
@@ -232,7 +232,7 @@ class IrodsDataBundle():
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        obj_path = pathlib.Path(obj_path)
+        obj_path = utils.utils.IrodsPath(obj_path)
         file_type = ''.join(obj_path.suffixes)[1:]
         if file_type not in EXTENSIONS:
             self.widget.statusLabel.setText(
@@ -242,7 +242,7 @@ class IrodsDataBundle():
             self.enable_buttons()
             return
         force = self.widget.forceCheckBox.isChecked()
-        coll_name = str(obj_path.with_suffix('').with_suffix(''))
+        coll_name = obj_path.with_suffix('').with_suffix('')
         if self.ic.collection_exists(coll_name):
             bund_coll = self.ic.get_collection(coll_name)
             if len(bund_coll.subcollections) or len(bund_coll.data_objects):

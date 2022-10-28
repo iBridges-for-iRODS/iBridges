@@ -6,7 +6,6 @@ import hashlib
 import json
 import logging
 import os
-import pathlib
 import random
 import shutil
 import ssl
@@ -25,6 +24,8 @@ import irods.password_obfuscation
 import irods.rule
 import irods.session
 import irods.ticket
+
+import utils
 
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
@@ -145,7 +146,7 @@ class IrodsConnector():
 
         """
         if not self._ienv:
-            irods_env_file = pathlib.Path(self.irods_env_file)
+            irods_env_file = utils.utils.LocalPath(self.irods_env_file)
             if irods_env_file.is_file():
                 with open(irods_env_file, encoding='utf-8') as envfd:
                     self._ienv = json.load(envfd)
@@ -166,12 +167,17 @@ class IrodsConnector():
             irods_auth_file = os.environ.get(
                 'IRODS_AUTHENTICATION_FILE', None)
             if irods_auth_file is None:
-                irods_auth_file = pathlib.Path(
+                irods_auth_file = utils.utils.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
+                try:
+                    uid = os.getuid()
+                except AttributeError:
+                    # Spoof UID for Non-POSIX
+                    uid = sum((ord(char) for char in os.getlogin()))
                 with open(irods_auth_file, encoding='utf-8') as authfd:
                     self._password = irods.password_obfuscation.decode(
-                        authfd.read())
+                        authfd.read(), uid=uid)
         return self._password
 
     @password.setter
@@ -377,9 +383,14 @@ class IrodsConnector():
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
+            try:
+                uid = os.getuid()
+            except AttributeError:
+                # Spoof UID for Non-POSIX
+                uid = sum((ord(char) for char in os.getlogin()))
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0]))
+                    irods.password_obfuscation.encode(pam_passwords[0], uid=uid))
 
     def get_user_info(self):
         """Query for user type and groups.
@@ -673,7 +684,7 @@ class IrodsConnector():
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / MULTIPLIER)
 
-    def get_free_space(self, resc_name, multiplier=MULTIPLIER):
+    def get_free_space(self, resc_name, multiplier=1):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -903,12 +914,11 @@ class IrodsConnector():
         logging.info(
             'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
             resc_name)
-        # Handle both POSIX and non-POSIX paths.
-        src_path = pathlib.Path(src_path)
+        src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
-                dst_path = pathlib.Path(dst_coll.path).joinpath(
-                    src_path.name)
+                dst_path = utils.utils.IrodsPath(
+                    dst_coll.path).joinpath(src_path.name)
             else:
                 raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
@@ -927,10 +937,10 @@ class IrodsConnector():
         if diffs is None:
             if src_path.is_file():
                 diff, only_fs, _, _ = self.diffObjFile(
-                    str(dst_path), str(src_path), scope='checksum')
+                    dst_path, src_path, scope='checksum')
             else:
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(
-                    dst_coll, str(src_path))
+                    dst_coll, src_path)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
@@ -946,31 +956,30 @@ class IrodsConnector():
             if src_path.is_file() and len(diff + only_fs) > 0:
                 logging.info(
                     'IRODS UPLOADING file %s to %s', src_path, dst_path)
-                self.irods_put(str(src_path), str(dst_path), **options)
+                self.irods_put(src_path, dst_path, **options)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
                 for irods_path, local_path in diff:
                     # Upload files to distinct data objects.
-                    _ = self.ensure_coll(str(irods_dirname(irods_path)))
+                    _ = self.ensure_coll(irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
-                    self.irods_put(str(local_path), str(irods_path),
-                        **options)
+                    self.irods_put(local_path, irods_path, **options)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
                         new_path = dst_path.joinpath(rel_path.parent)
                     else:
                         new_path = dst_path
-                    _ = self.ensure_coll(str(new_path))
+                    _ = self.ensure_coll(new_path)
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
-                    self.irods_put(str(local_path), str(irods_path), **options)
+                    self.irods_put(local_path, irods_path, **options)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
@@ -1006,14 +1015,13 @@ class IrodsConnector():
             FORCE_FLAG_KW: '',
             REG_CHKSUM_KW: '',
         }
-        # Handle both POSIX and non-POSIX paths.
         if self.is_dataobject_or_collection(src_obj):
-            src_path = pathlib.Path(src_obj.path)
+            src_path = utils.utils.IrodsPath(src_obj.path)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS download: not a valid source path'
             )
-        dst_path = pathlib.Path(dst_path)
+        dst_path = utils.utils.LocalPath(dst_path)
         if not dst_path.is_dir():
             logging.info(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
@@ -1031,12 +1039,12 @@ class IrodsConnector():
             dst_path = dst_path.joinpath(src_path.name)
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
-                    str(src_path), str(dst_path), scope="checksum")
+                    src_path, dst_path, scope="checksum")
             else:
                 if not dst_path.is_dir():
                     os.mkdir(dst_path)
                 diff, _, only_irods, _ = self.diffIrodsLocalfs(
-                    src_obj, str(dst_path), scope="checksum")
+                    src_obj, dst_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -1055,8 +1063,7 @@ class IrodsConnector():
                     'IRODS DOWNLOADING object: %s to %s',
                     src_path, dst_path)
                 self.irods_get(
-                    str(src_path), str(dst_path.joinpath(src_path.name)),
-                    **options)
+                    src_path, dst_path.joinpath(src_path.name), **options)
             # Collection
             else:
                 logging.info("IRODS DOWNLOAD started:")
@@ -1064,12 +1071,12 @@ class IrodsConnector():
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, local_path, **options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
                     local_path = dst_path.joinpath(
                         src_path.name).joinpath(rel_path)
@@ -1078,7 +1085,7 @@ class IrodsConnector():
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, local_path, **options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
@@ -1395,13 +1402,13 @@ class IrodsConnector():
                         raise
         return size
 
-
     def createTicket(self, path, expiryString=""):
-        ticket = irods.ticket.Ticket(self.session, 
-                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
+        ticket = irods.ticket.Ticket(
+            self.session, ''.join(
+                random.choice(string.ascii_letters) for _ in range(20)))
         ticket.issue("read", path)
         logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
-        #returns False when no expiry date is set
+        # returns False when no expiry date is set
         return ticket.ticket, False
 
 
@@ -1439,4 +1446,4 @@ def irods_dirname(path):
         iRODS path less the element after the final '/'
 
     """
-    return pathlib.Path(path).parent
+    return utils.utils.IrodsPath(path).parent

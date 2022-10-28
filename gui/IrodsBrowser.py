@@ -2,10 +2,8 @@
 
 """
 import logging
-import pathlib
 
 import irods.exception
-from irods.path import iRODSPath
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
@@ -48,7 +46,7 @@ class IrodsBrowser:
             user_type, _ = ic.get_user_info()
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
         if user_type != 'rodsadmin':
             self.widget.aclAdminBox.hide()
         # Resource table
@@ -67,9 +65,9 @@ class IrodsBrowser:
             self.root_coll = ic.get_collection(f'/{ic.session.zone}/home')
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
-                'IRODS NETWORK ERROR: No Connection, please check network')
+                'iRODS NETWORK ERROR: No Connection, please check network')
         # self.current_browser_row = -1
-        self.browse()   # defines the signals and slots  
+        self.browse()   # defines the signals and slots
         self.resetPath()
 
     def browse(self):
@@ -79,18 +77,18 @@ class IrodsBrowser:
         # update main table when iRODS path is changed upon 'Enter'
         self.widget.inputPath.returnPressed.connect(self.loadTable)
         self.widget.inputPath.textChanged.connect(self.loadTable)
-        
+
         self.widget.homeButton.clicked.connect(self.resetPath)
-        
+
         # quick data upload and download (files only)
         self.widget.UploadButton.clicked.connect(self.fileUpload)
         self.widget.DownloadButton.clicked.connect(self.fileDownload)
-        
+
         # new collection
         self.widget.createCollButton.clicked.connect(self.createCollection)
         self.widget.dataDeleteButton.clicked.connect(self.deleteData)
         self.widget.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
-        
+
         # functionality to lower tabs for metadata, acls and resources
         self.widget.collTable.doubleClicked.connect(self.updatePath)
         self.widget.collTable.clicked.connect(self.fillInfo)
@@ -102,7 +100,7 @@ class IrodsBrowser:
         self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
         self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
         self.widget.aclAddButton.clicked.connect(self.update_icat_acl)
-        
+
     # Util functions
     def _clear_error_label(self):
         """Clear any error text.
@@ -127,7 +125,7 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Path of iRODS collection or data object selected.
-        
+
         """
         self.widget.resourceTable.setRowCount(0)
         if self.ic.dataobject_exists(obj_path):
@@ -146,7 +144,7 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Path of iRODS collection or data object selected.
-        
+
         """
         self.widget.aclTable.setRowCount(0)
         self.widget.aclUserField.clear()
@@ -182,12 +180,12 @@ class IrodsBrowser:
         ----------
         obj_path : str
             Full name of iRODS collection or data object selected.
-        
+
         """
         self.widget.metaKeyField.clear()
         self.widget.metaValueField.clear()
         self.widget.metaUnitsField.clear()
-        
+
         obj = None
         if self.ic.collection_exists(obj_path):
             obj = self.ic.session.collections.get(obj_path)
@@ -225,7 +223,7 @@ class IrodsBrowser:
             self.widget.previewBrowser.append(preview_string)
         elif self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
-            file_type = pathlib.Path(obj_path).suffix[1:]
+            file_type = utils.utils.IrodsPath(obj_path).suffix[1:]
             if file_type in ['txt', 'json', 'csv']:
                 try:
                     with obj.open('r') as objfd:
@@ -253,7 +251,7 @@ class IrodsBrowser:
     # @TODO: Add a proper data model for the table model
     def _get_irods_item_of_table_row(self, row):
         obj_path, obj_name = self._get_object_path_name(row)
-        full_path = iRODSPath(obj_path, obj_name)
+        full_path = utils.utils.IrodsPath(obj_path, obj_name)
         try:
             item = self.ic.get_collection(full_path)
         except irods.exception.CollectionDoesNotExist:
@@ -274,9 +272,9 @@ class IrodsBrowser:
         try:
             self._clear_error_label()
             self._clear_view_tabs()
-            obj_path = iRODSPath(self.widget.inputPath.text())
-            if self.ic.session.collections.exists(obj_path):
-                coll = self.ic.session.collections.get(obj_path)
+            obj_path = utils.utils.IrodsPath(self.widget.inputPath.text())
+            if self.ic.collection_exists(obj_path):
+                coll = self.ic.get_collection(obj_path)
                 self.widget.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
                 row = 0
                 for subcoll in coll.subcollections:
@@ -302,21 +300,21 @@ class IrodsBrowser:
         except irods.exception.NetworkException:
             logging.exception("Something went wrong")
             self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
 
     def resetPath(self):
         self.widget.inputPath.setText(self.root_coll.path)
-    
-    # @QtCore.pyqtSlot(QtCore.QModelIndex)
+
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def updatePath(self, index):
         self._clear_error_label()
         row = index.row()
         obj_path, obj_name = self._get_object_path_name(row)
-        full_path = iRODSPath(obj_path, obj_name)
+        full_path = utils.utils.IrodsPath(obj_path, obj_name)
         if self.ic.collection_exists(full_path):
             self.widget.inputPath.setText(full_path)
 
-    # @QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def fillInfo(self, index):
         self._clear_error_label()
         self._clear_view_tabs()
@@ -324,12 +322,12 @@ class IrodsBrowser:
         self.widget.metadataTable.setRowCount(0)
         self.widget.aclTable.setRowCount(0)
         self.widget.resourceTable.setRowCount(0)
-        
+
         row = index.row()
         self.current_browser_row = row
         obj_path, obj_name = self._get_object_path_name(row)
-        obj_path = iRODSPath(obj_path, obj_name)
-       
+        obj_path = utils.utils.IrodsPath(obj_path, obj_name)
+
         self._clear_view_tabs()
         try:
             self._fill_preview_tab(obj_path)
@@ -366,7 +364,7 @@ class IrodsBrowser:
                 self.widget.deleteSelectionBrowser.append('...')
             except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
                 self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
 
@@ -420,7 +418,7 @@ class IrodsBrowser:
                 self.loadTable()
             except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
                 print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
@@ -442,21 +440,21 @@ class IrodsBrowser:
             try:
                 if self.ic.session.data_objects.exists(parent+'/'+objName):
                     downloadDir = utils.utils.getDownloadDir()
-                    buttonReply = PyQt6.QtWidgets.QMessageBox.question(self.widget,
-                                'Message Box',
-                                'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
+                    buttonReply = PyQt6.QtWidgets.QMessageBox.question(
+                        self.widget, 'Message Box',
+                        'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                     if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
                         self.ic.download_data(obj, downloadDir, obj.size)
                         self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
             except irods.exception.NetworkException:
                 self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
                 print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
                 self.widget.errorLabel.setText(repr(error))
 
-    # @QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def edit_metadata(self, index):
         self._clear_error_label()
         self.widget.metaValueField.clear()
@@ -469,7 +467,7 @@ class IrodsBrowser:
         self.widget.metaValueField.setText(value)
         self.widget.metaUnitsField.setText(units)
 
-    # @QtCore.pyqtSlot(QtCore.QModelIndex)
+    # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def edit_acl(self, index):
         self._clear_error_label()
         self.widget.aclUserField.clear()
@@ -490,7 +488,7 @@ class IrodsBrowser:
         self.widget.errorLabel.clear()
         errors = {}
         obj_path, obj_name = self._get_object_path_name(self.current_browser_row)
-        obj_path = iRODSPath(obj_path, obj_name)
+        obj_path = utils.utils.IrodsPath(obj_path, obj_name)
         user_name = self.widget.aclUserField.text()
         if not user_name:
             errors['User name'] = None
@@ -516,7 +514,8 @@ class IrodsBrowser:
             self._fill_acls_tab(obj_path)
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
-                    "IRODS NETWORK ERROR: No Connection, please check network")
+                    "iRODS NETWORK ERROR: No Connection, please check network")
+
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
 
@@ -531,12 +530,13 @@ class IrodsBrowser:
         try:
             if newKey != "" and newVal != "":
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
-                
+
                 self.ic.updateMetadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
+            self.widget.errorLabel.setText(
+                "iRODS NETWORK ERROR: No Connection, please check network")
 
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))
@@ -556,7 +556,8 @@ class IrodsBrowser:
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
             except irods.exception.NetworkException:
-                self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
+                self.widget.errorLabel.setText(
+                    "iRODS NETWORK ERROR: No Connection, please check network")
 
             except Exception as error:
                 self.widget.errorLabel.setText(repr(error))
@@ -576,7 +577,8 @@ class IrodsBrowser:
 
                 self._fill_metadata_tab(item.path)
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText("IRODS NETWORK ERROR: No Connection, please check network")
+            self.widget.errorLabel.setText(
+                "iRODS NETWORK ERROR: No Connection, please check network")
 
         except Exception as error:
             self.widget.errorLabel.setText(repr(error))

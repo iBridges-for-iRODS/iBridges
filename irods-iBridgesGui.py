@@ -5,7 +5,6 @@
 import json
 import logging
 import os
-import pathlib
 import subprocess
 import sys
 
@@ -35,7 +34,7 @@ class JsonConfig:
         filepath : str
 
         """
-        self.filepath = pathlib.Path(filepath)
+        self.filepath = utils.utils.LocalPath(filepath)
         self._config = None
 
     def _get_config(self):
@@ -110,7 +109,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
 
         """
         # iBridges configuration
-        ibridges_path = pathlib.Path(
+        ibridges_path = utils.utils.LocalPath(
             os.path.join('~', '.ibridges')).expanduser()
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
@@ -120,7 +119,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
             self.ibridges.config = {}
         # iRODS configuration (environment)
         self.irods = None
-        self.irods_path = pathlib.Path(
+        self.irods_path = utils.utils.LocalPath(
             os.path.join('~', '.irods')).expanduser()
         if not self.irods_path.is_dir():
             self.irods_path.mkdir(parents=True)
@@ -153,10 +152,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         """
 
         """
-        # irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
-        # ienv = JsonConfig(irods_env_file).config
-        # Fish for a cached password
-        # conn = self.connector(irods_env_file=str(irods_env_file), password='')
         conn = self.connector()
         if conn.password:
             self.passwordField.setText(conn.password)
@@ -229,10 +224,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
                 return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         password = self.passwordField.text()
-        conn = self.connector(irods_env_file=str(irods_env_file), password=password)
+        conn = self.connector(irods_env_file=irods_env_file, password=password)
         # Add own filepath for easy saving.
         conf = self.ibridges.config
-        conf['ui_ienvFilePath'] = str(irods_env_file)
+        conf['ui_ienvFilePath'] = irods_env_file
         conf['last_ienv'] = irods_env_file.name
         # Save iBridges config to disk and combine with iRODS config.
         self.ibridges.config = conf
