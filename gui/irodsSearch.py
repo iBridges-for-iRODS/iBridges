@@ -8,7 +8,7 @@ import logging
 class irodsSearch(QDialog):
     def __init__(self, ic, collTable):
         super(irodsSearch, self).__init__()
-        loadUi("gui/ui-files/searchDialog.ui", self)
+        loadUi("gui/ui_files/searchDialog.ui", self)
         self.ic = ic
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]

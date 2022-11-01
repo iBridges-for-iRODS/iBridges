@@ -21,7 +21,7 @@ class dataTransfer(QDialog):
 
     def __init__(self, ic, upload, localFsPath, irodsColl, irodsTreeIdx = None, resource = None):
         super(dataTransfer, self).__init__()
-        loadUi("gui/ui-files/dataTransferState.ui", self)
+        loadUi("gui/ui_files/dataTransferState.ui", self)
 
         self.ic = ic
         self.localFsPath = localFsPath
