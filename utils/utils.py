@@ -147,6 +147,64 @@ def setup_logger(logdir, appname):
         logfd.write(underscores)
 
 
+class JsonConfig:
+    """A configuration stored in a JSON file.
+
+    """
+
+    def __init__(self, filepath):
+        """Create the configuration.
+
+        Parameters
+        ----------
+        filepath : str
+
+        """
+        self.filepath = utils.utils.LocalPath(filepath)
+        self._config = None
+
+    def _get_config(self):
+        """Configuration getter.
+
+        Attempt to load a configuration from the JSON file.
+
+        Returns
+        -------
+        dict or None
+            The configuration if it exists.
+
+        """
+        if self._config is None:
+            if self.filepath.exists():
+                with open(self.filepath, 'r', encoding='utf-8') as confd:
+                    self._config = json.load(confd)
+        return self._config
+
+    def _set_config(self, conf_dict):
+        """Configuration setter.
+
+        Set the configuration to `conf_dict` and write it to the JSON
+        file.
+
+        """
+        self._config = conf_dict
+        with open(self.filepath, 'w', encoding='utf-8') as confd:
+            json.dump(conf_dict, confd, indent=4, sort_keys=True)
+
+    def _del_config(self):
+        """Configuration deleter.
+
+        Delete both the configuration and its JSON file.
+
+        """
+        self._config = None
+        self.filepath.unlink(missing_ok=True)
+
+    config = property(
+        _get_config, _set_config, _del_config,
+        'A configuration dictionary linked to a JSON file.')
+
+
 class PurePath(str):
     """A platform-dependent pure path without file system functionality
     based on the best of str and pathlib.
@@ -490,3 +548,15 @@ class LocalPath(PurePath):
             self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         except AttributeError:
             pass
+
+    def unlink(self, missing_ok : bool = False) -> None:
+        """Remove this file or link.  If the path is a directory, use
+        rmdir() instead.
+
+        Parameters
+        ----------
+        missing_ok : bool
+            Ignore missing files/directories.
+
+        """
+        self.path.unlink(missing_ok=missing_ok)
