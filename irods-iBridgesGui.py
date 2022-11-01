@@ -5,6 +5,7 @@
 import json
 import logging
 import os
+import setproctitle
 import subprocess
 import sys
 
@@ -21,68 +22,12 @@ app = PyQt6.QtWidgets.QApplication(sys.argv)
 widget = PyQt6.QtWidgets.QStackedWidget()
 
 
-class JsonConfig:
-    """A configuration stored in a JSON file.
-
-    """
-
-    def __init__(self, filepath):
-        """Create the configuration.
-
-        Parameter
-        ---------
-        filepath : str
-
-        """
-        self.filepath = utils.utils.LocalPath(filepath)
-        self._config = None
-
-    def _get_config(self):
-        """Configuration getter.
-
-        Attempt to load a configuration from the JSON file.
-
-        Returns
-        -------
-        dict or None
-            The configuration if it exists.
-
-        """
-        if self._config is None:
-            if self.filepath.exists():
-                with open(self.filepath, 'r', encoding='utf-8') as confd:
-                    self._config = json.load(confd)
-        return self._config
-
-    def _set_config(self, conf_dict):
-        """Configuration setter.
-
-        Set the configuration to `conf_dict` and write it to the JSON
-        file.
-
-        """
-        self._config = conf_dict
-        with open(self.filepath, 'w', encoding='utf-8') as confd:
-            json.dump(conf_dict, confd, indent=4, sort_keys=True)
-
-    def _del_config(self):
-        """Configuration deleter.
-
-        Delete both the configuration and its JSON file.
-
-        """
-        self._config = None
-        self.filepath.unlink(missing_ok=True)
-
-    config = property(
-        _get_config, _set_config, _del_config,
-        'A configuration dictionary linked to a JSON file.')
-
-
-class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
+class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irodsLogin):
     """Definition and initialization of the iRODS login window.
 
     """
+
+    this_application = 'iBridges'
 
     def __init__(self):
         super().__init__()
@@ -97,7 +42,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         """
 
         """
-        PyQt6.uic.loadUi('gui/ui-files/irodsLogin.ui', self)
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi("gui/ui_files/irodsLogin.ui", self)
         self.selectIcommandsButton.toggled.connect(self.setup_icommands)
         self.standardButton.toggled.connect(self.setup_standard)
         self.connectButton.clicked.connect(self.login_function)
@@ -114,7 +62,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
         self.ibridges_config = ibridges_path.joinpath('config.json')
-        self.ibridges = JsonConfig(self.ibridges_config)
+        self.ibridges = utils.utils.JsonConfig(self.ibridges_config)
         if self.ibridges.config is None:
             self.ibridges.config = {}
         # iRODS configuration (environment)
@@ -124,7 +72,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         if not self.irods_path.is_dir():
             self.irods_path.mkdir(parents=True)
         # iBridges logging
-        utils.utils.setup_logger(ibridges_path, 'iBridgesGui')
+        utils.utils.setup_logger(ibridges_path, 'iBridges')
 
     def _init_envbox(self):
         """Populate environment drop-down.
@@ -196,11 +144,13 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
             with open(os.devnull, 'w', encoding='utf-8') as devnull:
-                icommands_exist = subprocess.call(['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
+                icommands_exist = subprocess.call(
+                    ['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
             if icommands_exist:
                 self.icommands = True
+                # TODO support arbitrary iRODS environment file for iCommands
             else:
-                self.icommandsError.setText('ERROR: no iCommands installed')
+                self.icommandsError.setText('ERROR: no iCommands found')
                 self.standardButton.setChecked(True)
 
     def login_function(self):
@@ -209,30 +159,29 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog):
         """
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         # TODO expand JsonConfig usage to all relevant modules
-        ienv = JsonConfig(irods_env_file).config
+        ienv = utils.utils.JsonConfig(irods_env_file).config
         if ienv is None:
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment file not found.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        if 'irods_host' in ienv:
-            connect = utils.utils.can_connect(ienv['irods_host'])
-            if not connect:
-                logging.info('iRODS login: No network connection to server')
-                self.envError.setText('No network connection to server')
-                self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-                return
+        if 'irods_host' in ienv and not utils.utils.can_connect(ienv['irods_host']):
+            logging.info('iRODS login: No network connection to server')
+            self.envError.setText('No network connection to server')
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         password = self.passwordField.text()
         conn = self.connector(irods_env_file=irods_env_file, password=password)
         # Add own filepath for easy saving.
-        conf = self.ibridges.config
-        conf['ui_ienvFilePath'] = irods_env_file
-        conf['last_ienv'] = irods_env_file.name
+        config = self.ibridges.config
+        config['ui_ienvFilePath'] = irods_env_file
+        config['last_ienv'] = irods_env_file.name
         # Save iBridges config to disk and combine with iRODS config.
-        self.ibridges.config = conf
-        # TODO consider passing separate configurations
-        ienv.update(conf)
+        self.ibridges.config = config
+        # TODO consider passing separate configurations or rename
+        #  `ienv` to reflect common nature
+        ienv.update(config)
         try:
             # widget is a global variable
             browser = gui.mainmenu(widget, conn, ienv)
@@ -278,6 +227,7 @@ def main():
     """Main function
 
     """
+    setproctitle.setproctitle('iBridges')
     login_window = IrodsLoginWindow()
     widget.addWidget(login_window)
     widget.show()
