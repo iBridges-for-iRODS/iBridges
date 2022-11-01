@@ -1,17 +1,20 @@
 """Main menu window definition
 
 """
+import sys
+
 import PyQt6
 import PyQt6.QtWidgets
 import PyQt6.uic
-
-
 
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
 from PyQt6.uic import loadUi
 from PyQt6 import QtCore
 from PyQt6 import QtGui
+
+import gui
+import utils
 
 from gui.IrodsBrowser import IrodsBrowser
 from gui.elabUpload import elabUpload
@@ -23,13 +26,12 @@ from gui.irodsCreateTicket import irodsCreateTicket
 from gui.irodsTicketLogin import irodsTicketLogin
 from utils.utils import saveIenv
 
-import sys
 
 
-class mainmenu(QMainWindow):
+class mainmenu(QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
     def __init__(self, widget, ic, ienv):
         super(mainmenu, self).__init__()
-        loadUi('gui/ui-files/MainMenu.ui', self)
+        loadUi('gui/ui_files/MainMenu.ui', self)
         self.ic = ic
         # stackedWidget
         self.widget = widget
@@ -42,7 +44,7 @@ class mainmenu(QMainWindow):
         if not ienv or not ic:
             self.actionSearch.setEnabled(False)
             self.actionSaveConfig.setEnabled(False)
-            ticketAccessWidget = loadUi('gui/ui-files/tabTicketAccess.ui')
+            ticketAccessWidget = loadUi('gui/ui_files/tabTicketAccess.ui')
             self.tabWidget.addTab(ticketAccessWidget, 'Ticket Access')
             self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
 
@@ -52,33 +54,33 @@ class mainmenu(QMainWindow):
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
 
             # tabBrowser needed for Search
-            self.browserWidget = loadUi('gui/ui-files/tabBrowser.ui')
+            self.browserWidget = loadUi('gui/ui_files/tabBrowser.ui')
             self.tabWidget.addTab(self.browserWidget, 'Browser')
             self.irodsBrowser = IrodsBrowser(self.browserWidget, ic)
             # Optional tabs
             if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
                 # Setup up/download tab, index 1
                 if 'tabUpDownload' in ienv['ui_tabs']:
-                    updownloadWidget = loadUi('gui/ui-files/tabUpDownload.ui')
+                    updownloadWidget = loadUi('gui/ui_files/tabUpDownload.ui')
                     self.tabWidget.addTab(updownloadWidget, 'Up and Download')
                     self.updownload = IrodsUpDownload(updownloadWidget, ic, self.ienv)
                 # Elabjournal tab, index 2
                 if 'tabELNData' in ienv['ui_tabs']:
-                    elabUploadWidget = loadUi('gui/ui-files/tabELNData.ui')
+                    elabUploadWidget = loadUi('gui/ui_files/tabELNData.ui')
                     self.tabWidget.addTab(elabUploadWidget, 'ELN Data upload')
                     self.elnTab = elabUpload(elabUploadWidget, ic)
                 # Data (un)bundle tab, index 3
                 if 'tabDataBundle' in ienv['ui_tabs']:
-                    dataBundleWidget = loadUi('gui/ui-files/tabDataBundle.ui')
+                    dataBundleWidget = loadUi('gui/ui_files/tabDataBundle.ui')
                     self.tabWidget.addTab(dataBundleWidget, '(Un)Bundle data')
                     self.bundleTab = IrodsDataBundle(dataBundleWidget, ic, self.ienv)
                 # Grant access by tickets, index 4
                 if 'tabCreateTicket' in ienv['ui_tabs']:
-                    createTicketWidget = loadUi('gui/ui-files/tabTicketCreate.ui')
+                    createTicketWidget = loadUi('gui/ui_files/tabTicketCreate.ui')
                     self.tabWidget.addTab(createTicketWidget, 'Create access tokens')
                     self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
             # General info
-            self.infoWidget = loadUi('gui/ui-files/tabInfo.ui')
+            self.infoWidget = loadUi('gui/ui_files/tabInfo.ui')
             self.tabWidget.addTab(self.infoWidget, 'Info')
             self.irodsInfo = irodsInfo(self.infoWidget, ic)
 
