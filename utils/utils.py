@@ -560,3 +560,26 @@ class LocalPath(PurePath):
 
         """
         self.path.unlink(missing_ok=missing_ok)
+
+
+def bytes_to_str(value: int) -> str:
+    """Render incoming number of bytes to a string with units.
+
+    Parameters
+    ----------
+    value : int
+
+    Returns
+    -------
+    str
+        Rendered string with units.
+
+    """
+    # TODO this converts decimal bytes.  Need to decide on binary
+    #  versus decimal bytes consistently throughout
+    value = value / (1000**3)
+    if value < 1000:
+        return f'{round(value, 3)} GB'
+    else:
+        value = value / 1000
+        return f'{round(value, 3)} TB'
