@@ -5,11 +5,13 @@ import logging
 import os
 import sys
 
-from PyQt6 import QtCore, QtGui
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
+from PyQt6 import QtCore
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtGui import QFileSystemModel
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
+from PyQt6.uic import loadUi
 
-from gui.checkableFsTree import checkableFsTreeModel
+import utils
 from gui.ui_files.tabELNData import Ui_tabELNData
 from utils.elabConnector import elabConnector
 from utils.utils import getSize, walkToDict
@@ -20,13 +22,14 @@ class elabUpload(QWidget, Ui_tabELNData):
     """
 
     """
+    thread = None
+    worker = None
 
     def __init__(self, ic):
         """
 
         Parameters
         ----------
-        widget
         ic
         """
         self.elab = None
@@ -37,23 +40,16 @@ class elabUpload(QWidget, Ui_tabELNData):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabELNData.ui", self)
-        # Return errors to:
-        self.errorLabel = widget.errorLabel
-        # Gathering Eln configuration
-        self.elnTokenInput = widget.elnTokenInput
-        self.elnGroupTable = widget.elnGroupTable
-        self.elnExperimentTable = widget.elnExperimentTable
-        # Config ok check
-        self.groupIdLabel = widget.groupIdLabel
-        self.experimentIdLabel = widget.experimentIdLabel
         # Selecting and uploading local files and folders
-        self.dirmodel = checkableFsTreeModel(widget.localFsTable)
-        widget.localFsTable.setModel(self.dirmodel)
-        self.localFsTable = widget.localFsTable
-        self.elnUploadButton = widget.elnUploadButton
-        # Showing result
-        self.elnPreviewBrowser = widget.elnPreviewBrowser
-        self.elnIrodsPath = widget.elnIrodsPath
+        self.dirmodel = QFileSystemModel(self.localFsTable)
+        self.localFsTable.setModel(self.dirmodel)
+        self.localFsTable.setColumnHidden(1, True)
+        self.localFsTable.setColumnHidden(2, True)
+        self.localFsTable.setColumnHidden(3, True)
+        home_location = QtCore.QStandardPaths.standardLocations(
+            QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
+        index = self.dirmodel.setRootPath(home_location)
+        self.localFsTable.setCurrentIndex(index)
         # defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
@@ -69,21 +65,17 @@ class elabUpload(QWidget, Ui_tabELNData):
             self.elab = elabConnector(token)
             groups = self.elab.showGroups(get=True)
             self.elnGroupTable.setRowCount(len(groups))
-            row = 0
-            for group in groups:
+            for row, group in enumerate(groups):
                 self.elnGroupTable.setItem(row, 0, QTableWidgetItem(group[0]))
                 self.elnGroupTable.setItem(row, 1, QTableWidgetItem(group[1]))
-                row = row + 1
             self.elnGroupTable.resizeColumnsToContents()
-            self.loadLocalFileView()
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-        except Exception as e:
-            logging.info("elabUpload: "+repr(e))
+            # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        except Exception as error:
+            logging.info("elabUpload: "+repr(error))
             self.errorLabel.setText(
-                "ELN ERROR: "+repr(e)+"\n Your permissions for your current active group might be blocked.")
-            self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-            return
-    
+                "ELN ERROR: "+repr(error)+"\n Your permissions for your current active group might be blocked.")
+            # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+
     def selectExperiment(self):
         # TODO put exp id in self experimentIdLabel
         self.errorLabel.clear()
@@ -95,43 +87,40 @@ class elabUpload(QWidget, Ui_tabELNData):
     def loadExperiments(self):
         self.errorLabel.clear()
         self.elnExperimentTable.setRowCount(0)
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+        # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         row = self.elnGroupTable.currentRow()
         if row > -1:
             groupId = self.elnGroupTable.item(row, 0).text()
             self.groupIdLabel.setText(groupId)
             try:
-                userExp, otherExp = self.elab.showExperiments(int(groupId), get = True)
+                userExp, otherExp = self.elab.showExperiments(int(groupId), get=True)
                 self.elnExperimentTable.setRowCount(len(userExp+otherExp)+1)
-                row = 0
-                for exp in userExp:
+                for row, exp in enumerate(userExp):
                     self.elnExperimentTable.setItem(row, 0, QTableWidgetItem(exp[0]))
                     self.elnExperimentTable.setItem(row, 1, QTableWidgetItem(exp[1]))
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
-                    row = row+1
+                row += 1
                 self.elnExperimentTable.setItem(row, 0, QTableWidgetItem(""))
                 self.elnExperimentTable.setItem(row, 1, QTableWidgetItem(""))
                 self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(""))
-                row = row+1
-                for exp in otherExp:
+                for row, exp in enumerate(otherExp, start=row+1):
                     self.elnExperimentTable.setItem(row, 0, QTableWidgetItem(exp[0]))
                     self.elnExperimentTable.setItem(row, 1, QTableWidgetItem(exp[1]))
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
-                    row = row+1
             except Exception as error:
                 logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(error)+"\n You might not have permissions for that group.")
-                self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+                # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
                 return
         self.elnExperimentTable.resizeColumnsToContents()
-        self.widget.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
     
     def reportProgress(self):
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploading ...")
 
     def reportFinished(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
         self.showPreview()
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
@@ -149,23 +138,25 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.errorLabel.setText("ELN upload success: "+self.coll.path)
 
     def upload_data(self):
-        self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+        # TODO check why cursor changes are commented out
+        # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.elnPreviewBrowser.clear()
         self.errorLabel.clear()
         groupId = self.groupIdLabel.text()
         expId = self.experimentIdLabel.text()
-        path = self.dirmodel.get_checked()
+        index = self.localFsTable.selectedIndexes()[0]
+        path = self.dirmodel.filePath(index)
         if groupId == "":
             self.errorLabel.setText("ERROR: No group selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         if expId == "":
             self.errorLabel.setText("ERROR: No experiment selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         if path == "":
             self.errorLabel.setText("ERROR: No data selected.")
-            self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+            # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         try:
             print("Group and Experiment: ", groupId, expId)
@@ -179,7 +170,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
             print("ELN DATA UPLOAD experiment: \n"+expUrl)
             # get upload total size to inform user
-            size = round(getSize([path])/1024**2)
+            size = getSize([path])
             # if user specifies a different path than standard home
             if self.elnIrodsPath.text() == '/zone/home/user':
                 collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
@@ -188,18 +179,19 @@ class elabUpload(QWidget, Ui_tabELNData):
             self.coll = self.ic.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
             buttonReply = QMessageBox.question(
-                            self.elnUploadButton,
-                            'Message Box', "Upload\n" + path + '\n'+str(size)+'MB',
-                            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.StandardButton.No)
+                self.elnUploadButton,
+                'Message Box', "Upload\n" + path + '\n'+str(size)+'MB',
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No)
             upload = buttonReply == QMessageBox.StandardButton.Yes
             if upload:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+                # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 self.elnUploadButton.setEnabled(False)
                 # start own thread for the upload
                 self.thread = QThread()
-                self.worker = Worker(self.ic, self.elab, self.coll, 
-                                    size, path, 
-                                    expUrl, self.elnPreviewBrowser, self.errorLabel)
+                self.worker = Worker(
+                    self.ic, self.elab, self.coll, size, path, expUrl,
+                    self.elnPreviewBrowser, self.errorLabel)
                 self.worker.moveToThread(self.thread)
                 self.thread.started.connect(self.worker.run)
                 self.worker.finished.connect(self.thread.quit)
@@ -208,15 +200,15 @@ class elabUpload(QWidget, Ui_tabELNData):
                 self.worker.progress.connect(self.reportProgress)
                 self.thread.start()
                 self.thread.finished.connect(self.reportFinished)
-            else:
-                self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-        except Exception as e:
-            logging.info("ElabUpload UploadData: "+repr(e))
-            self.errorLabel.setText(repr(e))
+            # else:
+            #     self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        except Exception as error:
+            logging.info("ElabUpload UploadData: "+repr(error))
+            self.errorLabel.setText(repr(error))
             self.elnUploadButton.setEnabled(True)
-            self.elnUploadButton.setCursor(
-                QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-            return
+            # self.elnUploadButton.setCursor(
+            #     QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+
 
 class Worker(QObject):
     """
@@ -270,30 +262,45 @@ class Worker(QObject):
                 self.ic.addMetadata(items, 'ELN', self.expUrl)
             self.progress.emit(3)
             self.finished.emit()
-        except Exception as e:
-            logging.info("ElabUpload data upload and annotation worker: "+repr(e))
-            print(repr(e))
+        except Exception as error:
+            logging.info("ElabUpload data upload and annotation worker: "+repr(error))
+            print(repr(error))
+        annotation = {
+            "Data size": f'{self.size} Bytes',
+            "iRODS path": self.coll.path,
+            "iRODS server": self.ic.session.host,
+            "iRODS user": self.ic.session.username,
+        }
+        self.annotateElab(annotation)
 
-        self.annotateElab()
+    def annotateElab(self, metadata):
+        """
 
-    def annotateElab(self):
+        Parameters
+        ----------
+        metadata
+
+        """
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
-        if self.ic.davrods and "yoda" in self.ic.session.host:
-            self.elab.addMetadata(
-                self.ic.davrods+'/'+self.coll.path.split('home/')[1].strip(),
-                title='Data in iRODS')
-        elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
-                self.elab.addMetadata(
-                    self.ic.davrods+'/'+self.coll.path.split(
-                        self.ic.session.zone)[1].strip('/'), 
-                    title='Data in iRODS')
-        elif self.ic.davrods:
-            self.elab.addMetadata(
-                    self.ic.davrods+'/'+self.coll.path.strip('/'), 
-                    title='Data in iRODS')
+        # YODA: webdav URL does not contain "home", but iRODS path does!
+        # TODO find a way to remove site-specific values from code.
+        #  Choose for configuration.  This could include YoDa
+        if self.ic.davrods:
+            if "yoda" in self.ic.session.host or "uu.nl" in self.ic.session.host:
+                annotation = utils.utils.IrodsPath(
+                    self.ic.davrods, self.coll.path.split('home/')[-1])
+            elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
+                annotation = utils.utils.IrodsPath(
+                    self.ic.davrods, self.coll.path.split(
+                        self.ic.session.zone)[-1])
+            else:
+                annotation = utils.utils.IrodsPath(
+                    self.ic.davrods, self.coll.path)
         else:
-            self.elab.addMetadata('{'+self.ic.session.host+', \n'\
-                                    +self.ic.session.zone+', \n'\
-                                    +self.ic.session.username+', \n'\
-                                    +str(self.ic.session.port)+'}\n'+
-                                    self.coll.path, title='Data in iRODS')
+            host = self.ic.session.host
+            zone = self.ic.session.zone
+            name = self.ic.session.username
+            port = self.ic.session.port
+            path = self.coll.path
+            annotation = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
+        self.elab.addMetadata(annotation, meta=metadata, title='Data in iRODS')
