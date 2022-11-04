@@ -2,44 +2,53 @@
 
 """
 import logging
+import sys
 
 import irods.exception
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
+import PyQt6.uic
 
 import gui
 import meta
 import utils
 
 
-class IrodsBrowser:
+class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowser):
     """Browser view for iRODS session.
 
     """
-
     current_browser_row = -1
 
-    def __init__(self, widget, ic):
+    def __init__(self, ic):
         """Initialize an iRODS browser view.
 
+        Parameters
+        ----------
+        ic
+
         """
-        self.force = ic.ienv.get('force_unknown_free_space', False)
         self.ic = ic
-        self.widget = widget
-        self.widget.viewTabs.setCurrentIndex(0)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi("gui/ui_files/tabBrowser.ui", self)
+        self.force = ic.ienv.get('force_unknown_free_space', False)
+        self.viewTabs.setCurrentIndex(0)
         # Browser table
-        self.widget.collTable.setColumnWidth(1, 399)
-        self.widget.collTable.setColumnWidth(2, 199)
-        self.widget.collTable.setColumnWidth(3, 399)
-        self.widget.collTable.setColumnWidth(0, 20)
+        self.collTable.setColumnWidth(0, 20)
+        self.collTable.setColumnWidth(1, 399)
+        self.collTable.setColumnWidth(2, 199)
+        self.collTable.setColumnWidth(3, 399)
         # Metadata table
-        self.widget.metadataTable.setColumnWidth(0, 199)
-        self.widget.metadataTable.setColumnWidth(1, 199)
-        self.widget.metadataTable.setColumnWidth(2, 199)
+        self.metadataTable.setColumnWidth(0, 199)
+        self.metadataTable.setColumnWidth(1, 199)
+        self.metadataTable.setColumnWidth(2, 199)
         # ACL table
-        self.widget.aclTable.setColumnWidth(0, 299)
-        self.widget.aclTable.setColumnWidth(1, 299)
+        self.aclTable.setColumnWidth(0, 299)
+        self.aclTable.setColumnWidth(1, 299)
         # If user is not a rodsadmin, hide Admin controls.
         user_type = ''
         try:
@@ -66,76 +75,74 @@ class IrodsBrowser:
         except irods.exception.NetworkException:
             self.widget.errorLabel.setText(
                 'iRODS NETWORK ERROR: No Connection, please check network')
-        # self.current_browser_row = -1
-        self.browse()   # defines the signals and slots
         self.resetPath()
+        self.browse()
 
     def browse(self):
-        """Initialize browser view GUI elements.
+        """Initialize browser view GUI elements.  Defines the signals
+        and slots.
 
         """
         # update main table when iRODS path is changed upon 'Enter'
-        self.widget.inputPath.returnPressed.connect(self.loadTable)
-        self.widget.inputPath.textChanged.connect(self.loadTable)
-
-        self.widget.homeButton.clicked.connect(self.resetPath)
-
+        self.inputPath.returnPressed.connect(self.loadTable)
+        self.refreshButton.clicked.connect(self.loadTable)
+        self.homeButton.clicked.connect(self.resetPath)
+        self.parentButton.clicked.connect(self.setParentPath)
         # quick data upload and download (files only)
-        self.widget.UploadButton.clicked.connect(self.fileUpload)
-        self.widget.DownloadButton.clicked.connect(self.fileDownload)
-
+        self.UploadButton.clicked.connect(self.fileUpload)
+        self.DownloadButton.clicked.connect(self.fileDownload)
         # new collection
-        self.widget.createCollButton.clicked.connect(self.createCollection)
-        self.widget.dataDeleteButton.clicked.connect(self.deleteData)
-        self.widget.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
-
+        self.createCollButton.clicked.connect(self.createCollection)
+        self.dataDeleteButton.clicked.connect(self.deleteData)
+        self.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
         # functionality to lower tabs for metadata, acls and resources
-        self.widget.collTable.doubleClicked.connect(self.updatePath)
-        self.widget.collTable.clicked.connect(self.fillInfo)
-        self.widget.metadataTable.clicked.connect(self.edit_metadata)
-        self.widget.aclTable.clicked.connect(self.edit_acl)
+        self.collTable.doubleClicked.connect(self.updatePath)
+        self.collTable.clicked.connect(self.fillInfo)
+        self.metadataTable.clicked.connect(self.edit_metadata)
+        self.aclTable.clicked.connect(self.edit_acl)
         # actions to update iCat entries of metadata and acls
-        self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
-        self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
-        self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
-        self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
-        self.widget.aclAddButton.clicked.connect(self.update_icat_acl)
+        self.metaAddButton.clicked.connect(self.addIcatMeta)
+        self.metaUpdateButton.clicked.connect(self.updateIcatMeta)
+        self.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
+        self.metaLoadFile.clicked.connect(self.loadMetadataFile)
+        self.aclAddButton.clicked.connect(self.update_icat_acl)
 
-    # Util functions
     def _clear_error_label(self):
         """Clear any error text.
 
         """
-        self.widget.errorLabel.clear()
+        self.errorLabel.clear()
 
     def _clear_view_tabs(self):
         """Clear the tabs view.
 
         """
-        self.widget.aclTable.setRowCount(0)
-        self.widget.metadataTable.setRowCount(0)
-        self.widget.resourceTable.setRowCount(0)
-        self.widget.previewBrowser.clear()
+        self.aclTable.setRowCount(0)
+        self.metadataTable.setRowCount(0)
+        self.resourceTable.setRowCount(0)
+        self.previewBrowser.clear()
 
     def _fill_resources_tab(self, obj_path):
         """Populate the table in the Resources tab with the resource
-        hierarchy of the replicas of the selected data object.
+        hierarchy of the replicas of the selected data object.  The
+        hierarchy best describes the logical location where a replica
+        is stored for both simple and complex hierarchies.
 
         Parameters
         ----------
         obj_path : str
-            Path of iRODS collection or data object selected.
+            Path of iRODS data object selected.
 
         """
-        self.widget.resourceTable.setRowCount(0)
+        self.resourceTable.setRowCount(0)
         if self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
-            hierarchies = [(repl.number, repl.resc_hier) for repl in obj.replicas]
-            self.widget.resourceTable.setRowCount(len(hierarchies))
-            for repl_num, hierarchy in hierarchies:
-                self.widget.resourceTable.setItem(
-                    repl_num, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
-        self.widget.resourceTable.resizeColumnsToContents()
+            hierarchies = [repl.resc_hier for repl in obj.replicas]
+            self.resourceTable.setRowCount(len(hierarchies))
+            for row, hierarchy in enumerate(hierarchies):
+                self.resourceTable.setItem(
+                    row, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
+        self.resourceTable.resizeColumnsToContents()
 
     def _fill_acls_tab(self, obj_path):
         """Populate the table in the ACLs tab.
@@ -146,10 +153,10 @@ class IrodsBrowser:
             Path of iRODS collection or data object selected.
 
         """
-        self.widget.aclTable.setRowCount(0)
-        self.widget.aclUserField.clear()
-        self.widget.aclZoneField.clear()
-        self.widget.aclBox.setCurrentText('')
+        self.aclTable.setRowCount(0)
+        self.aclUserField.clear()
+        self.aclZoneField.clear()
+        self.aclBox.setCurrentText('')
         obj = None
         if self.ic.collection_exists(obj_path):
             obj = self.ic.session.collections.get(obj_path)
@@ -172,6 +179,7 @@ class IrodsBrowser:
                 self.widget.aclTable.setItem(
                     row, 3, PyQt6.QtWidgets.QTableWidgetItem(str(inheritance)))
         self.widget.aclTable.resizeColumnsToContents()
+        self.owner_label.setText(f'Owner: {obj.owner_name}')
 
     def _fill_metadata_tab(self, obj_path):
         """Populate the table in the metadata tab.
