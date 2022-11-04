@@ -370,7 +370,7 @@ class PurePath(str):
         return self.path.suffix
 
     @property
-    def suffixes(self) -> list[str]:
+    def suffixes(self) -> list:
         """A list of the final component's suffixes, if any.  These
         include the leading periods. For example: ['.tar', '.gz'].
 
