@@ -78,7 +78,7 @@ class mainmenu(QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
                 if 'tabCreateTicket' in ienv['ui_tabs']:
                     createTicketWidget = loadUi('gui/ui_files/tabTicketCreate.ui')
                     self.tabWidget.addTab(createTicketWidget, 'Create access tokens')
-                    self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
+                    self.createTicket = irodsCreateTicket(createTicketWidget, ic)
             # General info
             self.infoWidget = loadUi('gui/ui_files/tabInfo.ui')
             self.tabWidget.addTab(self.infoWidget, 'Info')
