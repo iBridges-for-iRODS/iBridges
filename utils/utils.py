@@ -30,6 +30,26 @@ def getSize(pathList):
     return size
 
 
+def get_coll_size(coll) -> int:
+    """For an iRODS collection, sum the sizes of data objects
+    recursively as reported by the ICAT.  This should be considered an
+    estimate if the sizes cannot be verified.
+
+    Parameters
+    ----------
+    coll : iRODSCollection
+        The iRODS collection whose size is to be estimated.
+
+    Returns
+    -------
+    int
+        Estimated sum of total sizes of data objects in `coll`.
+
+    """
+    return sum((
+        sum((obj.size for obj in objs)) for _, _, objs in coll.walk()))
+
+
 def can_connect(hostname):
     """Check connectivity to an iRODS server.
 
