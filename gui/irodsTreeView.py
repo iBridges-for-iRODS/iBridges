@@ -1,7 +1,7 @@
 """Tree model for IRODS collections.
-The IRODS database is huge and retreiving a complete tree of all files
+The IRODS database is huge and retrieving a complete tree of all files
 can take ages.  To improve the loading time the tree is only grown as
-far as its shows.
+far as it displays.
 
 """
 import collections
@@ -10,7 +10,6 @@ import os
 
 import irods
 import PyQt6
-
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
@@ -29,7 +28,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
 
     """
 
-    def __init__(self, irods_connector, tree_view):
+    def __init__(self, irods_connector, tree_view, parent=None):
         """Initializes the tree view with the root node and first level.
 
         Class variables 'user_groups' and 'base_path' _must_ be
@@ -43,9 +42,11 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
             iRODS session container.
         tree_view : PyQt6.QtWidgets
             Defined iRODS tree view UI element.
+        parent : ???
+            ???
 
         """
-        super().__init__()
+        super().__init__(parent)
         self.ic = irods_connector
         self.tree_view = tree_view
         try:
@@ -119,7 +120,6 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
                 }
                 data.append(row)
         for obj in coll.data_objects:
-            # level = len(obj.path.split(self.base_path+'/')[1].split('/')) - 1
             level = 1
             row = {
                 'level': level,
