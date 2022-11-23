@@ -121,6 +121,7 @@ def setupIRODS(config, operation):
         except:
             print(RED+"No resource set in environment file either ('default_resource_name')"+DEFAULT)
             print(RED+"ERROR: No resource set"+DEFAULT)
+            ic.session.cleanup()
             sys.exit(2)
         if ic.resourceSize(ic.defaultResc) is None:
             print(ic.defaultResc+ " upload capacity, free space: No  inofrmation")
@@ -309,6 +310,7 @@ def main(argv):
             iColl = ic.session.collections.get(iPath)
             ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]), force=True)
         else:
+            ic.session.cleanup()
             sys.exit(2)
         #tag data in iRODS and metadata store
         if md != None:
@@ -325,6 +327,7 @@ def main(argv):
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
         print(DEFAULT)
+        ic.session.cleanup()
     elif operation == 'download':
         print(json.dumps(config, indent=4))
         if prepareDownload(irodsPath, ic, config):
@@ -342,7 +345,9 @@ def main(argv):
             print(BLUE+'Download complete with the following parameters:')
             print(json.dumps(config, indent=4))
             print(DEFAULT)
+            ic.session.cleanup()
         else:
+            ic.session.cleanup()
             sys.exit(2)
     else:
         print('Not an implemented operation.')
