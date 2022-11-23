@@ -38,8 +38,6 @@ def getConfig(path):
     args = config._sections
     if not 'iRODS' in args:
         raise AttributeError("iRODS environment not defined.")
-    if len(args) == 1:
-        print(BLUE+"INFO: No metadata store configured. Only upload data to iRODS."+DEFAULT)
     
     return args
 
@@ -59,7 +57,7 @@ def connectIRODS(config):
         except FileNotFoundError:
             raise
         except EnvironmentError:
-            print("Connect with python API")
+            print("INFO: Connect with python API")
             passwd = getpass.getpass(
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
             ic = irodsConnector(standardEnv, passwd)
@@ -68,6 +66,7 @@ def connectIRODS(config):
            raise
 
     elif os.path.exists(config['iRODS']['irodsenv']):
+        print("INFO: Connect with python API")
         passwd = getpass.getpass(
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
         ic = irodsConnector(config['iRODS']['irodsenv'], passwd)
@@ -194,7 +193,7 @@ def prepareUpload(dataPath, ic, config):
 
 
 def prepareDownload(irodsItemPath, ic, config):
-    if not ic.session.data_objects.exists(irodsItemPath) or \
+    if not ic.session.data_objects.exists(irodsItemPath) and \
        not ic.session.collections.exists(irodsItemPath):
         print(RED+'iRODS path does not exist'+DEFAULT)
         menu = input('Do you want to specify a new iRODS path? (Y/N)')
@@ -209,20 +208,25 @@ def prepareDownload(irodsItemPath, ic, config):
             print('Aborted: iRODS path not given')
             return False
     else:
-        pass
+        config["iRODS"]["downloadItem"] = irodsItemPath
+
+    if not 'DOWNLOAD' in config.keys():
+        config['DOWNLOAD'] = {'path': ''}
 
     if config['DOWNLOAD']['path'] == '' or os.path.isfile(config['DOWNLOAD']['path']):
         print(RED+'No download directory given'+DEFAULT)
-        menu = input('Do you want to specify a new iRODS path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y', '']:
-            success = False
-            while not success:
-                dataPath = input('Download directory: ')
-                success = ensure_dir(dataPath)
-            config["DOWNLOAD"]["path"] = dataPath
-        else:
-            print('Aborted: download directory not given')
-            return False
+        success = False
+        while not success:
+            dataPath = input('Download directory: ')
+            success = ensure_dir(dataPath)
+            if not success:
+                abort = input('Abort download? (Y/N): ')
+                if abort == "Y":
+                    ic.session.cleanup()
+                    sys.exit(2)
+            else:
+                config["DOWNLOAD"]["path"] = dataPath
+                return ensure_dir(config['DOWNLOAD']['path'])
     else:
         return ensure_dir(config['DOWNLOAD']['path'])
     
@@ -297,6 +301,8 @@ def main(argv):
 
     #check files for upload
     if operation == 'upload':
+        if len(config) == 1:
+            print(BLUE+"INFO: No metadata store configured. Only upload data to iRODS."+DEFAULT)
         if prepareUpload(dataPath, ic, config):
             if md != None:
                 iPath = config['iRODS']['irodscoll']+'/'+md.__name__+'/'+ \
@@ -329,7 +335,7 @@ def main(argv):
         print(DEFAULT)
         ic.session.cleanup()
     elif operation == 'download':
-        print(json.dumps(config, indent=4))
+        #print(json.dumps(config, indent=4))
         if prepareDownload(irodsPath, ic, config):
             downloadDir = config['DOWNLOAD']['path']
             irodsDataPath = config["iRODS"]["downloadItem"]
