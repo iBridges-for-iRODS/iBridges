@@ -1,28 +1,39 @@
+"""Pop-up widget definitions.
+
+"""
+import datetime
+import io
+import json
+import logging
+import os
+import sys
+
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QDialog, QTableWidgetItem
+from PyQt6.QtWidgets import QDialog
 from PyQt6.uic import loadUi
 from PyQt6 import QtCore
 from PyQt6 import QtGui
 
-import io
-import os
-import json
-import datetime
-import logging
+from gui.ui_files.createCollection import Ui_createCollection
+from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
-class irodsCreateCollection(QDialog):
+
+class irodsCreateCollection(QDialog, Ui_createCollection):
     def __init__(self, parent, ic):
-        super(irodsCreateCollection, self).__init__()
-        loadUi("gui/ui_files/createCollection.ui", self)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create iRODS collection")
         self.ic = ic
         self.parent = parent
-        self.label.setText(self.parent+"/")
+        self.label.setText(self.parent + "/")
         self.buttonBox.accepted.connect(self.accept)
 
     def accept(self):
         if self.collPathLine.text() != "":
-            newCollPath = self.parent+"/"+self.collPathLine.text()
+            newCollPath = self.parent + "/" + self.collPathLine.text()
             try:
                 self.ic.ensure_coll(newCollPath)
                 self.done(1)
@@ -33,18 +44,21 @@ class irodsCreateCollection(QDialog):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class createDirectory(QDialog):
+class createDirectory(QDialog, Ui_createCollection):
     def __init__(self, parent):
-        super(createDirectory, self).__init__()
-        loadUi("gui/ui_files/createCollection.ui", self)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create directory")
         self.parent = parent
-        self.label.setText(self.parent+os.sep)
+        self.label.setText(self.parent + os.sep)
         self.buttonBox.accepted.connect(self.accept)
 
     def accept(self):
         if self.collPathLine.text() != "":
-            newDirPath = self.parent+os.sep+self.collPathLine.text()
+            newDirPath = self.parent + os.sep + self.collPathLine.text()
             try:
                 os.makedirs(newDirPath)
                 self.done(1)
@@ -55,10 +69,13 @@ class createDirectory(QDialog):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class irodsIndexPopup(QDialog):
+class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
     def __init__(self, ic, irodsTarIndexFileList, tarFilePath, statusLabel):
-        super(irodsIndexPopup, self).__init__()
-        loadUi("gui/ui_files/irodsIndexPopup.ui", self)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            loadUi("gui/ui_files/irodsIndexPopup.ui", self)
         self.setWindowTitle("iRODS Tar/Zip index.")
         self.indexLabel.setText("Index of " + tarFilePath + ":")
         self.tabWidget.setCurrentIndex(0)
@@ -68,7 +85,6 @@ class irodsIndexPopup(QDialog):
         self.formatJSON(irodsTarIndexFileList)
         for line in irodsTarIndexFileList:
             self.textBrowser.append(line)
-
         self.ic = ic
         self.tarFilePath = tarFilePath
         self.extractButton.clicked.connect(self.extractSelection)
@@ -79,29 +95,23 @@ class irodsIndexPopup(QDialog):
 
     def formatJSON(self, irodsTarIndexFileList):
         index = json.loads('\n'.join(irodsTarIndexFileList))
-        self.collLabel.setText("Data objects of: "+ index['collection'])
+        self.collLabel.setText("Data objects of: " + index['collection'])
         objs = [obj for obj in index['items'] if obj['type'] == 'dataObj']
         table = [[obj['name'], obj['owner'], obj['size'], 
                     datetime.datetime.fromtimestamp(obj['created'])] for obj in objs]
-
-        #self.dataObjectTable.clear()
+        # self.dataObjectTable.clear()
         self.dataObjectTable.setRowCount(0)
         self.dataObjectTable.setRowCount(len(table))
-        row = 0
-        for item in table:
+        for row, item in enumerate(table):
             self.dataObjectTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item[0]))
             self.dataObjectTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item[1]))
             self.dataObjectTable.setItem(row, 2,  QtWidgets.QTableWidgetItem(str(item[2])))
             self.dataObjectTable.setItem(row, 3,  QtWidgets.QTableWidgetItem(str(item[3])))
-            row = row + 1
-
         self.dataObjectTable.resizeColumnsToContents()
-
 
     def enableButtons(self, enable):
         self.extractButton.setEnabled(enable)
         self.closeButton.setEnabled(enable)
-
 
     def extractSelection(self):
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
@@ -110,15 +120,14 @@ class irodsIndexPopup(QDialog):
         selection = self.dataObjectTable.selectedIndexes()
         selectedRows = set([index.row() for index in selection])
         
-        logString = ""
-        extractParent = os.path.dirname(self.tarFilePath)+'/'+ \
+        extractParent = os.path.dirname(self.tarFilePath)+'/' + \
                         os.path.basename(self.tarFilePath).split('.irods')[0]
-        logString = "Archive File: "+self.tarFilePath+"\n"
+        logString = "Archive File: " + self.tarFilePath+"\n"
         for row in selectedRows:
             extractPath = self.dataObjectTable.item(row, 0).text()
             destination = extractParent+'/'+extractPath
             if self.ic.session.data_objects.exists(destination):
-                 logString = logString+"\t Data alreay exists: "+destination+"; skipping\n"
+                logString = logString+"\t Data already exists: "+destination+"; skipping\n"
             else:
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
@@ -131,7 +140,7 @@ class irodsIndexPopup(QDialog):
                 logging.info("iRODS user: "+self.ic.session.username)
                 logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
-                logString = logString+"\tScheduled for Extraction: Check in browser tab: "+\
+                logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \
                                       extractParent+"\n"
 
         self.enableButtons(True)
