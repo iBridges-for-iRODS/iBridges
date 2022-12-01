@@ -1,96 +1,91 @@
 """Main menu window definition
 
 """
+import logging
 import sys
 
 import PyQt6
 import PyQt6.QtWidgets
 import PyQt6.uic
 
-from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
-from PyQt6.uic import loadUi
-from PyQt6 import QtCore
-from PyQt6 import QtGui
-
 import gui
 import utils
 
-from gui.IrodsBrowser import IrodsBrowser
-from gui.elabUpload import elabUpload
-from gui.irodsSearch import irodsSearch
-from gui.IrodsUpDownload import IrodsUpDownload
-from gui.IrodsDataBundle import IrodsDataBundle
-from gui.irodsInfo import irodsInfo
-from gui.irodsCreateTicket import irodsCreateTicket
-from gui.irodsTicketLogin import irodsTicketLogin
-from utils.utils import saveIenv
+
+class QPlainTextEditLogger(logging.Handler):
+    def __init__(self, widget):
+        super(QPlainTextEditLogger, self).__init__()
+
+        self.widget = widget
+        self.widget.setReadOnly(True)
+
+    def emit(self, record):
+        msg = self.format(record)
+        self.widget.appendPlainText(msg)
+
+    def write(self, m):
+        pass
 
 
-
-class mainmenu(QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
+class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
     def __init__(self, widget, ic, ienv):
-        super(mainmenu, self).__init__()
-        loadUi('gui/ui_files/MainMenu.ui', self)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi('gui/ui_files/MainMenu.ui', self)
         self.ic = ic
-        # stackedWidget
+        # stackedWddidget
         self.widget = widget
         self.ienv = ienv
-
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-
         if not ienv or not ic:
             self.actionSearch.setEnabled(False)
             self.actionSaveConfig.setEnabled(False)
-            ticketAccessWidget = loadUi('gui/ui_files/tabTicketAccess.ui')
-            self.tabWidget.addTab(ticketAccessWidget, 'Ticket Access')
-            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
-
+            self.ticketAccessTab = gui.irodsTicketLogin.irodsTicketLogin()
+            self.tabWidget.addTab(self.ticketAccessTab, 'Ticket Access')
         else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
-            # self.actionExportMetadata.triggered.connect(self.exportMeta)
-
-            # tabBrowser needed for Search
-            self.browserWidget = loadUi('gui/ui_files/tabBrowser.ui')
-            self.tabWidget.addTab(self.browserWidget, 'Browser')
-            self.irodsBrowser = IrodsBrowser(self.browserWidget, ic)
+            # Browser tab needed for Search
+            self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
+            self.tabWidget.addTab(self.irodsBrowser, 'Browser')
             # Optional tabs
             if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
                 # Setup up/download tab, index 1
                 if 'tabUpDownload' in ienv['ui_tabs']:
-                    updownloadWidget = loadUi('gui/ui_files/tabUpDownload.ui')
-                    self.tabWidget.addTab(updownloadWidget, 'Up and Download')
-                    self.updownload = IrodsUpDownload(updownloadWidget, ic, self.ienv)
+                    self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
+                        ic, self.ienv)
+                    self.tabWidget.addTab(self.updownload, "Data Transfers")
+                    log_handler = QPlainTextEditLogger(self.updownload.logs)
+                    logging.getLogger().addHandler(log_handler)
                 # Elabjournal tab, index 2
                 if 'tabELNData' in ienv['ui_tabs']:
-                    elabUploadWidget = loadUi('gui/ui_files/tabELNData.ui')
-                    self.tabWidget.addTab(elabUploadWidget, 'ELN Data upload')
-                    self.elnTab = elabUpload(elabUploadWidget, ic)
+                    self.elnTab = gui.elabUpload.elabUpload(ic)
+                    self.tabWidget.addTab(self.elnTab, "ELN Data upload")
                 # Data (un)bundle tab, index 3
                 if 'tabDataBundle' in ienv['ui_tabs']:
-                    dataBundleWidget = loadUi('gui/ui_files/tabDataBundle.ui')
-                    self.tabWidget.addTab(dataBundleWidget, '(Un)Bundle data')
-                    self.bundleTab = IrodsDataBundle(dataBundleWidget, ic, self.ienv)
+                    self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
+                    self.tabWidget.addTab(self.bundleTab, "(Un)Bundle data")
                 # Grant access by tickets, index 4
                 if 'tabCreateTicket' in ienv['ui_tabs']:
-                    createTicketWidget = loadUi('gui/ui_files/tabTicketCreate.ui')
-                    self.tabWidget.addTab(createTicketWidget, 'Create access tokens')
-                    self.createTicket = irodsCreateTicket(createTicketWidget, ic)
+                    self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic, self.ienv)
+                    self.tabWidget.addTab(self.createTicket, "Create access tokens")
             # General info
-            self.infoWidget = loadUi('gui/ui_files/tabInfo.ui')
-            self.tabWidget.addTab(self.infoWidget, 'Info')
-            self.irodsInfo = irodsInfo(self.infoWidget, ic)
-
+            self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
+            self.tabWidget.addTab(self.irodsInfo, 'Info')
             self.tabWidget.setCurrentIndex(0)
 
     # Connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
+        reply = PyQt6.QtWidgets.QMessageBox.question(
+            self, 'Message', quit_msg,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.No)
+        if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -99,11 +94,13 @@ class mainmenu(QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
         else:
             pass
 
-
     def newSession(self):
         quit_msg = "Are you sure you want to disconnect?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
+        reply = PyQt6.QtWidgets.QMessageBox.question(
+            self, 'Message', quit_msg,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.No)
+        if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -117,14 +114,13 @@ class mainmenu(QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
             pass
 
     def search(self):
-        search = irodsSearch(self.ic, self.browserWidget.collTable)
+        search = gui.irodsSearch.irodsSearch(
+            self.ic, self.irodsBrowser.collTable)
         search.exec()
 
-
     def saveConfig(self):
-        path = saveIenv(self.ienv)
+        path = utils.utils.saveIenv(self.ienv)
         self.globalErrorLabel.setText("Environment saved to: "+path)
 
     def exportMeta(self):
         print("TODO: Metadata export")
-
