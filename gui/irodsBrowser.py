@@ -140,6 +140,8 @@ class irodsBrowser(QWidget, Ui_tabBrowser):
                         "/"+path.strip("/")+"/"+value.strip("/")
                         )
             acls = self.ic.session.permissions.get(item)
+        else:
+            item = None
 
         self.aclTable.setRowCount(len(acls))
         row = 0
@@ -151,7 +153,10 @@ class irodsBrowser(QWidget, Ui_tabBrowser):
             row = row+1
 
         self.aclTable.resizeColumnsToContents()
-        self.owner_label.setText("Owner: "+item.owner_name)
+        if item:
+            self.owner_label.setText("Owner: "+item.owner_name)
+        else:
+            self.owner_label.setText("Owner: ")
 
     def __fillMetadata(self, value, path):
         self.metaKeyField.clear()
