@@ -4,7 +4,7 @@ import logging
 from typing import ClassVar
 from PyQt6.uic import loadUi
 from PyQt6.QtWidgets import QDialog, QMessageBox
-from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex
+from PyQt6.QtCore import QObject, QThread, pyqtSlot, pyqtSignal, QModelIndex, Qt
 from PyQt6.QtGui import QMovie
 from datetime import datetime
 
@@ -28,7 +28,7 @@ class dataTransfer(QDialog, Ui_dataTransferState):
             super(dataTransfer, self).setupUi(self)
         else:
             loadUi("gui/ui_files/dataTransferState.ui", self)
-
+        self.setWindowFlags(Qt.WindowType.WindowStaysOnTopHint)
         self.ic = ic
         self.force = False
         self.localFsPath = localFsPath
