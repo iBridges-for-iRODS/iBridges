@@ -202,6 +202,12 @@ class irodsLogin(QDialog, Ui_irodsLogin):
         # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         widget.setCurrentIndex(widget.currentIndex()+1)
 
+def closeClean():
+    activeWidget = widget.currentWidget()
+    try:
+        activeWidget.ic.session.cleanup()
+    except:
+        pass
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -209,4 +215,6 @@ if __name__ == "__main__":
     widget = QStackedWidget()
     widget.addWidget(loginWindow)
     widget.show()
+    #app.setQuitOnLastWindowClosed(False)
+    app.lastWindowClosed.connect(closeClean)
     app.exec()
