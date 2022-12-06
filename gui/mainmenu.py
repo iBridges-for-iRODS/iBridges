@@ -59,33 +59,43 @@ class mainmenu(QMainWindow, Ui_MainWindow):
             self.irodsBrowser = irodsBrowser(ic)
             self.tabWidget.addTab(self.irodsBrowser, "Browser")
 
+            ui_tabs_lookup = {
+                "tabUpDownload": self.setupTabUpDownload,
+                "tabELNData": self.setupTabELNData,
+                "tabDataCompression": self.setupTabDataCompression,
+                "tabCreateTicket": self.setupTabCreateTicket
+            }
+
             if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
                 # Setup up/download tab, index 1
-                if "tabUpDownload" in ienv["ui_tabs"]:
-                    self.updownload = irodsUpDownload(ic, self.ienv)
-                    self.tabWidget.addTab(self.updownload, "Data Transfers")
-                    log_handler = QPlainTextEditLogger(self.updownload.logs)
-                    logging.getLogger().addHandler(log_handler)
-    
-                # Elabjournal tab, index 2
-                if "tabELNData" in ienv["ui_tabs"]:
-                    self.elnTab = elabUpload(ic)
-                    self.tabWidget.addTab(self.elnTab, "ELN Data upload")
-    
-                # Data compression tab, index 3
-                if "tabDataCompression" in ienv["ui_tabs"]:
-                    self.compressionTab = irodsDataCompression(ic, self.ienv)
-                    self.tabWidget.addTab(self.compressionTab, "Compress/bundle data")
-    
-                # Grant access by tickets, index 4
-                if "tabCreateTicket" in ienv["ui_tabs"]:
-                    self.createTicket = irodsCreateTicket(ic, self.ienv)
-                    self.tabWidget.addTab(self.createTicket, "Create access tokens")
+                for tab in ienv["ui_tabs"]:
+                    if tab in ui_tabs_lookup:
+                        ui_tabs_lookup[tab](ic)
+                    else:
+                        logging.error("Unknown tab \"{uitab}\" defined in irods environment file".format(uitab=tab))
 
             # general info
             self.irodsInfo = irodsInfo(ic)
             self.tabWidget.addTab(self.irodsInfo, "Info")
             self.tabWidget.setCurrentIndex(0)
+
+    def setupTabCreateTicket(self, ic):
+        self.createTicket = irodsCreateTicket(ic, self.ienv)
+        self.tabWidget.addTab(self.createTicket, "Create access tokens")
+
+    def setupTabDataCompression(self, ic):
+        self.compressionTab = irodsDataCompression(ic, self.ienv)
+        self.tabWidget.addTab(self.compressionTab, "Compress/bundle data")
+
+    def setupTabELNData(self, ic):
+        self.elnTab = elabUpload(ic)
+        self.tabWidget.addTab(self.elnTab, "ELN Data upload")
+
+    def setupTabUpDownload(self, ic):
+        self.updownload = irodsUpDownload(ic, self.ienv)
+        self.tabWidget.addTab(self.updownload, "Data Transfers")
+        log_handler = QPlainTextEditLogger(self.updownload.logs)
+        logging.getLogger().addHandler(log_handler)
 
     # connect functions
     def programExit(self):
