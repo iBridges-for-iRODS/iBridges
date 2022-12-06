@@ -5,7 +5,7 @@ import os
 import sys
 
 from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QMainWindow, QHeaderView, QMessageBox, QWidget
+from PyQt6.QtWidgets import QHeaderView, QWidget
 from PyQt6 import QtCore
 from PyQt6.uic import loadUi
 
@@ -21,6 +21,9 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     """
 
     """
+    ic = None
+    coll = None
+    this_application = 'iBridges'
 
     def __init__(self):
         """
@@ -31,12 +34,9 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabTicketAccess.ui", self)
-        self.ic = None
-        self.coll = None
-        self.this_application = 'iBridges'
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.localFsTreeView)
-        self.widget.localFsTreeView.setModel(self.dirmodel)
+        self.localFsTreeView.setModel(self.dirmodel)
         # Hide all columns except the Name
         self.localFsTreeView.setColumnHidden(1, True)
         self.localFsTreeView.setColumnHidden(2, True)
@@ -70,7 +70,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             self.loadTable()
             self.enableButtons(True)
         except Exception as e:
-            self.widget.infoLabel.setText(
+            self.infoLabel.setText(
                 "LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
 
     def enableButtons(self, enable):
@@ -82,23 +82,31 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         self.localFsTreeView.setEnabled(enable)
     
     def loadTable(self, update=None):
-        self.widget.infoLabel.clear()
+        self.infoLabel.clear()
         if self.coll is None:
-            self.widget.infoLabel.setText("No data avalaible. Check ticket and iRODS path.")
+            self.infoLabel.setText(
+                "No data available. Check ticket and iRODS path.")
             return
-        if update is None or not update:
+        if not update:
             update = self.coll
         self.collTable.setRowCount(0)
         self.collTable.setRowCount(
             len(update.subcollections)+len(update.data_objects))
+        row = 0
         for row, subcoll in enumerate(update.subcollections):
+            # TODO check to see how os.path.dirname behaves on Windows
+            #  with a POSIX path
             self.collTable.setItem(
                 row, 0, QtWidgets.QTableWidgetItem(os.path.dirname(subcoll.path)))
             self.collTable.setItem(
                 row, 1, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+            # TODO figure out why row == 1 here
             self.collTable.setItem(1, 2, QtWidgets.QTableWidgetItem(""))
             self.collTable.setItem(1, 3, QtWidgets.QTableWidgetItem(""))
-        for row, obj in enumerate(update.data_objects, start=row+1:
+        # Continue the row count consistently.
+        if row != 0:
+            row += 1
+        for row, obj in enumerate(update.data_objects, start=row):
             self.collTable.setItem(
                 row, 0, QtWidgets.QTableWidgetItem(os.path.dirname(obj.path)))
             self.collTable.setItem(
@@ -109,7 +117,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
                 row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
             self.collTable.setItem(
                 row, 4, QtWidgets.QTableWidgetItem(str(obj.modify_time)))
-        self.widget.collTable.resizeColumnsToContents()
+        self.collTable.resizeColumnsToContents()
 
     def browse(self, index):
         self.infoLabel.clear()
@@ -240,7 +248,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     def finishedTransfer(self, success, irodsIdx):
         # Refreshes iRODS subtree and irodsIdx (set "None" if to skip)
         # Saves upload parameters if check box is set
-        if succes:
-            self.widget.infoLabel.setText("INFO UPLOAD/DOWNLOAD: completed.")
+        if success:
+            self.infoLabel.setText("INFO UPLOAD/DOWNLOAD: completed.")
         self.uploadWindow = None
         self.enableButtons(True)
