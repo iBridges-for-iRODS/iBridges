@@ -1,3 +1,6 @@
+"""iBridges utility classes and functions.
+
+"""
 import datetime
 import logging
 import logging.handlers
@@ -7,222 +10,20 @@ import pathlib
 import socket
 import sys
 
-
-def ensure_dir(path):
-    try:
-        if not os.path.exists(path):
-            os.makedirs(path)
-        return True
-    except:
-        return False 
+import irods.collection
+import irods.data_object
+import irods.exception
 
 
-def getSize(pathList):
-    size = 0
-    for p in pathList:
-        if os.path.isdir(p):
-            for dirpath, dirnames, filenames in os.walk(p):
-                for i in filenames:
-                    f = os.path.join(dirpath, i)
-                    size += os.path.getsize(f)
-        elif os.path.isfile(p):
-            size = size + os.path.getsize(p)
-    return size
-
-
-def get_coll_size(coll) -> int:
-    """For an iRODS collection, sum the sizes of data objects
-    recursively as reported by the ICAT.  This should be considered an
-    estimate if the sizes cannot be verified.
-
-    Parameters
-    ----------
-    coll : iRODSCollection
-        The iRODS collection whose size is to be estimated.
-
-    Returns
-    -------
-    int
-        Estimated sum of total sizes of data objects in `coll`.
-
-    """
-    return sum((
-        sum((obj.size for obj in objs)) for _, _, objs in coll.walk()))
-
-
-def can_connect(hostname):
-    """Check connectivity to an iRODS server.
-
-    Parameters
-    ----------
-    hostname : str
-        FQDN/IP of an iRODS server.
+def is_posix() -> bool:
+    """Determine POSIXicity.
 
     Returns
     -------
     bool
-        Connection to `hostname` possible.
-
+        Whether or not this is a POSIX operating system.
     """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        try:
-            sock.settimeout(10.0)
-            sock.connect((hostname, 1247))
-            return True
-        except socket.error:
-            return False
-
-
-def walkToDict(root):
-    #irods collection
-    items = []
-    for collection, subcolls, _ in root.walk():
-        items.append(collection.path)
-        items.extend([s.path for s in subcolls])
-    walkDict = {key: None for key in sorted(set(items))}
-    for collection, _,  objs in root.walk():
-        walkDict[collection.path] = [o.name for o in objs]
-
-    return walkDict
-
-
-def getDownloadDir():
-    if os.name == 'nt':
-        import winreg
-        sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
-        downloads_guid = '{374DE290-123F-4565-9164-39C4925E467B}'
-        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key) as key:
-            location = winreg.QueryValueEx(key, downloads_guid)[0]
-        return location
-    else:
-        return os.path.join(os.path.expanduser('~'), 'Downloads')
-
-
-def saveIenv(ienv):
-    if "ui_ienvFilePath" in ienv:
-        envFile = ienv["ui_ienvFilePath"]
-    else:
-        envFile = os.path.join(os.path.expanduser("~"), ".irods"+os.sep+"irods_environment.json")
-        ienv["ui_ienvFilePath"] = envFile
-    with open(envFile, 'w') as f:
-        json.dump(ienv, f, indent=4)
-    return envFile
-
-
-# needed to get the workdir for executable & normal operation
-def get_filepath():
-    if getattr(sys, 'frozen', False):
-        file_path = os.path.dirname(sys.executable)
-    elif __file__:
-        file_path = os.path.dirname(__file__)
-    return file_path
-
-# check if a given directory exists on the drive
-def check_direxists(dir):
-    if _check_exists(dir):
-        return os.path.isdir(dir)
-    return False
-
-def check_fileexists(file):
-    if _check_exists(file):
-        return os.path.isfile(file)
-    return False
-
-def _check_exists(fname):
-    if fname is None:
-        return False
-    if not os.path.exists(fname):
-        return False
-    return True
-
-
-def setup_logger(logdir, appname):
-    """Initialize the application logging service.
-
-    Parameters
-    ----------
-    logdir : str, pathlib.Path
-        Path to logging location.
-    appname : str
-        Base name for the log file.
-
-    """
-    logdir = pathlib.Path(logdir)
-    logfile = logdir.joinpath(f'{appname}.log')
-    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [
-        logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1),
-        logging.StreamHandler(sys.stdout),
-    ]
-    logging.basicConfig(
-        format=log_format, level=logging.INFO, handlers=handlers)
-    # Indicate start of a new session
-    with open(logfile, 'a', encoding='utf-8') as logfd:
-        logfd.write('\n\n')
-        underscores = f'{"_"*50}\n'
-        logfd.write(underscores)
-        logfd.write(underscores)
-        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
-        logfd.write(underscores)
-        logfd.write(underscores)
-
-
-class JsonConfig:
-    """A configuration stored in a JSON file.
-
-    """
-
-    def __init__(self, filepath):
-        """Create the configuration.
-
-        Parameters
-        ----------
-        filepath : str
-
-        """
-        self.filepath = utils.utils.LocalPath(filepath)
-        self._config = None
-
-    def _get_config(self):
-        """Configuration getter.
-
-        Attempt to load a configuration from the JSON file.
-
-        Returns
-        -------
-        dict or None
-            The configuration if it exists.
-
-        """
-        if self._config is None:
-            if self.filepath.exists():
-                with open(self.filepath, 'r', encoding='utf-8') as confd:
-                    self._config = json.load(confd)
-        return self._config
-
-    def _set_config(self, conf_dict):
-        """Configuration setter.
-
-        Set the configuration to `conf_dict` and write it to the JSON
-        file.
-
-        """
-        self._config = conf_dict
-        with open(self.filepath, 'w', encoding='utf-8') as confd:
-            json.dump(conf_dict, confd, indent=4, sort_keys=True)
-
-    def _del_config(self):
-        """Configuration deleter.
-
-        Delete both the configuration and its JSON file.
-
-        """
-        self._config = None
-        self.filepath.unlink(missing_ok=True)
-
-    config = property(
-        _get_config, _set_config, _del_config,
-        'A configuration dictionary linked to a JSON file.')
+    return sys.platform not in ['win32', 'cygwin']
 
 
 class PurePath(str):
@@ -244,13 +45,13 @@ class PurePath(str):
             Uninitialized instance.
 
         """
-        if sys.platform in ['win32', 'cygwin'] and not cls._posix:
-            path = pathlib.PureWindowsPath(*args)
-        else:
+        if is_posix() or cls._posix:
             path = pathlib.PurePosixPath(*args)
+        else:
+            path = pathlib.PureWindowsPath(*args)
         return super().__new__(cls, path.__str__())
 
-    def __init__(self, *args) -> None:
+    def __init__(self, *args):
         """Initialize a PurePath.
 
         """
@@ -289,10 +90,10 @@ class PurePath(str):
 
         """
         if self._path is None:
-            if sys.platform in ['win32', 'cygwin']:
-                self._path = pathlib.PureWindowsPath(*self.args)
-            else:
+            if is_posix():
                 self._path = pathlib.PurePosixPath(*self.args)
+            else:
+                self._path = pathlib.PureWindowsPath(*self.args)
         return self._path
 
     def joinpath(self, *args):
@@ -439,8 +240,8 @@ class IrodsPath(PurePath):
 
 
 class LocalPath(PurePath):
-    """A local path with file system functionality based on the
-    best of str and pathlib.
+    """A platform-dependent local path with file system functionality
+    based on the best of str and pathlib.
 
     """
 
@@ -453,10 +254,10 @@ class LocalPath(PurePath):
             Uninitialized instance.
 
         """
-        if sys.platform in ['win32', 'cygwin']:
-            path = pathlib.WindowsPath(*args)
-        else:
+        if is_posix():
             path = pathlib.PosixPath(*args)
+        else:
+            path = pathlib.WindowsPath(*args)
         return super().__new__(cls, path.__str__())
 
     @property
@@ -470,10 +271,10 @@ class LocalPath(PurePath):
 
         """
         if self._path is None:
-            if sys.platform in ['win32', 'cygwin']:
-                self._path = pathlib.WindowsPath(*self.args)
-            else:
+            if is_posix():
                 self._path = pathlib.PosixPath(*self.args)
+            else:
+                self._path = pathlib.WindowsPath(*self.args)
         return self._path
 
     def exists(self) -> bool:
@@ -551,8 +352,8 @@ class LocalPath(PurePath):
         # except AttributeError:
         #     return os.path.isfile(os.path)
 
-    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False) -> None:
-        """Create a new directory at this given path.
+    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False):
+        """Create a new directory at this path.
 
         Parameters
         ----------
@@ -569,7 +370,18 @@ class LocalPath(PurePath):
         except AttributeError:
             pass
 
-    def unlink(self, missing_ok : bool = False) -> None:
+    def stat(self) -> os.stat_result:
+        """Run os.stat() on this path.
+
+        Returns
+        -------
+        os.stat_result
+            Stat structure.
+
+        """
+        return self.path.stat()
+
+    def unlink(self, missing_ok: bool = False):
         """Remove this file or link.  If the path is a directory, use
         rmdir() instead.
 
@@ -580,6 +392,319 @@ class LocalPath(PurePath):
 
         """
         self.path.unlink(missing_ok=missing_ok)
+
+
+class JsonConfig:
+    """A configuration stored in a JSON file.
+
+    """
+
+    def __init__(self, filepath: str):
+        """Create the configuration.
+
+        Parameters
+        ----------
+        filepath : str
+
+        """
+        self.filepath = LocalPath(filepath)
+        self._config = None
+
+    @property
+    def config(self) -> dict:
+        """Configuration getter.
+
+        Attempt to load a configuration from the JSON file.
+
+        Returns
+        -------
+        dict or None
+            The configuration if it exists.
+
+        """
+        if self._config is None:
+            if self.filepath.exists():
+                with open(self.filepath, 'r', encoding='utf-8') as confd:
+                    self._config = json.load(confd)
+        return self._config
+
+    @config.setter
+    def config(self, conf_dict: dict):
+        """Configuration setter.
+
+        Set the configuration to `conf_dict` and write it to the JSON
+        file.
+
+        """
+        self._config = conf_dict
+        with open(self.filepath, 'w', encoding='utf-8') as confd:
+            json.dump(conf_dict, confd, indent=4, sort_keys=True)
+
+    @config.deleter
+    def config(self):
+        """Configuration deleter.
+
+        Delete both the configuration and its JSON file.
+
+        """
+        self._config = None
+        self.filepath.unlink(missing_ok=True)
+
+
+def ensure_dir(pathname: str) -> bool:
+    """Ensure `pathname` exists as a directory.
+
+    Parameters
+    ----------
+    pathname : str
+        The path to be ensured.
+
+    Returns
+    -------
+    bool
+        If `pathname` exists/was created.
+
+    """
+    path = LocalPath(pathname)
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+    except (PermissionError, OSError) as error:
+        logging.info(f'Error ensuring directory: {error}')
+    return path.is_dir()
+
+
+def get_local_size(pathnames: list) -> int:
+    """Collect the sizes of a set of local files and/or directories and
+    determine the total size recursively.
+
+    Parameters
+    ----------
+    pathnames : list
+        Names of input paths.
+
+    Returns
+    -------
+    int
+        Total size [bytes] of all local files found from the paths in
+        `pathnames`.
+
+    """
+    sizes = []
+    for pathname in pathnames:
+        path = LocalPath(pathname)
+        if path.is_dir():
+            for dirname, _, filenames in os.walk(path):
+                for filename in filenames:
+                    file_ = LocalPath(dirname, filename)
+                    sizes.append(file_.stat().st_size)
+        elif path.is_file():
+            sizes.append(path.stat().st_size)
+    return sum(sizes)
+
+
+def get_data_size(obj: irods.data_object.iRODSDataObject) -> int:
+    """For an iRODS data object, get the size as reported by the ICAT.
+    This should be considered an estimate if the size cannot be verified.
+
+    Parameters
+    ----------
+    obj : irods.data_object.iRODSDataObject
+        The iRODS data object whose size is to be estimated.
+
+    Returns
+    -------
+    int
+        Estimated size of data object `obj`.
+
+    """
+    sizes = {repl.size for repl in obj.replicas if repl.status == '1'}
+    if len(sizes) == 1:
+        return list(sizes)[0]
+    raise irods.exception.MiscException(f'No consistent size found for {obj.path}')
+
+
+def get_coll_size(coll: irods.collection.iRODSCollection) -> int:
+    """For an iRODS collection, sum the sizes of data objects
+    recursively as reported by the ICAT.  This should be considered an
+    estimate if the sizes cannot be verified.
+
+    Parameters
+    ----------
+    coll : irods.collection.iRODSCollection
+        The iRODS collection whose size is to be estimated.
+
+    Returns
+    -------
+    int
+        Estimated sum of total sizes of data objects in `coll`.
+
+    """
+    return sum(
+        sum(get_data_size(obj) for obj in objs) for _, _, objs in coll.walk())
+
+
+def can_connect(hostname: str) -> bool:
+    """Check connectivity to an iRODS server.
+
+    Parameters
+    ----------
+    hostname : str
+        FQDN/IP of an iRODS server.
+
+    Returns
+    -------
+    bool
+        Connection to `hostname` possible.
+
+    """
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.settimeout(10.0)
+            sock.connect((hostname, 1247))
+            return True
+        except socket.error:
+            return False
+
+
+def get_coll_dict(root_coll: irods.collection.iRODSCollection) -> dict:
+    """Create a recursive metadata dictionary for `coll`.
+
+    Parameters
+    ----------
+    root_coll : irods.collection.iRODSCollection
+        Root collection for the metadata gathering.
+
+    Returns
+    -------
+    dict
+        Keys of logical paths, values
+
+    """
+    return {this_coll.path: [data_obj.name for data_obj in data_objs]
+            for this_coll, _, data_objs in root_coll.walk()}
+
+
+def get_downloads_dir() -> LocalPath:
+    """Find the platform-dependent 'Downloads' directory.
+
+    Returns
+    -------
+    LocalPath
+        Absolute path to 'Downloads' directory.
+
+    """
+    if is_posix:
+        return LocalPath('~', 'Downloads').expanduser()
+    else:
+        import winreg
+        sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
+        downloads_guid = '{374DE290-123F-4565-9164-39C4925E467B}'
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key) as key:
+            return LocalPath(winreg.QueryValueEx(key, downloads_guid)[0])
+
+
+def save_irods_env(ienv: dict) -> LocalPath:
+    """Write the `ienv` dictionary to the iRODS environment file
+    specified in `ienv` or to the default location.
+
+    Parameters
+    ----------
+    ienv : dict
+
+    Returns
+    -------
+    LocalPath
+        Absolute path to iRODS environment file just saved.
+
+    """
+    if "ui_ienvFilePath" in ienv:
+        envname = LocalPath(ienv["ui_ienvFilePath"])
+    else:
+        envname = LocalPath('~', '.irods', 'irods_environment.json').expanduser()
+        ienv["ui_ienvFilePath"] = envname
+    # Writes the file.
+    JsonConfig(envname).config = ienv
+    return envname
+
+
+def get_working_dir() -> LocalPath:
+    """Determine working directory where iBridges started.
+
+    Returns
+    -------
+    LocalPath
+        Directory path of the executable.
+
+    """
+    pathname = '.'
+    if getattr(sys, 'frozen', False):
+        pathname = sys.executable
+    elif __file__:
+        pathname = __file__
+    return LocalPath(pathname).parent
+
+
+def dir_exists(pathname: str) -> bool:
+    """Does `pathname` exist as a directory?
+
+    Parameters
+    ----------
+    pathname : str
+        Name of path to check.
+
+    Returns
+    -------
+    bool
+        Whether the directory exists.
+
+    """
+    return LocalPath(pathname).is_dir()
+
+
+def file_exists(pathname: str) -> bool:
+    """Does `pathname` exist as a file?
+
+    Parameters
+    ----------
+    pathname : str
+        Name of path to check.
+
+    Returns
+    -------
+    bool
+        Whether the file exists.
+
+    """
+    return LocalPath(pathname).is_file()
+
+
+def setup_logger(logdir: str, appname: str):
+    """Initialize the application logging service.
+
+    Parameters
+    ----------
+    logdir : str
+        Path to logging location.
+    appname : str
+        Base name for the log file.
+
+    """
+    logdir = LocalPath(logdir)
+    logfile = logdir.joinpath(f'{appname}.log')
+    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
+    handlers = [
+        logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1),
+        logging.StreamHandler(sys.stdout),
+    ]
+    logging.basicConfig(
+        format=log_format, level=logging.INFO, handlers=handlers)
+    # Indicate start of a new session
+    with open(logfile, 'a', encoding='utf-8') as logfd:
+        logfd.write('\n\n')
+        underscores = f'{"_"*50}\n'
+        logfd.write(underscores*2)
+        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
+        logfd.write(underscores*2)
 
 
 def bytes_to_str(value: int) -> str:
@@ -597,9 +722,9 @@ def bytes_to_str(value: int) -> str:
     """
     # TODO this converts decimal bytes.  Need to decide on binary
     #  versus decimal bytes consistently throughout
-    value = value / (1000**3)
+    value /= 1000000000
     if value < 1000:
-        return f'{round(value, 3)} GB'
+        return f'{value:.3f} GB'
     else:
-        value = value / 1000
-        return f'{round(value, 3)} TB'
+        value /= 1000
+        return f'{value:.3f} TB'

@@ -260,23 +260,23 @@ class getDataState(QObject):
         # Get size 
         if self.upload:
             fsDiffFiles = [d[1] for d in diff]
-            updateSize = utils.utils.getSize(fsDiffFiles)
+            updateSize = utils.utils.get_local_size(fsDiffFiles)
             fullOnlyFsPaths = [self.localFsPath+os.sep+d for d in onlyFS
                                if not d.startswith('/') or ':' not in d]
             fullOnlyFsPaths.extend(
                 [d for d in onlyFS if d.startswith('/') or ':' in d])
-            addSize = utils.utils.getSize(fullOnlyFsPaths)
+            addSize = utils.utils.get_local_size(fullOnlyFsPaths)
             print(str(fsDiffFiles)+" "+str(updateSize))
             print(str(onlyFS)+" "+str(addSize))
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
-            updateSize = self.ic.getSize(irodsDiffFiles)
+            updateSize = self.ic.get_irods_size(irodsDiffFiles)
             onlyIrodsFullPath = onlyIrods.copy()
             for i in range(len(onlyIrodsFullPath)):
                 if not onlyIrods[i].startswith(self.coll.path):
                     onlyIrodsFullPath[i] = f'{self.coll.path}/{onlyIrods[i]}'
-            addSize = self.ic.getSize(onlyIrodsFullPath)
+            addSize = self.ic.get_irods_size(onlyIrodsFullPath)
             self.finished.emit(onlyIrods, diff, str(addSize), str(updateSize))
 
 

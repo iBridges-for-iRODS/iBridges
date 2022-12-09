@@ -368,7 +368,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             obj_path = "/"+path_name.strip("/")+"/"+obj_name.strip("/")
             try:
                 if self.ic.session.collections.exists(obj_path):
-                    irodsDict = utils.utils.walkToDict(self.ic.session.collections.get(obj_path))
+                    irodsDict = utils.utils.get_coll_dict(self.ic.session.collections.get(obj_path))
                 elif self.ic.session.data_objects.exists(obj_path):
                     irodsDict = {self.ic.session.data_objects.get(obj_path).path: []}
                 else:
@@ -422,7 +422,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         # dialog = PyQt6.QtWidgets.QFileDialog(self)
         fileSelect = PyQt6.QtWidgets.QFileDialog.getOpenFileName(self,
                         "Open File", "","All Files (*);;Python Files (*.py)")
-        size = utils.utils.getSize([fileSelect[0]])
+        size = utils.utils.get_local_size([fileSelect[0]])
         buttonReply = PyQt6.QtWidgets.QMessageBox.question(
             self, 'Message Box', "Upload " + fileSelect[0],
             PyQt6.QtWidgets.QMessageBox.StandardButton.Yes | PyQt6.QtWidgets.QMessageBox.StandardButton.No,
@@ -454,7 +454,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                 parent = self.collTable.item(self.current_browser_row, 0).text()
             try:
                 if self.ic.session.data_objects.exists(parent+'/'+objName):
-                    downloadDir = utils.utils.getDownloadDir()
+                    downloadDir = utils.utils.get_downloads_dir()
                     buttonReply = PyQt6.QtWidgets.QMessageBox.question(
                         self, 'Message Box',
                         'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)

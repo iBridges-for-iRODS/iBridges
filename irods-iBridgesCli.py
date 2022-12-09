@@ -22,7 +22,7 @@ import json
 import getopt
 import getpass
 import subprocess
-from utils.utils import setup_logger, getSize, ensure_dir
+from utils.utils import setup_logger, get_local_size, ensure_dir
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -162,7 +162,7 @@ def prepareUpload(dataPath, ic, config):
     else:
         pass 
 
-    size = getSize([dataPath])
+    size = get_local_size([dataPath])
     freeSpace = ic.get_resource(config['iRODS']['irodsresc']).free_space
 
     print('Checking storage capacity for '+dataPath+', '+str(float(size)/(1024**3))+'GB')
@@ -290,7 +290,7 @@ def main(argv):
             ic.ensure_coll(iPath)
             print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
-            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]))
+            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'], get_local_size([dataPath]))
         else:
             sys.exit(2)
         #tag data in iRODS and metadata store
@@ -314,13 +314,13 @@ def main(argv):
             downloadDir = config['DOWNLOAD']['path']
             irodsDataPath = config["iRODS"]["downloadItem"]
             print(YEL, 
-                  'Downloading: '+irodsDataPath+', '+str(ic.getSize([irodsDataPath])/1024**3)+'GB', 
+                  'Downloading: '+irodsDataPath+', '+str(ic.get_irods_size([irodsDataPath])/1024**3)+'GiB',
                   DEFAULT)
             try:
                 item = ic.session.collections.get(irodsDataPath)
             except:
                 item = ic.session.data_objects.get(irodsDataPath)
-            ic.download_data(item, downloadDir, ic.getSize([irodsDataPath]), force = False)
+            ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force=False)
             print()
             print(BLUE+'Download complete with the following parameters:')
             print(json.dumps(config, indent=4))

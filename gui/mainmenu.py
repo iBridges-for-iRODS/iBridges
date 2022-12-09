@@ -119,7 +119,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
         search.exec()
 
     def saveConfig(self):
-        path = utils.utils.saveIenv(self.ienv)
+        path = utils.utils.save_irods_env(self.ienv)
         self.globalErrorLabel.setText("Environment saved to: "+path)
 
     def exportMeta(self):

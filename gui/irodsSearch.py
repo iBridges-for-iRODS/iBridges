@@ -140,7 +140,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
             else:
                 irodsPaths.append(path0.joinpath(path1))
         if len(irodsPaths) > 0:
-            downloadDir = utils.utils.getDownloadDir()
+            downloadDir = utils.utils.get_downloads_dir()
             buttonReply = QMessageBox.question(self,
                                 'Message Box',
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)

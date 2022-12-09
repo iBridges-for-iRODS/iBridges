@@ -14,7 +14,7 @@ from PyQt6.uic import loadUi
 import utils
 from gui.ui_files.tabELNData import Ui_tabELNData
 from utils.elabConnector import elabConnector
-from utils.utils import getSize, walkToDict
+from utils.utils import get_local_size, get_coll_dict
 
 
 # TODO Inherit from IrodsConnctor?
@@ -128,7 +128,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.thread.quit()
 
     def showPreview(self):
-        irodsDict = walkToDict(self.coll)
+        irodsDict = get_coll_dict(self.coll)
         for key in list(irodsDict.keys())[:50]:
             self.elnPreviewBrowser.append(key)
             if len(irodsDict[key]) > 0:
@@ -170,7 +170,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
             print("ELN DATA UPLOAD experiment: \n"+expUrl)
             # get upload total size to inform user
-            size = getSize([path])
+            size = get_local_size([path])
             # if user specifies a different path than standard home
             if self.elnIrodsPath.text() == '/zone/home/user':
                 collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
