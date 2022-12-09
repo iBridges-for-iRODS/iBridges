@@ -17,7 +17,7 @@ import hashlib
 import logging
 #import subprocess
 from subprocess         import Popen, PIPE
-from utils.utils        import saveIenv
+from utils.utils        import save_irods_env
 
 RED = '\x1b[1;31m'
 DEFAULT = '\x1b[0m'
@@ -25,7 +25,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 class IrodsConnectorAnonymous(IrodsConnector):
-    def __init__(self, host, ticket, path):
+    def __init__(self, host, ticket, path, application_name):
         """
         iRODS anonymous login.
         Input:
@@ -66,7 +66,7 @@ class IrodsConnectorAnonymous(IrodsConnector):
                     "irods_port": 1247, 
                     "irods_user_name": "anonymous", 
                     "irods_zone_name": self.session.zone}
-            saveIenv(env)
+            save_irods_env(env)
             logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
             p = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             outLogin, errLogin = p.communicate()
@@ -383,34 +383,3 @@ class IrodsConnectorAnonymous(IrodsConnector):
         for i in range(0, len(irodsOnly)):
             irodsOnly[i] = irodsOnly[i].replace(os.sep, "/")
         return (diff, list(set(listDir).difference(listColl)), irodsOnly, same)
-
-    def getSize(self, itemPaths):
-        '''
-        Compute the size of the iRods dataobject or collection
-        Returns: size in bytes.
-        itemPaths: list of irods paths pointing to collection or object
-        Implementing workaround for bug
-        '''
-        size = 0
-        for path in itemPaths:
-            #remove possible leftovers of windows fs separators
-            path = path.replace("\\", "/")
-            if self.session.collections.exists(path):
-                coll = self.session.collections.get(path)
-                walk = [coll]
-                while walk:
-                    try:
-                        coll = walk.pop()
-                        walk.extend(coll.subcollections)
-                        for obj in coll.data_objects:
-                            size = size + obj.size
-                    except:
-                        logging.info('DATA SIZE', exc_info=True)
-                        raise
-            else:
-                _subcoll = self.session.collections.get(os.path.dirname(path))
-                obj = [o for o in _subcoll.data_objects if o.path == path][0]
-                size = size + obj.size
-
-        return size
-

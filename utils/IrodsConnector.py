@@ -1375,32 +1375,34 @@ class IrodsConnector():
             stderr = (buffers.stderrBuf.buf or b'').decode()
         return stdout, stderr
 
-    def getSize(self, itemPaths):
-        '''
-        Compute the size of the iRods dataobject or collection
-        Returns: size in bytes.
-        itemPaths: list of irods paths pointing to collection or object
-        '''
-        size = 0
-        for path in itemPaths:
-            #remove possible leftovers of windows fs separators
-            path = path.replace("\\", "/")
-            if self.session.data_objects.exists(path):
-                size = size + self.session.data_objects.get(path).size
+    def get_irods_size(self, path_names: list) -> int:
+        """Collect the sizes of a set of iRODS data objects and/or
+        collections and determine the total size.
 
-            elif self.session.collections.exists(path):
-                coll = self.session.collections.get(path)
-                walk = [coll]
-                while walk:
-                    try:
-                        coll = walk.pop()
-                        walk.extend(coll.subcollections)
-                        for obj in coll.data_objects:
-                            size = size + obj.size
-                    except:
-                        logging.info('DATA SIZE', exc_info=True)
-                        raise
-        return size
+        Parameters
+        ----------
+        path_names : list
+            Names of logical iRODS paths.
+
+        Returns
+        -------
+        int
+            Total size [bytes] of all iRODS objects found from the
+            logical paths in `path_names`.
+
+        """
+        irods_sizes = []
+        for path_name in path_names:
+            irods_name = utils.utils.IrodsPath(path_name)
+            if self.collection_exists(irods_name):
+                irods_sizes.append(
+                    utils.utils.get_coll_size(
+                        self.get_collection(irods_name)))
+            elif self.dataobject_exists(irods_name):
+                irods_sizes.append(
+                    utils.utils.get_data_size(
+                        self.get_dataobject(irods_name)))
+        return sum(irods_sizes)
 
     def createTicket(self, path, expiryString=""):
         ticket = irods.ticket.Ticket(
