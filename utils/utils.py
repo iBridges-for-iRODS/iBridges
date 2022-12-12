@@ -13,6 +13,7 @@ import sys
 import irods.collection
 import irods.data_object
 import irods.exception
+import irods.path
 
 
 def is_posix() -> bool:
@@ -204,9 +205,10 @@ class PurePath(str):
         return self.path.suffixes
 
 
-class IrodsPath(PurePath):
+class IrodsPath(PurePath, irods.path.iRODSPath):
     """A pure POSIX path without file system functionality based on the
-    best of str and pathlib.
+    best of str, pathlib, and iRODSPath.  This path is normalized upon
+    instantiation.
 
     """
 
@@ -241,7 +243,8 @@ class IrodsPath(PurePath):
 
 class LocalPath(PurePath):
     """A platform-dependent local path with file system functionality
-    based on the best of str and pathlib.
+    based on the best of str and pathlib.  This path is resolved and
+    normalized upon instantiation.
 
     """
 
@@ -255,9 +258,9 @@ class LocalPath(PurePath):
 
         """
         if is_posix():
-            path = pathlib.PosixPath(*args)
+            path = pathlib.PosixPath(*args).resolve()
         else:
-            path = pathlib.WindowsPath(*args)
+            path = pathlib.WindowsPath(*args).resolve()
         return super().__new__(cls, path.__str__())
 
     @property
@@ -276,6 +279,21 @@ class LocalPath(PurePath):
             else:
                 self._path = pathlib.WindowsPath(*self.args)
         return self._path
+
+    def absolute(self):
+        """Determine an absolute version of this path, i.e., a path
+        with a root or anchor.
+
+        No normalization is done, i.e. all '.' and '..' will be kept
+        along.  Use resolve() to get the canonical path to a file.
+
+        Returns
+        -------
+        LocalPath
+            Not normalized full path.
+
+        """
+        return type(self)(str(self.path.absolute()))
 
     def exists(self) -> bool:
         """Whether this path exists.
@@ -369,6 +387,20 @@ class LocalPath(PurePath):
             self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
         except AttributeError:
             pass
+
+    def resolve(self):
+        """Make the path absolute (full path with a root or anchor),
+        resolving all symlinks on the way and also normalizing it (for
+        example turning slashes into backslashes under Windows).
+
+        Returns
+        -------
+        LocalPath
+            Normalized full path with relative segments and symlinks
+            resolved.
+
+        """
+        return type(self)(str(self.path.resolve()))
 
     def stat(self) -> os.stat_result:
         """Run os.stat() on this path.
@@ -636,12 +668,12 @@ def get_working_dir() -> LocalPath:
         Directory path of the executable.
 
     """
-    pathname = '.'
     if getattr(sys, 'frozen', False):
-        pathname = sys.executable
+        return LocalPath(sys.executable).parent
     elif __file__:
-        pathname = __file__
-    return LocalPath(pathname).parent
+        return LocalPath(__file__).parent
+    else:
+        return LocalPath('.')
 
 
 def dir_exists(pathname: str) -> bool:
@@ -701,10 +733,10 @@ def setup_logger(logdir: str, appname: str):
     # Indicate start of a new session
     with open(logfile, 'a', encoding='utf-8') as logfd:
         logfd.write('\n\n')
-        underscores = f'{"_"*50}\n'
-        logfd.write(underscores*2)
+        underscores = f'{"_" * 50}\n'
+        logfd.write(underscores * 2)
         logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
-        logfd.write(underscores*2)
+        logfd.write(underscores * 2)
 
 
 def bytes_to_str(value: int) -> str:
@@ -722,9 +754,7 @@ def bytes_to_str(value: int) -> str:
     """
     # TODO this converts decimal bytes.  Need to decide on binary
     #  versus decimal bytes consistently throughout
-    value /= 1000000000
-    if value < 1000:
-        return f'{value:.3f} GB'
+    if value < 1e12:
+        return f'{value / 1e9:.3f} GB'
     else:
-        value /= 1000
-        return f'{value:.3f} TB'
+        return f'{value / 1e12:.3f} TB'
