@@ -2,7 +2,6 @@
 """iBridges GUI startup script.
 
 """
-import json
 import logging
 import os
 import setproctitle
@@ -114,9 +113,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             iRODS session container.
 
         """
-        if not self.icommands:
-            return utils.IrodsConnector.IrodsConnector
-        return utils.IrodsConnectorIcommands.IrodsConnectorIcommands
+        return utils.IrodsConnector.IrodsConnector
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text

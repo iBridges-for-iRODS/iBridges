@@ -10,6 +10,7 @@ import random
 import shutil
 import ssl
 import string
+import subprocess
 
 import irods.access
 import irods.collection
@@ -30,8 +31,8 @@ import utils
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
 FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
-REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
-RESC_NAME_KW = irods.keywords.RESC_NAME_KW
+NUM_THREADS_KW = irods.keywords.NUM_THREADS_KW  # 'num_threads'
+DEST_RESC_NAME_KW = irods.keywords.DEST_RESC_NAME_KW
 VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
 # Map model names to iquest attribute names
 COLL_NAME = irods.models.Collection.name
@@ -51,10 +52,10 @@ USER_TYPE = irods.models.User.type
 # Query operators
 LIKE = irods.column.Like
 # ASCII colors
-RED = '\x1b[1;31m'
-DEFAULT = '\x1b[0m'
-YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YEL = '\x1b[1;33m'
 # Misc
 BUFF_SIZE = 2**30
 MULTIPLIER = 1 / 2**30
@@ -83,7 +84,7 @@ class IrodsConnector():
     _resources = None
     _session = None
 
-    def __init__(self, irods_env_file='', password=''):
+    def __init__(self, irods_env_file='', password='', application_name=None):
         """iRODS authentication with Python client.
 
         Parameters
@@ -92,6 +93,8 @@ class IrodsConnector():
             JSON document with iRODS connection parameters.
         password : str
             Plain text password.
+        application_name : str
+            Name of the application using this connector.
 
         The 'ienv' and 'password' properties can autoload from their
         respective caches, but can be overridden by the `ienv` and
@@ -108,6 +111,7 @@ class IrodsConnector():
         self.irods_env_file = irods_env_file
         if password:
             self.password = password
+        self.application_name = application_name
         self.multiplier = MULTIPLIER
 
     @property
@@ -134,6 +138,17 @@ class IrodsConnector():
 
         """
         return self.ienv.get('irods_default_resource', None)
+
+    @property
+    def icommands(self):
+        """
+
+        Returns
+        -------
+        bool
+            Are the iCommands available?
+        """
+        return subprocess.call(['which', 'iinit']) == 0
 
     @property
     def ienv(self):
@@ -290,7 +305,10 @@ class IrodsConnector():
 
         """
         if self._session is None:
-            options = {'irods_env_file': self.irods_env_file}
+            options = {
+                'irods_env_file': self.irods_env_file,
+                'application_name': self.application_name,
+            }
             if self.ienv is not None:
                 options.update(self.ienv.copy())
             # Compare given password with potentially cached password.
@@ -794,7 +812,7 @@ class IrodsConnector():
             return self.session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, local_path, irods_path, **options):
+    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS
         `options`.
 
@@ -804,11 +822,25 @@ class IrodsConnector():
             Path of local file or directory/folder.
         irods_path : str
             Path of iRODS data object or collection.
-        options : dict
-            iRODS transfer options.
+        resc_name : str
+            Optional resource name.
 
         """
-        self.session.data_objects.put(local_path, irods_path, **options)
+        if not self.icommands:
+            options = {
+                ALL_KW: '',
+                DEST_RESC_NAME_KW: resc_name,
+                # FORCE_FLAG_KW: '',
+                NUM_THREADS_KW: NUM_THREADS,
+                VERIFY_CHKSUM_KW: '',
+            }
+            self.session.data_objects.put(local_path, irods_path, **options)
+        else:
+            commands = [f'iput -aK -N {NUM_THREADS}']
+            if resc_name:
+                commands.append(f'-R {resc_name}')
+            commands.append(f'{local_path} {irods_path}')
+            subprocess.call(' '.join(commands), shell=True)
 
     def irods_get(self, irods_path, local_path, **options):
         """Download `irods_path` to `local_path` following iRODS
@@ -824,7 +856,16 @@ class IrodsConnector():
             iRODS transfer options.
 
         """
-        self.session.data_objects.get(irods_path, local_path, **options)
+        if not self.icommands:
+            options = {
+                # FORCE_FLAG_KW: '',
+                NUM_THREADS_KW: NUM_THREADS,
+                VERIFY_CHKSUM_KW: '',
+            }
+            self.session.data_objects.get(irods_path, local_path, **options)
+        else:
+            commands = [f'iget -K -N {NUM_THREADS} {irods_path} {local_path}']
+            subprocess.call(' '.join(commands), shell=True)
 
     @staticmethod
     def is_dataobject(obj):
@@ -879,7 +920,8 @@ class IrodsConnector():
             irods.data_object.iRODSDataObject,
             irods.collection.iRODSCollection))
 
-    def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE, force=False, diffs=None):
+    def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE,
+                    force=False, diffs=None):
         """Upload data from the local `src_path` to the iRODS
         `dst_coll`.
 
@@ -924,16 +966,8 @@ class IrodsConnector():
         else:
             raise FileNotFoundError(
                 'ERROR iRODS upload: not a valid source path')
-        options = {
-            ALL_KW: '',
-            FORCE_FLAG_KW: '',
-            'num_threads': NUM_THREADS,
-            REG_CHKSUM_KW: '',
-            VERIFY_CHKSUM_KW: '',
-        }
         if resc_name in [None, '']:
             resc_name = self.default_resc
-        options[RESC_NAME_KW] = resc_name
         if diffs is None:
             if src_path.is_file():
                 diff, only_fs, _, _ = self.diffObjFile(
@@ -956,7 +990,7 @@ class IrodsConnector():
             if src_path.is_file() and len(diff + only_fs) > 0:
                 logging.info(
                     'IRODS UPLOADING file %s to %s', src_path, dst_path)
-                self.irods_put(src_path, dst_path, **options)
+                self.irods_put(src_path, dst_path, resc_name)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
@@ -965,7 +999,7 @@ class IrodsConnector():
                     _ = self.ensure_coll(irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
-                    self.irods_put(local_path, irods_path, **options)
+                    self.irods_put(local_path, irods_path, resc_name)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
@@ -979,7 +1013,7 @@ class IrodsConnector():
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
-                    self.irods_put(local_path, irods_path, **options)
+                    self.irods_put(local_path, irods_path, resc_name)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
@@ -1011,10 +1045,6 @@ class IrodsConnector():
 
         """
         logging.info('iRODS DOWNLOAD: %s-->%s', src_obj.path, dst_path)
-        options = {
-            FORCE_FLAG_KW: '',
-            REG_CHKSUM_KW: '',
-        }
         if self.is_dataobject_or_collection(src_obj):
             src_path = utils.utils.IrodsPath(src_obj.path)
         else:
@@ -1404,18 +1434,66 @@ class IrodsConnector():
                         self.get_dataobject(irods_name)))
         return sum(irods_sizes)
 
-    def createTicket(self, path, expiryString=""):
-        ticket = irods.ticket.Ticket(
-            self.session, ''.join(
-                random.choice(string.ascii_letters) for _ in range(20)))
-        ticket.issue("read", path)
-        logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
-        # returns False when no expiry date is set
-        return ticket.ticket, False
+    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
+        """Create an iRODS ticket to allow read access to the object
+        referenced by `obj_path`.
+
+        Parameters
+        ----------
+        obj_path : str
+            Name to create ticket for.
+        expiry_string : str
+            Optional expiration date in the form: CCYY-MM-DD.hh:mm:ss
+
+        Returns
+        -------
+        tuple
+            Name of ticket and if expiration string successfully set:
+            (str, bool)
+
+        """
+        ticket_id = ''.join(random.choice(string.ascii_letters) for _ in range(20))
+        ticket = irods.ticket.Ticket(self.session, ticket_id)
+        ticket.issue('read', obj_path)
+        logging.info(f'CREATE TICKET: {ticket.ticket}: {obj_path}')
+        expiration_set = False
+        if expiry_string != '':
+            try:
+                expiration_set = self._modify_ticket(ticket, expiry_string)
+            except Exception as error:
+                logging.info(f'Could not set expiration date: {error}')
+        return ticket.ticket, expiration_set
+
+    def _modify_ticket(self, ticket: irods.ticket.Ticket, expiry_string: str) -> bool:
+        """Modify iRODS `ticket` updating the expriration date.
+
+        Parameters
+        ----------
+        ticket : irods.ticket.Ticket
+            iRODS ticket to be modified.
+        expiry_string : str
+           Expiration date in the form: CCYY-MM-DD.hh:mm:ss.
+
+        Returns
+        -------
+        bool
+            If `ticket` successfully modified.
+
+        """
+        # TODO improve error handling, if necessary
+        if not self.icommands:
+            return ticket.modify('expire', expiry_string) == ticket
+        else:
+            command = f'iticket mod {ticket.ticket} expire {expiry_string}'
+            p = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                shell=True)
+            out, err = p.communicate()
+            return err == b''
 
 
 def get_resource_children(resc):
-    """Get all the children for the resource named `resc_name`.
+    """Get all the children for the resource `resc`.
 
     Parameters
     ----------

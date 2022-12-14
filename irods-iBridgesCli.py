@@ -12,7 +12,6 @@ Implemented for:
 
 from utils.elabConnector import elabConnector
 from utils.IrodsConnector import IrodsConnector
-from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
 from irods.exception import ResourceDoesNotExist
 
 import configparser
@@ -51,9 +50,12 @@ def connectIRODS(config):
     if os.path.exists(standardEnv) and \
             (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
         try:
-            ic = IrodsConnectorIcommands()
-            print(BLUE+"INFO: Icommands and standard environment file are present.")
-            print("INFO: Using icommands for data up and download."+DEFAULT)
+            ic = IrodsConnector()
+            if ic.icommands:
+                print(BLUE+"INFO: iCommands and standard environment file are present.")
+                print("INFO: Using iCommands for data up and download."+DEFAULT)
+            else:
+                raise Exception('No iCommands found!')
         except ConnectionRefusedError:
             raise
         except FileNotFoundError:
