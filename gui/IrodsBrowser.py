@@ -521,7 +521,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             self.errorLabel.setText(
                 f'Missing input: {", ".join(errors.keys())}')
             return
-        recursive = self.aclRecurseBox.currentText() == 'True'
+        recursive = self.recurseBox.currentText() == 'True'
         admin = self.aclAdminBox.isChecked()
         try:
             self.ic.set_permissions(
