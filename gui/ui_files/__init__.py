@@ -8,7 +8,7 @@ from . import irodsLogin
 from . import MainMenu
 from . import searchDialog
 from . import tabBrowser
-from . import tabDataCompression
+from . import tabDataBundle
 from . import tabELNData
 from . import tabFederations
 from . import tabInfo
