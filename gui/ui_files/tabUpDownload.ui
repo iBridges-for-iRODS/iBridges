@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabUpDownload</class>
+ <widget class="QWidget" name="tabUpDownload">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -55,7 +55,7 @@ QLabel#errorLabel
      <height>771</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_11" stretch="2,0,0">
+   <layout class="QVBoxLayout" name="verticalLayout_11" stretch="2,0,0,0">
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
     </property>
@@ -80,6 +80,7 @@ QLabel#errorLabel
           <property name="font">
            <font>
             <pointsize>13</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -344,6 +345,7 @@ QLabel#errorLabel
           <property name="font">
            <font>
             <pointsize>13</pointsize>
+            <weight>75</weight>
             <bold>true</bold>
            </font>
           </property>
@@ -439,6 +441,9 @@ QLabel#errorLabel
        </size>
       </property>
      </spacer>
+    </item>
+    <item>
+     <widget class="QPlainTextEdit" name="logs"/>
     </item>
     <item>
      <widget class="QLabel" name="errorLabel">
