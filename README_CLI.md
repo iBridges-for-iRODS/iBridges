@@ -43,7 +43,7 @@ path = /path/to/download/directory
 
 - Configuration files for uploading data to iRODS and linking them to ElabJournal experiment:
 
-  ```
+```
   [iRODS]
   irodsenv = /<path to>/irods_environment.json
   irodscoll = 
@@ -61,9 +61,13 @@ path = /path/to/download/directory
 
   
   ```
-  ./irods-iBridgesCli.py -h
-  ./irods-iBridgesCli -c </path/to/config> -d </path/to/folder/or/file/to/upload>
-  ./irods-iBridgesCli.py -c </path/to/config> -i </zone/home/path/to/coll/or/obj>
+Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).
+Usage: ./iUpload.py -c, --config= 	 config file
+		    -d, --data= 	 datapath
+		    -i, --irods= 	 irodspath (download)
+Examples:
+Downloading: ./irods-iBridgesCli.py -c <yourConfigFile> --irods=/npecZone/home
+Uploading: ./irods-iBridgesCli.py -c <yourConfigFile> --data=/my/data/path
   ```
 
 
