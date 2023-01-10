@@ -43,7 +43,7 @@ path = /path/to/download/directory
 
 - Configuration files for uploading data to iRODS and linking them to ElabJournal experiment:
 
-  ```
+```
   [iRODS]
   irodsenv = /<path to>/irods_environment.json
   irodscoll = 
