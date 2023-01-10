@@ -169,7 +169,9 @@ def prepareUpload(dataPath, ic, config):
             print('Aborted: Data path not given')
             return False
     else:
-        pass 
+        pass
+    #store verified dataPath
+    config["iRODS"]["uploadItem"] = dataPath 
 
     size = getSize([dataPath])
     try:
@@ -314,6 +316,8 @@ def main(argv):
             #ic.ensureColl(iPath)
             #print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
+            dataPath = config["iRODS"]["uploadItem"]
+            print(config)
             ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]), force=True)
         else:
             ic.session.cleanup()
