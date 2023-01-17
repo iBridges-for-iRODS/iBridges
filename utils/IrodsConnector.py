@@ -33,7 +33,9 @@ ALL_KW = irods.keywords.ALL_KW
 FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
 NUM_THREADS_KW = irods.keywords.NUM_THREADS_KW  # 'num_threads'
 DEST_RESC_NAME_KW = irods.keywords.DEST_RESC_NAME_KW
+RESC_NAME_KW = irods.keywords.RESC_NAME_KW
 VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
+REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
 # Map model names to iquest attribute names
 COLL_NAME = irods.models.Collection.name
 DATA_NAME = irods.models.DataObject.name
@@ -137,7 +139,12 @@ class IrodsConnector():
             Resource name.
 
         """
-        return self.ienv.get('irods_default_resource', None)
+        #irods 4.3.X
+        if 'irods_default_resource' in self.ienv:
+            return self.ienv.get('irods_default_resource', None)
+        #irods 4.2.X
+        if 'default_resource_name' in self.ienv:
+            return self.ienv.get('default_resource_name', None)
 
     @property
     def icommands(self):
@@ -826,13 +833,16 @@ class IrodsConnector():
             Optional resource name.
 
         """
+        print("irods_put")
         if not self.icommands:
             options = {
                 ALL_KW: '',
-                DEST_RESC_NAME_KW: resc_name,
+                #DEST_RESC_NAME_KW: resc_name,
+                RESC_NAME_KW: resc_name,
                 # FORCE_FLAG_KW: '',
                 NUM_THREADS_KW: NUM_THREADS,
-                VERIFY_CHKSUM_KW: '',
+                REG_CHKSUM_KW: '',
+                VERIFY_CHKSUM_KW: ''
             }
             self.session.data_objects.put(local_path, irods_path, **options)
         else:
@@ -842,7 +852,7 @@ class IrodsConnector():
             commands.append(f'{local_path} {irods_path}')
             subprocess.call(' '.join(commands), shell=True)
 
-    def irods_get(self, irods_path, local_path, **options):
+    def irods_get(self, irods_path, local_path, options = {}):
         """Download `irods_path` to `local_path` following iRODS
         `options`.
 
@@ -857,11 +867,11 @@ class IrodsConnector():
 
         """
         if not self.icommands:
-            options = {
-                # FORCE_FLAG_KW: '',
+            opts = {
                 NUM_THREADS_KW: NUM_THREADS,
-                VERIFY_CHKSUM_KW: '',
+                VERIFY_CHKSUM_KW: ''
             }
+            options.update(opts)
             self.session.data_objects.get(irods_path, local_path, **options)
         else:
             commands = [f'iget -K -N {NUM_THREADS} {irods_path} {local_path}']
@@ -973,10 +983,13 @@ class IrodsConnector():
                 diff, only_fs, _, _ = self.diffObjFile(
                     dst_path, src_path, scope='checksum')
             else:
+                compare_coll = self.ensure_coll(
+                          dst_coll.path+'/'+os.path.basename(src_path))
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(
-                    dst_coll, src_path)
+                    compare_coll, src_path)
         else:
             diff, only_fs, _, _ = diffs
+
         if not force:
             space = self.resource_space(resc_name)
             if size > (space - buff):
@@ -1066,10 +1079,10 @@ class IrodsConnector():
                 'ERROR iRODS download: No rights to write to destination.')
         # Only download if not present or difference in files.
         if diffs is None:
-            dst_path = dst_path.joinpath(src_path.name)
+            dst_path_compare = dst_path.joinpath(src_path.name)
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
-                    src_path, dst_path, scope="checksum")
+                    src_path, dst_path_compare, scope="checksum")
             else:
                 if not dst_path.is_dir():
                     os.mkdir(dst_path)
@@ -1093,7 +1106,7 @@ class IrodsConnector():
                     'IRODS DOWNLOADING object: %s to %s',
                     src_path, dst_path)
                 self.irods_get(
-                    src_path, dst_path.joinpath(src_path.name), **options)
+                        src_path, dst_path.joinpath(src_path.name), options = {FORCE_FLAG_KW: ''})
             # Collection
             else:
                 logging.info("IRODS DOWNLOAD started:")
@@ -1101,7 +1114,7 @@ class IrodsConnector():
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(irods_path, local_path, **options)
+                    self.irods_get(irods_path, local_path, options = {FORCE_FLAG_KW: ''})
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
@@ -1115,7 +1128,7 @@ class IrodsConnector():
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(irods_path, local_path, **options)
+                    self.irods_get(irods_path, local_path, options = {FORCE_FLAG_KW: ''})
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
@@ -1159,7 +1172,6 @@ class IrodsConnector():
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
-                print(sha2Obj != sha2)
                 if sha2Obj != sha2:
                     return([(objPath, fsPath)], [], [], [])
                 else:
@@ -1192,13 +1204,11 @@ class IrodsConnector():
             for root, dirs, files in os.walk(dirPath, topdown=False):
                 for name in files:
                     listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
-
         listColl = []
         if not coll == None:
             for root, subcolls, obj in coll.walk():
                 for o in obj:
                     listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
-
         diff = []
         same = []
         for locPartialPath in set(listDir).intersection(listColl):
