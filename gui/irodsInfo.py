@@ -46,9 +46,10 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         self.versionLabel.setText(
             '.'.join((str(num) for num in self.ic.session.server_version)))
         # irods resources
-        names, spaces = self.ic.list_resources()
-        self.rescTable.setRowCount(len(names))
-        for row, (name, space) in enumerate(zip(names, spaces)):
+        parent_resources = [(resc, self.ic.resources[resc]['status'], self.ic.resources[resc]['free_space']) 
+                            for resc in self.ic.resources if self.ic.resources[resc]['parent'] == None]
+        self.rescTable.setRowCount(len(parent_resources))
+        for row, (name, status, space) in enumerate(parent_resources):
             resc = self.ic.get_resource(name)
             self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
             self.rescTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(str(space)))
