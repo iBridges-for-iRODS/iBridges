@@ -174,6 +174,7 @@ def prepareUpload(dataPath, ic, config):
     config["iRODS"]["uploadItem"] = dataPath 
 
     size = getSize([dataPath])
+
     try:
         freeSpace = int(ic.getResource(config['iRODS']['irodsresc']).free_space)
         print('Checking storage capacity for '+dataPath+', '+str(float(size)/(1000**3))+'GB')
@@ -181,6 +182,10 @@ def prepareUpload(dataPath, ic, config):
         print(YEL+'No information how much storage is left on the resource')
         res = input('Do you want to force the upload (Y/N): '+DEFAULT)
         freeSpace = None
+        if res != 'Y':
+            return False
+        else:
+            return True
     
     if freeSpace != None and int(freeSpace)-1000**3 < size:
         print(RED+'Not enough space left on iRODS resource.'+DEFAULT)
@@ -190,8 +195,6 @@ def prepareUpload(dataPath, ic, config):
             return False
         else:
             return True
-    else:
-        return True
 
 
 def prepareDownload(irodsItemPath, ic, config):
@@ -247,7 +250,7 @@ def printHelp():
 def main(argv):
     
     irodsEnvPath = os.path.expanduser('~')+ os.sep +".irods"
-    #setup_logger(irodsEnvPath, "iBridgesCli")
+    setup_logger(irodsEnvPath, "iBridgesCli")
 
     try:
         opts, args = getopt.getopt(argv,"hc:d:i:",["config=", "data=", "irods="])
@@ -309,15 +312,12 @@ def main(argv):
             if md != None:
                 iPath = config['iRODS']['irodscoll']+'/'+md.__name__+'/'+ \
                     str(config['ELN']['group'])+'/'+str(config['ELN']['experiment'])
-            #elif os.path.isdir(dataPath):
-            #    iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
             else:
                 iPath = config['iRODS']['irodscoll']
-            #ic.ensureColl(iPath)
+            ic.ensureColl(iPath)
             #print('DEBUG: Created/Ensured iRODS collection '+iPath)
             iColl = ic.session.collections.get(iPath)
             dataPath = config["iRODS"]["uploadItem"]
-            print(config)
             ic.uploadData(dataPath, iColl, config['iRODS']['irodsresc'], getSize([dataPath]), force=True)
         else:
             ic.session.cleanup()
@@ -328,11 +328,21 @@ def main(argv):
             items = []
             for c, _, o in coll.walk():
                 items.extend([c]+o)
-            ic.addMetadata(items, 'PROVENANCE', md.metadataUrl)
-            if config['iRODS']['webdav']!='':
-                md.addMetadata(config['iRODS']['webdav']+iPath, title)
-            else:
-                md.addMetadata(ic.session.host+', '+iPath, title)
+            ic.addMetadata(items, 'ELN', md.metadataUrl)
+            metadata = {"Data size": str(getSize([dataPath])) + " Bytes", 
+                        "iRODS path": coll.path,
+                        "iRODS server": ic.session.host,
+                        "iRODS user": ic.session.username
+                        }
+            if config['iRODS']['webdav'] == None:
+                md.addMetadata("Icommands access only", meta=metadata,
+                                    title=title)
+            elif "yoda" in config['iRODS']['webdav'] or "uu.nl" in config['iRODS']['webdav']:
+                md.addMetadata(config['iRODS']['webdav']+'/'+coll.path.split('home/')[1].strip(),
+                    meta=metadata, title=title)
+            elif config['iRODS']['webdav'] != None:
+                md.addMetadata(config['iRODS']['webdav']+'/'+coll.path.strip('/'),
+                    meta=metadata, title=title)
         print()
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
