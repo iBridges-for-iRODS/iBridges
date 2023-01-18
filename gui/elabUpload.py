@@ -38,6 +38,8 @@ class elabUpload(QWidget, Ui_tabELNData):
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
 
+        self.elnIrodsPath.setText(
+                '/'+self.ic.session.zone+'/home/'+self.ic.session.username)
         #defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
@@ -122,8 +124,8 @@ class elabUpload(QWidget, Ui_tabELNData):
         #self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
         self.showPreview()
+        self.elnIrodsPath.setText(self.coll.path.split('/ELN')[0])
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
-        self.elnIrodsPath.setText('/zone/home/user')
         self.thread.quit()
 
 
@@ -176,10 +178,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             #get upload total size to inform user
             size = getSize([path])
             #if user specifies a different path than standard home
-            if self.elnIrodsPath.text() == '/zone/home/user':
-                collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
-            else:
-                collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
+            collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
             self.coll = self.ic.ensureColl(collPath)
             self.elnIrodsPath.setText(collPath)
     
