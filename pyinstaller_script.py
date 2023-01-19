@@ -1,133 +1,198 @@
-from genericpath import isfile
-from subprocess import Popen, run, PIPE, STDOUT
-from shutil import copytree, rmtree
+"""Pipeline to create pyinstaller executables.
 
-from glob import glob
-from os import getcwd, mkdir, path, remove, sep
-from platform import system
-
-
+The --onefile option is not used because Windows must upack the
+executable before it can run.  This makes it roughly 30 seconds
+slower than the current variant.
 """
-Pipeline to create pyinstaller executables.
-not using the --onefile options because than windows has to upack the exe before it can run. 
-This makes it rougly 30 seconds slower than the current variant. 
-"""
+import subprocess
 
-# Run command in shell, stdout is printed to the screen
-def run_cmd(cmd):
-    if system()[0].upper() == "W": # windows
-        ps = run(cmd, stderr=STDOUT, shell=True, universal_newlines=True)
+import utils
+
+ICON_VAR = 'icon'
+TAB_LEN = 4
+TAB = ' ' * TAB_LEN
+PIXMAP_STR = '.addPixmap(QtGui.QPixmap('
+
+
+def run_cmd(command: str):
+    """Run command in shell, stdout is printed to the screen
+
+    Parameters
+    ----------
+    command : str
+        Input shell command line.
+
+    """
+    # POSIX
+    if utils.utils.is_posix():
+        proc = subprocess.run(
+            command, stderr=subprocess.STDOUT, shell=True,
+            universal_newlines=True, executable='/bin/bash')
+    # Windows
     else:
-        ps = run(cmd, stderr=STDOUT, shell=True, universal_newlines=True, executable="/bin/bash")
+        proc = subprocess.run(
+            command, stderr=subprocess.STDOUT, shell=True,
+            universal_newlines=True)
     # Print all errors
-    if ps.stderr != None:
-        print(f"commandline error: {ps.stderr}")
-        raise Exception("shell run error")
+    if proc.stderr is not None:
+        print(f'commandline error: {proc.stderr}')
+        raise Exception('shell run error')
 
 
-# Convert the .ui files to .py files
-def ui_to_py(ui_folder, python):
-    # python -m PyQt5.uic.pyuic -x main.ui -o mainUI.py
-    for ui_file in glob(ui_folder + '*.ui'):
-        filename, ext = path.splitext(ui_file)
-        print(f"Converting {filename} to .py")
-        run_cmd(f"""{python} -m PyQt6.uic.pyuic -x {ui_file} -o {filename +".py"}""")
+def ui_to_py(dirname: str, py_exec: str):
+    """Convert the .ui files to .py files
 
-        # Find and replace the pixelmap references... They are hardcoded
-        # Also have to go up one directory for the executable, its ugly! 
-        with open(filename +".py", 'r') as file:
-            lines = file.readlines()
-            modified_lines = {}
-            for linenum, line in enumerate(lines):
-                if """QtGui.QPixmap(\"""" in line: 
-                    abs_fchar = line.find("\"")
-                    abs_lchar = line.find(".", abs_fchar) + 2
+    Parameters
+    ----------
+    dirname : str
+        Name of directory holding UI files.
+    py_exec : str
+        Name of Python executable.  It should be the full path if not
+        in PATH.
 
-                    new_line = line[0:abs_fchar] + "dirname(realpath(sys.argv[0])) + \"" + line[abs_lchar:]
-                    exeline = line[0:abs_fchar] + "join(dirname(realpath(sys.argv[0])), pardir) + \"" + line[abs_lchar:]
-                    modified_lines[linenum] = (new_line, exeline)
+    The command-line takes the form:
+        python -m PyQt6.uic.pyuic -x file.ui -o file.py
 
-        if len(modified_lines) > 0:
-            lineofset = 0
-            spacing = "        " #distance of one tab
-            for linenum, text in modified_lines.items():
-                lines[(linenum + lineofset)] = spacing + text[0]
-                lines.insert(linenum + lineofset, f"{spacing}else:\n")
-                lines.insert(linenum + lineofset, spacing + text[1])
-                lines.insert(linenum + lineofset, f"{spacing}if getattr(sys, 'frozen', False):\n")
-                lineofset = lineofset + 3
-
-            lines.insert(10, "import sys\n")
-            lines.insert(10, "from os.path import dirname, join, pardir, realpath\n")
-            with open(filename +".py", 'w') as file:
-                file.writelines(lines)
-
-
-# Remove the locally stored .py versions of the files
-def remove_pyui_files(ui_folder):
-    pyuifiles = glob(ui_folder + '*.py')
-    if len(pyuifiles) > 0:
-        for file in pyuifiles:
-            print(f"Removing {file}")
-            remove(file)
-
-
-# Overwrite one folder with all content
-def replace_folder(source, destination):
-    if path.exists(destination) and path.isdir(destination):
-        rmtree(destination)
-    copytree(source, destination)
-
-
-if __name__ == "__main__":
-    icons_folder = f"{getcwd()}{sep}gui{sep}icons"
-    ui_folder = f"{getcwd()}{sep}gui{sep}ui_files{sep}"
-    rules_folder = f"{getcwd()}{sep}rules"
-    venv = f"{getcwd()}{sep}venv"
-
-    # Seperator for sending multiple commands in one commandline call
-    if system()[0].upper() == "W": # windows
-        cmd_sep = "&&"
-        python = "python" # python version 
-    else: # Linux
-        cmd_sep = ";"
-        python = "python3"
-
-    # Step 1 Convert .ui files to .py files
-    # Remove py files if they already exist, recompiling is the best way to ensure they are up to date
-    remove_pyui_files(ui_folder)
-    ui_to_py(ui_folder, python)
-
-    # Step 2: Pyinstallers includes all dependencies in the environment, so we use a venv
-    # Step 2a, Ensure the folder for the venv exists 
-    if (not path.exists(venv)) or (not path.isdir(venv)):
-        mkdir(venv)
-    
-    # Step 2b, Create the venv if needed
-    if system()[0].upper() == "W": # windows
-        venv_activate = f"{venv}{sep}Scripts{sep}activate.bat"
-    else:
-        venv_activate = f"source {venv}/bin/activate"
-    if (not path.exists(venv_activate)) or (not path.isfile(venv_activate)):
-        run_cmd(f"{python} -m venv {venv}")
-        run_cmd(f"{venv_activate} {cmd_sep} python -m pip install --upgrade pip")	      
-        run_cmd(f"{venv_activate} {cmd_sep} pip install -r requirements.txt")
-
-    # Step 3, Activate venv and tun pyinstaller
-    run_cmd(f"{venv_activate} {cmd_sep} pyinstaller --clean --noconfirm --icon {icons_folder}{sep}irods-iBridgesGui.ico irods-iBridgesGui.py")
-    dist_folder = f"{getcwd()}{sep}dist"
+    """
+    for uipath in sorted(utils.utils.LocalPath(dirname).glob('*.ui')):
+        basename = uipath.stem
+        pypath = utils.utils.LocalPath(dirname, f'{basename}.py')
+        print(f'Converting {uipath} to {pypath}')
+        run_cmd(f'{py_exec} -m PyQt6.uic.pyuic -x {uipath} -o {pypath}')
+        # Find and replace the pixelmap references.  They are hardcoded.
+        # Also have to go up one directory for the executable, it's ugly!
+        inlines = pypath.read_text()
+        outlines = [
+            '"""Created by: PyQt6 UI code generator from the corresponding UI file',
+            '',
+            'WARNING: Any manual changes made to this file will be lost when pyuic6 is',
+            'run again.  Do not edit this file unless you know what you are doing.',
+            '"""',
+        ]
+        if PIXMAP_STR in inlines:
+            # TODO determine if existing sys import is sufficient
+            # outlines.append('import sys')
+            for inline in inlines.split('\n'):
+                if PIXMAP_STR not in inline:
+                    outlines.append(inline)
+                else:
+                    first, icon_path, last = inline.split('"')
+                    indent = first.split(ICON_VAR)[0]
+                    outlines.append(
+                        f'{indent}if getattr(sys, "frozen", False):')
+                    outlines.append(
+                        f'{TAB}{first}"{utils.utils.LocalPath("..", icon_path)}"{last}')
+                    outlines.append(
+                        f'{indent}else:')
+                    outlines.append(
+                        f'{TAB}{first}"{utils.utils.LocalPath(".", icon_path)}"{last}')
+        else:
+            outlines.extend(inlines.split('\n'))
+        pypath.write_text(
+            '\n'.join(line for line in outlines if not line.startswith('#')))
+        del inlines
 
 
-    # Step 4, Copy rules, icons folder to dist folder, replace if exists.
-    dist_icons = f"{dist_folder}{sep}icons"
-    dist_rules = f"{dist_folder}{sep}rules"
-    replace_folder(icons_folder, dist_icons)
-    replace_folder(rules_folder, dist_rules)
-    
-   
+def remove_pyui_files(dirname: str):
+    """Remove the locally stored Python versions of the UI files.
+
+    Parameters
+    ----------
+    dirname : str
+        Name of directory holding UI files.
+
+    """
+    for pypath in sorted(utils.utils.LocalPath(dirname).glob('*.py')):
+        if '__init__.py' not in pypath:
+            print(f'Removing {pypath}')
+            pypath.unlink()
+
+
+def replace_directory(source: str, destination: str):
+    """Overwrite `destination` with a copy of all contents of `source`.
+
+    Parameters
+    ----------
+    source : str
+        Name of source directory.
+    destination : str
+        Name of destination directory.
+
+    """
+    utils.utils.LocalPath(source).copy_path(destination, squash=True)
+
+
+def main() -> int:
+    """Main function.
+
+    Indicates (along with if __name__ == '__main__':) a Python script.
+
+    "compile" UI files into Python files so they can be imported
+    directly, creating a virtual environment if necessary prior to
+    creating a PyInstaller distribution package.
+
+    Returns
+    -------
+    int
+        Exit code of the program.
+
+    """
+    relpath = utils.utils.LocalPath('.')
+    iconpath = relpath.joinpath('gui', 'icons')
+    uipath = relpath.joinpath('gui', 'ui_files')
+    venvpath = relpath.joinpath('venv')
+    # Step 1: Convert .ui files to .py files after first removing .py
+    # files that already exist.  Recompiling is the best way to ensure
+    # they are up-to-date.
+    try:
+        remove_pyui_files(uipath)
+        ui_to_py(uipath, 'python3')
+    except Exception as error:
+        print(f'Error converting UI files to Python: {error}')
+        return 1
+    # Step 2: Pyinstaller includes all dependencies in the environment,
+    # so we need to use a venv.
+    try:
+        venvpath.mkdir(exist_ok=True)
+        if utils.utils.is_posix():
+            venv_script = venvpath.joinpath('bin', 'activate')
+            venv_activate = f'source {venv_script}'
+        else:
+            venv_script = venvpath.joinpath("Scripts", "activate.bat")
+            venv_activate = str(venv_script)
+        # Create the venv if needed.
+        if not venv_script.is_file():
+            run_cmd(f'python3 -m venv {venvpath}')
+            run_cmd(f'{venv_activate} && python3 -m pip install --upgrade pip')
+            run_cmd(f'{venv_activate} && pip3 install -r requirements.txt')
+    except Exception as error:
+        print(f'Error finding/creating virtual environment: {error}')
+        return 2
+    # Step 3: Activate venv and run pyinstaller.
+    try:
+        filenames = f'{iconpath.joinpath("irods-iBridgesGui.ico")} irods-iBridgesGui.py'
+        run_cmd(f'{venv_activate} && pyinstaller --clean --noconfirm --icon {filenames}')
+    except Exception as error:
+        print(f'Error creating executable: {error}')
+        return 3
+    # Step 4: Copy icons folder to dist folder, replace if exists.
+    try:
+        dist_icons = relpath.joinpath('dist', 'icons')
+        replace_directory(iconpath, dist_icons)
+    except Exception as error:
+        print(f'Error copying icons: {error}')
+        return 4
+    # Optional post-installer actions.
     confirmation = input("Do you want to cleanup the build environment (Y/N): ")
-    if confirmation[0].upper() == 'Y':
-        #remove_pyui_files(ui_folder)
-        rmtree(getcwd() + sep + "build")
-        #remove(getcwd() + "dist")
-        remove(getcwd() + sep + "irods-iBridgesGui.spec")
+    if confirmation[0].upper().startswith('Y'):
+        try:
+            relpath.joinpath('build').rmdir(squash=True)
+            relpath.joinpath('irods-iBridgesGui.spec').unlink()
+        except Exception as error:
+            print(f'Error cleaning up: {error}')
+            return 5
+    return 0
+
+
+if __name__ == '__main__':
+    exit(main())
