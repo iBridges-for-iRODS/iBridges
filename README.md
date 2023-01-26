@@ -127,6 +127,7 @@ The client works on  Mac, Windows and Linux distributions. On Mac and Windows it
 
 ## Usage
 ```
+export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 ./irods-iBridgesGui.py
 ```
 
