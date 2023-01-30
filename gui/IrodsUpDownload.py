@@ -61,7 +61,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
 
         """
         self.localmodel = PyQt6.QtGui.QFileSystemModel(
-            self.widget.localFsTreeView)
+            self.localFsTreeView)
         self.localFsTreeView.setModel(self.localmodel)
         # Hide all columns except the Name
         self.localFsTreeView.setColumnHidden(1, True)
@@ -96,8 +96,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         # XXX unsuccessful attempt to open home coll in tree view
         # index = self.irodsmodel.indexFromItem(
         #     PyQt6.QtGui.QStandardItem(self.irodsmodel.base_path))
-        # self.widget.irodsFsTreeView.setCurrentIndex(index)
-        # self.widget.irodsFsTreeView.scrollTo(index)
+        # self.irodsFsTreeView.setCurrentIndex(index)
+        # self.irodsFsTreeView.scrollTo(index)
         # XXX
 
     def _create_buttons(self):
@@ -242,7 +242,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         if success:
             if irods_index is not None:
                 self.irodsmodel.refresh_subtree(irods_index)
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                 "INFO UPLOAD/DOWLOAD: completed.")
         self.upload_window = None
         self.enable_buttons(True)
