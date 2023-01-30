@@ -10,7 +10,6 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
-import utils
 
 REMOVE_LOCAL = 'ui_remLocalcopy'
 UPLOAD_HOSTS = [
@@ -32,8 +31,6 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
 
         Parameters
         ----------
-        widget : QtWidgets
-            Common widget container.
         ic : IrodsConnector
             Connection to an iRODS session.
         ienv : dict
