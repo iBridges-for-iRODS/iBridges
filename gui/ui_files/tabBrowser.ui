@@ -53,6 +53,22 @@ QPushButton#dataDeleteButton
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <spacer name="verticalSpacer_13">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Minimum</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
     <layout class="QGridLayout" name="gridLayout">
      <item row="0" column="0">
       <widget class="QLabel" name="label_2">
@@ -117,7 +133,7 @@ QPushButton#dataDeleteButton
        </property>
       </widget>
      </item>
-     <item row="0" column="6">
+     <item row="0" column="4">
       <widget class="QPushButton" name="homeButton">
        <property name="text">
         <string/>
@@ -128,8 +144,18 @@ QPushButton#dataDeleteButton
        </property>
       </widget>
      </item>
+     <item row="1" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout_4"/>
+     </item>
      <item row="1" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QPushButton" name="UploadButton">
+         <property name="text">
+          <string>File Upload</string>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QPushButton" name="createCollButton">
          <property name="text">
@@ -141,13 +167,6 @@ QPushButton#dataDeleteButton
         <widget class="QPushButton" name="DownloadButton">
          <property name="text">
           <string>File Download</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="UploadButton">
-         <property name="text">
-          <string>File Upload</string>
          </property>
         </widget>
        </item>
@@ -593,7 +612,6 @@ QPushButton#dataDeleteButton
            </item>
           </widget>
          </item>
-         <!-- <item row="7" column="3"> -->
          <item row="6" column="4">
           <widget class="QPushButton" name="aclAddButton">
            <property name="font">
@@ -653,9 +671,6 @@ QPushButton#dataDeleteButton
          <property name="selectionBehavior">
           <enum>QAbstractItemView::SelectRows</enum>
          </property>
-         <property name="columnCount">
-          <number>3</number>
-         </property>
          <column>
           <property name="text">
            <string>Resource hierarchy</string>
@@ -666,11 +681,6 @@ QPushButton#dataDeleteButton
            <string/>
           </property>
          </column>
-
-
-
-
-
         </widget>
        </item>
       </layout>
