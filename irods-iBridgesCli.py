@@ -110,7 +110,7 @@ def setupIRODS(config, operation):
             print(config['iRODS']['irodsresc']+ " upload capacity, free space: No  inofrmation")
         else:
             print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
-                str(round(int(ic.resourceSize(resource.name))/1000**3))+'GB')
+                str(round(int(ic.resourceSize(resource.name) * ic.multiplier)) + 'GB'))
 
     except ResourceDoesNotExist:
         print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
@@ -175,7 +175,7 @@ def prepareUpload(dataPath, ic, config):
 
     size = get_local_size([dataPath])
     freeSpace = int(ic.get_free_space(config['iRODS']['irodsresc']))
-    print('Checking storage capacity for '+dataPath+', '+str(float(size)/(1000**3))+'GB')
+    print('Checking storage capacity for ' + dataPath + ', ' + str(float(size) * ic.multiplier) + 'GB')
     
     if freeSpace != None and int(freeSpace)-1000**3 < size:
         print(RED+'Not enough space left on iRODS resource.'+DEFAULT)
@@ -331,12 +331,11 @@ def main(argv):
         print(DEFAULT)
         ic.session.cleanup()
     elif operation == 'download':
-        #print(json.dumps(config, indent=4))
         if prepareDownload(irodsPath, ic, config):
             downloadDir = config['DOWNLOAD']['path']
             irodsDataPath = config["iRODS"]["downloadItem"]
-            print(YEL, 
-                  'Downloading: '+irodsDataPath+', '+str(ic.get_irods_size([irodsDataPath])/1000**3)+'GB', 
+            print(YEL,
+                  'Downloading: ' + irodsDataPath + ', ' + str(ic.get_irods_size([irodsDataPath]) * ic.multiplier) + 'GB',
                   DEFAULT)
             try:
                 item = ic.session.collections.get(irodsDataPath)

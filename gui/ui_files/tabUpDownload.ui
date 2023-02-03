@@ -173,7 +173,7 @@ QLabel#errorLabel
         <item>
          <widget class="QLabel" name="label_2">
           <property name="text">
-           <string>Select: resource / free GiB</string>
+           <string>Select: resource / free GB</string>
           </property>
          </widget>
         </item>
