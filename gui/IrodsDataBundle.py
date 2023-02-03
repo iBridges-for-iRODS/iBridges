@@ -45,7 +45,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
-            PyQt6.uic.loadUi("gui/ui_files/tabDataCompression.ui", self)
+            PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
         self.ic = ic
         self.ienv = ienv
         self.thread_create = None
