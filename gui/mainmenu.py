@@ -59,8 +59,9 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                     self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
                         ic, self.ienv)
                     self.tabWidget.addTab(self.updownload, "Data Transfers")
-                    log_handler = QPlainTextEditLogger(self.updownload.logs)
-                    logging.getLogger().addHandler(log_handler)
+                    # TODO reenable when available
+                    # log_handler = QPlainTextEditLogger(self.updownload.logs)
+                    # logging.getLogger().addHandler(log_handler)
                 # Elabjournal tab, index 2
                 if 'tabELNData' in ienv['ui_tabs']:
                     self.elnTab = gui.elabUpload.elabUpload(ic)
