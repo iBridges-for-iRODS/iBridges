@@ -1117,7 +1117,7 @@ class IrodsConnector():
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(irods_path, local_path, options)
+                    self.irods_get(irods_path, local_path, options=options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
