@@ -47,7 +47,7 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
             '.'.join((str(num) for num in self.ic.session.server_version)))
         # irods resources
         resc_info = self.ic.list_resources(['name', 'status', 'free_space'])
-        self.rescTable.setRowCount(len(resc_info))
+        self.rescTable.setRowCount(len(resc_info[0]))
         for row, (name, status, space) in enumerate(zip(*resc_info)):
             self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
             self.rescTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(str(space)))
