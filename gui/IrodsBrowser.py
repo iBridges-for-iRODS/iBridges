@@ -148,11 +148,10 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                 self.resourceTable.setItem(
                     row, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
                 for repl in replicas:
-                    if repl in hierarchy:
-                        item = PyQt6.QtWidgets.QTableWidgetItem()
-                        item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
-                        item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
-                        self.resourceTable.setItem(row, 1, item)
+                    item = PyQt6.QtWidgets.QTableWidgetItem()
+                    item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
+                    item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
+                    self.resourceTable.setItem(row, 1, item)
 
         self.resourceTable.resizeColumnsToContents()
 
