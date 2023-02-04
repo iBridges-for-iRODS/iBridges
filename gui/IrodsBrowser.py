@@ -152,7 +152,6 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                     item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
                     item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
                     self.resourceTable.setItem(row, 1, item)
-
         self.resourceTable.resizeColumnsToContents()
 
     def _fill_acls_tab(self, obj_path):
