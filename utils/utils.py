@@ -578,8 +578,7 @@ class LocalPath(PurePath):
         """
         self.path.write_bytes(data=data)
 
-    def write_text(self, data: str, encoding: str = None,
-                   errors: str = None, newline: str = None):
+    def write_text(self, data: str, encoding: str = None, errors: str = None):
         """
 
         Parameters
@@ -592,12 +591,9 @@ class LocalPath(PurePath):
         errors : str
             Specifies how encoding errors are to be handled (see
             open()).
-        newline : str
-            Controls how universal newlines works (see open()).
 
         """
-        self.path.write_text(
-            data=data, encoding=encoding, errors=errors, newline=newline)
+        self.path.write_text(data=data, encoding=encoding, errors=errors)
 
 
 class JsonConfig:
