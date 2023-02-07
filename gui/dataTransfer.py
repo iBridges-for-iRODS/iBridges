@@ -8,6 +8,7 @@ import sys
 
 from PyQt6.QtWidgets import QDialog
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6 import QtCore
 from PyQt6.QtGui import QMovie
 from PyQt6.uic import loadUi
 
@@ -38,6 +39,7 @@ class dataTransfer(QDialog, Ui_dataTransferState):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/dataTransferState.ui", self)
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.ic = ic
         self.localFsPath = localFsPath
         self.coll = irodsColl
