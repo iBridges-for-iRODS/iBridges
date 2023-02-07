@@ -839,28 +839,15 @@ class IrodsConnector():
             Optional resource name.
 
         """
-        print("irods_put", resc_name)
         if not self.icommands:
-            if resc_name in ['', None]:
-                 options = {
-                     ALL_KW: '',
-                     # DEST_RESC_NAME_KW: resc_name,
-                     # FORCE_FLAG_KW: '',
-                     NUM_THREADS_KW: NUM_THREADS,
-                     REG_CHKSUM_KW: '',
-                     VERIFY_CHKSUM_KW: ''
-                  }
-            else:
-                 options = {
-                     ALL_KW: '',
-                     # DEST_RESC_NAME_KW: resc_name,
-                     RESC_NAME_KW: resc_name,
-                     # FORCE_FLAG_KW: '',
-                     NUM_THREADS_KW: NUM_THREADS,
-                     REG_CHKSUM_KW: '',
-                     VERIFY_CHKSUM_KW: ''
-                 }
-            print(options)
+            options = {
+                ALL_KW: '',
+                NUM_THREADS_KW: NUM_THREADS,
+                REG_CHKSUM_KW: '',
+                VERIFY_CHKSUM_KW: ''
+            }
+            if resc_name not in ['', None]:
+                 options[RESC_NAME_KW] = resc_name
             self.session.data_objects.put(local_path, irods_path, **options)
         else:
             commands = [f'iput -aK -N {NUM_THREADS}']
