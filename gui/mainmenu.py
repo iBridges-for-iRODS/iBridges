@@ -110,7 +110,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
             currentWidget = self.widget.currentWidget()
-            currentWidget.init_envbox()
+            #currentWidget._init_envbox()
         else:
             pass
 
