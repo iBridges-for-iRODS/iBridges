@@ -436,7 +436,6 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
-                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
                 self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=self.force)
                 self.loadTable()

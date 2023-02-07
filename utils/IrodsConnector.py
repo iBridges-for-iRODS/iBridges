@@ -839,17 +839,28 @@ class IrodsConnector():
             Optional resource name.
 
         """
-        print("irods_put")
+        print("irods_put", resc_name)
         if not self.icommands:
-            options = {
-                ALL_KW: '',
-                #DEST_RESC_NAME_KW: resc_name,
-                RESC_NAME_KW: resc_name,
-                # FORCE_FLAG_KW: '',
-                NUM_THREADS_KW: NUM_THREADS,
-                REG_CHKSUM_KW: '',
-                VERIFY_CHKSUM_KW: ''
-            }
+            if resc_name in ['', None]:
+                 options = {
+                     ALL_KW: '',
+                     # DEST_RESC_NAME_KW: resc_name,
+                     # FORCE_FLAG_KW: '',
+                     NUM_THREADS_KW: NUM_THREADS,
+                     REG_CHKSUM_KW: '',
+                     VERIFY_CHKSUM_KW: ''
+                  }
+            else:
+                 options = {
+                     ALL_KW: '',
+                     # DEST_RESC_NAME_KW: resc_name,
+                     RESC_NAME_KW: resc_name,
+                     # FORCE_FLAG_KW: '',
+                     NUM_THREADS_KW: NUM_THREADS,
+                     REG_CHKSUM_KW: '',
+                     VERIFY_CHKSUM_KW: ''
+                 }
+            print(options)
             self.session.data_objects.put(local_path, irods_path, **options)
         else:
             commands = [f'iput -aK -N {NUM_THREADS}']
@@ -966,9 +977,13 @@ class IrodsConnector():
             Output of diff functions.
 
         """
-        logging.info(
-            'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
-            resc_name)
+        if resc_name in [None, '']:
+            logging.info(
+                'iRODS UPLOAD: %s-->%s, no resource specified', src_path, dst_coll.path)
+        else:
+            logging.info(
+                'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
+                resc_name)
         src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
