@@ -81,11 +81,11 @@ def ui_to_py(dirname: str, py_exec: str):
                     outlines.append(
                         f'{indent}if getattr(sys, "frozen", False):')
                     outlines.append(
-                        f'{TAB}{first}"{utils.utils.LocalPath("..", icon_path)}"{last}')
+                        f'{TAB}{first}r"{utils.utils.LocalPath("..", icon_path)}"{last}')
                     outlines.append(
                         f'{indent}else:')
                     outlines.append(
-                        f'{TAB}{first}"{utils.utils.LocalPath(".", icon_path)}"{last}')
+                        f'{TAB}{first}r"{utils.utils.LocalPath(".", icon_path)}"{last}')
         else:
             outlines.extend(inlines.split('\n'))
         pypath.write_text(
@@ -146,7 +146,7 @@ def main() -> int:
     # they are up-to-date.
     try:
         remove_pyui_files(uipath)
-        ui_to_py(uipath, 'python3')
+        ui_to_py(uipath, 'python')
     except Exception as error:
         print(f'Error converting UI files to Python: {error}')
         return 1
@@ -162,8 +162,8 @@ def main() -> int:
             venv_activate = str(venv_script)
         # Create the venv if needed.
         if not venv_script.is_file():
-            run_cmd(f'python3 -m venv {venvpath}')
-            run_cmd(f'{venv_activate} && python3 -m pip install --upgrade pip')
+            run_cmd(f'python -m venv {venvpath}')
+            run_cmd(f'{venv_activate} && python -m pip install --upgrade pip')
             run_cmd(f'{venv_activate} && pip3 install -r requirements.txt')
     except Exception as error:
         print(f'Error finding/creating virtual environment: {error}')
