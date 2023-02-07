@@ -203,7 +203,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             # logging.info(repr(error))
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-            raise unknown
 
     def ticket_login(self):
         """Log in to iRODS using a ticket.
