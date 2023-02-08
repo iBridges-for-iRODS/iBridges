@@ -12,8 +12,9 @@ Implemented for:
 
 from utils.elabConnector import elabConnector
 from utils.IrodsConnector import IrodsConnector
+from utils.IrodsConnector import FreeSpaceNotSet
 from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
-from irods.exception import ResourceDoesNotExist
+from irods.exception import ResourceDoesNotExist, NoResultFound
 
 import configparser
 import os
@@ -58,18 +59,38 @@ def connectIRODS(config):
             raise
         except EnvironmentError:
             print("INFO: Connect with python API")
-            passwd = getpass.getpass(
+            success = False
+            while not success:
+                passwd = getpass.getpass(
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-            ic = IrodsConnector(standardEnv, passwd)
-
+                ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
+                try:
+                    test = ic.session.pool.get_connection
+                    success = True
+                except Exception as e:
+                    print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
+                    res = input('Try again (Y/N): ')
+                    if res not in ['Y', 'y']:
+                        sys.exit(2)
         except Exception as e:
            raise
 
     elif os.path.exists(config['iRODS']['irodsenv']):
         print("INFO: Connect with python API")
-        passwd = getpass.getpass(
-                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-        ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
+        success = False
+        while not success:
+            passwd = getpass.getpass(
+                    'Password for '+config['iRODS']['irodsenv']+': ')
+            ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
+            try:
+                test = ic.session.pool.get_connection()
+                success = True
+            except Exception as e:
+                print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
+                res = input('Try again (Y/N): ')
+                if res not in ['Y', 'y']:
+                     sys.exit(2)
+        
         print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
 
     else:
@@ -103,30 +124,40 @@ def setupIRODS(config, operation):
             except:
                 print(RED+"Collection path not valid: "+ config['iRODS']['irodscoll']+DEFAULT)
 
-    #set iRODS resource, can be located in ibridges config or in irods_environment, ibridges gets priority
+    # Set iRODS resource
+    # Look in config, then in ienv
+
+    print(YEL+"Confirming resource in config: "+ config['iRODS']['irodsresc'])
     try:
         resource = ic.get_resource(config['iRODS']['irodsresc'])
-        if ic.resourceSize(resource.name) is None:
-            print(config['iRODS']['irodsresc']+ " upload capacity, free space: No  inofrmation")
-        else:
+        try:
             print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
-                str(round(int(ic.resourceSize(resource.name) * ic.multiplier)) + 'GB'))
-
-    except ResourceDoesNotExist:
+                str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
+        except FreeSpaceNotSet:
+            ic.ienv.setdefault('force_unknown_free_space', 'True')
+            print(config['iRODS']['irodsresc']+ " upload capacity, free space: No  inofrmation")
+    except (NoResultFound, ResourceDoesNotExist):
         print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
         try:
+            print(YEL+'Checking env-file: '+ic.default_resc)
             resource = ic.get_resource(ic.default_resc)
             config['iRODS']['irodsresc'] = ic.default_resc
+            try:
+                print(config['iRODS']['irodsresc']+ " upload capacity, free space: "+ \
+                    str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
+            except FreeSpaceNotSet:
+                ic.ienv.setdefault('force_unknown_free_space', 'True')
+                print(config['iRODS']['irodsresc']+ " upload capacity, free space: No  inofrmation")
         except:
-            print(RED+"No resource set in environment file either ('default_resource_name')"+DEFAULT)
+            print(RED+"No resource set in environment file either ('irods_resource_name')"+DEFAULT)
             print(RED+"ERROR: No resource set"+DEFAULT)
             ic.session.cleanup()
             sys.exit(2)
-        try:
-            print(ic.default_resc+" upload capacity, free space: " \
-                    +str(ic.resource_space(ic.default_resc)))
-        except:
-            print(ic.default_resc+ " upload capacity, free space: not set")
+    except:
+        print(RED+'iRODS resource not found: '+config['iRODS']['irodsresc']+DEFAULT)
+        print(RED+'No valid resource set.')
+        ic.session.cleanup()
+        sys.exit(2)
 
     return ic
     
@@ -232,7 +263,7 @@ def prepareDownload(irodsItemPath, ic, config):
 def printHelp():
     print('Data upload client')
     print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
-    print('Usage: ./iUpload.py -c, --config= \t config file')
+    print('Usage: ./irods-iBridgesCli.py -c, --config= \t config file')
     print('\t\t    -d, --data= \t datapath')
     print('\t\t    -i, --irods= \t irodspath (download)')
     print('Examples:')
@@ -262,11 +293,8 @@ def main(argv):
             try:
                config  = getConfig(arg)
             except:
-                try:
-                    config = getConfig('iUpload.config')
-                except:
-                    print(RED+'No config file found.'+DEFAULT)
-                    sys.exit(2)
+               print(RED+'No config file found.'+DEFAULT)
+               sys.exit(2)
         elif opt in ['-i', '--irods']:
             operation = 'download'
             if arg.endswith("/"):
@@ -341,6 +369,7 @@ def main(argv):
                 item = ic.session.collections.get(irodsDataPath)
             except:
                 item = ic.session.data_objects.get(irodsDataPath)
+            print(item, downloadDir)
             ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force = False)
             print()
             print(BLUE+'Download complete with the following parameters:')
