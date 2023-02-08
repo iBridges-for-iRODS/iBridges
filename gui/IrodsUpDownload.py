@@ -45,6 +45,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabUpDownload.ui", self)
+
+        print(type(self.logs))
         self.ic = ic
         self.ienv = ienv
         self.localmodel = None
