@@ -42,6 +42,41 @@ def getConfig(path):
     
     return args
 
+def annotateElab(annotation, ic, elab, coll, title = 'Data in iRODS'):
+    """
+    Example annotation
+    annotation = {
+            "Data size": f'{size} Bytes',
+            "iRODS path": coll.path,
+            "iRODS server": ic.session.host,
+            "iRODS user": ic.session.username,
+        }
+    """
+    # YODA: webdav URL does not contain "home", but iRODS path does!
+    if ic.davrods and ("yoda" in ic.session.host or "uu.nl" in ic.session.host):
+        elab.addMetadata(
+            ic.davrods+'/'+coll.path.split('home/')[1].strip(),
+            meta=annotation,
+            title=title)
+    elif ic.davrods and "surfsara.nl" in ic.session.host:
+        elab.addMetadata(
+            ic.davrods+'/'+coll.path.split(
+            ic.session.zone)[1].strip('/'),
+            meta=annotation,
+            title=title)
+    elif ic.davrods:
+        elab.addMetadata(
+            ic.davrods+'/'+coll.path.strip('/'),
+            meta=annotation,
+            title=title)
+    else:
+        host = ic.session.host
+        zone = ic.session.zone
+        name = ic.session.username
+        port = ic.session.port
+        path = coll.path
+        conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
+        elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
 
 def connectIRODS(config):
 
@@ -338,21 +373,37 @@ def main(argv):
                 iPath = config['iRODS']['irodscoll']
             iColl = ic.session.collections.get(iPath)
             dataPath = config["iRODS"]["uploadItem"]
-            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'], get_local_size([dataPath]), force=True)
+            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'], 
+                get_local_size([dataPath]), force=True)
         else:
             ic.session.cleanup()
             sys.exit(2)
         #tag data in iRODS and metadata store
         if md != None:
             coll = ic.session.collections.get(iPath)
-            items = []
-            for c, _, o in coll.walk():
-                items.extend([c]+o)
-            ic.addMetadata(items, 'PROVENANCE', md.metadataUrl)
-            if config['iRODS']['webdav']!='':
-                md.addMetadata(config['iRODS']['webdav']+iPath, title)
+            metadata = {
+                "iRODS path": coll.path,
+                "iRODS server": ic.session.host,
+                "iRODS user": ic.session.username,
+            }
+            if config["ELN"]["title"] == '':
+                annotateElab(metadata, ic, elab, coll, title = 'Data in iRODS')
             else:
-                md.addMetadata(ic.session.host+', '+iPath, title)
+                annotateElab(metadata, ic, md, coll, title = config["ELN"]["title"])
+
+            if os.path.isfile(dataPath):
+                item = ic.session.data_objects.get(
+                    coll.path+'/'+os.path.basename(dataPath))
+                ic.addMetadata([item], 'ELN', md.metadataUrl)
+            elif os.path.isdir(dataPath):
+                upColl = ic.session.collections.get(
+                            coll.path+'/'+os.path.basename(dataPath))
+                items = [upColl]
+                for c, _, objs in upColl.walk():
+                    items.append(c)
+                    items.extend(objs)
+                ic.addMetadata(items, 'ELN', md.metadataUrl)
+
         print()
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
