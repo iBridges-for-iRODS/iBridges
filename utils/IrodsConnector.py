@@ -1067,7 +1067,6 @@ class IrodsConnector():
                 'ERROR iRODS download: not a valid source path'
             )
         dst_path = utils.utils.LocalPath(dst_path)
-        cmp_path = dst_path.joinpath(src_path.name)
         if not dst_path.is_dir():
             logging.info(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
@@ -1080,16 +1079,18 @@ class IrodsConnector():
                 exc_info=True)
             raise PermissionError(
                 'ERROR iRODS download: No rights to write to destination.')
+        cmp_path = dst_path.joinpath(src_path.name)
+        # TODO perhaps treat this path as part of the diff
+        if self.is_collection(src_obj) and not cmp_path.is_dir():
+            os.mkdir(cmp_path)
         # Only download if not present or difference in files.
         if diffs is None:
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
                     src_path, cmp_path, scope="checksum")
             else:
-                if not dst_path.is_dir():
-                    os.mkdir(dst_path)
                 diff, _, only_irods, _ = self.diffIrodsLocalfs(
-                    src_obj, dst_path, scope="checksum")
+                    src_obj, cmp_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -1109,10 +1110,11 @@ class IrodsConnector():
             if self.is_dataobject(src_obj) and len(diff + only_irods) > 0:
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
-                    src_path, dst_path)
+                    src_path, cmp_path)
                 self.irods_get(
                     src_path, cmp_path, options=options)
             # Collection
+            # TODO add support for "downloading" empty collections?
             else:
                 logging.info("IRODS DOWNLOAD started:")
                 for irods_path, local_path in diff:
@@ -1126,10 +1128,9 @@ class IrodsConnector():
                     # Create subdirectories and download.
                     rel_path = utils.utils.PurePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
-                    local_path = dst_path.joinpath(
-                        src_path.name).joinpath(rel_path)
+                    local_path = cmp_path.joinpath(rel_path)
                     if not local_path.parent.is_dir():
-                        local_path.parent.mkdir()
+                        local_path.parent.mkdir(parents=True, exist_ok=True)
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
