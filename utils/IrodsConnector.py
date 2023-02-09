@@ -964,13 +964,9 @@ class IrodsConnector():
             Output of diff functions.
 
         """
-        if resc_name in [None, '']:
-            logging.info(
-                'iRODS UPLOAD: %s-->%s, no resource specified', src_path, dst_coll.path)
-        else:
-            logging.info(
-                'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
-                resc_name)
+        logging.info(
+            'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
+            resc_name or '')
         src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
