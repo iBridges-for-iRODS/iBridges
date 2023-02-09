@@ -20,6 +20,12 @@ from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 
 class elabUpload(QWidget, Ui_tabELNData):
+    """ELabJournal upload tab.
+
+    """
+    thread = None
+    worker = None
+
     def __init__(self, ic):
         """
 
@@ -30,9 +36,9 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.elab = None
         self.coll = None
         self.ic = ic
-        super(elabUpload, self).__init__()
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(elabUpload, self).setupUi(self)
+            super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabELNData.ui", self)
         # Selecting and uploading local files and folders
@@ -40,22 +46,21 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.localFsTable.setModel(self.dirmodel)
         self.localFsTable.setColumnHidden(1, True)
         self.localFsTable.setColumnHidden(2, True)
-        self.localFsTable.setColumnHidden(3, True) 
-        #self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.localFsTable.setColumnHidden(3, True)
+        # TODO remove commented commands that are not required?
+        # self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
-
         self.elnIrodsPath.setText(
                 '/'+self.ic.session.zone+'/home/'+self.ic.session.username)
-        #defining events and listeners
+        # defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
         self.elnUploadButton.clicked.connect(self.upload_data)
-    
-    
+
     def connectElab(self):
         self.errorLabel.clear()
         token = self.elnTokenInput.text()
@@ -83,7 +88,6 @@ class elabUpload(QWidget, Ui_tabELNData):
         if row > -1:
             expId = self.elnExperimentTable.item(row, 0).text()
             self.experimentIdLabel.setText(expId)
-
 
     def loadExperiments(self):
         self.errorLabel.clear()
@@ -147,7 +151,6 @@ class elabUpload(QWidget, Ui_tabELNData):
         expId = self.experimentIdLabel.text()
         index = self.localFsTable.selectedIndexes()[0]
         path = self.dirmodel.filePath(index)
-
         if groupId == "":
             self.errorLabel.setText("ERROR: No group selected.")
             # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
@@ -177,7 +180,6 @@ class elabUpload(QWidget, Ui_tabELNData):
             collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
             self.coll = self.ic.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
-    
             buttonReply = QMessageBox.question(
                 self.elnUploadButton,
                 'Message Box', "Upload\n" + path + '\n'+str(size)+'MB',
@@ -241,13 +243,12 @@ class Worker(QObject):
         self.expUrl = expUrl
         self.elab = elab
         self.errorLabel = errorLabel
-
         print("Start worker: ")
-
 
     def run(self):
         try:
             if os.path.isfile(self.filePath):
+                # TODO should all the "force"es here be configurable?
                 self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 item = self.ic.session.data_objects.get(
                         self.coll.path+'/'+os.path.basename(self.filePath))
