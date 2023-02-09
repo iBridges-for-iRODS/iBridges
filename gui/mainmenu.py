@@ -15,7 +15,6 @@ import utils
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
         super(QPlainTextEditLogger, self).__init__()
-
         self.widget = widget
         self.widget.setReadOnly(True)
 
@@ -50,19 +49,16 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
-
             # needed for Search
             self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
             self.tabWidget.addTab(self.irodsBrowser, "Browser")
-
             ui_tabs_lookup = {
                 "tabUpDownload": self.setupTabUpDownload,
                 "tabELNData": self.setupTabELNData,
-                "tabDataCompression": self.setupTabDataCompression,
+                "tabDataBundle": self.setupTabDataBundle,
                 "tabCreateTicket": self.setupTabCreateTicket,
             }
-
-            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""): 
+            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""):
                 # Setup up/download tab, index 1
                 for tab in ienv["ui_tabs"]:
                     if tab in ui_tabs_lookup:
@@ -79,9 +75,9 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
         self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic, self.ienv)
         self.tabWidget.addTab(self.createTicket, "Create access tokens")
 
-    def setupTabDataCompression(self, ic):
-        self.compressionTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
-        self.tabWidget.addTab(self.compressionTab, "Compress/bundle data")
+    def setupTabDataBundle(self, ic):
+        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
+        self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
 
     def setupTabELNData(self, ic):
         self.elnTab = gui.elabUpload.elabUpload(ic)
