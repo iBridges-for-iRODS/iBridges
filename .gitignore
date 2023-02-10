@@ -2,6 +2,7 @@
 .idea
 irods-basicGUI/logs/*
 irods-iBridgesGui.spec
+*DS_Store
 
 
 # Byte-compiled / optimized / DLL files
