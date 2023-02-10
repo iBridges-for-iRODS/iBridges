@@ -90,9 +90,9 @@ class Ui_tabTicketAccess(object):
         self.homeButton.setText("")
         icon = QtGui.QIcon()
         if getattr(sys, "frozen", False):
-            icon.addPixmap(QtGui.QPixmap("../gui/ui_files/../icons/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon.addPixmap(QtGui.QPixmap(r"../gui/ui_files/../icons/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         else:
-            icon.addPixmap(QtGui.QPixmap("gui/ui_files/../icons/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon.addPixmap(QtGui.QPixmap(r"gui/ui_files/../icons/home.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.homeButton.setIcon(icon)
         self.homeButton.setObjectName("homeButton")
         self.horizontalLayout_5.addWidget(self.homeButton)
@@ -130,9 +130,9 @@ class Ui_tabTicketAccess(object):
         self.downloadButton.setText("")
         icon1 = QtGui.QIcon()
         if getattr(sys, "frozen", False):
-            icon1.addPixmap(QtGui.QPixmap("../gui/ui_files/../icons/arrow-right.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon1.addPixmap(QtGui.QPixmap(r"../gui/ui_files/../icons/arrow-right.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         else:
-            icon1.addPixmap(QtGui.QPixmap("gui/ui_files/../icons/arrow-right.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+            icon1.addPixmap(QtGui.QPixmap(r"gui/ui_files/../icons/arrow-right.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.downloadButton.setIcon(icon1)
         self.downloadButton.setIconSize(QtCore.QSize(30, 30))
         self.downloadButton.setObjectName("downloadButton")

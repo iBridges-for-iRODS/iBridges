@@ -102,7 +102,7 @@ class Ui_tabDataBundle(object):
         _translate = QtCore.QCoreApplication.translate
         tabDataBundle.setWindowTitle(_translate("tabDataBundle", "Form"))
         self.label_2.setText(_translate("tabDataBundle", "(Un)Bundle Collections:"))
-        self.label.setText(_translate("tabDataBundle", "Select: resource / free GiB"))
+        self.label.setText(_translate("tabDataBundle", "Select: resource / free GB"))
         self.forceCheckBox.setText(_translate("tabDataBundle", "Force operations"))
         self.createButton.setText(_translate("tabDataBundle", "Create Bundle"))
         self.extractButton.setText(_translate("tabDataBundle", "Extract Bundle"))

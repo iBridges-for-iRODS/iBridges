@@ -168,7 +168,7 @@ class Ui_tabInfo(object):
         item = self.rescTable.horizontalHeaderItem(0)
         item.setText(_translate("tabInfo", "Name"))
         item = self.rescTable.horizontalHeaderItem(1)
-        item.setText(_translate("tabInfo", "Free space [GiB]"))
+        item.setText(_translate("tabInfo", "Free space [GB]"))
         item = self.rescTable.horizontalHeaderItem(2)
         item.setText(_translate("tabInfo", "Status"))
         self.label_8.setText(_translate("tabInfo", "Default resource"))
