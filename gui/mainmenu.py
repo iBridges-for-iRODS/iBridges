@@ -1,94 +1,103 @@
 """Main menu window definition
 
 """
+import logging
+import sys
+
 import PyQt6
 import PyQt6.QtWidgets
 import PyQt6.uic
 
+import gui
+import utils
 
 
-from PyQt6 import QtWidgets
-from PyQt6.QtWidgets import QDialog, QFileDialog, QApplication, QMainWindow, QMessageBox, QPushButton
-from PyQt6.uic import loadUi
-from PyQt6 import QtCore
-from PyQt6 import QtGui
+class QPlainTextEditLogger(logging.Handler):
+    def __init__(self, widget):
+        super(QPlainTextEditLogger, self).__init__()
+        self.widget = widget
+        self.widget.setReadOnly(True)
 
-from gui.IrodsBrowser import IrodsBrowser
-from gui.elabUpload import elabUpload
-from gui.irodsSearch import irodsSearch
-from gui.IrodsUpDownload import IrodsUpDownload
-from gui.IrodsDataBundle import IrodsDataBundle
-from gui.irodsInfo import irodsInfo
-from gui.irodsCreateTicket import irodsCreateTicket
-from gui.irodsTicketLogin import irodsTicketLogin
-from utils.utils import saveIenv
+    def emit(self, record):
+        msg = self.format(record)
+        self.widget.appendPlainText(msg)
 
-import sys
+    def write(self, m):
+        pass
 
 
-class mainmenu(QMainWindow):
+class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
     def __init__(self, widget, ic, ienv):
-        super(mainmenu, self).__init__()
-        loadUi('gui/ui-files/MainMenu.ui', self)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi('gui/ui_files/MainMenu.ui', self)
         self.ic = ic
-        # stackedWidget
+        # stackedWddidget
         self.widget = widget
         self.ienv = ienv
-
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-
         if not ienv or not ic:
             self.actionSearch.setEnabled(False)
             self.actionSaveConfig.setEnabled(False)
-            ticketAccessWidget = loadUi('gui/ui-files/tabTicketAccess.ui')
-            self.tabWidget.addTab(ticketAccessWidget, 'Ticket Access')
-            self.ticketAccessTab = irodsTicketLogin(ticketAccessWidget)
-
+            self.ticketAccessTab = gui.irodsTicketLogin.irodsTicketLogin()
+            self.tabWidget.addTab(self.ticketAccessTab, 'Ticket Access')
         else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
-
-            # tabBrowser needed for Search
-            self.browserWidget = loadUi('gui/ui-files/tabBrowser.ui')
-            self.tabWidget.addTab(self.browserWidget, 'Browser')
-            self.irodsBrowser = IrodsBrowser(self.browserWidget, ic)
-            # Optional tabs
-            if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
+            # needed for Search
+            self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
+            self.tabWidget.addTab(self.irodsBrowser, "Browser")
+            ui_tabs_lookup = {
+                "tabUpDownload": self.setupTabUpDownload,
+                "tabELNData": self.setupTabELNData,
+                "tabDataBundle": self.setupTabDataBundle,
+                "tabCreateTicket": self.setupTabCreateTicket,
+            }
+            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""):
                 # Setup up/download tab, index 1
-                if 'tabUpDownload' in ienv['ui_tabs']:
-                    updownloadWidget = loadUi('gui/ui-files/tabUpDownload.ui')
-                    self.tabWidget.addTab(updownloadWidget, 'Up and Download')
-                    self.updownload = IrodsUpDownload(updownloadWidget, ic, self.ienv)
-                # Elabjournal tab, index 2
-                if 'tabELNData' in ienv['ui_tabs']:
-                    elabUploadWidget = loadUi('gui/ui-files/tabELNData.ui')
-                    self.tabWidget.addTab(elabUploadWidget, 'ELN Data upload')
-                    self.elnTab = elabUpload(elabUploadWidget, ic)
-                # Data (un)bundle tab, index 3
-                if 'tabDataBundle' in ienv['ui_tabs']:
-                    dataBundleWidget = loadUi('gui/ui-files/tabDataBundle.ui')
-                    self.tabWidget.addTab(dataBundleWidget, '(Un)Bundle data')
-                    self.bundleTab = IrodsDataBundle(dataBundleWidget, ic, self.ienv)
-                # Grant access by tickets, index 4
-                if 'tabCreateTicket' in ienv['ui_tabs']:
-                    createTicketWidget = loadUi('gui/ui-files/tabTicketCreate.ui')
-                    self.tabWidget.addTab(createTicketWidget, 'Create access tokens')
-                    self.createTicket = irodsCreateTicket(createTicketWidget, ic, self.ienv)
-            # General info
-            self.infoWidget = loadUi('gui/ui-files/tabInfo.ui')
-            self.tabWidget.addTab(self.infoWidget, 'Info')
-            self.irodsInfo = irodsInfo(self.infoWidget, ic)
+                for tab in ienv["ui_tabs"]:
+                    if tab in ui_tabs_lookup:
+                        ui_tabs_lookup[tab](ic)
+                    else:
+                        logging.error("Unknown tab \"{uitab}\" defined in irods environment file".format(uitab=tab))
 
+            # general info
+            self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
+            self.tabWidget.addTab(self.irodsInfo, "Info")
             self.tabWidget.setCurrentIndex(0)
+
+    def setupTabCreateTicket(self, ic):
+        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
+        self.tabWidget.addTab(self.createTicket, "Create access tokens")
+
+    def setupTabDataBundle(self, ic):
+        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
+        self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
+
+    def setupTabELNData(self, ic):
+        self.elnTab = gui.elabUpload.elabUpload(ic)
+        self.tabWidget.addTab(self.elnTab, "ELN Data upload")
+
+    def setupTabUpDownload(self, ic):
+        self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
+                        ic, self.ienv)
+        self.tabWidget.addTab(self.updownload, "Data Transfers")
+        log_handler = QPlainTextEditLogger(self.updownload.logs)
+        logging.getLogger().addHandler(log_handler)
 
     # Connect functions
     def programExit(self):
         quit_msg = "Are you sure you want to exit the program?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
+        reply = PyQt6.QtWidgets.QMessageBox.question(
+            self, 'Message', quit_msg,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.No)
+        if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -97,11 +106,13 @@ class mainmenu(QMainWindow):
         else:
             pass
 
-
     def newSession(self):
         quit_msg = "Are you sure you want to disconnect?"
-        reply = QMessageBox.question(self, 'Message', quit_msg, QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if reply == QMessageBox.StandardButton.Yes:
+        reply = PyQt6.QtWidgets.QMessageBox.question(
+            self, 'Message', quit_msg,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
+            PyQt6.QtWidgets.QMessageBox.StandardButton.No)
+        if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
                 self.ic.session.cleanup()
             elif self.ticketAccessTab.ic:
@@ -110,19 +121,18 @@ class mainmenu(QMainWindow):
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
             currentWidget = self.widget.currentWidget()
-            currentWidget.init_envbox()
+            #currentWidget._init_envbox()
         else:
             pass
 
     def search(self):
-        search = irodsSearch(self.ic, self.browserWidget.collTable)
+        search = gui.irodsSearch.irodsSearch(
+            self.ic, self.irodsBrowser.collTable)
         search.exec()
 
-
     def saveConfig(self):
-        path = saveIenv(self.ienv)
+        path = utils.utils.save_irods_env(self.ienv)
         self.globalErrorLabel.setText("Environment saved to: "+path)
 
     def exportMeta(self):
         print("TODO: Metadata export")
-

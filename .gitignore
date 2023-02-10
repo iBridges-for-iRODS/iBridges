@@ -1,5 +1,8 @@
 # Local additions
 .idea
+irods-basicGUI/logs/*
+irods-iBridgesGui.spec
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

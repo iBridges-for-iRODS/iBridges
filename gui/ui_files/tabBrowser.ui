@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabBrowser</class>
+ <widget class="QWidget" name="tabBrowser">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
     <width>1278</width>
-    <height>807</height>
+    <height>813</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,10 +16,10 @@
   <property name="styleSheet">
    <string notr="true">QWidget
 {
-	color: rgb(86, 184, 139);
-	background-color: rgb(54, 54, 54);
+    color: rgb(86, 184, 139);
+    background-color: rgb(54, 54, 54);
     border-color: rgb(86, 184, 139);
-	selection-background-color: rgb(58, 152, 112);
+    selection-background-color: rgb(58, 152, 112);
 }
 
 QTabWidget
@@ -53,7 +53,37 @@ QPushButton#dataDeleteButton
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
+    <spacer name="verticalSpacer_13">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeType">
+      <enum>QSizePolicy::Minimum</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>10</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
     <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="font">
+        <font>
+         <pointsize>16</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>iRODS path: </string>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="1">
       <widget class="QLineEdit" name="inputPath">
        <property name="font">
@@ -78,27 +108,32 @@ QPushButton#dataDeleteButton
        </property>
       </widget>
      </item>
-     <item row="0" column="5">
-      <widget class="QPushButton" name="createCollButton">
-       <property name="text">
-        <string>Create Collection</string>
-       </property>
-      </widget>
-     </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_2">
-       <property name="font">
-        <font>
-         <pointsize>16</pointsize>
-         <bold>true</bold>
-        </font>
-       </property>
-       <property name="text">
-        <string>iRODS path: </string>
-       </property>
-      </widget>
-     </item>
      <item row="0" column="2">
+      <widget class="QPushButton" name="refreshButton">
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/refresh.png</normaloff>../icons/refresh.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QPushButton" name="parentButton">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>../icons/arrow-up.png</normaloff>../icons/arrow-up.png</iconset>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
       <widget class="QPushButton" name="homeButton">
        <property name="text">
         <string/>
@@ -109,37 +144,48 @@ QPushButton#dataDeleteButton
        </property>
       </widget>
      </item>
-     <item row="1" column="5">
-      <widget class="QPushButton" name="UploadButton">
-       <property name="text">
-        <string>File Upload</string>
-       </property>
-      </widget>
+     <item row="1" column="0">
+      <layout class="QHBoxLayout" name="horizontalLayout_4"/>
      </item>
-     <item row="1" column="2">
-      <widget class="QPushButton" name="DownloadButton">
-       <property name="text">
-        <string>File Download</string>
-       </property>
-      </widget>
+     <item row="1" column="1">
+      <layout class="QHBoxLayout" name="horizontalLayout_5">
+       <item>
+        <widget class="QPushButton" name="UploadButton">
+         <property name="text">
+          <string>File Upload</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="createCollButton">
+         <property name="text">
+          <string>Create Collection</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QPushButton" name="DownloadButton">
+         <property name="text">
+          <string>File Download</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
      </item>
     </layout>
-   </item>
-   <item>
-    <spacer name="verticalSpacer_13">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Minimum</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>10</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item>
     <widget class="QTableWidget" name="collTable">
@@ -222,11 +268,12 @@ QPushButton#dataDeleteButton
       <string notr="true"/>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="preview">
       <property name="font">
        <font>
+        <weight>50</weight>
         <bold>false</bold>
        </font>
       </property>
@@ -289,10 +336,93 @@ QPushButton#dataDeleteButton
        </item>
        <item>
         <layout class="QGridLayout" name="gridLayout_2">
+         <item row="0" column="0">
+          <widget class="QPushButton" name="metaLoadFile">
+           <property name="text">
+            <string>Load File</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="font">
+            <font>
+             <pointsize>20</pointsize>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Edit</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Key</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="1">
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Value</string>
+           </property>
+          </widget>
+         </item>
          <item row="5" column="2">
           <widget class="QLabel" name="label_5">
            <property name="text">
             <string>Units</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
+          <widget class="QLineEdit" name="metaKeyField"/>
+         </item>
+         <item row="7" column="1">
+          <widget class="QLineEdit" name="metaValueField"/>
+         </item>
+         <item row="7" column="2">
+          <widget class="QLineEdit" name="metaUnitsField"/>
+         </item>
+         <item row="8" column="0">
+          <widget class="QPushButton" name="metaAddButton">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Add</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="1">
+          <widget class="QPushButton" name="metaUpdateButton">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Update</string>
+           </property>
+          </widget>
+         </item>
+         <item row="8" column="2">
+          <widget class="QPushButton" name="metaDeleteButton">
+           <property name="font">
+            <font>
+             <weight>75</weight>
+             <bold>true</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Delete</string>
            </property>
           </widget>
          </item>
@@ -308,85 +438,6 @@ QPushButton#dataDeleteButton
             </size>
            </property>
           </spacer>
-         </item>
-         <item row="7" column="2">
-          <widget class="QLineEdit" name="metaUnitsField"/>
-         </item>
-         <item row="8" column="1">
-          <widget class="QPushButton" name="metaUpdateButton">
-           <property name="font">
-            <font>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Update</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="1">
-          <widget class="QLabel" name="label_6">
-           <property name="text">
-            <string>Value</string>
-           </property>
-          </widget>
-         </item>
-         <item row="8" column="2">
-          <widget class="QPushButton" name="metaDeleteButton">
-           <property name="font">
-            <font>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Delete</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="0">
-          <widget class="QLineEdit" name="metaKeyField"/>
-         </item>
-         <item row="1" column="0">
-          <widget class="QLabel" name="label_3">
-           <property name="font">
-            <font>
-             <pointsize>20</pointsize>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Edit</string>
-           </property>
-          </widget>
-         </item>
-         <item row="8" column="0">
-          <widget class="QPushButton" name="metaAddButton">
-           <property name="font">
-            <font>
-             <bold>true</bold>
-            </font>
-           </property>
-           <property name="text">
-            <string>Add</string>
-           </property>
-          </widget>
-         </item>
-         <item row="5" column="0">
-          <widget class="QLabel" name="label_4">
-           <property name="text">
-            <string>Key</string>
-           </property>
-          </widget>
-         </item>
-         <item row="7" column="1">
-          <widget class="QLineEdit" name="metaValueField"/>
-         </item>
-         <item row="0" column="0">
-          <widget class="QPushButton" name="metaLoadFile">
-           <property name="text">
-            <string>Load File</string>
-           </property>
-          </widget>
          </item>
         </layout>
        </item>
@@ -449,6 +500,7 @@ QPushButton#dataDeleteButton
            <property name="font">
             <font>
              <pointsize>20</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -464,9 +516,6 @@ QPushButton#dataDeleteButton
            </property>
           </widget>
          </item>
-         <item row="6" column="0">
-          <widget class="QLineEdit" name="aclUserField"/>
-         </item>
          <item row="4" column="1">
           <widget class="QLabel" name="label_8">
            <property name="text">
@@ -474,15 +523,41 @@ QPushButton#dataDeleteButton
            </property>
           </widget>
          </item>
-         <item row="6" column="1">
-          <widget class="QLineEdit" name="aclZoneField"/>
-         </item>
          <item row="4" column="2">
           <widget class="QLabel" name="label_10">
            <property name="text">
             <string>Access name</string>
            </property>
           </widget>
+         </item>
+         <item row="4" column="3">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Recursive</string>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="4">
+          <widget class="QCheckBox" name="aclAdminBox">
+           <property name="cursor">
+            <cursorShape>PointingHandCursor</cursorShape>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string>Admin</string>
+           </property>
+           <property name="checked">
+            <bool>false</bool>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLineEdit" name="aclUserField"/>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLineEdit" name="aclZoneField"/>
          </item>
          <item row="6" column="2">
           <widget class="QComboBox" name="aclBox">
@@ -523,15 +598,8 @@ QPushButton#dataDeleteButton
            </item>
           </widget>
          </item>
-         <item row="4" column="3">
-          <widget class="QLabel" name="label_7">
-           <property name="text">
-            <string>Recursive</string>
-           </property>
-          </widget>
-         </item>
          <item row="6" column="3">
-          <widget class="QComboBox" name="aclRecurseBox">
+          <widget class="QComboBox" name="recurseBox">
            <item>
             <property name="text">
              <string>False</string>
@@ -544,26 +612,11 @@ QPushButton#dataDeleteButton
            </item>
           </widget>
          </item>
-         <item row="4" column="4">
-          <widget class="QCheckBox" name="aclAdminBox">
-           <property name="cursor">
-            <cursorShape>PointingHandCursor</cursorShape>
-           </property>
-           <property name="styleSheet">
-            <string notr="true"/>
-           </property>
-           <property name="text">
-            <string>Admin</string>
-           </property>
-           <property name="checked">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
          <item row="6" column="4">
           <widget class="QPushButton" name="aclAddButton">
            <property name="font">
             <font>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>
@@ -584,6 +637,13 @@ QPushButton#dataDeleteButton
             </size>
            </property>
           </spacer>
+         </item>
+         <item row="9" column="0">
+          <widget class="QLabel" name="owner_label">
+           <property name="text">
+            <string>Object Owner: </string>
+           </property>
+          </widget>
          </item>
         </layout>
        </item>
@@ -663,6 +723,7 @@ QPushButton#dataDeleteButton
            <property name="font">
             <font>
              <pointsize>13</pointsize>
+             <weight>75</weight>
              <bold>true</bold>
             </font>
            </property>

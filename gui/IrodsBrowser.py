@@ -2,56 +2,65 @@
 
 """
 import logging
+import sys
 
 import irods.exception
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
+import PyQt6.uic
 
 import gui
 import meta
 import utils
 
 
-class IrodsBrowser:
+class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowser):
     """Browser view for iRODS session.
 
     """
-
     current_browser_row = -1
 
-    def __init__(self, widget, ic):
+    def __init__(self, ic):
         """Initialize an iRODS browser view.
 
+        Parameters
+        ----------
+        ic
+
         """
-        self.force = ic.ienv.get('force_unknown_free_space', False)
         self.ic = ic
-        self.widget = widget
-        self.widget.viewTabs.setCurrentIndex(0)
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi("gui/ui_files/tabBrowser.ui", self)
+        self.force = ic.ienv.get('force_unknown_free_space', False)
+        self.viewTabs.setCurrentIndex(0)
         # Browser table
-        self.widget.collTable.setColumnWidth(1, 399)
-        self.widget.collTable.setColumnWidth(2, 199)
-        self.widget.collTable.setColumnWidth(3, 399)
-        self.widget.collTable.setColumnWidth(0, 20)
+        self.collTable.setColumnWidth(0, 20)
+        self.collTable.setColumnWidth(1, 399)
+        self.collTable.setColumnWidth(2, 199)
+        self.collTable.setColumnWidth(3, 399)
         # Metadata table
-        self.widget.metadataTable.setColumnWidth(0, 199)
-        self.widget.metadataTable.setColumnWidth(1, 199)
-        self.widget.metadataTable.setColumnWidth(2, 199)
+        self.metadataTable.setColumnWidth(0, 199)
+        self.metadataTable.setColumnWidth(1, 199)
+        self.metadataTable.setColumnWidth(2, 199)
         # ACL table
-        self.widget.aclTable.setColumnWidth(0, 299)
-        self.widget.aclTable.setColumnWidth(1, 299)
+        self.aclTable.setColumnWidth(0, 299)
+        self.aclTable.setColumnWidth(1, 299)
         # If user is not a rodsadmin, hide Admin controls.
         user_type = ''
         try:
             user_type, _ = ic.get_user_info()
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
         if user_type != 'rodsadmin':
-            self.widget.aclAdminBox.hide()
+            self.aclAdminBox.hide()
         # Resource table
-        self.widget.resourceTable.setColumnWidth(0, 500)
-        self.widget.resourceTable.setColumnWidth(1, 90)
+        self.resourceTable.setColumnWidth(0, 500)
+        self.resourceTable.setColumnWidth(1, 90)
         # iRODS defaults
         if 'irods_cwd' in ic.ienv:
             root_path = ic.ienv['irods_cwd']
@@ -64,78 +73,86 @@ class IrodsBrowser:
         except irods.exception.CollectionDoesNotExist:
             self.root_coll = ic.get_collection(f'/{ic.session.zone}/home')
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                 'iRODS NETWORK ERROR: No Connection, please check network')
-        # self.current_browser_row = -1
-        self.browse()   # defines the signals and slots
         self.resetPath()
+        self.browse()
 
     def browse(self):
-        """Initialize browser view GUI elements.
+        """Initialize browser view GUI elements.  Defines the signals
+        and slots.
 
         """
         # update main table when iRODS path is changed upon 'Enter'
-        self.widget.inputPath.returnPressed.connect(self.loadTable)
-        self.widget.inputPath.textChanged.connect(self.loadTable)
-
-        self.widget.homeButton.clicked.connect(self.resetPath)
-
+        self.inputPath.returnPressed.connect(self.loadTable)
+        self.refreshButton.clicked.connect(self.loadTable)
+        self.homeButton.clicked.connect(self.resetPath)
+        self.parentButton.clicked.connect(self.set_parent_path)
         # quick data upload and download (files only)
-        self.widget.UploadButton.clicked.connect(self.fileUpload)
-        self.widget.DownloadButton.clicked.connect(self.fileDownload)
-
+        self.UploadButton.clicked.connect(self.fileUpload)
+        self.DownloadButton.clicked.connect(self.fileDownload)
         # new collection
-        self.widget.createCollButton.clicked.connect(self.createCollection)
-        self.widget.dataDeleteButton.clicked.connect(self.deleteData)
-        self.widget.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
-
+        self.createCollButton.clicked.connect(self.createCollection)
+        self.dataDeleteButton.clicked.connect(self.deleteData)
+        self.loadDeleteSelectionButton.clicked.connect(self.loadSelection)
         # functionality to lower tabs for metadata, acls and resources
-        self.widget.collTable.doubleClicked.connect(self.updatePath)
-        self.widget.collTable.clicked.connect(self.fillInfo)
-        self.widget.metadataTable.clicked.connect(self.edit_metadata)
-        self.widget.aclTable.clicked.connect(self.edit_acl)
+        self.collTable.doubleClicked.connect(self.updatePath)
+        self.collTable.clicked.connect(self.fillInfo)
+        self.metadataTable.clicked.connect(self.edit_metadata)
+        self.aclTable.clicked.connect(self.edit_acl)
         # actions to update iCat entries of metadata and acls
-        self.widget.metaAddButton.clicked.connect(self.addIcatMeta)
-        self.widget.metaUpdateButton.clicked.connect(self.updateIcatMeta)
-        self.widget.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
-        self.widget.metaLoadFile.clicked.connect(self.loadMetadataFile)
-        self.widget.aclAddButton.clicked.connect(self.update_icat_acl)
+        self.metaAddButton.clicked.connect(self.addIcatMeta)
+        self.metaUpdateButton.clicked.connect(self.updateIcatMeta)
+        self.metaDeleteButton.clicked.connect(self.deleteIcatMeta)
+        self.metaLoadFile.clicked.connect(self.loadMetadataFile)
+        self.aclAddButton.clicked.connect(self.update_icat_acl)
 
-    # Util functions
     def _clear_error_label(self):
         """Clear any error text.
 
         """
-        self.widget.errorLabel.clear()
+        self.errorLabel.clear()
 
     def _clear_view_tabs(self):
         """Clear the tabs view.
 
         """
-        self.widget.aclTable.setRowCount(0)
-        self.widget.metadataTable.setRowCount(0)
-        self.widget.resourceTable.setRowCount(0)
-        self.widget.previewBrowser.clear()
+        self.aclTable.setRowCount(0)
+        self.metadataTable.setRowCount(0)
+        self.resourceTable.setRowCount(0)
+        self.previewBrowser.clear()
 
     def _fill_resources_tab(self, obj_path):
         """Populate the table in the Resources tab with the resource
-        hierarchy of the replicas of the selected data object.
+        hierarchy of the replicas of the selected data object.  The
+        hierarchy best describes the logical location where a replica
+        is stored for both simple and complex hierarchies.
 
         Parameters
         ----------
         obj_path : str
-            Path of iRODS collection or data object selected.
+            Path of iRODS data object selected.
 
         """
-        self.widget.resourceTable.setRowCount(0)
+        # TODO look at the different ways to display resource
+        #  information.  A simple hierarchy per replica is the most
+        #  direct.  An alternate view of full replica details can
+        #  enhance this
+        self.resourceTable.setRowCount(0)
         if self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
-            hierarchies = [(repl.number, repl.resc_hier) for repl in obj.replicas]
-            self.widget.resourceTable.setRowCount(len(hierarchies))
-            for repl_num, hierarchy in hierarchies:
-                self.widget.resourceTable.setItem(
-                    repl_num, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
-        self.widget.resourceTable.resizeColumnsToContents()
+            hierarchies = [repl.resc_hier for repl in obj.replicas]
+            replicas = [resc.resource_name for resc in obj.replicas]
+            self.resourceTable.setRowCount(len(hierarchies))
+            for row, hierarchy in enumerate(hierarchies):
+                self.resourceTable.setItem(
+                    row, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
+                for repl in replicas:
+                    item = PyQt6.QtWidgets.QTableWidgetItem()
+                    item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
+                    item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
+                    self.resourceTable.setItem(row, 1, item)
+        self.resourceTable.resizeColumnsToContents()
 
     def _fill_acls_tab(self, obj_path):
         """Populate the table in the ACLs tab.
@@ -146,10 +163,10 @@ class IrodsBrowser:
             Path of iRODS collection or data object selected.
 
         """
-        self.widget.aclTable.setRowCount(0)
-        self.widget.aclUserField.clear()
-        self.widget.aclZoneField.clear()
-        self.widget.aclBox.setCurrentText('')
+        self.aclTable.setRowCount(0)
+        self.aclUserField.clear()
+        self.aclZoneField.clear()
+        self.aclBox.setCurrentText('')
         obj = None
         if self.ic.collection_exists(obj_path):
             obj = self.ic.session.collections.get(obj_path)
@@ -160,18 +177,19 @@ class IrodsBrowser:
             if self.ic.is_collection(obj):
                 inheritance = obj.inheritance
             acls = self.ic.get_permissions(obj=obj)
-            self.widget.aclTable.setRowCount(len(acls))
+            self.aclTable.setRowCount(len(acls))
             for row, acl in enumerate(acls):
                 acl_access_name = self.ic.permissions[acl.access_name]
-                self.widget.aclTable.setItem(
+                self.aclTable.setItem(
                     row, 0, PyQt6.QtWidgets.QTableWidgetItem(acl.user_name))
-                self.widget.aclTable.setItem(
+                self.aclTable.setItem(
                     row, 1, PyQt6.QtWidgets.QTableWidgetItem(acl.user_zone))
-                self.widget.aclTable.setItem(
+                self.aclTable.setItem(
                     row, 2, PyQt6.QtWidgets.QTableWidgetItem(acl_access_name))
-                self.widget.aclTable.setItem(
+                self.aclTable.setItem(
                     row, 3, PyQt6.QtWidgets.QTableWidgetItem(str(inheritance)))
-        self.widget.aclTable.resizeColumnsToContents()
+        self.aclTable.resizeColumnsToContents()
+        self.owner_label.setText(f'Owner: {obj.owner_name}')
 
     def _fill_metadata_tab(self, obj_path):
         """Populate the table in the metadata tab.
@@ -182,9 +200,9 @@ class IrodsBrowser:
             Full name of iRODS collection or data object selected.
 
         """
-        self.widget.metaKeyField.clear()
-        self.widget.metaValueField.clear()
-        self.widget.metaUnitsField.clear()
+        self.metaKeyField.clear()
+        self.metaValueField.clear()
+        self.metaUnitsField.clear()
 
         obj = None
         if self.ic.collection_exists(obj_path):
@@ -193,15 +211,15 @@ class IrodsBrowser:
             obj = self.ic.session.data_objects.get(obj_path)
         if obj is not None:
             metadata = obj.metadata.items()
-            self.widget.metadataTable.setRowCount(len(metadata))
+            self.metadataTable.setRowCount(len(metadata))
             for row, avu in enumerate(metadata):
-                self.widget.metadataTable.setItem(
+                self.metadataTable.setItem(
                     row, 0, PyQt6.QtWidgets.QTableWidgetItem(avu.name))
-                self.widget.metadataTable.setItem(
+                self.metadataTable.setItem(
                     row, 1, PyQt6.QtWidgets.QTableWidgetItem(avu.value))
-                self.widget.metadataTable.setItem(
+                self.metadataTable.setItem(
                     row, 2, PyQt6.QtWidgets.QTableWidgetItem(avu.units))
-        self.widget.metadataTable.resizeColumnsToContents()
+        self.metadataTable.resizeColumnsToContents()
 
     def _fill_preview_tab(self, obj_path):
         """Populate the table in the metadata tab.
@@ -220,7 +238,7 @@ class IrodsBrowser:
             content.extend(['\n', 'DataObjects:', '-----------------'])
             content.extend([do.name for do in obj.data_objects])
             preview_string = '\n'.join(content)
-            self.widget.previewBrowser.append(preview_string)
+            self.previewBrowser.append(preview_string)
         elif self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
             file_type = utils.utils.IrodsPath(obj_path).suffix[1:]
@@ -228,24 +246,24 @@ class IrodsBrowser:
                 try:
                     with obj.open('r') as objfd:
                         preview_string = objfd.read(1024).decode('utf-8')
-                    self.widget.previewBrowser.append(preview_string)
+                    self.previewBrowser.append(preview_string)
                 except Exception as error:
-                    self.widget.previewBrowser.append(
+                    self.previewBrowser.append(
                         f'No Preview for: {obj_path}')
-                    self.widget.previewBrowser.append(repr(error))
-                    self.widget.previewBrowser.append(
+                    self.previewBrowser.append(repr(error))
+                    self.previewBrowser.append(
                         "Storage resource might be down.")
             else:
-                self.widget.previewBrowser.append(
+                self.previewBrowser.append(
                     f'No Preview for: {obj_path}')
 
     def _get_object_path_name(self, row):
         """"""
-        if self.widget.collTable.item(row, 0).text() != '':
-            obj_path = self.widget.collTable.item(row, 0).text()
+        if self.collTable.item(row, 0).text() != '':
+            obj_path = self.collTable.item(row, 0).text()
         else:
-            obj_path = self.widget.inputPath.text()
-        obj_name = self.widget.collTable.item(row, 1).text()
+            obj_path = self.inputPath.text()
+        obj_name = self.collTable.item(row, 1).text()
         return obj_path, obj_name
 
     # @TODO: Add a proper data model for the table model
@@ -259,7 +277,7 @@ class IrodsBrowser:
         return item
 
     def _get_selected_objects(self):
-        rows = {row.row() for row in self.widget.collTable.selectedIndexes()}
+        rows = {row.row() for row in self.collTable.selectedIndexes()}
         objects = []
         for row in rows:
             item = self._get_irods_item_of_table_row(row)
@@ -272,38 +290,44 @@ class IrodsBrowser:
         try:
             self._clear_error_label()
             self._clear_view_tabs()
-            obj_path = utils.utils.IrodsPath(self.widget.inputPath.text())
+            obj_path = utils.utils.IrodsPath(self.inputPath.text())
             if self.ic.collection_exists(obj_path):
                 coll = self.ic.get_collection(obj_path)
-                self.widget.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
+                self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
                 row = 0
                 for subcoll in coll.subcollections:
-                    self.widget.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(subcoll.name+"/"))
-                    self.widget.collTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    self.widget.collTable.setItem(row, 3, PyQt6.QtWidgets.QTableWidgetItem(""))
-                    self.widget.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+                    self.collTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.collTable.setItem(row, 3, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
                     row = row+1
                 for obj in coll.data_objects:
-                    self.widget.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(obj.name))
-                    self.widget.collTable.setItem(
+                    self.collTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(obj.name))
+                    self.collTable.setItem(
                         row, 2, PyQt6.QtWidgets.QTableWidgetItem(str(obj.size)))
-                    self.widget.collTable.setItem(
+                    self.collTable.setItem(
                         row, 3, PyQt6.QtWidgets.QTableWidgetItem(str(obj.checksum)))
-                    self.widget.collTable.setItem(
+                    self.collTable.setItem(
                         row, 4, PyQt6.QtWidgets.QTableWidgetItem(str(obj.modify_time)))
-                    self.widget.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
+                    self.collTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(""))
                     row = row+1
-                self.widget.collTable.resizeColumnsToContents()
+                self.collTable.resizeColumnsToContents()
             else:
-                self.widget.collTable.setRowCount(0)
-                self.widget.errorLabel.setText("Collection does not exist.")
+                self.collTable.setRowCount(0)
+                self.errorLabel.setText("Collection does not exist.")
         except irods.exception.NetworkException:
             logging.exception("Something went wrong")
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
 
+    def set_parent_path(self):
+        current_path = utils.utils.IrodsPath(self.inputPath.text())
+        self.inputPath.setText(current_path.parent)
+        self.loadTable()
+
     def resetPath(self):
-        self.widget.inputPath.setText(self.root_coll.path)
+        self.inputPath.setText(self.root_coll.path)
+        self.loadTable()
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def updatePath(self, index):
@@ -312,16 +336,17 @@ class IrodsBrowser:
         obj_path, obj_name = self._get_object_path_name(row)
         full_path = utils.utils.IrodsPath(obj_path, obj_name)
         if self.ic.collection_exists(full_path):
-            self.widget.inputPath.setText(full_path)
+            self.inputPath.setText(full_path)
+            self.loadTable()
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def fillInfo(self, index):
         self._clear_error_label()
         self._clear_view_tabs()
 
-        self.widget.metadataTable.setRowCount(0)
-        self.widget.aclTable.setRowCount(0)
-        self.widget.resourceTable.setRowCount(0)
+        self.metadataTable.setRowCount(0)
+        self.aclTable.setRowCount(0)
+        self.resourceTable.setRowCount(0)
 
         row = index.row()
         self.current_browser_row = row
@@ -336,47 +361,46 @@ class IrodsBrowser:
             self._fill_resources_tab(obj_path)
         except Exception as e:
             logging.info('ERROR in Browser',exc_info=True)
-            self.widget.errorLabel.setText(repr(e))
+            self.errorLabel.setText(repr(e))
 
     def loadSelection(self):
         # loads selection from main table into delete tab
-        self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
-        self.widget.deleteSelectionBrowser.clear()
-        path_name = self.widget.inputPath.text()
-        row = self.widget.collTable.currentRow()
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
+        self.deleteSelectionBrowser.clear()
+        path_name = self.inputPath.text()
+        row = self.collTable.currentRow()
         if row > -1:
-            obj_name = self.widget.collTable.item(row, 1).text()
+            obj_name = self.collTable.item(row, 1).text()
             obj_path = "/"+path_name.strip("/")+"/"+obj_name.strip("/")
             try:
                 if self.ic.session.collections.exists(obj_path):
-                    irodsDict = utils.utils.walkToDict(self.ic.session.collections.get(obj_path))
+                    irodsDict = utils.utils.get_coll_dict(self.ic.session.collections.get(obj_path))
                 elif self.ic.session.data_objects.exists(obj_path):
                     irodsDict = {self.ic.session.data_objects.get(obj_path).path: []}
                 else:
-                    self.widget.errorLabel.setText("Load: nothing selected.")
+                    self.errorLabel.setText("Load: nothing selected.")
                     pass
-
                 for key in list(irodsDict.keys())[:20]:
-                    self.widget.deleteSelectionBrowser.append(key)
+                    self.deleteSelectionBrowser.append(key)
                     if len(irodsDict[key]) > 0:
                         for item in irodsDict[key]:
-                            self.widget.deleteSelectionBrowser.append('\t'+item)
-                self.widget.deleteSelectionBrowser.append('...')
+                            self.deleteSelectionBrowser.append('\t'+item)
+                self.deleteSelectionBrowser.append('...')
             except irods.exception.NetworkException:
-                self.widget.errorLabel.setText(
+                self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
-                self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-        self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+                self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
 
     def deleteData(self):
         # Deletes all data in the deleteSelectionBrowser
-        self.widget.errorLabel.clear()
-        data = self.widget.deleteSelectionBrowser.toPlainText().split('\n')
+        self.errorLabel.clear()
+        data = self.deleteSelectionBrowser.toPlainText().split('\n')
         if data[0] != '':
             deleteItem = data[0].strip()
             quit_msg = "Delete all data in \n\n"+deleteItem+'\n'
             reply = PyQt6.QtWidgets.QMessageBox.question(
-                self.widget, 'Message', quit_msg,
+                self, 'Message', quit_msg,
                 PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
                 PyQt6.QtWidgets.QMessageBox.StandardButton.No)
             if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
@@ -386,147 +410,142 @@ class IrodsBrowser:
                     else:
                         item = self.ic.session.data_objects.get(deleteItem)
                     self.ic.deleteData(item)
-                    self.widget.deleteSelectionBrowser.clear()
+                    self.deleteSelectionBrowser.clear()
                     self.loadTable()
-                    self.widget.errorLabel.clear()
+                    self.errorLabel.clear()
 
                 except Exception as error:
-                    self.widget.errorLabel.setText("ERROR DELETE DATA: "+repr(error))
+                    self.errorLabel.setText("ERROR DELETE DATA: "+repr(error))
 
     def createCollection(self):
-        parent = "/"+self.widget.inputPath.text().strip("/")
+        parent = "/"+self.inputPath.text().strip("/")
         creteCollWidget = gui.popupWidgets.irodsCreateCollection(parent, self.ic)
         creteCollWidget.exec()
         self.loadTable()
 
     def fileUpload(self):
-        from utils.utils import getSize
-        dialog = PyQt6.QtWidgets.QFileDialog(self.widget)
-        fileSelect = PyQt6.QtWidgets.QFileDialog.getOpenFileName(self.widget,
+        # TODO determine if this unused variable is required
+        # dialog = PyQt6.QtWidgets.QFileDialog(self)
+        fileSelect = PyQt6.QtWidgets.QFileDialog.getOpenFileName(self,
                         "Open File", "","All Files (*);;Python Files (*.py)")
-        size = getSize([fileSelect[0]])
+        size = utils.utils.get_local_size([fileSelect[0]])
         buttonReply = PyQt6.QtWidgets.QMessageBox.question(
-            self.widget, 'Message Box', "Upload " + fileSelect[0],
+            self, 'Message Box', "Upload " + fileSelect[0],
             PyQt6.QtWidgets.QMessageBox.StandardButton.Yes | PyQt6.QtWidgets.QMessageBox.StandardButton.No,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             try:
-                parentColl = self.ic.session.collections.get("/"+self.widget.inputPath.text().strip("/"))
-                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
+                parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
                 self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=self.force)
                 self.loadTable()
             except irods.exception.NetworkException:
-                self.widget.errorLabel.setText(
+                self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
                 print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
-                self.widget.errorLabel.setText(repr(error))
-                raise error
-        else:
-            pass
+                self.errorLabel.setText(repr(error))
 
     def fileDownload(self):
         if self.current_browser_row == -1:
-            self.widget.errorLabel.setText('Please select an object first!')
+            self.errorLabel.setText('Please select an object first!')
             return
-        #If table is filled
-        if self.widget.collTable.item(self.current_browser_row, 1) != None:
-            objName = self.widget.collTable.item(self.current_browser_row, 1).text()
-            if self.widget.collTable.item(self.current_browser_row, 0).text() == '':
-                parent = self.widget.inputPath.text()
+        # If table is filled
+        if self.collTable.item(self.current_browser_row, 1) is not None:
+            objName = self.collTable.item(self.current_browser_row, 1).text()
+            if self.collTable.item(self.current_browser_row, 0).text() == '':
+                parent = self.inputPath.text()
             else:
-                parent = self.widget.collTable.item(self.current_browser_row, 0).text()
+                parent = self.collTable.item(self.current_browser_row, 0).text()
             try:
                 if self.ic.session.data_objects.exists(parent+'/'+objName):
-                    downloadDir = utils.utils.getDownloadDir()
+                    downloadDir = utils.utils.get_downloads_dir()
                     buttonReply = PyQt6.QtWidgets.QMessageBox.question(
-                        self.widget, 'Message Box',
+                        self, 'Message Box',
                         'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                     if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
                         obj = self.ic.session.data_objects.get(parent+'/'+objName)
                         self.ic.download_data(obj, downloadDir, obj.size)
-                        self.widget.errorLabel.setText("File downloaded to: "+downloadDir)
+                        self.errorLabel.setText("File downloaded to: "+downloadDir)
             except irods.exception.NetworkException:
-                self.widget.errorLabel.setText(
+                self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
                 print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
-                self.widget.errorLabel.setText(repr(error))
+                self.errorLabel.setText(repr(error))
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def edit_metadata(self, index):
         self._clear_error_label()
-        self.widget.metaValueField.clear()
-        self.widget.metaUnitsField.clear()
+        self.metaValueField.clear()
+        self.metaUnitsField.clear()
         row = index.row()
-        key = self.widget.metadataTable.item(row, 0).text()
-        value = self.widget.metadataTable.item(row, 1).text()
-        units = self.widget.metadataTable.item(row, 2).text()
-        self.widget.metaKeyField.setText(key)
-        self.widget.metaValueField.setText(value)
-        self.widget.metaUnitsField.setText(units)
+        key = self.metadataTable.item(row, 0).text()
+        value = self.metadataTable.item(row, 1).text()
+        units = self.metadataTable.item(row, 2).text()
+        self.metaKeyField.setText(key)
+        self.metaValueField.setText(value)
+        self.metaUnitsField.setText(units)
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
     def edit_acl(self, index):
         self._clear_error_label()
-        self.widget.aclUserField.clear()
-        self.widget.aclZoneField.clear()
-        self.widget.aclBox.setCurrentText('')
+        self.aclUserField.clear()
+        self.aclZoneField.clear()
+        self.aclBox.setCurrentText('')
         row = index.row()
-        user_name = self.widget.aclTable.item(row, 0).text()
-        user_zone = self.widget.aclTable.item(row, 1).text()
-        acc_name = self.widget.aclTable.item(row, 2).text()
-        self.widget.aclUserField.setText(user_name)
-        self.widget.aclZoneField.setText(user_zone)
-        self.widget.aclBox.setCurrentText(acc_name)
+        user_name = self.aclTable.item(row, 0).text()
+        user_zone = self.aclTable.item(row, 1).text()
+        acc_name = self.aclTable.item(row, 2).text()
+        self.aclUserField.setText(user_name)
+        self.aclZoneField.setText(user_zone)
+        self.aclBox.setCurrentText(acc_name)
 
     def update_icat_acl(self):
         if self.current_browser_row == -1:
-            self.widget.errorLabel.setText('Please select an object first!')
+            self.errorLabel.setText('Please select an object first!')
             return
-        self.widget.errorLabel.clear()
+        self.errorLabel.clear()
         errors = {}
         obj_path, obj_name = self._get_object_path_name(self.current_browser_row)
         obj_path = utils.utils.IrodsPath(obj_path, obj_name)
-        user_name = self.widget.aclUserField.text()
+        user_name = self.aclUserField.text()
         if not user_name:
             errors['User name'] = None
-        user_zone = self.widget.aclZoneField.text()
-        acc_name = self.widget.aclBox.currentText()
+        user_zone = self.aclZoneField.text()
+        acc_name = self.aclBox.currentText()
         if not acc_name:
             errors['Access name'] = None
         if acc_name.endswith('inherit'):
             if self.ic.dataobject_exists(obj_path):
-                self.widget.errorLabel.setText(
+                self.errorLabel.setText(
                     'WARNING: (no)inherit is not applicable to data objects')
                 return
             errors.pop('User name', None)
         if len(errors):
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                 f'Missing input: {", ".join(errors.keys())}')
             return
-        recursive = self.widget.aclRecurseBox.currentText() == 'True'
-        admin = self.widget.aclAdminBox.isChecked()
+        recursive = self.recurseBox.currentText() == 'True'
+        admin = self.aclAdminBox.isChecked()
         try:
             self.ic.set_permissions(
                 acc_name, obj_path, user_name, user_zone, recursive, admin)
             self._fill_acls_tab(obj_path)
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
-
         except Exception as error:
-            self.widget.errorLabel.setText(repr(error))
+            self.errorLabel.setText(repr(error))
 
     def updateIcatMeta(self):
         if self.current_browser_row == -1:
-            self.widget.errorLabel.setText('Please select an object first!')
+            self.errorLabel.setText('Please select an object first!')
             return
-        self.widget.errorLabel.clear()
-        newKey = self.widget.metaKeyField.text()
-        newVal = self.widget.metaValueField.text()
-        newUnits = self.widget.metaUnitsField.text()
+        self.errorLabel.clear()
+        newKey = self.metaKeyField.text()
+        newVal = self.metaValueField.text()
+        newUnits = self.metaUnitsField.text()
         try:
             if newKey != "" and newVal != "":
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
@@ -535,20 +554,19 @@ class IrodsBrowser:
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                 "iRODS NETWORK ERROR: No Connection, please check network")
-
         except Exception as error:
-            self.widget.errorLabel.setText(repr(error))
+            self.errorLabel.setText(repr(error))
 
     def addIcatMeta(self):
         if self.current_browser_row == -1:
-            self.widget.errorLabel.setText('Please select an object first!')
+            self.errorLabel.setText('Please select an object first!')
             return
-        self.widget.errorLabel.clear()
-        newKey = self.widget.metaKeyField.text()
-        newVal = self.widget.metaValueField.text()
-        newUnits = self.widget.metaUnitsField.text()
+        self.errorLabel.clear()
+        newKey = self.metaKeyField.text()
+        newVal = self.metaValueField.text()
+        newUnits = self.metaUnitsField.text()
         if newKey != "" and newVal != "":
             try:
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
@@ -556,20 +574,19 @@ class IrodsBrowser:
                 self._fill_metadata_tab(item.path)
                 self._fill_resources_tab(item.path)
             except irods.exception.NetworkException:
-                self.widget.errorLabel.setText(
+                self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
-
             except Exception as error:
-                self.widget.errorLabel.setText(repr(error))
+                self.errorLabel.setText(repr(error))
 
     def deleteIcatMeta(self):
         if self.current_browser_row == -1:
-            self.widget.errorLabel.setText('Please select an object first!')
+            self.errorLabel.setText('Please select an object first!')
             return
-        self.widget.errorLabel.clear()
-        key = self.widget.metaKeyField.text()
-        val = self.widget.metaValueField.text()
-        units = self.widget.metaUnitsField.text()
+        self.errorLabel.clear()
+        key = self.metaKeyField.text()
+        val = self.metaValueField.text()
+        units = self.metaUnitsField.text()
         try:
             if key != "" and val != "":
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
@@ -577,18 +594,17 @@ class IrodsBrowser:
 
                 self._fill_metadata_tab(item.path)
         except irods.exception.NetworkException:
-            self.widget.errorLabel.setText(
+            self.errorLabel.setText(
                 "iRODS NETWORK ERROR: No Connection, please check network")
-
         except Exception as error:
-            self.widget.errorLabel.setText(repr(error))
+            self.errorLabel.setText(repr(error))
 
     def loadMetadataFile(self):
         path, filter = PyQt6.QtWidgets.QFileDialog.getOpenFileName(
             None, 'Select file', '',
             'Metadata files (*.csv *.json *.xml);;All files (*)')
         if path:
-            self.widget.errorLabel.clear()
+            self.errorLabel.clear()
             items = self._get_selected_objects()
             avus = meta.metadataFileParser.parse(path)
             if len(items) and len(avus):

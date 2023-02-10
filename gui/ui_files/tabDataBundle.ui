@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabDataBundle</class>
+ <widget class="QWidget" name="tabDataBundle">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -38,6 +38,7 @@ QLabel#statusLabel
      <property name="font">
       <font>
        <pointsize>13</pointsize>
+       <weight>75</weight>
        <bold>true</bold>
       </font>
      </property>
@@ -91,7 +92,7 @@ QLabel#statusLabel
          <item>
           <widget class="QLabel" name="label">
            <property name="text">
-            <string>Select: resource / free GiB</string>
+            <string>Select: resource / free GB</string>
            </property>
           </widget>
          </item>
@@ -137,6 +138,7 @@ QLabel#statusLabel
         <widget class="QPushButton" name="createButton">
          <property name="font">
           <font>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -149,6 +151,7 @@ QLabel#statusLabel
         <widget class="QPushButton" name="extractButton">
          <property name="font">
           <font>
+           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
