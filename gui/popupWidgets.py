@@ -26,6 +26,7 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
         else:
             loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create iRODS collection")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.ic = ic
         self.parent = parent
         self.label.setText(self.parent + "/")
@@ -52,6 +53,7 @@ class createDirectory(QDialog, Ui_createCollection):
         else:
             loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create directory")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.parent = parent
         self.label.setText(self.parent + os.sep)
         self.buttonBox.accepted.connect(self.accept)
@@ -77,6 +79,7 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         else:
             loadUi("gui/ui_files/irodsIndexPopup.ui", self)
         self.setWindowTitle("iRODS Tar/Zip index.")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.indexLabel.setText("Index of " + tarFilePath + ":")
         self.tabWidget.setCurrentIndex(0)
         self.closeButton.clicked.connect(self.closeWindow)

@@ -9,10 +9,10 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 
 class Ui_tabUpDownload(object):
-    def setupUi(self, tabUpDownload):
-        tabUpDownload.setObjectName("tabUpDownload")
-        tabUpDownload.resize(1234, 776)
-        tabUpDownload.setStyleSheet("QWidget\n"
+    def setupUi(self, Form):
+        Form.setObjectName("Form")
+        Form.resize(1234, 720)
+        Form.setStyleSheet("QWidget\n"
 "{\n"
 "    color: rgb(86, 184, 139);\n"
 "    background-color: rgb(54, 54, 54);\n"
@@ -43,7 +43,7 @@ class Ui_tabUpDownload(object):
 "{\n"
 "    color: rgb(217, 174, 23);\n"
 "}")
-        self.layoutWidget = QtWidgets.QWidget(tabUpDownload)
+        self.layoutWidget = QtWidgets.QWidget(Form)
         self.layoutWidget.setGeometry(QtCore.QRect(10, 10, 1231, 771))
         self.layoutWidget.setObjectName("layoutWidget")
         self.verticalLayout_11 = QtWidgets.QVBoxLayout(self.layoutWidget)
@@ -203,21 +203,22 @@ class Ui_tabUpDownload(object):
         self.horizontalLayout_5.setStretch(0, 1)
         self.horizontalLayout_5.setStretch(4, 1)
         self.verticalLayout_11.addLayout(self.horizontalLayout_5)
-        spacerItem10 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
-        self.verticalLayout_11.addItem(spacerItem10)
         self.logs = QtWidgets.QPlainTextEdit(self.layoutWidget)
+        self.logs.setReadOnly(False)
         self.logs.setObjectName("logs")
         self.verticalLayout_11.addWidget(self.logs)
+        spacerItem10 = QtWidgets.QSpacerItem(20, 10, QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Minimum)
+        self.verticalLayout_11.addItem(spacerItem10)
         self.errorLabel = QtWidgets.QLabel(self.layoutWidget)
         self.errorLabel.setText("")
         self.errorLabel.setObjectName("errorLabel")
         self.verticalLayout_11.addWidget(self.errorLabel)
         self.verticalLayout_11.setStretch(0, 2)
 
-        self.retranslateUi(tabUpDownload)
-        QtCore.QMetaObject.connectSlotsByName(tabUpDownload)
+        self.retranslateUi(Form)
+        QtCore.QMetaObject.connectSlotsByName(Form)
 
-    def retranslateUi(self, tabUpDownload):
+    def retranslateUi(self, Form):
         _translate = QtCore.QCoreApplication.translate
         tabUpDownload.setWindowTitle(_translate("tabUpDownload", "Form"))
         self.label_19.setText(_translate("tabUpDownload", "LOCAL"))
@@ -232,8 +233,8 @@ class Ui_tabUpDownload(object):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    tabUpDownload = QtWidgets.QWidget()
-    ui = Ui_tabUpDownload()
-    ui.setupUi(tabUpDownload)
-    tabUpDownload.show()
+    Form = QtWidgets.QWidget()
+    ui = Ui_Form()
+    ui.setupUi(Form)
+    Form.show()
     sys.exit(app.exec())

@@ -57,8 +57,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """Initialize local QTreeView.
 
         """
-        self.localmodel = PyQt6.QtGui.QFileSystemModel(
-            self.localFsTreeView)
+        self.localmodel = PyQt6.QtGui.QFileSystemModel(self.localFsTreeView)
         self.localFsTreeView.setModel(self.localmodel)
         # Hide all columns except the Name
         self.localFsTreeView.setColumnHidden(1, True)
@@ -239,8 +238,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         if success:
             if irods_index is not None:
                 self.irodsmodel.refresh_subtree(irods_index)
-            self.errorLabel.setText(
-                "INFO UPLOAD/DOWLOAD: completed.")
+            self.errorLabel.setText("INFO UPLOAD/DOWLOAD: completed.")
         self.upload_window = None
         self.enable_buttons(True)
 

@@ -15,7 +15,6 @@ import utils
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
         super(QPlainTextEditLogger, self).__init__()
-
         self.widget = widget
         self.widget.setReadOnly(True)
 
@@ -49,34 +48,47 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
         else:
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
-            # Browser tab needed for Search
+            # self.actionExportMetadata.triggered.connect(self.exportMeta)
+            # needed for Search
             self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
-            self.tabWidget.addTab(self.irodsBrowser, 'Browser')
-            # Optional tabs
-            if ('ui_tabs' in ienv) and (ienv['ui_tabs'] != []):
+            self.tabWidget.addTab(self.irodsBrowser, "Browser")
+            ui_tabs_lookup = {
+                "tabUpDownload": self.setupTabUpDownload,
+                "tabELNData": self.setupTabELNData,
+                "tabDataBundle": self.setupTabDataBundle,
+                "tabCreateTicket": self.setupTabCreateTicket,
+            }
+            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""):
                 # Setup up/download tab, index 1
-                if 'tabUpDownload' in ienv['ui_tabs']:
-                    self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
-                        ic, self.ienv)
-                    self.tabWidget.addTab(self.updownload, "Data Transfers")
-                    log_handler = QPlainTextEditLogger(self.updownload.logs)
-                    logging.getLogger().addHandler(log_handler)
-                # Elabjournal tab, index 2
-                if 'tabELNData' in ienv['ui_tabs']:
-                    self.elnTab = gui.elabUpload.elabUpload(ic)
-                    self.tabWidget.addTab(self.elnTab, "ELN Data upload")
-                # Data (un)bundle tab, index 3
-                if 'tabDataBundle' in ienv['ui_tabs']:
-                    self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
-                    self.tabWidget.addTab(self.bundleTab, "(Un)Bundle data")
-                # Grant access by tickets, index 4
-                if 'tabCreateTicket' in ienv['ui_tabs']:
-                    self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic, self.ienv)
-                    self.tabWidget.addTab(self.createTicket, "Create access tokens")
-            # General info
+                for tab in ienv["ui_tabs"]:
+                    if tab in ui_tabs_lookup:
+                        ui_tabs_lookup[tab](ic)
+                    else:
+                        logging.error("Unknown tab \"{uitab}\" defined in irods environment file".format(uitab=tab))
+
+            # general info
             self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
-            self.tabWidget.addTab(self.irodsInfo, 'Info')
+            self.tabWidget.addTab(self.irodsInfo, "Info")
             self.tabWidget.setCurrentIndex(0)
+
+    def setupTabCreateTicket(self, ic):
+        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
+        self.tabWidget.addTab(self.createTicket, "Create access tokens")
+
+    def setupTabDataBundle(self, ic):
+        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
+        self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
+
+    def setupTabELNData(self, ic):
+        self.elnTab = gui.elabUpload.elabUpload(ic)
+        self.tabWidget.addTab(self.elnTab, "ELN Data upload")
+
+    def setupTabUpDownload(self, ic):
+        self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
+                        ic, self.ienv)
+        self.tabWidget.addTab(self.updownload, "Data Transfers")
+        log_handler = QPlainTextEditLogger(self.updownload.logs)
+        logging.getLogger().addHandler(log_handler)
 
     # Connect functions
     def programExit(self):
@@ -109,7 +121,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
             currentWidget = self.widget.currentWidget()
-            currentWidget.init_envbox()
+            #currentWidget._init_envbox()
         else:
             pass
 

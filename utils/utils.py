@@ -915,6 +915,7 @@ def bytes_to_str(value: int) -> str:
     Parameters
     ----------
     value : int
+        Number of bytes.
 
     Returns
     -------
@@ -922,8 +923,6 @@ def bytes_to_str(value: int) -> str:
         Rendered string with units.
 
     """
-    # TODO this converts decimal bytes.  Need to decide on binary
-    #  versus decimal bytes consistently throughout
     if value < 1e12:
         return f'{value / 1e9:.3f} GB'
     else:

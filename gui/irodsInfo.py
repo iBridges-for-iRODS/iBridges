@@ -46,12 +46,11 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         self.versionLabel.setText(
             '.'.join((str(num) for num in self.ic.session.server_version)))
         # irods resources
-        names, spaces = self.ic.list_resources()
-        self.rescTable.setRowCount(len(names))
-        for row, (name, space) in enumerate(zip(names, spaces)):
-            resc = self.ic.get_resource(name)
+        resc_info = self.ic.list_resources(['name', 'status', 'free_space'])
+        self.rescTable.setRowCount(len(resc_info[0]))
+        for row, (name, status, space) in enumerate(zip(*resc_info)):
             self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
             self.rescTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(str(space)))
-            self.rescTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(resc.status))
+            self.rescTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(str(status or '')))
         self.rescTable.resizeColumnsToContents()
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))

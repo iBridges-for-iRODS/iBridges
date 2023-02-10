@@ -33,7 +33,9 @@ ALL_KW = irods.keywords.ALL_KW
 FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
 NUM_THREADS_KW = irods.keywords.NUM_THREADS_KW  # 'num_threads'
 DEST_RESC_NAME_KW = irods.keywords.DEST_RESC_NAME_KW
+RESC_NAME_KW = irods.keywords.RESC_NAME_KW
 VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
+REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
 # Map model names to iquest attribute names
 COLL_NAME = irods.models.Collection.name
 DATA_NAME = irods.models.DataObject.name
@@ -57,8 +59,8 @@ DEFAULT = '\x1b[0m'
 RED = '\x1b[1;31m'
 YEL = '\x1b[1;33m'
 # Misc
-BUFF_SIZE = 2**30
-MULTIPLIER = 1 / 2**30
+BUFF_SIZE = 10**9
+MULTIPLIER = 1 / 10**9
 NUM_THREADS = 4
 
 
@@ -609,12 +611,18 @@ class IrodsConnector():
                             res[list(res.keys())[2]]])
         return results
 
-    def list_resources(self):
+    def list_resources(self, attr_names: list = None) -> tuple:
         """Discover all writable root resources available in the current
-        system producing 2 lists, one with resource names and another
-        the value of the free_space annotation.  When the
-        force_unknown_free_space is set, it returns all root resources.
-        A value of 0 indicates no free space annotated.
+        system producing 2 lists by default, one with resource names and
+        another the value of the free_space annotation.  The parent,
+        status, and context values are also available.  When the
+        force_unknown_free_space option is set, it returns all root
+        resources. A value of 0 indicates no free space annotated.
+
+        Parameters
+        ----------
+        attr_names : list
+            Names of resource attributes to assemble.
 
         Returns
         -------
@@ -623,8 +631,13 @@ class IrodsConnector():
             free_space).
 
         """
-        names, spaces = [], []
+        if not attr_names:
+            attr_names = ['name', 'free_space']
+        vals, spaces = [], []
         for name, metadata in self.resources.items():
+            # Add name to dictionary for convenience.
+            metadata['name'] = name
+            # Resource is writable?
             context = metadata['context']
             if context is not None:
                 for kvp in context.split(';'):
@@ -632,19 +645,19 @@ class IrodsConnector():
                         _, val = kvp.split('=')
                         if float(val) == 0.0:
                             continue
+            # Resource is up?
             status = metadata['status']
             if status is not None:
                 if 'down' in status:
                     continue
+            # Is a root resource?
             if metadata['parent'] is None:
-                names.append(name)
+                vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
         if not self.ienv.get('force_unknown_free_space', False):
-            names_spaces = [
-                (name, space) for name, space in zip(names, spaces)
-                if space != 0]
-            names, spaces = zip(*names_spaces) if names_spaces else ([], [])
-        return names, spaces
+            # Filter for free space annotated resources.
+            vals = [val for val, space in zip(vals, spaces) if space != 0]
+        return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
     def get_resource(self, resc_name):
         """Instantiate an iRODS resource.
@@ -716,7 +729,7 @@ class IrodsConnector():
             Name of monolithic resource or the top of a resource tree.
         multiplier : int
             Factor to convert to desired units (e.g., 1 / 2**30 for
-            GiB).
+            GiB or 1 / 10**9 for GB).
 
         Returns
         -------
@@ -829,11 +842,12 @@ class IrodsConnector():
         if not self.icommands:
             options = {
                 ALL_KW: '',
-                DEST_RESC_NAME_KW: resc_name,
-                # FORCE_FLAG_KW: '',
                 NUM_THREADS_KW: NUM_THREADS,
-                VERIFY_CHKSUM_KW: '',
+                REG_CHKSUM_KW: '',
+                VERIFY_CHKSUM_KW: ''
             }
+            if resc_name not in ['', None]:
+                 options[RESC_NAME_KW] = resc_name
             self.session.data_objects.put(local_path, irods_path, **options)
         else:
             commands = [f'iput -aK -N {NUM_THREADS}']
@@ -842,7 +856,7 @@ class IrodsConnector():
             commands.append(f'{local_path} {irods_path}')
             subprocess.call(' '.join(commands), shell=True)
 
-    def irods_get(self, irods_path, local_path, **options):
+    def irods_get(self, irods_path, local_path, options=None):
         """Download `irods_path` to `local_path` following iRODS
         `options`.
 
@@ -856,12 +870,13 @@ class IrodsConnector():
             iRODS transfer options.
 
         """
+        if options is None:
+            options = {}
         if not self.icommands:
-            options = {
-                # FORCE_FLAG_KW: '',
+            options.update({
                 NUM_THREADS_KW: NUM_THREADS,
                 VERIFY_CHKSUM_KW: '',
-            }
+                })
             self.session.data_objects.get(irods_path, local_path, **options)
         else:
             commands = [f'iget -K -N {NUM_THREADS} {irods_path} {local_path}']
@@ -948,19 +963,14 @@ class IrodsConnector():
         diffs : list
             Output of diff functions.
 
-        Throws:
-        ResourceDoesNotExist
-        ValueError (if resource too small or buffer is too small)
-
         """
         logging.info(
             'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
-            resc_name)
+            resc_name or '')
         src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
-                dst_path = utils.utils.IrodsPath(
-                    dst_coll.path).joinpath(src_path.name)
+                cmp_path = utils.utils.IrodsPath(dst_coll.path, src_path.name)
             else:
                 raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
@@ -971,10 +981,11 @@ class IrodsConnector():
         if diffs is None:
             if src_path.is_file():
                 diff, only_fs, _, _ = self.diffObjFile(
-                    dst_path, src_path, scope='checksum')
+                    cmp_path, src_path, scope='checksum')
             else:
+                cmp_coll = self.ensure_coll(cmp_path)
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(
-                    dst_coll, src_path)
+                    cmp_coll, src_path)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
@@ -989,8 +1000,8 @@ class IrodsConnector():
             # Data object
             if src_path.is_file() and len(diff + only_fs) > 0:
                 logging.info(
-                    'IRODS UPLOADING file %s to %s', src_path, dst_path)
-                self.irods_put(src_path, dst_path, resc_name)
+                    'IRODS UPLOADING file %s to %s', src_path, cmp_path)
+                self.irods_put(src_path, cmp_path, resc_name)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
@@ -1006,9 +1017,9 @@ class IrodsConnector():
                     rel_path = utils.utils.PurePath(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
-                        new_path = dst_path.joinpath(rel_path.parent)
+                        new_path = cmp_path.joinpath(rel_path.parent)
                     else:
-                        new_path = dst_path
+                        new_path = cmp_path
                     _ = self.ensure_coll(new_path)
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
@@ -1064,17 +1075,18 @@ class IrodsConnector():
                 exc_info=True)
             raise PermissionError(
                 'ERROR iRODS download: No rights to write to destination.')
+        cmp_path = dst_path.joinpath(src_path.name)
+        # TODO perhaps treat this path as part of the diff
+        if self.is_collection(src_obj) and not cmp_path.is_dir():
+            os.mkdir(cmp_path)
         # Only download if not present or difference in files.
         if diffs is None:
-            dst_path = dst_path.joinpath(src_path.name)
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
-                    src_path, dst_path, scope="checksum")
+                    src_path, cmp_path, scope="checksum")
             else:
-                if not dst_path.is_dir():
-                    os.mkdir(dst_path)
                 diff, _, only_irods, _ = self.diffIrodsLocalfs(
-                    src_obj, dst_path, scope="checksum")
+                    src_obj, cmp_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -1086,36 +1098,39 @@ class IrodsConnector():
                     exc_info=True)
                 raise NotEnoughFreeSpace(
                     'ERROR iRODS download: Not enough space on local disk.')
+        # NOT the same force flag.  This overwrites the local file by default.
+        # TODO should there be an option/switch for this 'clobber'ing?
+        options = {FORCE_FLAG_KW: ''}
         try:
             # Data object
             if self.is_dataobject(src_obj) and len(diff + only_irods) > 0:
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
-                    src_path, dst_path)
+                    src_path, cmp_path)
                 self.irods_get(
-                    src_path, dst_path.joinpath(src_path.name), **options)
+                    src_path, cmp_path, options=options)
             # Collection
+            # TODO add support for "downloading" empty collections?
             else:
                 logging.info("IRODS DOWNLOAD started:")
                 for irods_path, local_path in diff:
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(irods_path, local_path, **options)
+                    self.irods_get(irods_path, local_path, options=options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
                     rel_path = utils.utils.PurePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
-                    local_path = dst_path.joinpath(
-                        src_path.name).joinpath(rel_path)
+                    local_path = cmp_path.joinpath(rel_path)
                     if not local_path.parent.is_dir():
-                        local_path.parent.mkdir()
+                        local_path.parent.mkdir(parents=True, exist_ok=True)
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(irods_path, local_path, **options)
+                    self.irods_get(irods_path, local_path, options=options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
@@ -1159,7 +1174,6 @@ class IrodsConnector():
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
-                print(sha2Obj != sha2)
                 if sha2Obj != sha2:
                     return([(objPath, fsPath)], [], [], [])
                 else:
@@ -1192,13 +1206,11 @@ class IrodsConnector():
             for root, dirs, files in os.walk(dirPath, topdown=False):
                 for name in files:
                     listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
-
         listColl = []
         if not coll == None:
             for root, subcolls, obj in coll.walk():
                 for o in obj:
                     listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
-
         diff = []
         same = []
         for locPartialPath in set(listDir).intersection(listColl):

@@ -4,22 +4,23 @@
 import logging
 import os
 import sys
+import logging
 
-from PyQt6 import QtCore
+from utils.elabConnector import elabConnector
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from PyQt6.QtGui import QFileSystemModel
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
 from PyQt6.uic import loadUi
-
-import utils
+from gui.checkableFsTree import checkableFsTreeModel
 from gui.ui_files.tabELNData import Ui_tabELNData
-from utils.elabConnector import elabConnector
+
 from utils.utils import get_local_size, get_coll_dict
+from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 
-# TODO Inherit from IrodsConnctor?
 class elabUpload(QWidget, Ui_tabELNData):
-    """
+    """ELabJournal upload tab.
 
     """
     thread = None
@@ -46,10 +47,14 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.localFsTable.setColumnHidden(1, True)
         self.localFsTable.setColumnHidden(2, True)
         self.localFsTable.setColumnHidden(3, True)
+        # TODO remove commented commands that are not required?
+        # self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
+        self.elnIrodsPath.setText(
+                '/'+self.ic.session.zone+'/home/'+self.ic.session.username)
         # defining events and listeners
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
@@ -123,8 +128,8 @@ class elabUpload(QWidget, Ui_tabELNData):
         # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
         self.showPreview()
+        self.elnIrodsPath.setText(self.coll.path.split('/ELN')[0])
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
-        self.elnIrodsPath.setText('/zone/home/user')
         self.thread.quit()
 
     def showPreview(self):
@@ -172,10 +177,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             # get upload total size to inform user
             size = get_local_size([path])
             # if user specifies a different path than standard home
-            if self.elnIrodsPath.text() == '/zone/home/user':
-                collPath = '/'+self.ic.session.zone+'/home/'+self.ic.session.username+'/'+subcoll
-            else:
-                collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
+            collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
             self.coll = self.ic.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
             buttonReply = QMessageBox.question(
@@ -207,8 +209,8 @@ class elabUpload(QWidget, Ui_tabELNData):
             self.errorLabel.setText(repr(error))
             self.elnUploadButton.setEnabled(True)
             # self.elnUploadButton.setCursor(
-            #     QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
-
+            #    QtGui.QCursor(QtCore.Qt.ArrowCursor))
+            return
 
 class Worker(QObject):
     """
@@ -241,18 +243,18 @@ class Worker(QObject):
         self.expUrl = expUrl
         self.elab = elab
         self.errorLabel = errorLabel
-        self.force = ic.ienv.get('force_unknown_free_space', False)
         print("Start worker: ")
 
     def run(self):
         try:
             if os.path.isfile(self.filePath):
-                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=self.force)
+                # TODO should all the "force"es here be configurable?
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 item = self.ic.session.data_objects.get(
                         self.coll.path+'/'+os.path.basename(self.filePath))
                 self.ic.addMetadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=self.force)
+                self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 upColl = self.ic.session.collections.get(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]
@@ -273,7 +275,7 @@ class Worker(QObject):
         }
         self.annotateElab(annotation)
 
-    def annotateElab(self, metadata):
+    def annotateElab(self, annotation):
         """
 
         Parameters
@@ -283,24 +285,27 @@ class Worker(QObject):
         """
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
-        # TODO find a way to remove site-specific values from code.
-        #  Choose for configuration.  This could include YoDa
-        if self.ic.davrods:
-            if "yoda" in self.ic.session.host or "uu.nl" in self.ic.session.host:
-                annotation = utils.utils.IrodsPath(
-                    self.ic.davrods, self.coll.path.split('home/')[-1])
-            elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
-                annotation = utils.utils.IrodsPath(
-                    self.ic.davrods, self.coll.path.split(
-                        self.ic.session.zone)[-1])
-            else:
-                annotation = utils.utils.IrodsPath(
-                    self.ic.davrods, self.coll.path)
+        if self.ic.davrods and ("yoda" in self.ic.session.host or "uu.nl" in self.ic.session.host):
+            self.elab.addMetadata(
+                self.ic.davrods+'/'+self.coll.path.split('home/')[1].strip(),
+                meta=annotation,
+                title='Data in iRODS')
+        elif self.ic.davrods and "surfsara.nl" in self.ic.session.host:
+                self.elab.addMetadata(
+                    self.ic.davrods+'/'+self.coll.path.split(
+                        self.ic.session.zone)[1].strip('/'), 
+                    meta=annotation,
+                    title='Data in iRODS')
+        elif self.ic.davrods:
+            self.elab.addMetadata(
+                    self.ic.davrods+'/'+self.coll.path.strip('/'), 
+                    meta=annotation,
+                    title='Data in iRODS')
         else:
             host = self.ic.session.host
             zone = self.ic.session.zone
             name = self.ic.session.username
             port = self.ic.session.port
             path = self.coll.path
-            annotation = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-        self.elab.addMetadata(annotation, meta=metadata, title='Data in iRODS')
+            conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
+            self.elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
