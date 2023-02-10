@@ -72,7 +72,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             self.tabWidget.setCurrentIndex(0)
 
     def setupTabCreateTicket(self, ic):
-        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic, self.ienv)
+        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
         self.tabWidget.addTab(self.createTicket, "Create access tokens")
 
     def setupTabDataBundle(self, ic):
