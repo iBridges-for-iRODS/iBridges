@@ -74,6 +74,7 @@ class elabConnector():
         otherExpFrame = expFrames.loc[expFrames['userID'] != self.userId, ['name', 'projectID']]
         print(otherExpFrame)
         self.__switchGroup(currentGroup)
+
         if get:
             lines = myExpFrame.to_string().split('\n')[2:]
             myExperiments = [(line[0], ' '.join(line[1:len(line) - 1]), line[len(line) - 1])

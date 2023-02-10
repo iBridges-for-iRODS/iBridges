@@ -289,7 +289,7 @@ QTextBrowser
        </column>
        <column>
         <property name="text">
-         <string>Free space [GiB]</string>
+         <string>Free space [GB]</string>
         </property>
        </column>
        <column>

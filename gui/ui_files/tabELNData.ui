@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Form</class>
- <widget class="QWidget" name="Form">
+ <class>tabELNData</class>
+ <widget class="QWidget" name="tabELNData">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -338,19 +338,19 @@ QLabel#errorLabel{
            </property>
           </widget>
          </item>
-         <item>
-          <widget class="QLineEdit" name="elnIrodsPath">
-           <property name="font">
-            <font>
-             <pointsize>13</pointsize>
-            </font>
-           </property>
-           <property name="text">
-            <string>/zone/home/user</string>
-           </property>
-          </widget>
-         </item>
         </layout>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="elnIrodsPath">
+         <property name="font">
+          <font>
+           <pointsize>13</pointsize>
+          </font>
+         </property>
+         <property name="text">
+          <string>/zone/home/user</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QTextBrowser" name="elnPreviewBrowser">

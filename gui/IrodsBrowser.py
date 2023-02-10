@@ -148,12 +148,10 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                 self.resourceTable.setItem(
                     row, 0, PyQt6.QtWidgets.QTableWidgetItem(hierarchy))
                 for repl in replicas:
-                    if repl in hierarchy:
-                        item = PyQt6.QtWidgets.QTableWidgetItem()
-                        item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
-                        item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
-                        self.resourceTable.setItem(row, 1, item)
-
+                    item = PyQt6.QtWidgets.QTableWidgetItem()
+                    item.setCheckState(PyQt6.QtCore.Qt.CheckState.Checked)
+                    item.setFlags(PyQt6.QtCore.Qt.ItemFlag.ItemIsEnabled)
+                    self.resourceTable.setItem(row, 1, item)
         self.resourceTable.resizeColumnsToContents()
 
     def _fill_acls_tab(self, obj_path):
@@ -438,7 +436,6 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             try:
                 parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
-                print("Upload "+fileSelect[0]+" to "+parentColl.path+" on resource "+self.ic.default_resc)
                 self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=self.force)
                 self.loadTable()
@@ -529,7 +526,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             self.errorLabel.setText(
                 f'Missing input: {", ".join(errors.keys())}')
             return
-        recursive = self.aclRecurseBox.currentText() == 'True'
+        recursive = self.recurseBox.currentText() == 'True'
         admin = self.aclAdminBox.isChecked()
         try:
             self.ic.set_permissions(
