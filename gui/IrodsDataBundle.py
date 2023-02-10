@@ -25,7 +25,7 @@ EXTENSIONS = [
 
 
 class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
-                      gui.ui_files.tabDataCompression.Ui_tabDataCompression):
+                      gui.ui_files.tabDataBundle.Ui_tabDataBundle):
     """Window for (un)bundling data withing the iRODS system.
 
     """
