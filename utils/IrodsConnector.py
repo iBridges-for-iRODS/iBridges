@@ -190,11 +190,7 @@ class IrodsConnector():
                 irods_auth_file = utils.utils.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
-                try:
-                    uid = os.getuid()
-                except AttributeError:
-                    # Spoof UID for Non-POSIX
-                    uid = sum((ord(char) for char in os.getlogin()))
+                uid = self.get_uid()
                 with open(irods_auth_file, encoding='utf-8') as authfd:
                     self._password = irods.password_obfuscation.decode(
                         authfd.read(), uid=uid)
@@ -219,6 +215,14 @@ class IrodsConnector():
 
         """
         self._password = ''
+
+    def get_uid(self):
+        try:
+            uid = os.getuid()
+        except AttributeError:
+            # Spoof UID for Non-POSIX
+            uid = sum((ord(char) for char in os.getlogin()))
+        return uid
 
     @property
     def permissions(self):
@@ -322,6 +326,8 @@ class IrodsConnector():
             cached_pass = self.password
             if given_pass != cached_pass:
                 options['password'] = given_pass
+            else:
+                options['irods_authentication_uid'] = self.get_uid()
             self._session = self._get_irods_session(options)
             try:
                 # Check for good authentication and cache PAM password
@@ -363,8 +369,13 @@ class IrodsConnector():
         if 'password' not in options:
             try:
                 print('AUTH FILE SESSION')
-                return irods.session.iRODSSession(
-                    irods_env_file=options['irods_env_file'])
+                if 'irods_authentication_uid' in options:
+                    return irods.session.iRODSSession(
+                        irods_env_file=options['irods_env_file'],
+                        irods_authentication_uid=options['irods_authentication_uid'])
+                else:
+                    return irods.session.iRODSSession(
+                        irods_env_file=options['irods_env_file'])
             except Exception as error:
                 print(f'{RED}AUTH FILE LOGIN FAILED: {error!r}{DEFAULT}')
         else:
