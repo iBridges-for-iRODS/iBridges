@@ -273,11 +273,14 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
 
     def _get_object_path_name(self, row):
         """"""
-        # if self.collTable.item(row, 0).text() != '':
-        #     obj_path = self.collTable.item(row, 0).text()
-        # else:
-        obj_path = self.inputPath.text()
-        obj_name = self.collTable.item(row, 1).text()
+        if self.collTable.item(row, 1).text().startswith("/"+self.ic._session.zone):
+            print(self.collTable.item(row, 1).text())
+            sub_paths = self.collTable.item(row, 1).text().strip("/").split("/")
+            obj_path = "/"+"/".join(sub_paths[:len(sub_paths)-1])
+            obj_name = sub_paths[-1]
+        else:
+            obj_path = self.inputPath.text()
+            obj_name = self.collTable.item(row, 1).text()
         return obj_path, obj_name
 
     # @TODO: Add a proper data model for the table model
