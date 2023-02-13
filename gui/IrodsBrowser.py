@@ -14,17 +14,20 @@ import gui
 import meta
 import utils
 
+# See: https://github.com/irods/irods_docs/blob/main/docs/system_overview/data_objects.md
 OBJ_STATUS_SYMBOL = {
     '0': 'X',
     '1': '&',
     '2': '?',
     '3': '?',
+    '4': '?',
 }
 OBJ_STATUS_HUMAN = {
     '0': 'stale',
     '1': 'good',
     '2': 'intermediate',
-    '3': 'write-locked',
+    '3': 'read-locked',
+    '4': 'write-locked',
 }
 
 
