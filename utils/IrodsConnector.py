@@ -6,11 +6,11 @@ import hashlib
 import json
 import logging
 import os
-import pathlib
 import random
 import shutil
 import ssl
 import string
+import subprocess
 
 import irods.access
 import irods.collection
@@ -26,12 +26,16 @@ import irods.rule
 import irods.session
 import irods.ticket
 
+import utils
+
 # Keywords
 ALL_KW = irods.keywords.ALL_KW
 FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
-REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
+NUM_THREADS_KW = irods.keywords.NUM_THREADS_KW  # 'num_threads'
+DEST_RESC_NAME_KW = irods.keywords.DEST_RESC_NAME_KW
 RESC_NAME_KW = irods.keywords.RESC_NAME_KW
 VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
+REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
 # Map model names to iquest attribute names
 COLL_NAME = irods.models.Collection.name
 DATA_NAME = irods.models.DataObject.name
@@ -50,13 +54,13 @@ USER_TYPE = irods.models.User.type
 # Query operators
 LIKE = irods.column.Like
 # ASCII colors
-RED = '\x1b[1;31m'
-DEFAULT = '\x1b[0m'
-YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YEL = '\x1b[1;33m'
 # Misc
-BUFF_SIZE = 2**30
-MULTIPLIER = 1 / 2**30
+BUFF_SIZE = 10**9
+MULTIPLIER = 1 / 10**9
 NUM_THREADS = 4
 
 
@@ -82,7 +86,7 @@ class IrodsConnector():
     _resources = None
     _session = None
 
-    def __init__(self, irods_env_file='', password=''):
+    def __init__(self, irods_env_file='', password='', application_name=None):
         """iRODS authentication with Python client.
 
         Parameters
@@ -91,6 +95,8 @@ class IrodsConnector():
             JSON document with iRODS connection parameters.
         password : str
             Plain text password.
+        application_name : str
+            Name of the application using this connector.
 
         The 'ienv' and 'password' properties can autoload from their
         respective caches, but can be overridden by the `ienv` and
@@ -107,6 +113,7 @@ class IrodsConnector():
         self.irods_env_file = irods_env_file
         if password:
             self.password = password
+        self.application_name = application_name
         self.multiplier = MULTIPLIER
 
     @property
@@ -135,6 +142,17 @@ class IrodsConnector():
         return self.ienv.get('irods_default_resource', None)
 
     @property
+    def icommands(self):
+        """
+
+        Returns
+        -------
+        bool
+            Are the iCommands available?
+        """
+        return subprocess.call(['which', 'iinit']) == 0
+
+    @property
     def ienv(self):
         """iRODS environment dictionary.
 
@@ -145,7 +163,7 @@ class IrodsConnector():
 
         """
         if not self._ienv:
-            irods_env_file = pathlib.Path(self.irods_env_file)
+            irods_env_file = utils.utils.LocalPath(self.irods_env_file)
             if irods_env_file.is_file():
                 with open(irods_env_file, encoding='utf-8') as envfd:
                     self._ienv = json.load(envfd)
@@ -166,12 +184,17 @@ class IrodsConnector():
             irods_auth_file = os.environ.get(
                 'IRODS_AUTHENTICATION_FILE', None)
             if irods_auth_file is None:
-                irods_auth_file = pathlib.Path(
+                irods_auth_file = utils.utils.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
+                try:
+                    uid = os.getuid()
+                except AttributeError:
+                    # Spoof UID for Non-POSIX
+                    uid = sum((ord(char) for char in os.getlogin()))
                 with open(irods_auth_file, encoding='utf-8') as authfd:
                     self._password = irods.password_obfuscation.decode(
-                        authfd.read())
+                        authfd.read(), uid=uid)
         return self._password
 
     @password.setter
@@ -284,7 +307,10 @@ class IrodsConnector():
 
         """
         if self._session is None:
-            options = {'irods_env_file': self.irods_env_file}
+            options = {
+                'irods_env_file': self.irods_env_file,
+                'application_name': self.application_name,
+            }
             if self.ienv is not None:
                 options.update(self.ienv.copy())
             # Compare given password with potentially cached password.
@@ -377,9 +403,14 @@ class IrodsConnector():
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
+            try:
+                uid = os.getuid()
+            except AttributeError:
+                # Spoof UID for Non-POSIX
+                uid = sum((ord(char) for char in os.getlogin()))
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0]))
+                    irods.password_obfuscation.encode(pam_passwords[0], uid=uid))
 
     def get_user_info(self):
         """Query for user type and groups.
@@ -580,12 +611,18 @@ class IrodsConnector():
                             res[list(res.keys())[2]]])
         return results
 
-    def list_resources(self):
+    def list_resources(self, attr_names: list = None) -> tuple:
         """Discover all writable root resources available in the current
-        system producing 2 lists, one with resource names and another
-        the value of the free_space annotation.  When the
-        force_unknown_free_space is set, it returns all root resources.
-        A value of 0 indicates no free space annotated.
+        system producing 2 lists by default, one with resource names and
+        another the value of the free_space annotation.  The parent,
+        status, and context values are also available.  When the
+        force_unknown_free_space option is set, it returns all root
+        resources. A value of 0 indicates no free space annotated.
+
+        Parameters
+        ----------
+        attr_names : list
+            Names of resource attributes to assemble.
 
         Returns
         -------
@@ -594,8 +631,13 @@ class IrodsConnector():
             free_space).
 
         """
-        names, spaces = [], []
+        if not attr_names:
+            attr_names = ['name', 'free_space']
+        vals, spaces = [], []
         for name, metadata in self.resources.items():
+            # Add name to dictionary for convenience.
+            metadata['name'] = name
+            # Resource is writable?
             context = metadata['context']
             if context is not None:
                 for kvp in context.split(';'):
@@ -603,19 +645,19 @@ class IrodsConnector():
                         _, val = kvp.split('=')
                         if float(val) == 0.0:
                             continue
+            # Resource is up?
             status = metadata['status']
             if status is not None:
                 if 'down' in status:
                     continue
+            # Is a root resource?
             if metadata['parent'] is None:
-                names.append(name)
+                vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
         if not self.ienv.get('force_unknown_free_space', False):
-            names_spaces = [
-                (name, space) for name, space in zip(names, spaces)
-                if space != 0]
-            names, spaces = zip(*names_spaces) if names_spaces else ([], [])
-        return names, spaces
+            # Filter for free space annotated resources.
+            vals = [val for val, space in zip(vals, spaces) if space != 0]
+        return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
     def get_resource(self, resc_name):
         """Instantiate an iRODS resource.
@@ -673,7 +715,7 @@ class IrodsConnector():
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / MULTIPLIER)
 
-    def get_free_space(self, resc_name, multiplier=MULTIPLIER):
+    def get_free_space(self, resc_name, multiplier=1):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -687,7 +729,7 @@ class IrodsConnector():
             Name of monolithic resource or the top of a resource tree.
         multiplier : int
             Factor to convert to desired units (e.g., 1 / 2**30 for
-            GiB).
+            GiB or 1 / 10**9 for GB).
 
         Returns
         -------
@@ -783,7 +825,7 @@ class IrodsConnector():
             return self.session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, local_path, irods_path, **options):
+    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS
         `options`.
 
@@ -793,13 +835,28 @@ class IrodsConnector():
             Path of local file or directory/folder.
         irods_path : str
             Path of iRODS data object or collection.
-        options : dict
-            iRODS transfer options.
+        resc_name : str
+            Optional resource name.
 
         """
-        self.session.data_objects.put(local_path, irods_path, **options)
+        if not self.icommands:
+            options = {
+                ALL_KW: '',
+                NUM_THREADS_KW: NUM_THREADS,
+                REG_CHKSUM_KW: '',
+                VERIFY_CHKSUM_KW: ''
+            }
+            if resc_name not in ['', None]:
+                 options[RESC_NAME_KW] = resc_name
+            self.session.data_objects.put(local_path, irods_path, **options)
+        else:
+            commands = [f'iput -aK -N {NUM_THREADS}']
+            if resc_name:
+                commands.append(f'-R {resc_name}')
+            commands.append(f'{local_path} {irods_path}')
+            subprocess.call(' '.join(commands), shell=True)
 
-    def irods_get(self, irods_path, local_path, **options):
+    def irods_get(self, irods_path, local_path, options=None):
         """Download `irods_path` to `local_path` following iRODS
         `options`.
 
@@ -813,7 +870,17 @@ class IrodsConnector():
             iRODS transfer options.
 
         """
-        self.session.data_objects.get(irods_path, local_path, **options)
+        if options is None:
+            options = {}
+        if not self.icommands:
+            options.update({
+                NUM_THREADS_KW: NUM_THREADS,
+                VERIFY_CHKSUM_KW: '',
+                })
+            self.session.data_objects.get(irods_path, local_path, **options)
+        else:
+            commands = [f'iget -K -N {NUM_THREADS} {irods_path} {local_path}']
+            subprocess.call(' '.join(commands), shell=True)
 
     @staticmethod
     def is_dataobject(obj):
@@ -868,7 +935,8 @@ class IrodsConnector():
             irods.data_object.iRODSDataObject,
             irods.collection.iRODSCollection))
 
-    def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE, force=False, diffs=None):
+    def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE,
+                    force=False, diffs=None):
         """Upload data from the local `src_path` to the iRODS
         `dst_coll`.
 
@@ -895,42 +963,29 @@ class IrodsConnector():
         diffs : list
             Output of diff functions.
 
-        Throws:
-        ResourceDoesNotExist
-        ValueError (if resource too small or buffer is too small)
-
         """
         logging.info(
             'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
-            resc_name)
-        # Handle both POSIX and non-POSIX paths.
-        src_path = pathlib.Path(src_path)
+            resc_name or '')
+        src_path = utils.utils.LocalPath(src_path)
         if src_path.is_file() or src_path.is_dir():
             if self.is_collection(dst_coll):
-                dst_path = pathlib.Path(dst_coll.path).joinpath(
-                    src_path.name)
+                cmp_path = utils.utils.IrodsPath(dst_coll.path, src_path.name)
             else:
                 raise irods.exception.CollectionDoesNotExist(dst_coll)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS upload: not a valid source path')
-        options = {
-            ALL_KW: '',
-            FORCE_FLAG_KW: '',
-            'num_threads': NUM_THREADS,
-            REG_CHKSUM_KW: '',
-            VERIFY_CHKSUM_KW: '',
-        }
         if resc_name in [None, '']:
             resc_name = self.default_resc
-        options[RESC_NAME_KW] = resc_name
         if diffs is None:
             if src_path.is_file():
                 diff, only_fs, _, _ = self.diffObjFile(
-                    str(dst_path), str(src_path), scope='checksum')
+                    cmp_path, src_path, scope='checksum')
             else:
+                cmp_coll = self.ensure_coll(cmp_path)
                 diff, only_fs, _, _ = self.diffIrodsLocalfs(
-                    dst_coll, str(src_path))
+                    cmp_coll, src_path)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
@@ -945,32 +1000,31 @@ class IrodsConnector():
             # Data object
             if src_path.is_file() and len(diff + only_fs) > 0:
                 logging.info(
-                    'IRODS UPLOADING file %s to %s', src_path, dst_path)
-                self.irods_put(str(src_path), str(dst_path), **options)
+                    'IRODS UPLOADING file %s to %s', src_path, cmp_path)
+                self.irods_put(src_path, cmp_path, resc_name)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
                 for irods_path, local_path in diff:
                     # Upload files to distinct data objects.
-                    _ = self.ensure_coll(str(irods_dirname(irods_path)))
+                    _ = self.ensure_coll(irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
-                    self.irods_put(str(local_path), str(irods_path),
-                        **options)
+                    self.irods_put(local_path, irods_path, resc_name)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     local_path = src_path.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
-                        new_path = dst_path.joinpath(rel_path.parent)
+                        new_path = cmp_path.joinpath(rel_path.parent)
                     else:
-                        new_path = dst_path
-                    _ = self.ensure_coll(str(new_path))
+                        new_path = cmp_path
+                    _ = self.ensure_coll(new_path)
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
-                    self.irods_put(str(local_path), str(irods_path), **options)
+                    self.irods_put(local_path, irods_path, resc_name)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
@@ -1002,18 +1056,13 @@ class IrodsConnector():
 
         """
         logging.info('iRODS DOWNLOAD: %s-->%s', src_obj.path, dst_path)
-        options = {
-            FORCE_FLAG_KW: '',
-            REG_CHKSUM_KW: '',
-        }
-        # Handle both POSIX and non-POSIX paths.
         if self.is_dataobject_or_collection(src_obj):
-            src_path = pathlib.Path(src_obj.path)
+            src_path = utils.utils.IrodsPath(src_obj.path)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS download: not a valid source path'
             )
-        dst_path = pathlib.Path(dst_path)
+        dst_path = utils.utils.LocalPath(dst_path)
         if not dst_path.is_dir():
             logging.info(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
@@ -1026,17 +1075,18 @@ class IrodsConnector():
                 exc_info=True)
             raise PermissionError(
                 'ERROR iRODS download: No rights to write to destination.')
+        cmp_path = dst_path.joinpath(src_path.name)
+        # TODO perhaps treat this path as part of the diff
+        if self.is_collection(src_obj) and not cmp_path.is_dir():
+            os.mkdir(cmp_path)
         # Only download if not present or difference in files.
         if diffs is None:
-            dst_path = dst_path.joinpath(src_path.name)
             if self.is_dataobject(src_obj):
                 diff, _, only_irods, _ = self.diffObjFile(
-                    str(src_path), str(dst_path), scope="checksum")
+                    src_path, cmp_path, scope="checksum")
             else:
-                if not dst_path.is_dir():
-                    os.mkdir(dst_path)
                 diff, _, only_irods, _ = self.diffIrodsLocalfs(
-                    src_obj, str(dst_path), scope="checksum")
+                    src_obj, cmp_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -1048,37 +1098,39 @@ class IrodsConnector():
                     exc_info=True)
                 raise NotEnoughFreeSpace(
                     'ERROR iRODS download: Not enough space on local disk.')
+        # NOT the same force flag.  This overwrites the local file by default.
+        # TODO should there be an option/switch for this 'clobber'ing?
+        options = {FORCE_FLAG_KW: ''}
         try:
             # Data object
             if self.is_dataobject(src_obj) and len(diff + only_irods) > 0:
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
-                    src_path, dst_path)
+                    src_path, cmp_path)
                 self.irods_get(
-                    str(src_path), str(dst_path.joinpath(src_path.name)),
-                    **options)
+                    src_path, cmp_path, options=options)
             # Collection
+            # TODO add support for "downloading" empty collections?
             else:
                 logging.info("IRODS DOWNLOAD started:")
                 for irods_path, local_path in diff:
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, local_path, options=options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
                     # Create subdirectories and download.
-                    rel_path = pathlib.Path(rel_path)
+                    rel_path = utils.utils.PurePath(rel_path)
                     irods_path = src_path.joinpath(rel_path)
-                    local_path = dst_path.joinpath(
-                        src_path.name).joinpath(rel_path)
+                    local_path = cmp_path.joinpath(rel_path)
                     if not local_path.parent.is_dir():
-                        local_path.parent.mkdir()
+                        local_path.parent.mkdir(parents=True, exist_ok=True)
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(str(irods_path), str(local_path), **options)
+                    self.irods_get(irods_path, local_path, options=options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
@@ -1122,7 +1174,6 @@ class IrodsConnector():
                 with open(fsPath, "rb") as f:
                     stream = f.read()
                     sha2 = hashlib.sha256(stream).digest()
-                print(sha2Obj != sha2)
                 if sha2Obj != sha2:
                     return([(objPath, fsPath)], [], [], [])
                 else:
@@ -1155,13 +1206,11 @@ class IrodsConnector():
             for root, dirs, files in os.walk(dirPath, topdown=False):
                 for name in files:
                     listDir.append(os.path.join(root.split(dirPath)[1], name).strip(os.sep))
-
         listColl = []
         if not coll == None:
             for root, subcolls, obj in coll.walk():
                 for o in obj:
                     listColl.append(os.path.join(root.path.split(coll.path)[1], o.name).strip('/'))
-
         diff = []
         same = []
         for locPartialPath in set(listDir).intersection(listColl):
@@ -1368,45 +1417,95 @@ class IrodsConnector():
             stderr = (buffers.stderrBuf.buf or b'').decode()
         return stdout, stderr
 
-    def getSize(self, itemPaths):
-        '''
-        Compute the size of the iRods dataobject or collection
-        Returns: size in bytes.
-        itemPaths: list of irods paths pointing to collection or object
-        '''
-        size = 0
-        for path in itemPaths:
-            #remove possible leftovers of windows fs separators
-            path = path.replace("\\", "/")
-            if self.session.data_objects.exists(path):
-                size = size + self.session.data_objects.get(path).size
+    def get_irods_size(self, path_names: list) -> int:
+        """Collect the sizes of a set of iRODS data objects and/or
+        collections and determine the total size.
 
-            elif self.session.collections.exists(path):
-                coll = self.session.collections.get(path)
-                walk = [coll]
-                while walk:
-                    try:
-                        coll = walk.pop()
-                        walk.extend(coll.subcollections)
-                        for obj in coll.data_objects:
-                            size = size + obj.size
-                    except:
-                        logging.info('DATA SIZE', exc_info=True)
-                        raise
-        return size
+        Parameters
+        ----------
+        path_names : list
+            Names of logical iRODS paths.
 
+        Returns
+        -------
+        int
+            Total size [bytes] of all iRODS objects found from the
+            logical paths in `path_names`.
 
-    def createTicket(self, path, expiryString=""):
-        ticket = irods.ticket.Ticket(self.session, 
-                        ''.join(random.choice(string.ascii_letters) for _ in range(20)))
-        ticket.issue("read", path)
-        logging.info('CREATE TICKET: '+ticket.ticket+': '+path)
-        #returns False when no expiry date is set
-        return ticket.ticket, False
+        """
+        irods_sizes = []
+        for path_name in path_names:
+            irods_name = utils.utils.IrodsPath(path_name)
+            if self.collection_exists(irods_name):
+                irods_sizes.append(
+                    utils.utils.get_coll_size(
+                        self.get_collection(irods_name)))
+            elif self.dataobject_exists(irods_name):
+                irods_sizes.append(
+                    utils.utils.get_data_size(
+                        self.get_dataobject(irods_name)))
+        return sum(irods_sizes)
+
+    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
+        """Create an iRODS ticket to allow read access to the object
+        referenced by `obj_path`.
+
+        Parameters
+        ----------
+        obj_path : str
+            Name to create ticket for.
+        expiry_string : str
+            Optional expiration date in the form: CCYY-MM-DD.hh:mm:ss
+
+        Returns
+        -------
+        tuple
+            Name of ticket and if expiration string successfully set:
+            (str, bool)
+
+        """
+        ticket_id = ''.join(random.choice(string.ascii_letters) for _ in range(20))
+        ticket = irods.ticket.Ticket(self.session, ticket_id)
+        ticket.issue('read', obj_path)
+        logging.info(f'CREATE TICKET: {ticket.ticket}: {obj_path}')
+        expiration_set = False
+        if expiry_string != '':
+            try:
+                expiration_set = self._modify_ticket(ticket, expiry_string)
+            except Exception as error:
+                logging.info(f'Could not set expiration date: {error}')
+        return ticket.ticket, expiration_set
+
+    def _modify_ticket(self, ticket: irods.ticket.Ticket, expiry_string: str) -> bool:
+        """Modify iRODS `ticket` updating the expriration date.
+
+        Parameters
+        ----------
+        ticket : irods.ticket.Ticket
+            iRODS ticket to be modified.
+        expiry_string : str
+           Expiration date in the form: CCYY-MM-DD.hh:mm:ss.
+
+        Returns
+        -------
+        bool
+            If `ticket` successfully modified.
+
+        """
+        # TODO improve error handling, if necessary
+        if not self.icommands:
+            return ticket.modify('expire', expiry_string) == ticket
+        else:
+            command = f'iticket mod {ticket.ticket} expire {expiry_string}'
+            p = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                shell=True)
+            out, err = p.communicate()
+            return err == b''
 
 
 def get_resource_children(resc):
-    """Get all the children for the resource named `resc_name`.
+    """Get all the children for the resource `resc`.
 
     Parameters
     ----------
@@ -1439,4 +1538,4 @@ def irods_dirname(path):
         iRODS path less the element after the final '/'
 
     """
-    return pathlib.Path(path).parent
+    return utils.utils.IrodsPath(path).parent

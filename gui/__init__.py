@@ -15,3 +15,4 @@ from . import IrodsUpDownload
 # from . import mainmenu
 from .mainmenu import mainmenu
 from . import popupWidgets
+from . import ui_files

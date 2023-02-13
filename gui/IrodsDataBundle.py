@@ -3,13 +3,15 @@
 """
 import io
 import os
-import pathlib
+import sys
 
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
+import PyQt6.uic
 
 import gui
+import utils
 
 CWD = os.getcwd()
 EXTENSIONS = [
@@ -22,25 +24,28 @@ EXTENSIONS = [
 ]
 
 
-class IrodsDataBundle():
+class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
+                      gui.ui_files.tabDataBundle.Ui_tabDataBundle):
     """Window for (un)bundling data withing the iRODS system.
 
     """
 
-    def __init__(self, widget, ic, ienv):
+    def __init__(self, ic, ienv):
         """Construct the bundle window.
 
         Parameters
         ----------
-        widget : QtWidgets
-            Common widget container.
         ic : IrodsConnector
             Connection to an iRODS session.
         ienv : dict
             iRODS environment settings.
 
         """
-        self.widget = widget
+        super().__init__()
+        if getattr(sys, 'frozen', False):
+            super().setupUi(self)
+        else:
+            PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
         self.ic = ic
         self.ienv = ienv
         self.thread_create = None
@@ -48,12 +53,12 @@ class IrodsDataBundle():
         self.worker_create = None
         self.worker_extract = None
         self.root_path = f'/{ic.session.zone}'
-        self.widget.irodsZoneLabel.setText(f'{self.root_path}:')
-        self.irods_tree_model = self.setup_fs_tree(self.widget.irodsFsTreeView)
-        self.widget.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)
-        self.setup_resource_selector(self.widget.resourceBox)
-        self.widget.createButton.clicked.connect(self.create_data_bundle)
-        self.widget.extractButton.clicked.connect(self.extract_data_bundle)
+        self.irodsZoneLabel.setText(f'{self.root_path}:')
+        self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
+        self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)
+        self.setup_resource_selector(self.resourceBox)
+        self.createButton.clicked.connect(self.create_data_bundle)
+        self.extractButton.clicked.connect(self.extract_data_bundle)
 
     def info_popup(self, message):
         """Display an informational pop-up with the `message`.
@@ -64,7 +69,7 @@ class IrodsDataBundle():
             Text to display in pop-up.
 
         """
-        PyQt6.QtWidgets.QMessageBox.information(self.widget, 'Information', message)
+        PyQt6.QtWidgets.QMessageBox.information(self, 'Information', message)
 
     def setup_fs_tree(self, tree_view):
         """Initialize the iRODS tree view.
@@ -116,73 +121,74 @@ class IrodsDataBundle():
         """Allow buttons to be pressed.
 
         """
-        self.widget.createButton.setEnabled(True)
-        self.widget.extractButton.setEnabled(True)
+        self.createButton.setEnabled(True)
+        self.extractButton.setEnabled(True)
 
     def disable_buttons(self):
         """Disallow buttons from being pressed.
 
         """
-        self.widget.createButton.setEnabled(False)
-        self.widget.extractButton.setEnabled(False)
+        self.createButton.setEnabled(False)
+        self.extractButton.setEnabled(False)
 
     def create_data_bundle(self):
         """Run an iRODS bundle rule on selected collection.
 
         """
-        self.widget.setCursor(
+        self.setCursor(
             PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
-        self.widget.statusLabel.clear()
-        coll_indexes = self.widget.irodsFsTreeView.selectedIndexes()
+        self.statusLabel.clear()
+        coll_indexes = self.irodsFsTreeView.selectedIndexes()
         if not len(coll_indexes):
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'CREATE ERROR: Something must be selected')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         else:
             coll_name = self.irods_tree_model.irods_path_from_tree_index(coll_indexes[0])
         if not self.ic.collection_exists(coll_name):
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'CREATE ERROR: A collection must be selected')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         # TODO find a better test (add permissions too)
         if len(coll_name.split('/')) < 5:
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'CREATE ERROR: Collection must be within a user/group collection')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         src_coll = self.ic.get_collection(coll_name)
-        src_size = sum((sum((int(obj.size) for obj in objs)) for _, _, objs in src_coll.walk()))
+        src_size = utils.utils.get_coll_size(src_coll)
         if src_size == 0:
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'CREATE ERROR: Collection must have something in it')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        resc_name, free_space = self.widget.resourceBox.currentText().split(' / ')
+        resc_name, free_space = self.resourceBox.currentText().split(' / ')
         if 2 * src_size * self.ic.multiplier > int(free_space):
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'CREATE ERROR: Resource must have enough free space in it')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         obj_path = f'{coll_name}.tar'
-        force = self.widget.forceCheckBox.isChecked()
+        force = self.forceCheckBox.isChecked()
         if self.ic.dataobject_exists(obj_path):
             if not force:
-                self.widget.statusLabel.setText(
+                self.statusLabel.setText(
                     f'CREATE ERROR: Destination bundle ({obj_path}) exists.  Use force to override')
-                self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+                self.setCursor(
+                    PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
                 self.enable_buttons()
                 return
         force_flag = 'force' if force else ''
@@ -194,8 +200,7 @@ class IrodsDataBundle():
                 }
         # XXX can self.thread_create be simply thread
         self.thread_create = PyQt6.QtCore.QThread()
-        self.widget.statusLabel.setText(
-            f'CREATE STATUS: Creating {obj_path}')
+        self.statusLabel.setText(f'CREATE STATUS: Creating {obj_path}')
         self.worker_create = RuleRunner(
             self.ic, io.StringIO(CREATE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
@@ -205,57 +210,57 @@ class IrodsDataBundle():
         self.worker_create.finished.connect(self.worker_create.deleteLater)
         self.thread_create.finished.connect(self.thread_create.deleteLater)
         self.thread_create.start()
-        self.enable_buttons()
 
     def extract_data_bundle(self):
         """Run an iRODS extract rule on selected collection.
 
         """
-        self.widget.setCursor(
+        self.setCursor(
             PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.disable_buttons()
-        self.widget.statusLabel.clear()
-        obj_indexes = self.widget.irodsFsTreeView.selectedIndexes()
+        self.statusLabel.clear()
+        obj_indexes = self.irodsFsTreeView.selectedIndexes()
         if not len(obj_indexes):
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'EXTRACT ERROR: Something must be selected')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
         else:
             obj_path = self.irods_tree_model.irods_path_from_tree_index(obj_indexes[0])
         if not self.ic.dataobject_exists(obj_path):
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 'EXTRACT ERROR: A data object must be selected')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        obj_path = pathlib.Path(obj_path)
+        obj_path = utils.utils.IrodsPath(obj_path)
         file_type = ''.join(obj_path.suffixes)[1:]
         if file_type not in EXTENSIONS:
-            self.widget.statusLabel.setText(
+            self.statusLabel.setText(
                 f'EXTRACT ERROR: A bundle file ({", ".join(EXTENSIONS)}) must be selected')
-            self.widget.setCursor(
+            self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        force = self.widget.forceCheckBox.isChecked()
-        coll_name = str(obj_path.with_suffix('').with_suffix(''))
+        force = self.forceCheckBox.isChecked()
+        coll_name = obj_path.with_suffix('').with_suffix('')
         if self.ic.collection_exists(coll_name):
             bund_coll = self.ic.get_collection(coll_name)
             if len(bund_coll.subcollections) or len(bund_coll.data_objects):
                 if not force:
-                    self.widget.statusLabel.setText(
+                    self.statusLabel.setText(
                         f'EXTRACT ERROR: Destination collection ({coll_name}) must be empty.  Use force to override')
-                    self.widget.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+                    self.setCursor(
+                        PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
                     self.enable_buttons()
                     return
                 else:
                     bund_coll.remove(force=force)
         self.ic.ensure_coll(coll_name)
-        resc_name = self.widget.resourceBox.currentText().split(' / ')[0]
+        resc_name = self.resourceBox.currentText().split(' / ')[0]
         force_flag = 'force' if force else ''
         params = {
                 '*objPath': f'"{obj_path}"',
@@ -264,7 +269,7 @@ class IrodsDataBundle():
                 '*forceFlag': f'"{force_flag}"',
                 }
         self.thread_extract = PyQt6.QtCore.QThread()
-        self.widget.statusLabel.setText(
+        self.statusLabel.setText(
             f'EXTRACT STATUS: Extracting {coll_name}')
         self.worker_extract = RuleRunner(
             self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
@@ -275,7 +280,6 @@ class IrodsDataBundle():
         self.worker_extract.finished.connect(self.worker_extract.deleteLater)
         self.thread_extract.finished.connect(self.thread_extract.deleteLater)
         self.thread_extract.start()
-        self.enable_buttons()
 
     def process_finished(self, success, stdouterr, operation):
         """Round out the process thread.
@@ -288,26 +292,25 @@ class IrodsDataBundle():
             One of 'CREATE' or 'EXTRACT'.
 
         """
-        self.widget.setCursor(
+        self.setCursor(
             PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         self.enable_buttons()
-        self.widget.statusLabel.clear()
+        self.statusLabel.clear()
         stdout, stderr = stdouterr
         if success:
-            indexes = self.widget.irodsFsTreeView.selectedIndexes()
+            indexes = self.irodsFsTreeView.selectedIndexes()
             if len(indexes):
-                self.widget.statusLabel.setText(f'{operation} STATUS: {stdout}')
+                self.statusLabel.setText(f'{operation} STATUS: {stdout}')
                 parent_index = self.irods_tree_model.get_parent_index(indexes[0])
                 self.irods_tree_model.refresh_subtree(parent_index)
         else:
-            self.widget.statusLabel.setText(f'{operation} ERROR: {stderr}')
+            self.statusLabel.setText(f'{operation} ERROR: {stderr}')
 
 
 class RuleRunner(PyQt6.QtCore.QObject):
     """Run an iRODS rule in a Qt thread.
 
     """
-
     finished = PyQt6.QtCore.pyqtSignal(bool, tuple, str)
 
     def __init__(self, ic, rule_file, params, operation):
@@ -326,9 +329,9 @@ class RuleRunner(PyQt6.QtCore.QObject):
         """
         super().__init__()
         self.ic = ic
+        self.rule_file = rule_file
         self.params = params
         self.operation = operation
-        self.rule_file = rule_file
 
     def run(self):
         """Run the rule and "return" the results.

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>irodsLogin</class>
+ <widget class="QDialog" name="irodsLogin">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -24,7 +24,7 @@
 {
 	background-color: rgb(54, 54, 54);
 	color: rgb(86, 184, 139);
-	border-color: rgb(217, 174, 23);
+    border-color: rgb(217, 174, 23);
 }
 
 QLineEdit
@@ -59,6 +59,7 @@ QLabel#passError, QLabel#envError, QLabel#icommandsError
       <property name="font">
        <font>
         <pointsize>20</pointsize>
+        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -238,6 +239,7 @@ QLabel#passError, QLabel#envError, QLabel#icommandsError
       <property name="font">
        <font>
         <pointsize>13</pointsize>
+        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
