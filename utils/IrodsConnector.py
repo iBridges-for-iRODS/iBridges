@@ -466,7 +466,7 @@ class IrodsConnector():
             iRODS ACL instances.
 
         """
-        logging.info('GET PERMISSIONS', exc_info=True)
+        logging.info('GET PERMISSIONS')
         if isinstance(path, str) and path:
             try:
                 return self.session.permissions.get(
