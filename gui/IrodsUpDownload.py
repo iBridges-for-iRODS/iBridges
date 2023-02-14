@@ -67,8 +67,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             PyQt6.QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
         home_location = PyQt6.QtCore.QStandardPaths.standardLocations(
             PyQt6.QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
-        index = self.localmodel.setRootPath(home_location)
-        self.localFsTreeView.setCurrentIndex(index)
+        self.localmodel.setRootPath(home_location)
 
     def _initialize_irods_model(self):
         """Initialize iRODS QTreeView.
@@ -273,11 +272,17 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """Get both local and iRODS path from the tree views.
 
         """
-        src_index = self.localFsTreeView.selectedIndexes()[0]
+        selected_src_index = self.localFsTreeView.selectedIndexes()
+        if len(selected_src_index) == 0:
+            return None, None, None
+        src_index = selected_src_index[0]
         src_path = self.localmodel.filePath(src_index)
         if src_path is None:
             return None, None, None
-        dst_index = self.irodsFsTreeView.selectedIndexes()[0]
+        selected_dst_index = self.irodsFsTreeView.selectedIndexes()
+        if len(selected_dst_index) == 0:
+            return None, None, None
+        dst_index = selected_dst_index[0]
         dst_path = self.irodsmodel.irods_path_from_tree_index(dst_index)
         if dst_index is None:
             return None, None, None
