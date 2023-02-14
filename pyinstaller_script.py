@@ -81,7 +81,6 @@ def ui_to_py(dirname: str, py_exec: str):
             outlines.extend(inlines.split('\n'))
         pypath.write_text(
             '\n'.join(line for line in outlines if not line.startswith('#')))
-        del inlines
 
 
 def remove_pyui_files(dirname: str):
