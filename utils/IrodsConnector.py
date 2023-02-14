@@ -150,10 +150,7 @@ class IrodsConnector():
         bool
             Are the iCommands available?
         """
-        try:
-            return subprocess.call(['which', 'iinit']) == 0
-        except:
-            return False
+        return subprocess.call(['which', 'iinit'], shell=True, stderr=subprocess.PIPE) == 0
 
     @property
     def ienv(self):
