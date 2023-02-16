@@ -103,17 +103,16 @@ class irodsSearch(QDialog, Ui_searchDialog):
         for index, row in enumerate(rows):
             if self.searchResultTable.item(row, 1).text() == '':
                 self.collTable.setItem(
-                    index, 0, QtWidgets.QTableWidgetItem(os.path.dirname(
-                        self.searchResultTable.item(row, 0).text())))
-                self.collTable.setItem(
-                    index, 1, QtWidgets.QTableWidgetItem(os.path.basename(
-                        self.searchResultTable.item(row, 0).text())+'/'))
-            else:
-                self.collTable.setItem(
-                    index, 0, QtWidgets.QTableWidgetItem(
-                        self.searchResultTable.item(row, 0).text()))
+                    index, 0, QtWidgets.QTableWidgetItem("Search"))
                 self.collTable.setItem(
                     index, 1, QtWidgets.QTableWidgetItem(
+                        self.searchResultTable.item(row, 0).text()+"/"))
+            else:
+                self.collTable.setItem(
+                    index, 0, QtWidgets.QTableWidgetItem("Search"))
+                self.collTable.setItem(
+                    index, 1, QtWidgets.QTableWidgetItem(
+                        self.searchResultTable.item(row, 0).text()+"/"+\
                         self.searchResultTable.item(row, 1).text()))
             self.collTable.setItem(
                 index, 2, QtWidgets.QTableWidgetItem(""))

@@ -171,7 +171,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """
         indexes = self.localFsTreeView.selectedIndexes()
         if len(indexes):
-            parent = self.localmodel.filepath(indexes[0])
+            parent = self.localmodel.filePath(indexes[0])
             if os.path.isfile(parent):
                 self.errorLabel.setText('No parent folder selected.')
             else:
