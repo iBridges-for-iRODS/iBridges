@@ -74,7 +74,7 @@ def ui_to_py(dirname: str, py_exec: str):
                     outlines.append(inline)
                 else:
                     first, icon_path, last = inline.split('"')
-                    icon_path = icon_path.split("..")[1]
+                    icon_path = icon_path.split("..")[-1]
                     outlines.append(
                         f'{first}r"..{utils.utils.LocalPath(icon_path)}"{last}')
         else:
