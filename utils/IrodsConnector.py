@@ -187,10 +187,9 @@ class IrodsConnector():
                 irods_auth_file = utils.utils.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
-                uid = self.get_uid()
                 with open(irods_auth_file, encoding='utf-8') as authfd:
                     self._password = irods.password_obfuscation.decode(
-                        authfd.read(), uid=uid)
+                        authfd.read())
         return self._password
 
     @password.setter
@@ -212,14 +211,6 @@ class IrodsConnector():
 
         """
         self._password = ''
-
-    def get_uid(self):
-        try:
-            uid = os.getuid()
-        except AttributeError:
-            # Spoof UID for Non-POSIX
-            uid = sum((ord(char) for char in os.getlogin()))
-        return uid
 
     @property
     def permissions(self):
@@ -323,8 +314,6 @@ class IrodsConnector():
             cached_pass = self.password
             if given_pass != cached_pass:
                 options['password'] = given_pass
-            else:
-                options['irods_authentication_uid'] = self.get_uid()
             self._session = self._get_irods_session(options)
             try:
                 # Check for good authentication and cache PAM password
@@ -366,13 +355,8 @@ class IrodsConnector():
         if 'password' not in options:
             try:
                 print('AUTH FILE SESSION')
-                if 'irods_authentication_uid' in options:
-                    return irods.session.iRODSSession(
-                        irods_env_file=options['irods_env_file'],
-                        irods_authentication_uid=options['irods_authentication_uid'])
-                else:
-                    return irods.session.iRODSSession(
-                        irods_env_file=options['irods_env_file'])
+                return irods.session.iRODSSession(
+                    irods_env_file=options['irods_env_file'])
             except Exception as error:
                 print(f'{RED}AUTH FILE LOGIN FAILED: {error!r}{DEFAULT}')
         else:
@@ -414,14 +398,9 @@ class IrodsConnector():
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
-            try:
-                uid = os.getuid()
-            except AttributeError:
-                # Spoof UID for Non-POSIX
-                uid = sum((ord(char) for char in os.getlogin()))
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0], uid=uid))
+                    irods.password_obfuscation.encode(pam_passwords[0]))
 
     def get_user_info(self):
         """Query for user type and groups.

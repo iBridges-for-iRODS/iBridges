@@ -427,13 +427,6 @@ QLabel#errorLabel
      </layout>
     </item>
     <item>
-     <widget class="QPlainTextEdit" name="logs">
-      <property name="readOnly">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </item>
-    <item>
      <spacer name="verticalSpacer_13">
       <property name="orientation">
        <enum>Qt::Vertical</enum>

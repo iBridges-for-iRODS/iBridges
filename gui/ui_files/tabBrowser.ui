@@ -215,7 +215,7 @@ QPushButton#dataDeleteButton
      </property>
      <column>
       <property name="text">
-       <string notr="true">Path</string>
+       <string notr="true">Status</string>
       </property>
       <property name="toolTip">
        <string notr="true"/>
@@ -231,7 +231,7 @@ QPushButton#dataDeleteButton
      </column>
      <column>
       <property name="text">
-       <string>Size</string>
+       <string>Size [bytes]</string>
       </property>
      </column>
      <column>
@@ -241,7 +241,12 @@ QPushButton#dataDeleteButton
      </column>
      <column>
       <property name="text">
-       <string>Last modified</string>
+       <string>Created</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Modified</string>
       </property>
      </column>
     </widget>
@@ -649,13 +654,13 @@ QPushButton#dataDeleteButton
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="resources">
+     <widget class="QWidget" name="replicas">
       <attribute name="title">
-       <string>Resources</string>
+       <string>Replicas</string>
       </attribute>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <item>
-        <widget class="QTableWidget" name="resourceTable">
+        <widget class="QTableWidget" name="replicaTable">
          <property name="styleSheet">
           <string notr="true"/>
          </property>
@@ -673,12 +678,32 @@ QPushButton#dataDeleteButton
          </property>
          <column>
           <property name="text">
-           <string>Resource hierarchy</string>
+           <string>Creator</string>
           </property>
          </column>
          <column>
           <property name="text">
-           <string/>
+           <string>Replica</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Hierarchy</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Size [bytes]</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Modified</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Status</string>
           </property>
          </column>
         </widget>
