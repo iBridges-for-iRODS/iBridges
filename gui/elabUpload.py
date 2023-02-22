@@ -52,8 +52,8 @@ class elabUpload(QWidget, Ui_tabELNData):
         # TODO standardize tree initialization
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
-        self.dirmodel.setRootPath(home_location)
-        #self.localFsTable.setCurrentIndex(index)
+        index = self.dirmodel.setRootPath(home_location)
+        self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
                 '/'+self.ic.session.zone+'/home/'+self.ic.session.username)
         # defining events and listeners

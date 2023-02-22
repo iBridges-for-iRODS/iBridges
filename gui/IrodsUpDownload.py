@@ -65,9 +65,11 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         self.localFsTreeView.setColumnHidden(3, True)
         self.localFsTreeView.header().setSectionResizeMode(
             PyQt6.QtWidgets.QHeaderView.ResizeMode.ResizeToContents)
+        # TODO standardize tree initialization
         home_location = PyQt6.QtCore.QStandardPaths.standardLocations(
             PyQt6.QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
-        self.localmodel.setRootPath(home_location)
+        index = self.localmodel.setRootPath(home_location)
+        self.localFsTreeView.setCurrentIndex(index)
 
     def _initialize_irods_model(self):
         """Initialize iRODS QTreeView.
@@ -88,12 +90,12 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         self.irodsFsTreeView.setColumnHidden(2, True)
         self.irodsFsTreeView.setColumnHidden(3, True)
         self.irodsFsTreeView.setColumnHidden(4, True)
-        # XXX unsuccessful attempt to open home coll in tree view
+        # TODO standardize tree initialization
         # index = self.irodsmodel.indexFromItem(
         #     PyQt6.QtGui.QStandardItem(self.irodsmodel.base_path))
         # self.irodsFsTreeView.setCurrentIndex(index)
         # self.irodsFsTreeView.scrollTo(index)
-        # XXX
+
 
     def _create_buttons(self):
         """Create panel buttons.
