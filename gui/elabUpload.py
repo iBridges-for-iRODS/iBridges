@@ -49,6 +49,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.localFsTable.setColumnHidden(3, True)
         # TODO remove commented commands that are not required?
         # self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # TODO standardize tree initialization
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)

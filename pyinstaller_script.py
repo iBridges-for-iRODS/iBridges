@@ -5,7 +5,6 @@ executable before it can run.  This makes it roughly 30 seconds
 slower than the current variant.
 """
 import subprocess
-
 import utils
 
 ICON_VAR = 'icon'
@@ -70,27 +69,18 @@ def ui_to_py(dirname: str, py_exec: str):
             '"""',
         ]
         if PIXMAP_STR in inlines:
-            # TODO determine if existing sys import is sufficient
-            # outlines.append('import sys')
             for inline in inlines.split('\n'):
                 if PIXMAP_STR not in inline:
                     outlines.append(inline)
                 else:
                     first, icon_path, last = inline.split('"')
-                    indent = first.split(ICON_VAR)[0]
+                    icon_path = icon_path.split("..")[-1]
                     outlines.append(
-                        f'{indent}if getattr(sys, "frozen", False):')
-                    outlines.append(
-                        f'{TAB}{first}r"{utils.utils.LocalPath("..", icon_path)}"{last}')
-                    outlines.append(
-                        f'{indent}else:')
-                    outlines.append(
-                        f'{TAB}{first}r"{utils.utils.LocalPath(".", icon_path)}"{last}')
+                        f'{first}r"..{utils.utils.LocalPath(icon_path)}"{last}')
         else:
             outlines.extend(inlines.split('\n'))
         pypath.write_text(
             '\n'.join(line for line in outlines if not line.startswith('#')))
-        del inlines
 
 
 def remove_pyui_files(dirname: str):

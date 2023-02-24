@@ -150,7 +150,7 @@ class IrodsConnector():
         bool
             Are the iCommands available?
         """
-        return subprocess.call(['which', 'iinit']) == 0
+        return subprocess.call(['which', 'iinit'], shell=True, stderr=subprocess.PIPE) == 0
 
     @property
     def ienv(self):
@@ -442,7 +442,7 @@ class IrodsConnector():
             iRODS ACL instances.
 
         """
-        logging.info('GET PERMISSIONS', exc_info=True)
+        logging.info('GET PERMISSIONS')
         if isinstance(path, str) and path:
             try:
                 return self.session.permissions.get(

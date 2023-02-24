@@ -86,6 +86,9 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
         # Initial tree information.
         try:
             coll = self.ic.session.collections.get(self.base_path)
+        except irods.exception.CollectionDoesNotExist:
+            self.base_path = self.base_path+'/'+self.ic.session.username
+            coll = self.ic.session.collections.get(self.base_path)
         # FIXME narrow down exception possibilities
         except Exception:
             logging.info('IRODS TREE INIT ERROR', exc_info=True)
