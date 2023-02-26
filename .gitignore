@@ -2,6 +2,7 @@
 .idea
 irods-basicGUI/logs/*
 irods-iBridgesGui.spec
+*DS_Store
 
 
 # Byte-compiled / optimized / DLL files
@@ -82,6 +83,9 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+
+# VS code
+.vscode
 
 # IPython
 profile_default/

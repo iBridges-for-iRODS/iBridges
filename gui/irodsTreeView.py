@@ -1,234 +1,371 @@
-from PyQt6.QtGui import QStandardItemModel, QStandardItem
-from PyQt6.QtWidgets import QFileIconProvider, QMessageBox
-from PyQt6.QtCore import Qt
-from irods.exception import NetworkException
+"""Tree model for IRODS collections.
+The IRODS database is huge and retrieving a complete tree of all files
+can take ages.  To improve the loading time the tree is only grown as
+far as it displays.
 
-import os
-from collections import deque
+"""
+import collections
 import logging
+import os
 
-"""
-Tree model for iRODS collections.
-The IRODS database is huge and retrieving a complete tree of all files can take ages.
-To improve the loading time the tree is only grown as far as it displayed.
-"""
+import irods
+import PyQt6
+import PyQt6.QtCore
+import PyQt6.QtGui
+import PyQt6.QtWidgets
+
+ACCESS_NAMES = [
+    'own',
+    'modify object',
+    'read object',
+    'modify_object',
+    'read_object',
+]
 
 
-class IrodsModel(QStandardItemModel):
-    def __init__(self, irods_session, TreeView, parent=None):
+class IrodsModel(PyQt6.QtGui.QStandardItemModel):
+    """Model for an iRODS tree view.
+
+    """
+
+    def __init__(self, irods_connector, tree_view, parent=None):
+        """Initializes the tree view with the root node and first level.
+
+        Class variables 'user_groups' and 'base_path' _must_ be
+        populated with a list of group names and the path name of the
+        iRODS top-level collection (i.e., /<zone name>/home),
+        respectively.
+
+        Parameters
+        ----------
+        irods_connector : IrodsConnector
+            iRODS session container.
+        tree_view : PyQt6.QtWidgets
+            Defined iRODS tree view UI element.
+        parent : ???
+            ???
+
         """
-        Initializes the Treeview with the root node and first level. 
-        """
-        super(IrodsModel, self).__init__(parent)
-        #self._checked_indices = set()
-        self.ic = irods_session
-        # Groups which the user id member of to check access rights on tree
+        super().__init__(parent)
+        self.ic = irods_connector
+        self.tree_view = tree_view
         try:
-            self.userGroups = self.ic.getUserInfo()[1]
-        except Exception as e:
+            self.user_groups = self.ic.get_user_info()[1]
+        except irods.exception.NetworkException:
             logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
+        self.zone_path = f'/{self.ic.session.zone}'
+        self.base_path = f'{self.zone_path}/home'
+        # Empty tree
+        self.clear()
 
-        try:
-            coll = self.ic.session.collections.get('/'+self.ic.session.zone+'/home')
-            self.irodsRootColl = "/"+self.ic.session.zone+"/home"
-        except NetworkException:
-            logging.info('iRODS FILE TREE ERROR: retrieving collection', exc_info=True)
-        except:
-            self.irodsRootColl = "/"+self.ic.session.zone+"/home/"+self.ic.session.username
+    def init_irods_fs_data(self):
+        """Retrieve the first levels of an iRODS tree: /zone/home/*.
 
-        self.TreeView = TreeView
-        self.clear()  # Empty tree
-        rootnode = self.invisibleRootItem()
-
-    def initIrodsFsData(self):
-        """
-        Retrieves the first levels of an iRODS tree: /zone/home/*.
-        Returns the information as list of dictionaries:
-        [{'irodsID': 12345, 'level': 10, 'parentID': 54321, 'shortName': 'myColl', 'type': 'C'}, {}]
         The level of 'home' is 0 and its parentID is -1.
         'type' can take values 'C' (collection) or 'd' (data object)
+
+        Returns
+        -------
+        list
+            Key-value dictionaries.
+
+        Example of the return:
+
+        [
+            {
+                'irodsID': 12345,
+                'level': 10,
+                'parentID': 54321,
+                'shortName': 'myColl',
+                'type': 'C'
+            },
+            {}
+        ]
+
         """
-        # initial tree information
-        parentId = -1
+        # Initial tree information.
         try:
-            coll = self.ic.session.collections.get(self.irodsRootColl)
-        except:
-            logging.info('IRODS TREE INIT ERROR',
-                        exc_info=True)
+            coll = self.ic.session.collections.get(self.base_path)
+        except irods.exception.CollectionDoesNotExist:
+            self.base_path = self.base_path+'/'+self.ic.session.username
+            coll = self.ic.session.collections.get(self.base_path)
+        # FIXME narrow down exception possibilities
+        except Exception:
+            logging.info('IRODS TREE INIT ERROR', exc_info=True)
             return
         level = 0
-        data = [{'level': level, 'irodsID': coll.id, 'parentID': -1,
-                 'shortName': coll.name, 'type': 'C'}]
-        # get content of home
-        for subColl in coll.subcollections:
+        row = {
+            'level': level,
+            'irodsID': coll.id,
+            'parentID': -1,
+            'shortName': coll.name,
+            'type': 'C',
+        }
+        data = [row]
+        # Get content of the home collection.
+        for sub_coll in coll.subcollections:
             level = 1
-            data.append({'level': level, 'irodsID': subColl.id,
-                         'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
-            if subColl.data_objects != [] or subColl.subcollections != []:
-                data.append({'level': level+1, 'irodsID': 'test',
-                             'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
+            row = {
+                'level': level,
+                'irodsID': sub_coll.id,
+                'parentID': coll.id,
+                'shortName': sub_coll.name,
+                'type': 'C',
+            }
+            data.append(row)
+            if sub_coll.data_objects != [] or sub_coll.subcollections != []:
+                row = {
+                    'level': level+1,
+                    'irodsID': 'test',
+                    'parentID': sub_coll.id,
+                    'shortName': 'test',
+                    'type': 'd',
+                }
+                data.append(row)
         for obj in coll.data_objects:
-            # level = len(obj.path.split(self.irodsRootColl+'/')[1].split('/')) - 1
             level = 1
-            data.append({'level': level, 'irodsID': obj.id,
-                         'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
+            row = {
+                'level': level,
+                'irodsID': obj.id,
+                'parentID': coll.id,
+                'shortName': obj.name,
+                'type': 'd',
+            }
+            data.append(row)
         return data
 
-    def initTree(self):
+    def init_tree(self):
+        """Draw the first levels of an iRODS filesystem as a tree.
+
         """
-        Draws the first levels of an iRODS filesystem as a tree.
-        """
-        icon_provider = QFileIconProvider()
+        icon_provider = PyQt6.QtWidgets.QFileIconProvider()
         self.setRowCount(0)
         root = self.invisibleRootItem()
-
         # First levels of iRODS data
-        irodsFsData = self.initIrodsFsData()
-
+        irods_fs_data = self.init_irods_fs_data()
         # Build Tree
-        seen = {}  # nodes in the tree
-        values = deque(irodsFsData)
+        nodes_in_tree = {}
+        values = collections.deque(irods_fs_data)
         while values:
             value = values.popleft()
             if value['level'] == 0:
                 parent = root
             else:
                 pid = value['parentID']
-                if pid not in seen:
+                if pid not in nodes_in_tree:
                     values.append(value)
                     continue
-                parent = seen[pid]
-            irodsID = value['irodsID']
-            display = QStandardItem(value['shortName'])
+                parent = nodes_in_tree[pid]
+            irods_id = value['irodsID']
+            display = PyQt6.QtGui.QStandardItem(value['shortName'])
             if value['type'] == 'd':
-                display.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
+                display.setIcon(icon_provider.icon(
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.File))
             if value['type'] == 'C':
-                display.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
-            parent.appendRow([
-                              display,
-                              QStandardItem(str(value['level'])),
-                              QStandardItem(str(value['irodsID'])),
-                              QStandardItem(str(value['parentID'])),
-                              QStandardItem(value['type'])
-                            ])
-            seen[irodsID] = parent.child(parent.rowCount() - 1)
+                display.setIcon(icon_provider.icon(
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.Folder))
+            row = [
+                display,
+                PyQt6.QtGui.QStandardItem(str(value['level'])),
+                PyQt6.QtGui.QStandardItem(str(value['irodsID'])),
+                PyQt6.QtGui.QStandardItem(str(value['parentID'])),
+                PyQt6.QtGui.QStandardItem(value['type']),
+            ]
+            parent.appendRow(row)
+            nodes_in_tree[irods_id] = parent.child(parent.rowCount() - 1)
 
-    def deletesubTree(self, treeItem):
-        """
-        treeItem: QStandardItem in the QTreeView
-        """
-        # Adjust treeview --> remove subtree
-        treeItem.removeRows(0, treeItem.rowCount())
+    def delete_subtree(self, tree_item):
+        """Delete subtree?
 
-    def getCollData(self, coll):
+        Parameters
+        ----------
+        tree_item : QStandardItem
+            Item in the QTreeView
+
         """
-        Retrieves the subcollections and data objects of a collection.
-        Returns the information as list of dictionaries
-        [{'irodsID': 12345, 'level': 10, 'parentID': 54321, 'shortName': 'myColl', 'type': 'C'}, {}]
-        coll: irods collection
-        data: list of dictionaries
+        # Adjust tree view to remove subtree.
+        tree_item.removeRows(0, tree_item.rowCount())
+
+    def get_coll_data(self, coll):
+        """Retrieves the subcollections and data objects of a collection
+        in the form of key-value dictionaries.
+
+        Parameters
+        ----------
+        coll : iRODSCollection
+            Instance of an iRODS collection.
+
+        Returns
+        -------
+        list
+            Key-value dictionaries.
+
+        Example of the return:
+
+        [
+            {
+                'irodsID': 12345,
+                'level': 10,
+                'parentID': 54321,
+                'shortName': 'myColl',
+                'type': 'C'
+            },
+            {}
+        ]
+
         """
         data = []
-        for subColl in coll.subcollections:
-            level = len(subColl.path.split('/')) - len(self.irodsRootColl.split('/'))
-            data.append({'level': level, 'irodsID': subColl.id,
-                         'parentID': coll.id, 'shortName': subColl.name, 'type': 'C'})
-            if subColl.data_objects != [] or subColl.subcollections != []:
-                data.append({'level': level+1, 'irodsID': 'test',
-                             'parentID': subColl.id, 'shortName': 'test', 'type': 'd'})
+        for sub_coll in coll.subcollections:
+            level = len(sub_coll.path.split('/')) - len(self.base_path.split('/'))
+            row = {
+                'level': level,
+                'irodsID': sub_coll.id,
+                'parentID': coll.id,
+                'shortName': sub_coll.name,
+                'type': 'C',
+            }
+            data.append(row)
+            if sub_coll.data_objects != [] or sub_coll.subcollections != []:
+                row = {
+                    'level': level+1,
+                    'irodsID': 'test',
+                    'parentID': sub_coll.id,
+                    'shortName': 'test',
+                    'type': 'd',
+                }
+                data.append(row)
         for obj in coll.data_objects:
-            level = len(obj.path.split('/')) - len(self.irodsRootColl.split('/'))
-            data.append({'level': level, 'irodsID': obj.id,
-                         'parentID': coll.id, 'shortName': obj.name, 'type': 'd'})
+            level = len(obj.path.split('/')) - len(self.base_path.split('/'))
+            row = {
+                'level': level,
+                'irodsID': obj.id,
+                'parentID': coll.id,
+                'shortName': obj.name,
+                'type': 'd',
+            }
+            data.append(row)
         return data
 
-    def addSubtree(self, treeItem, treeLevel, irodsFsSubtreeData):
-        # grow treeView from treeItem
-        icon_provider = QFileIconProvider()
-        values = deque(irodsFsSubtreeData)
-        seen = {}
+    def add_subtree(self, tree_item, tree_level, irods_fs_subtree_data):
+        """Grow tree_view from tree_item
 
+        Parameters
+        ----------
+        tree_item : ???
+            ???
+        tree_level : ???
+            ???
+        irods_fs_subtree_data : ???
+            ???
+
+        """
+        icon_provider = PyQt6.QtWidgets.QFileIconProvider()
+        values = collections.deque(irods_fs_subtree_data)
+        nodes_in_tree = {}
         while values:
             value = values.popleft()
-            if value['level'] == treeLevel:
-                parent = treeItem
+            if value['level'] == tree_level:
+                parent = tree_item
             else:
                 pid = value['parentID']
-                if pid not in seen:
+                if pid not in nodes_in_tree:
                     values.append(value)
                     continue
-                parent = seen[pid]
-            irodsID = value['irodsID']
-            display = QStandardItem(value['shortName'])
+                parent = nodes_in_tree[pid]
+            irods_id = value['irodsID']
+            display = PyQt6.QtGui.QStandardItem(value['shortName'])
             if value['type'] == 'd':
-                display.setIcon(icon_provider.icon(QFileIconProvider.IconType.File))
+                display.setIcon(icon_provider.icon(
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.File))
             if value['type'] == 'C':
-                display.setIcon(icon_provider.icon(QFileIconProvider.IconType.Folder))
-            parent.appendRow([
-                              display,
-                              QStandardItem(str(value['level'])),
-                              QStandardItem(str(value['irodsID'])),
-                              QStandardItem(str(value['parentID'])),
-                              QStandardItem(value['type'])
-                            ])
-            seen[irodsID] = parent.child(parent.rowCount() - 1)
+                display.setIcon(icon_provider.icon(
+                    PyQt6.QtWidgets.QFileIconProvider.IconType.Folder))
+            row = [
+                display,
+                PyQt6.QtGui.QStandardItem(str(value['level'])),
+                PyQt6.QtGui.QStandardItem(str(value['irodsID'])),
+                PyQt6.QtGui.QStandardItem(str(value['parentID'])),
+                PyQt6.QtGui.QStandardItem(value['type']),
+            ]
+            parent.appendRow(row)
+            nodes_in_tree[irods_id] = parent.child(parent.rowCount() - 1)
 
-    def getParentIdx(self, position):
-        try:  # index when right mouse click
-            modelIndex = self.tree.indexAt(position)
-            if not modelIndex.isValid():
+    def get_parent_index(self, position):
+        """Get parent index?
+
+        Parameters
+        ----------
+        position : int?
+            Location in tree?
+
+        Returns
+        -------
+        ???
+
+        """
+        try:
+            # Index when right mouse clicked.
+            model_index = self.tree.indexAt(position)
+            if not model_index.isValid():
                 return
-        except:  # index when expand is clicked
-            modelIndex = position
+        # FIXME narrow down exception possibilities
+        except Exception:
+            # Index when expand is clicked.
+            model_index = position
+        return self.itemFromIndex(model_index).parent().index()
 
-        treeItem = self.itemFromIndex(modelIndex)
+    def refresh_subtree(self, position):
+        """Refresh the tree view?
 
-        parent = treeItem.parent()
-        
-        return parent.index()
+        Parameters
+        ----------
+        position : int?
+            Location in tree?
 
-    def refreshSubTree(self, position):
-        
-        try:  # index when right mouse click
-            modelIndex = self.tree.indexAt(position)
-            if not modelIndex.isValid():
+        """
+        try:
+            # Index when right mouse clicked.
+            model_index = self.tree.indexAt(position)
+            if not model_index.isValid():
                 return
-        except:  # index when expand is clicked
-            modelIndex = position
-
-        treeItem = self.itemFromIndex(modelIndex)
-        parent = treeItem.parent()
+        # FIXME narrow down exception possibilities
+        except Exception:
+            # Index when expand is clicked.
+            model_index = position
+        tree_item = self.itemFromIndex(model_index)
+        parent = tree_item.parent()
         if parent is None:
             parent = self.invisibleRootItem()
-
-        row = treeItem.row()
-
-        treeItemData = []
+        row = tree_item.row()
+        tree_item_data = []
         for col in range(parent.columnCount()):
             child = parent.child(row, col)
-            treeItemData.append(child.data(0))
-
-        irodsItemPath = self.irodsPathFromTreeIdx(modelIndex)
-
-        if treeItemData[4] == 'C':  # collection
-            coll = self.ic.session.collections.get(irodsItemPath)
+            tree_item_data.append(child.data(0))
+        irods_item_path = self.irods_path_from_tree_index(model_index)
+        if tree_item_data[4] == 'C':
+            coll = self.ic.session.collections.get(irods_item_path)
         else:
             return
-        # delete subtree in irodsFsdata and the TreeView
-        self.deletesubTree(treeItem)
+        # Delete subtree in irodsFsdata and the tree_view.
+        self.delete_subtree(tree_item)
+        # Retrieve updated data from the collection.
+        recent_coll_data = self.get_coll_data(coll)
+        # Update irods_fs_data and the tree_view.
+        level = len(coll.path.split('/')) - len(self.base_path.split('/')) + 1
+        self.add_subtree(tree_item, level, recent_coll_data)
 
-        # Retrieve updated data from the collection
-        recentCollData = self.getCollData(coll)
+    def irods_path_from_tree_index(self, model_index):
+        """Convert a tree index to iRODS path
 
-        # update irodsFsData and the treeView
-        # Level of subcollections
-        level = len(coll.path.split('/')) - len(self.irodsRootColl.split('/')) + 1
-        self.addSubtree(treeItem, level, recentCollData)
+        Parameters
+        ----------
+        model_index : int?
+            Index of the model?
 
-    def irodsPathFromTreeIdx(self, modelindex):
-        fullpath = modelindex.data()
-        parentmodel = modelindex.parent()
-        while parentmodel.isValid():
-            fullpath = parentmodel.data() + "/" + fullpath
-            parentmodel = parentmodel.parent()
-        return os.path.dirname(self.irodsRootColl) + "/" + fullpath
+        """
+        full_path = model_index.data()
+        parent_model = model_index.parent()
+        while parent_model.isValid():
+            full_path = parent_model.data() + "/" + full_path
+            parent_model = parent_model.parent()
+        return os.path.dirname(self.base_path) + "/" + full_path
