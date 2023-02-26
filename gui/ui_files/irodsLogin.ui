@@ -36,6 +36,7 @@ QLineEdit
 QRadioButton
 {
 	border-bottom-color: rgb(206, 92, 0);
+    selection-color: rgb(217, 174, 23);
 }
 
 QLabel#passError, QLabel#envError, QLabel#icommandsError
@@ -87,7 +88,7 @@ QRadioButton
        <string notr="true"/>
       </property>
       <property name="text">
-       <string>Up-/Download with icommands (linux only.):</string>
+       <string>Up-/Download with iCommands (linux only):</string>
       </property>
      </widget>
     </item>

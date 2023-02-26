@@ -1,7 +1,11 @@
+"""IrodsConnector for eLabJournal
+
+"""
 from elabjournal import elabjournal
 
-RED = '\x1b[1;31m'
+URL_PATH = '/members/experiments/browser/#view=experiment&nodeID='
 DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
 YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
@@ -14,22 +18,20 @@ class elabConnector():
         except TypeError:
             raise PermissionError('Invalid token for ELN.')
         self.userId = self.elab.user().id()
-        self.baseUrl = "https://" + token.split(";")[0]
-        print("INFO: Default Experiment: " + self.experiment.name())
-        self.metadataUrl = "https://" + token.split(";")[0] + \
-                           "/members/experiments/browser/" + \
-                           "#view=experiment&nodeID=" + str(self.experiment.id())
+        self.baseUrl = f'https://{token.split(";")[0]}'
+        print(f'INFO: Default Experiment: {self.experiment.name()}')
+        exp_id = self.experiment.id()
+        self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         self.__name__ = 'ELN'
-        print("INFO: Data will be linked to: " + self.metadataUrl)
+        print(f'INFO: Data will be linked to: {self.metadataUrl}')
 
     def showGroups(self, get=False):
-        groupsFrame = self.elab.groups().all(["name", "description"])
+        groupsFrame = self.elab.groups().all(['name', 'description'])
         print(groupsFrame)
         if get:
             lines = groupsFrame.to_string().split('\n')[2:]
-            groups = [(line[0], ' '.join(line[1:]))
-                      for line in [l.strip().split() for l in lines]]
-
+            groups = [(group[0], ' '.join(group[1:]))
+                      for group in [line.strip().split() for line in lines]]
             return groups
         return True
 
@@ -39,24 +41,24 @@ class elabConnector():
     def __chooseGroup(self):
         success = False
         while not success:
-            inVar = input("Choose Elab groupId: ")
+            inVar = input('Choose Elab groupId:')
             try:
                 groupId = int(inVar)
                 if groupId in self.__getGroupIds():
-                    print(BLUE + "Group chosen: " + self.elab.group().name() + DEFAULT)
+                    print(f'{BLUE}Group chosen: {self.elab.group().name()}{DEFAULT}')
                     success = True
                     return groupId
                 else:
-                    print(YEL + "\nNot a valid groupId" + DEFAULT)
+                    print(f'{YEL}\nNot a valid groupId"{DEFAULT}')
             except ValueError:
-                print(RED + 'Not a number' + DEFAULT)
+                print(r'{RED}Not a number{DEFAULT}')
 
     def __switchGroup(self, groupId):
         if groupId in self.elab.groups().all().index:
             self.elab.set_group(groupId)
             return True
         else:
-            raise ValueError("ERROR ELAB: groupId not found.")
+            raise ValueError('ERROR ELAB: groupId not found.')
 
     def showExperiments(self, groupId=None, get=False):
         currentGroup = self.elab.group().id()
@@ -65,11 +67,11 @@ class elabConnector():
         self.__switchGroup(groupId)
         experiments = self.elab.experiments()
         expFrames = self.elab.experiments().all()
-        print("Your experiments:")
-        myExpFrame = expFrames.loc[expFrames["userID"] == self.userId, ["name", "projectID"]]
+        print('Your experiments:')
+        myExpFrame = expFrames.loc[expFrames['userID'] == self.userId, ['name', 'projectID']]
         print(myExpFrame)
-        print("Other experiments:")
-        otherExpFrame = expFrames.loc[expFrames["userID"] != self.userId, ["name", "projectID"]]
+        print('Other experiments:')
+        otherExpFrame = expFrames.loc[expFrames['userID'] != self.userId, ['name', 'projectID']]
         print(otherExpFrame)
         self.__switchGroup(currentGroup)
 
@@ -104,15 +106,16 @@ class elabConnector():
         success = False
         while not success:
             try:
-                expId = int(input("Choose an experimentId:"))
-                assert (expId in self.elab.experiments().all().index)
+                expId = int(input('Choose an experimentId:'))
+                assert expId in self.elab.experiments().all().index
                 success = True
                 self.__switchGroup(currentGroup)
                 return expId
             except Exception as error:
-                print(RED + "Not a valid Experiment ID." + DEFAULT)
+                print(f'{RED}Not a valid Experiment ID.{DEFAULT}')
 
     def __switchExperiment(self, expId):
+        # TODO determine if this call is needed
         experiments = self.elab.experiments()
         expFrames = self.elab.experiments().all()
         if expId in expFrames.index:
@@ -132,10 +135,8 @@ class elabConnector():
         expId = self.__chooseExperiment(groupId)
         self.__switchGroup(groupId)
         self.__switchExperiment(expId)
-        self.metadataUrl = self.baseUrl + \
-                           "/members/experiments/browser/#view=experiment&nodeID=" + \
-                           str(expId)
-        return (self.elab.group().name(), self.experiment.name())
+        self.metadataUrl = f'{self.baseUrl}{URL_PATH}{expId}'
+        return self.elab.group().name(), self.experiment.name()
 
     def updateMetadataUrl(self, **params):
         try:
@@ -143,22 +144,22 @@ class elabConnector():
             expId = params['experiment']
             self.__switchGroup(groupId)
             self.__switchExperiment(expId)
-            self.metadataUrl = self.baseUrl + \
-                               "/members/experiments/browser/#view=experiment&nodeID=" + \
-                               str(expId)
+            self.metadataUrl = f'{self.baseUrl}{URL_PATH}{expId}'
             return self.metadataUrl
         except:
             raise
 
     def addMetadata(self, url, meta=None, title='Title'):
+        infos = []
         if 'http' in url and '://' in url:
-            info = '<a href="' + url + '">Experiment data in iRODS</a>'
+            infos.append(f'<a href="{url}">Experiment data in iRODS</a>')
         else:
-            info = url
-        if not meta == None:
-            info = info + '<br><table style="width: 500px;" cellspacing="1" cellpadding="1" border="1"><tbody>'
+            infos.append(url)
+        if meta is not None:
+            infos.append('<br><table style="width: 500px;" border="1" ')
+            infos.append('cellspacing="1" cellpadding="1"><tbody>')
             for key, value in meta.items():
-                info = info + '<tr><td>' + key + '</td><td>' + value + '</td></tr>'
-            info = info + '</tbody></table>'
-        self.experiment.add(info, title)
+                infos.append(f'<tr><td>{key}</td><td>{value}</td></tr>')
+            infos.append('</tbody></table>')
+        self.experiment.add(''.join(infos), title)
         return True
