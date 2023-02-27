@@ -20,6 +20,8 @@ import utils
 app = PyQt6.QtWidgets.QApplication(sys.argv)
 widget = PyQt6.QtWidgets.QStackedWidget()
 
+# Work around a PRC XML issue handling special characters
+os.environ['PYTHON_IRODSCLIENT_DEFAULT_XML'] = 'QUASI_XML'
 
 class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irodsLogin):
     """Definition and initialization of the iRODS login window.
