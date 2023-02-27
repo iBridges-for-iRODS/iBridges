@@ -49,46 +49,59 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             self.actionSearch.triggered.connect(self.search)
             self.actionSaveConfig.triggered.connect(self.saveConfig)
             # self.actionExportMetadata.triggered.connect(self.exportMeta)
-            # needed for Search
-            self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
-            self.tabWidget.addTab(self.irodsBrowser, "Browser")
             ui_tabs_lookup = {
-                "tabUpDownload": self.setupTabUpDownload,
-                "tabELNData": self.setupTabELNData,
-                "tabDataBundle": self.setupTabDataBundle,
-                "tabCreateTicket": self.setupTabCreateTicket,
+                'tabBrowser': self.setupTabBrowser,
+                'tabUpDownload': self.setupTabUpDownload,
+                'tabELNData': self.setupTabELNData,
+                'tabDataBundle': self.setupTabDataBundle,
+                'tabCreateTicket': self.setupTabCreateTicket,
+                'tabInfo': self.setupTabInfo,
             }
-            if ("ui_tabs" in ienv) and (ienv["ui_tabs"] != ""):
-                # Setup up/download tab, index 1
-                for tab in ienv["ui_tabs"]:
-                    if tab in ui_tabs_lookup:
-                        ui_tabs_lookup[tab](ic)
-                    else:
-                        logging.error("Unknown tab \"{uitab}\" defined in irods environment file".format(uitab=tab))
-
-            # general info
-            self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
-            self.tabWidget.addTab(self.irodsInfo, "Info")
+            found = ienv.get('ui_tabs', False)
+            if found:
+                # Ensure browser and info always are shown.
+                found = set(found + ['tabBrowser', 'tabInfo'])
+                expected = ui_tabs_lookup.keys()
+                # TODO the browser tabs can take a while.  Use async to
+                #      load other tabs at the same time?
+                for uitab in expected:
+                    if uitab in found:
+                        ui_tabs_lookup[uitab](ic)
+                        logging.debug(f'Setup the {uitab} tab')
+                for uitab in found:
+                    if uitab not in expected:
+                        logging.error(
+                            f'Unknown tab "{uitab}" defined in iBridges config file')
+                        logging.info(
+                            f'Only {", ".join(expected)} tabs supported')
             self.tabWidget.setCurrentIndex(0)
 
-    def setupTabCreateTicket(self, ic):
-        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
-        self.tabWidget.addTab(self.createTicket, "Create access tokens")
+    def setupTabBrowser(self, ic):
+        # needed for Search
+        self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
+        self.tabWidget.addTab(self.irodsBrowser, 'Browser')
 
-    def setupTabDataBundle(self, ic):
-        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
-        self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
+    def setupTabUpDownload(self, ic):
+        self.updownload = gui.IrodsUpDownload.IrodsUpDownload(ic, self.ienv)
+        self.tabWidget.addTab(self.updownload, "Data Transfers")
+        log_handler = QPlainTextEditLogger(self.updownload.logs)
+        logging.getLogger().addHandler(log_handler)
 
     def setupTabELNData(self, ic):
         self.elnTab = gui.elabUpload.elabUpload(ic)
         self.tabWidget.addTab(self.elnTab, "ELN Data upload")
 
-    def setupTabUpDownload(self, ic):
-        self.updownload = gui.IrodsUpDownload.IrodsUpDownload(
-                        ic, self.ienv)
-        self.tabWidget.addTab(self.updownload, "Data Transfers")
-        log_handler = QPlainTextEditLogger(self.updownload.logs)
-        logging.getLogger().addHandler(log_handler)
+    def setupTabDataBundle(self, ic):
+        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
+        self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
+
+    def setupTabCreateTicket(self, ic):
+        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
+        self.tabWidget.addTab(self.createTicket, "Create access tokens")
+
+    def setupTabInfo(self, ic):
+        self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
+        self.tabWidget.addTab(self.irodsInfo, "Info")
 
     # Connect functions
     def programExit(self):
