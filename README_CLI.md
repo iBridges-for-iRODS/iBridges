@@ -43,19 +43,19 @@ path = /path/to/download/directory
 
 - Configuration files for uploading data to iRODS and linking them to ElabJournal experiment:
 
-```ini
-[iRODS]
-irodsenv = /<path to>/irods_environment.json
-irodscoll = 
-irodsresc = bigstore
-webdav = http://scomp1486.wurnet.nl
-
-[ELN]
-token = wur.elabjournal.com;<some hash>
-group = 
-experiment = 
-title = 
 ```
+  [iRODS]
+  irodsenv = /<path to>/irods_environment.json
+  irodscoll = 
+  irodsresc = bigstore
+  webdav = http://scomp1486.wurnet.nl
+  
+  [ELN]
+  token = wur.elabjournal.com;<some hash>
+  group =
+  experiment =
+  title =
+  ```
 
 ## Usage
 

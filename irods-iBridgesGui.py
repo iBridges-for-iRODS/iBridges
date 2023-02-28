@@ -220,6 +220,12 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         # self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         widget.setCurrentIndex(widget.currentIndex()+1)
 
+def closeClean():
+    activeWidget = widget.currentWidget()
+    try:
+        activeWidget.ic.session.cleanup()
+    except:
+        pass
 
 def main():
     """Main function
@@ -229,6 +235,8 @@ def main():
     login_window = IrodsLoginWindow()
     widget.addWidget(login_window)
     widget.show()
+    #app.setQuitOnLastWindowClosed(False)
+    app.lastWindowClosed.connect(closeClean)
     app.exec()
 
 

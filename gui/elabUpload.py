@@ -62,6 +62,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
         self.elnUploadButton.clicked.connect(self.upload_data)
 
+
     def connectElab(self):
         self.errorLabel.clear()
         token = self.elnTokenInput.text()

@@ -161,7 +161,8 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 ## Usage
 
 ```bash
-...]$ ./irods-iBridgesGui.py
+export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
+./irods-iBridgesGui.py
 ```
 
 ## Remarks
@@ -218,4 +219,3 @@ It is recommended that any kind of destructive actions be done in a separate ste
 ## Delete function
 
 - If a lot of data is deleted, the application 'hangs'.
-
