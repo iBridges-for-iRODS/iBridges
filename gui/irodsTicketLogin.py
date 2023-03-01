@@ -1,31 +1,39 @@
+"""iRODS ticket login tab.
+
+"""
 import os
 import sys
+
 from PyQt6 import QtWidgets
-# from PyQt6.QtWidgets import QMainWindow, QHeaderView, QMessageBox
 from PyQt6.QtWidgets import QHeaderView, QWidget
 from PyQt6 import QtCore
 from PyQt6.uic import loadUi
-from utils.irodsConnectorAnonymous import irodsConnectorAnonymous
+
+import utils.utils
 from gui.checkableFsTree import checkableFsTreeModel
-from gui.popupWidgets import createDirectory
 from gui.dataTransfer import dataTransfer
-
+from gui.popupWidgets import createDirectory
 from gui.ui_files.tabTicketAccess import Ui_tabTicketAccess
-
+from utils.IrodsConnectorAnonymous import IrodsConnectorAnonymous
 
 
 class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
-    def __init__(self):
-        self.ic = None
-        self.coll = None
-        self.this_application = 'iBridgesGui'
+    """
 
-        super(irodsTicketLogin, self).__init__()
+    """
+    ic = None
+    coll = None
+    this_application = 'iBridges'
+
+    def __init__(self):
+        """
+        `
+        """
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(irodsTicketLogin, self).setupUi(self)
+            super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabTicketAccess.ui", self)
-
         # QTreeViews
         self.dirmodel = checkableFsTreeModel(self.localFsTreeView)
         self.localFsTreeView.setModel(self.dirmodel)
@@ -33,13 +41,13 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         self.localFsTreeView.setColumnHidden(1, True)
         self.localFsTreeView.setColumnHidden(2, True)
         self.localFsTreeView.setColumnHidden(3, True)
-        self.localFsTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.localFsTreeView.header().setSectionResizeMode(
+            QHeaderView.ResizeMode.ResizeToContents)
         home_location = QtCore.QStandardPaths.standardLocations(
-                               QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
+            QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTreeView.setCurrentIndex(index)
         self.dirmodel.initial_expand()
-
         self.connectButton.clicked.connect(self.irodsSession)
         self.homeButton.clicked.connect(self.loadTable)
         self.createDirectoryButton.clicked.connect(self.createFolder)
@@ -55,14 +63,15 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         host = self.serverEdit.text().strip()
         path = self.pathEdit.text().strip()
         token = self.ticketEdit.text().strip()
-
         try:
-            self.ic = irodsConnectorAnonymous(host, token, path, application_name=self.this_application)
+            self.ic = IrodsConnectorAnonymous(
+                host, token, path, application_name=self.this_application)
             self.coll = self.ic.getData()
             self.loadTable()
             self.enableButtons(True)
         except Exception as e:
-            self.infoLabel.setText("LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
+            self.infoLabel.setText(
+                "LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
 
     def enableButtons(self, enable):
         self.connectButton.setEnabled(enable)
@@ -75,36 +84,43 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     def loadTable(self, update=None):
         self.infoLabel.clear()
         if self.coll is None:
-            self.infoLabel.setText("No data available. Check ticket and iRODS path.")
+            self.infoLabel.setText(
+                "No data available. Check ticket and iRODS path.")
             return
-        if update is None or update is False:
+        if not update:
             update = self.coll
-
         self.collTable.setRowCount(0)
-        self.collTable.setRowCount(len(update.subcollections)+len(update.data_objects))
+        self.collTable.setRowCount(
+            len(update.subcollections)+len(update.data_objects))
         row = 0
-        for subcoll in update.subcollections:
-            self.collTable.setItem(row, 0, 
-                    QtWidgets.QTableWidgetItem(os.path.dirname(subcoll.path)))
-            self.collTable.setItem(row, 1, 
-                    QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+        for row, subcoll in enumerate(update.subcollections):
+            # TODO check to see how os.path.dirname behaves on Windows
+            #  with a POSIX path
+            self.collTable.setItem(
+                row, 0, QtWidgets.QTableWidgetItem(os.path.dirname(subcoll.path)))
+            self.collTable.setItem(
+                row, 1, QtWidgets.QTableWidgetItem(subcoll.name+"/"))
+            # TODO figure out why row == 1 here
             self.collTable.setItem(1, 2, QtWidgets.QTableWidgetItem(""))
             self.collTable.setItem(1, 3, QtWidgets.QTableWidgetItem(""))
-            row = row + 1
-        for obj in update.data_objects:
-            self.collTable.setItem(row, 0,
-                    QtWidgets.QTableWidgetItem(os.path.dirname(obj.path)))
-            self.collTable.setItem(row, 1, QtWidgets.QTableWidgetItem(obj.name))
-            self.collTable.setItem(row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
-            self.collTable.setItem(row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
-            self.collTable.setItem(row, 4, 
-                    QtWidgets.QTableWidgetItem(str(obj.modify_time)))
-            row = row+1
+        # Continue the row count consistently.
+        if row != 0:
+            row += 1
+        for row, obj in enumerate(update.data_objects, start=row):
+            self.collTable.setItem(
+                row, 0, QtWidgets.QTableWidgetItem(os.path.dirname(obj.path)))
+            self.collTable.setItem(
+                row, 1, QtWidgets.QTableWidgetItem(obj.name))
+            self.collTable.setItem(
+                row, 2, QtWidgets.QTableWidgetItem(str(obj.size)))
+            self.collTable.setItem(
+                row, 3, QtWidgets.QTableWidgetItem(str(obj.checksum)))
+            self.collTable.setItem(
+                row, 4, QtWidgets.QTableWidgetItem(str(obj.modify_time)))
         self.collTable.resizeColumnsToContents()
 
     def browse(self, index):
         self.infoLabel.clear()
-        # col = index.column()
         row = index.row()
         if self.collTable.item(row, 0).text() != '':
             path = self.collTable.item(row, 0).text()
@@ -129,16 +145,16 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             raise
 
     def __fillPreview(self, value, path):
-        newPath = "/"+path.strip("/")+"/"+value.strip("/")
-        if self.ic.session.collections.exists(newPath):  # collection
+        newPath = utils.utils.IrodsPath(path, value)
+        if self.ic.session.collections.exists(newPath):
             coll = self.ic.session.collections.get(newPath)
-            content = ['Collections:', '-----------------'] +\
+            content = ['Collections:', '-----------------'] + \
                       [c.name+'/' for c in coll.subcollections] + \
                       ['\n', 'Data:', '-----------------'] + \
                       [o.name for o in coll.data_objects]
             previewString = '\n'.join(content)
             self.previewBrowser.append(previewString)
-        else:  # object
+        else:
             subcoll = self.ic.session.collections.get(path)
             obj = [o for o in subcoll.data_objects if o.name == value][0]
             # get mimetype
@@ -189,7 +205,6 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         else:
             createDirWidget = createDirectory(parent)
             createDirWidget.exec()
-            # self.dirmodel.initial_expand(previous_item = parent)
 
     def downloadAll(self):
         self.download(allData=True)
@@ -224,7 +239,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         
         if self.ic.session.collections.exists(collPath+'/'+dataName):
             item = self.ic.session.collections.get(collPath+'/'+dataName)
-        else:  # data object with workaround for bug
+        else:
             parent = self.ic.session.collections.get(collPath)
             item = [obj for obj in parent.data_objects if obj.name == dataName][0]
         self.downloadWindow = dataTransfer(self.ic, False, destination, item)
@@ -233,7 +248,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     def finishedTransfer(self, success, irodsIdx):
         # Refreshes iRODS subtree and irodsIdx (set "None" if to skip)
         # Saves upload parameters if check box is set
-        if success is True:
+        if success:
             self.infoLabel.setText("INFO UPLOAD/DOWNLOAD: completed.")
-        self.uploadWindow = None  # Release
+        self.uploadWindow = None
         self.enableButtons(True)

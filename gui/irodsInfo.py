@@ -1,60 +1,56 @@
+"""Provide the GUI with iRODS information
+
+"""
 import sys
-from PyQt6 import QtWidgets, QtCore, QtGui
-from PyQt6.uic import loadUi
-from PyQt6.QtWidgets import QWidget
 
-from gui.ui_files.tabInfo import Ui_tabInfo
+import PyQt6
+import PyQt6.QtWidgets
+import PyQt6.uic
 
-class irodsInfo(QWidget, Ui_tabInfo):
+import gui
+
+
+class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
+    """Set iRODS information in the GUI
+
+    """
+
     def __init__(self, ic):
         self.ic = ic
-        super(irodsInfo, self).__init__()
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(irodsInfo, self).setupUi(self)
+            super().setupUi(self)
         else:
-            loadUi("gui/ui_files/tabInfo.ui", self)
+            PyQt6.uic.loadUi("gui/ui_files/tabInfo.ui", self)
+        self.refreshButton.clicked.connect(self.refresh_info)
+        self.refresh_info()
 
-        self.refreshButton.clicked.connect(self.refreshInfo)
-        self.refreshInfo()
-
-    def refreshInfo(self):
-
+    def refresh_info(self):
+        """Find and set the information of the connected iRODS system
+        including the availble top-level resources.
+        """
         self.rescTable.setRowCount(0)
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
-
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # irods Zone
         self.zoneLabel.setText(self.ic.session.zone)
         # irods user
         self.userLabel.setText(self.ic.session.username)
         # irods user type and groups
-        userType, userGroups = self.ic.getUserInfo()
-        groupNames = [x for x in userGroups if not isinstance(x, int)]
-        self.typeLabel.setText(userType[0])
-        self.groupsLabel.setText('\n'.join(groupNames))
+        user_type, user_groups = self.ic.get_user_info()
+        self.typeLabel.setText(user_type)
+        self.groupsLabel.setText('\n'.join(user_groups))
         # default resource
-        self.rescLabel.setText(self.ic.defaultResc)
-        
+        self.rescLabel.setText(self.ic.default_resc)
         # irods server and version
         self.serverLabel.setText(self.ic.session.host)
         self.versionLabel.setText(
-            '.'.join(str(num) for num in self.ic.session.server_version))
+            '.'.join((str(num) for num in self.ic.session.server_version)))
         # irods resources
-        resourceNames = set([i[0] for i in self.ic.listResources()])
-        resources = []
-        for name in resourceNames:
-            size = self.ic.resourceSize(name)
-            if size:
-                resources.append((name, str(round(int(self.ic.resourceSize(name))/1024**3))))
-            else:
-                resources.append((name, "no information"))
-
-        self.rescTable.setRowCount(len(resources))
-        row = 0
-        for rescName, rescSize in resources:
-            resc = self.ic.getResource(rescName)
-            self.rescTable.setItem(row, 0, QtWidgets.QTableWidgetItem(rescName))
-            self.rescTable.setItem(row, 1, QtWidgets.QTableWidgetItem(rescSize))
-            self.rescTable.setItem(row, 2, QtWidgets.QTableWidgetItem(resc.status))
-            row = row + 1
+        resc_info = self.ic.list_resources(['name', 'status', 'free_space'])
+        self.rescTable.setRowCount(len(resc_info[0]))
+        for row, (name, status, space) in enumerate(zip(*resc_info)):
+            self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
+            self.rescTable.setItem(row, 1, PyQt6.QtWidgets.QTableWidgetItem(str(space)))
+            self.rescTable.setItem(row, 2, PyQt6.QtWidgets.QTableWidgetItem(str(status or '')))
         self.rescTable.resizeColumnsToContents()
-        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+        self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
