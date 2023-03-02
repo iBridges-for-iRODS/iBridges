@@ -6,9 +6,9 @@ title: "iBridges"
 
 This page provides user and developer documentation of the iBridges iRODS client. Get started using the links below!
 
-- [What id iBridges](docs/info.qmd)
+- [What is iBridges](docs/info.qmd)
 - [Getting started](docs/getting-started.qmd)
 - [User guide](docs/userdoc.qmd)
 - [Command line tool](docs/commandlineclient.qmd)
 - [Developer guide](docs/developer.qmd)
-- [Roadmap and known issues](roadmap.qmd)
+- [Roadmap and known issues](docs/roadmap.qmd)

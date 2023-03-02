@@ -7,6 +7,18 @@ website:
     left:
       - href: index.qmd
         text: Home
+      - href: docs/info.qmd
+        text: What is iBridges?
+      - href: docs/getting-started.qmd
+        text: Getting started
+      - href: docs/userdoc.qmd
+        text: Documentation
+      - href: docs/commandlineclient.qmd
+        text: iBridges Cli
+      - href: docs/developer.qmd
+        text: Developers
+      - href: docs/roadmap.qmd
+        text: Known issues and roadmap
 
 format:
   html:
