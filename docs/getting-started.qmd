@@ -77,7 +77,7 @@ export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 
 To protect the *iRODS* resources from overflowing you should install an event hook on the *iRODS* servers that fill the resources' `RESC_FREE_SPACE` attribute in the iCAT.  These can be either *catalog* or *resource* servers.  Please add the following to the `/etc/irods/core.re` or another rule engine file:
 
-::: {.callout-note}
+::: {.callout-note collapse="true"}
 ## Example storage capacity rule
 
 ```py
