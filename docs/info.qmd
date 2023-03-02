@@ -8,6 +8,16 @@ We also provide a commandline interface with which data can be uploaded and down
 
 The GUI can be extended by users to implement their own data workflows.
 
+### Current views/features
+
+- `tabBrowser`: (Default) a main table to browse through collections, metadata and ACL manipulation, data deletion and single file up and downloads,
+- `tabUpDownload`: a two-pane upload/download tab
+- `tabELNData`: Uploading data and linking it to an Electronical Labnotebook experiment
+- `tabDataBundle`: (un)bundle datasets from/to four supported formats (depending on extra iRODS microservices)
+- `tabCreateTicket`: create iRODS tickets for anonymous access
+-  'tabInfo': (Default) an overview over the iRODS server and client, groups and resources
+- The search functionality is available from the drop-down menu `Options` 
+
 ## Dependencies
 - Python3.10.2+
 - QT v6+
