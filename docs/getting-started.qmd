@@ -1,14 +1,14 @@
 ---
 title: "iBridges configuration"
 ---
-The GUI and CLI work with any iRODS instance. Here we show how to configure the application to work your specific iRODS instance.
+The iRODS GUI works with any iRODS instance. Here we show how to configure the application to work your specific iRODS instance.
 *Please note*, that some features (tab views in the GUI) depend on certain server settings. You will find those dependencies at the end of the document.
 
 ## System dependencies
 - Python: you will need Python 3.10 or higher
 - pip: to install package dependencies you will need pip3, version 22.2.2 or higher
 
-If run the software from code plase install required Python packages:
+If you run the software from code plase install required Python packages:
 
 ```py
 python3.10 -m pip install -r requirements.txt
