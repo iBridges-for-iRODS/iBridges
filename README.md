@@ -3,6 +3,8 @@
 
 The git repository contains a generic *iRODS* graphical user interface and the corresponding command-line interface clients.  The GUI and CLI work with any *iRODS* instance.  However, for user and data security we depend on some *iRODS* event hooks that need to be installed on the *iRODS* server.  Please refer to the documentation below.
 
+[Explore the documentation](https://chstaiger.github.io/iBridges-Gui/)
+
 ## Authors
 
 Tim van Daalen, Christine Staiger
