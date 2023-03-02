@@ -58,23 +58,25 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                 'tabInfo': self.setupTabInfo,
             }
             found = ienv.get('ui_tabs', False)
-            if found:
+            if not found:
+                found = set(['tabBrowser', 'tabInfo'])
+            else:
                 # Ensure browser and info always are shown.
                 found = set(found + ['tabBrowser', 'tabInfo'])
-                expected = ui_tabs_lookup.keys()
-                # TODO the browser tabs can take a while.  Use async to
-                #      load other tabs at the same time?
-                for uitab in expected:
-                    if uitab in found:
-                        ui_tabs_lookup[uitab](ic)
-                        logging.debug(f'Setup the {uitab} tab')
-                for uitab in found:
-                    if uitab not in expected:
-                        logging.error(
-                            f'Unknown tab "{uitab}" defined in iBridges config file')
-                        logging.info(
-                            f'Only {", ".join(expected)} tabs supported')
-            self.tabWidget.setCurrentIndex(0)
+            expected = ui_tabs_lookup.keys()
+            # TODO the browser tabs can take a while.  Use async to
+            #      load other tabs at the same time?
+            for uitab in expected:
+                if uitab in found:
+                    ui_tabs_lookup[uitab](ic)
+                    logging.debug(f'Setup the {uitab} tab')
+            for uitab in found:
+                if uitab not in expected:
+                    logging.error(
+                        f'Unknown tab "{uitab}" defined in iBridges config file')
+                    logging.info(
+                        f'Only {", ".join(expected)} tabs supported')
+        self.tabWidget.setCurrentIndex(0)
 
     def setupTabBrowser(self, ic):
         # needed for Search
