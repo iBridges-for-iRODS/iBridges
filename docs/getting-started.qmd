@@ -67,7 +67,7 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 
 ## Usage
 
-```
+```sh
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 ./irods-iBridgesGui.py
 ```
