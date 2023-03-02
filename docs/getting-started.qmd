@@ -1,4 +1,6 @@
-# iBridges Configuration
+---
+title: "iBridges configuration"
+---
 The GUI and CLI work with any iRODS instance. Here we show how to configure the application to work your specific iRODS instance.
 *Please note*, that some features (tab views in the GUI) depend on certain server settings. You will find those dependencies at the end of the document.
 
