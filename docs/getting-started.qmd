@@ -52,12 +52,13 @@ python3.10 -m pip install -r requirements.txt
 }
 ```
 Options:
+
 - `davrods_server`: for annotation of eLabJournal data
 - `ui_tabs`: configure which tabs are shown (Browser and Info tabs always are)
-  - `tabUpDownload`: a two-pane upload/download tab
-  - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
-  - `tabDataBundle`: (un)bundle datasets from/to four supported formats
-  - `tabCreateTicket`: create iRODS tickets for anonymous access
+    - `tabUpDownload`: a two-pane upload/download tab
+    - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
+    - `tabDataBundle`: (un)bundle datasets from/to four supported formats
+    - `tabCreateTicket`: create iRODS tickets for anonymous access
 - `force_unknown_free_space`: ignore if resources' free space is unannotated
 
 The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
