@@ -45,7 +45,7 @@ path = /path/to/download/directory
 ## Usage
 
 ```sh
-./irods-iBridgesCli.py -h
-./irods-iBridgesCli -c </path/to/config> -d </path/to/folder/or/file/to/upload>
-./irods-iBridgesCli.py -c </path/to/config> -i </zone/home/path/to/coll/or/obj>
+./iBridgesCli.py -h
+./iBridgesCli -c </path/to/config> -d </path/to/folder/or/file/to/upload>
+./iBridgesCli.py -c </path/to/config> -i </zone/home/path/to/coll/or/obj>
 ```
