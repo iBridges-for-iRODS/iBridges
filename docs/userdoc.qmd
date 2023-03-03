@@ -6,7 +6,7 @@ iBridges is a GUI to an Data management platform based on iRODS. It exposes iROD
 - The **ELN Data upload** tab is made for specific data uploads that belong to an Experiment described in an ElabJournal instance. 
 - In the **Compress/bundle data** tab the user is given tools to bundle (tar) or compress (zip) iRODS data collections and to extract them again.
 
-## How to do simple data operations
+## Browsing through your iRODS collections
 
 ![Browse](../screenshots/browser.png)
 
@@ -23,9 +23,9 @@ To browse through your data collections in iRODS click on the **Browser** tab.
    - Resources: The tab shows on which storage resource data objects are stored. Note, collections do not have a resource.
    - Delete: In the browser table click on the collection or object you want to delete, then click `Load` and then `Delete`. This will delete a whole collection with all its members or the data object. 
 
-Note: The `File Upload` and `File download` buttons are only meant for uploading and downloading small single files. For large data transfers click on the **Up and Download** tab.
+Note: The `File Upload` and `File download` buttons are only meant for uploading and downloading small single files. For large data transfers go to the **Data transfer** tab.
 
-### How to download data
+### Downloading data
 ![Download](../screenshots/howto_download.png)
 
  1. Select the iRODS collection or data object to download and the folder
@@ -39,7 +39,7 @@ Note: The `File Upload` and `File download` buttons are only meant for uploading
 
 When the  check is done the loading screen disappears and the number of files which exist with a different checksum (1) and files which only exist on iRODS (2) will be indicated. Press the `Download` button to start the file transfer. iRODS automatically checks the checksum to ensure all downloaded files are complete.
 
-## How to upload data
+## Uploading data
 
 ![Upload](../screenshots/howto_upload.png)
 
@@ -51,12 +51,24 @@ When the  check is done the loading screen disappears and the number of files wh
 
 ![Upload Dialog](../screenshots/howto_upload2.png)
 
-## How to search for data
+## Searching for data
 
 Click on `Options` in the menu bar of the window and select `Search`. This will open a mask to search for  data objects and collections using metadata key-value pairs, collection paths and data object paths. 
 
 The `Select and Close` button will load the selected collections and objects into the **Browser** tab where you can further inspect and annotate the data.
 
+::: {.callout-note collapse="true"}
 ## Elabjournal
+:::
+
+::: {.callout-note collapse="true"}
 ## Overview tab
 ### Resources
+:::
+
+::: {.callout-note collapse="true"}
+## Experimental tabs and fetaures
+### Data bundeling
+### Ticket creation
+### Ticket Login
+:::

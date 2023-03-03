@@ -8,11 +8,41 @@ The iRODS GUI works with any iRODS instance. Here we show how to configure the a
 - Python: you will need Python 3.10 or higher
 - pip: to install package dependencies you will need pip3, version 22.2.2 or higher
 
-If you run the software from code plase install required Python packages:
-
-```py
+## Installation
+::: {.callout-note collapse="true"}
+### Install from git
+```sh
+git clone git@github.com:chStaiger/iBridges-Gui.git
+cd iBridges-Gui
 python3.10 -m pip install -r requirements.txt
 ```
+
+You can already start the application with
+```
+./irods-iBridgesGui.py
+```
+Please see below how to configure the spftware to connect to your iRODS instance.
+:::
+
+::: {.callout-note collapse="true"}
+### Install from zip/release
+```sh
+unzip iBridges-Gui.zip
+cd iBridges-Gui
+python3.10 -m pip install -r requirements.txt
+```
+
+You can already start the application with
+```
+./irods-iBridgesGui.py
+```
+Please see below how to configure the spftware to connect to your iRODS instance.
+:::
+
+::: {.callout-note collapse="true"}
+### Download and install binaries
+:::
+
 
 ## Configuration
 ### iRODS environment.json
@@ -71,6 +101,7 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 ./irods-iBridgesGui.py
 ```
+
 
 ## iRODS server dependencies
 ### Storage capacity
