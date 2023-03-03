@@ -19,7 +19,7 @@ python3.10 -m pip install -r requirements.txt
 
 You can already start the application with
 ```
-./iBridgesGui.py
+./iBridges.py
 ```
 Please see below how to configure the spftware to connect to your iRODS instance.
 :::
@@ -34,7 +34,7 @@ python3.10 -m pip install -r requirements.txt
 
 You can already start the application with
 ```
-./iBridgesGui.py
+./iBridges.py
 ```
 Please see below how to configure the spftware to connect to your iRODS instance.
 :::
@@ -99,7 +99,7 @@ The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directo
 
 ```sh
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
-./iBridgesGui.py
+./iBridges.py
 ```
 
 
