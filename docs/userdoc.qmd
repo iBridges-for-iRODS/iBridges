@@ -57,7 +57,7 @@ Click on `Options` in the menu bar of the window and select `Search`. This will 
 
 The `Select and Close` button will load the selected collections and objects into the **Browser** tab where you can further inspect and annotate the data.
 
-### Additional features
+## Additional features
 ::: {.callout-note collapse="true"}
 ## Elabjournal
 :::
