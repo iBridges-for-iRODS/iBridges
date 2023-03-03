@@ -6,8 +6,8 @@ import os.path
 import pathlib
 # import pytest
 import sys
-
-import utils.utils
+sys.path.append('..')
+import utils
 
 
 class TestUtils:
