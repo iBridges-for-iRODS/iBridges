@@ -7,7 +7,7 @@ import pathlib
 # import pytest
 import sys
 
-import utils
+import utils.utils
 
 
 class TestUtils:
@@ -106,7 +106,7 @@ class TestUtils:
 
     def test_file_exists(self):
         filename = 'test.file'
-        with open(filename, 'w') as testfd:
+        with open(filename, 'w'):
             pass
         assert utils.utils.file_exists(filename)
         os.unlink(filename)
