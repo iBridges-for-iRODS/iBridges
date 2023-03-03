@@ -1,14 +1,18 @@
+"""Pop-up widget definitions.
+
+"""
+import datetime
+import io
+import json
+import logging
+import os
+import sys
+
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QDialog
 from PyQt6.uic import loadUi
 from PyQt6 import QtCore
 from PyQt6 import QtGui
-
-import sys
-import os
-import json
-import datetime
-import logging
 
 from gui.ui_files.createCollection import Ui_createCollection
 from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
@@ -16,12 +20,13 @@ from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
 class irodsCreateCollection(QDialog, Ui_createCollection):
     def __init__(self, parent, ic):
-        super(irodsCreateCollection, self).__init__()
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(irodsCreateCollection, self).setupUi(self)
+            super().setupUi(self)
         else:
             loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create iRODS collection")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.ic = ic
         self.parent = parent
         self.label.setText(self.parent + "/")
@@ -31,7 +36,7 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
         if self.collPathLine.text() != "":
             newCollPath = self.parent + "/" + self.collPathLine.text()
             try:
-                self.ic.ensureColl(newCollPath)
+                self.ic.ensure_coll(newCollPath)
                 self.done(1)
             except Exception as error:
                 if hasattr(error, 'message'):
@@ -42,12 +47,13 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
 
 class createDirectory(QDialog, Ui_createCollection):
     def __init__(self, parent):
-        super(createDirectory, self).__init__()
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(createDirectory, self).setupUi(self)
+            super().setupUi(self)
         else:
             loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create directory")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.parent = parent
         self.label.setText(self.parent + os.sep)
         self.buttonBox.accepted.connect(self.accept)
@@ -67,12 +73,13 @@ class createDirectory(QDialog, Ui_createCollection):
 
 class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
     def __init__(self, ic, irodsTarIndexFileList, tarFilePath, statusLabel):
-        super(irodsIndexPopup, self).__init__()
+        super().__init__()
         if getattr(sys, 'frozen', False):
-            super(irodsIndexPopup, self).setupUi(self)
+            super().setupUi(self)
         else:
             loadUi("gui/ui_files/irodsIndexPopup.ui", self)
         self.setWindowTitle("iRODS Tar/Zip index.")
+        self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.indexLabel.setText("Index of " + tarFilePath + ":")
         self.tabWidget.setCurrentIndex(0)
         self.closeButton.clicked.connect(self.closeWindow)
@@ -81,7 +88,6 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         self.formatJSON(irodsTarIndexFileList)
         for line in irodsTarIndexFileList:
             self.textBrowser.append(line)
-
         self.ic = ic
         self.tarFilePath = tarFilePath
         self.extractButton.clicked.connect(self.extractSelection)
@@ -96,18 +102,14 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         objs = [obj for obj in index['items'] if obj['type'] == 'dataObj']
         table = [[obj['name'], obj['owner'], obj['size'], 
                     datetime.datetime.fromtimestamp(obj['created'])] for obj in objs]
-
         # self.dataObjectTable.clear()
         self.dataObjectTable.setRowCount(0)
         self.dataObjectTable.setRowCount(len(table))
-        row = 0
-        for item in table:
+        for row, item in enumerate(table):
             self.dataObjectTable.setItem(row, 0,  QtWidgets.QTableWidgetItem(item[0]))
             self.dataObjectTable.setItem(row, 1,  QtWidgets.QTableWidgetItem(item[1]))
             self.dataObjectTable.setItem(row, 2,  QtWidgets.QTableWidgetItem(str(item[2])))
             self.dataObjectTable.setItem(row, 3,  QtWidgets.QTableWidgetItem(str(item[3])))
-            row = row + 1
-
         self.dataObjectTable.resizeColumnsToContents()
 
     def enableButtons(self, enable):
@@ -115,10 +117,8 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         self.closeButton.setEnabled(enable)
 
     def extractSelection(self):
-        self.setCursor(QtGui.QCursor(QtCore.Qt.WaitCursor))
+        self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
         self.enableButtons(False)
-
-        ruleFile = os.path.join(os.getcwd(), 'rules/tarExtractOne.r')
 
         selection = self.dataObjectTable.selectedIndexes()
         selectedRows = set([index.row() for index in selection])
@@ -135,13 +135,13 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
                         '*obj': '"'+self.tarFilePath+'"',
-                        '*resource': '"'+self.ic.defaultResc+'"',
+                        '*resource': '"'+self.ic.default_resc+'"',
                         '*extract': '"'+extractPath+'"',
                         }
-                stdout, stderr = self.ic.executeRule(ruleFile, params)
+                self.ic.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
                 logging.info("TAR EXTRACT SCHEDULED: ")
                 logging.info("iRODS user: "+self.ic.session.username)
-                logging.info("Rule file: "+ruleFile)
+                logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \
                                       extractParent+"\n"
@@ -149,3 +149,42 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         self.enableButtons(True)
         self.errorLabel.setText(logString)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
+
+
+EXTRACT_ONE_RULE = '''extractOne {
+    msiGetObjType(*obj, *objType);
+    writeLine("stdout", "*obj, *objType");
+    msiSplitPath(*obj, *parentColl, *objName);
+    *suffix = substr(*obj, strlen(*obj)-9, strlen(*obj));
+    *objName = substr(*objName, 0, strlen(*objName)-10);
+    writeLine("stdout", "DEBUG tarExtract *parentColl");
+    writeLine("stdout", "DEBUG tarExtract *objName, *suffix");
+    *run = true;
+    if(*objType != '-d'){
+        *run = false;
+        writeLine("stderr", "ERROR tarExtract: not a data object, *path")
+    }
+    if(*suffix != "irods.tar" && *suffix != "irods.zip"){
+        *run = false;
+        writeLine("stderr", "ERROR tarExtract: not an irods.tar file, *path")
+    }
+    if(*run==true && *extract!="null"){
+        writeLine("stdout", "STATUS tarExtract: Create collection *parentColl/*objName");
+        msiCollCreate("*parentColl/*objName", 1, *collCreateOut);
+        if(*collCreateOut == 0) {
+            writeLine("stdout", "STATUS tarExtract: Extract *extract to *parentColl/*objName");
+            msiArchiveExtract(*obj, "*parentColl/*objName", *extract,  *resource, *outTarExtract);
+            if(*outTarExtract != 0) {
+                writeLine("stderr", "ERROR tarExtract: Failed to extract data");
+            }
+        }
+        else {
+            writeLine("stderr", "ERROR tarExtract: Failed to create *parentColl/*objName")
+        }
+    }
+    else {
+        writeLine("stdout", "DEBUG tarExtract: no action.")
+    }
+}
+OUTPUT ruleExecOut
+'''
