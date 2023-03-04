@@ -7,7 +7,7 @@ import irods.keywords as kw
 import irods
 import uuid
 
-from utils.IrodsConnector import IrodsConnector
+from IrodsConnector.pythonClient import IrodsConnector
 from utils.utils import ensure_dir
 
 import os

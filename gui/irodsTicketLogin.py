@@ -14,7 +14,7 @@ from gui.checkableFsTree import checkableFsTreeModel
 from gui.dataTransfer import dataTransfer
 from gui.popupWidgets import createDirectory
 from gui.ui_files.tabTicketAccess import Ui_tabTicketAccess
-from utils.IrodsConnectorAnonymous import IrodsConnectorAnonymous
+from IrodsConnector.Anonymous import IrodsConnectorAnonymous
 
 
 class irodsTicketLogin(QWidget, Ui_tabTicketAccess):

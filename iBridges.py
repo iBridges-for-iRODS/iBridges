@@ -15,6 +15,7 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+import IrodsConnector
 import utils
 
 app = PyQt6.QtWidgets.QApplication(sys.argv)
@@ -115,7 +116,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             iRODS session container.
 
         """
-        return utils.IrodsConnector.IrodsConnector
+        return IrodsConnector.pythonClient.IrodsConnector
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text

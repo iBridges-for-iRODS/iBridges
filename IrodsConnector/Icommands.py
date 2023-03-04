@@ -5,10 +5,10 @@ import os
 import shutil
 import subprocess
 
-import utils
+import IrodsConnector
 
 
-class IrodsConnectorIcommands(utils.IrodsConnector.IrodsConnector):
+class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
     """Connection to an iRODS server while using iCommands.
 
     """

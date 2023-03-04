@@ -11,9 +11,9 @@ Implemented for:
 """
 
 from utils.elabConnector import elabConnector
-from utils.IrodsConnector import IrodsConnector
-from utils.IrodsConnector import FreeSpaceNotSet
-from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
+from IrodsConnector.pythonClient import IrodsConnector
+from IrodsConnector.pythonClient import FreeSpaceNotSet
+from IrodsConnector.Icommands import IrodsConnectorIcommands
 from irods.exception import ResourceDoesNotExist, NoResultFound
 
 import configparser
