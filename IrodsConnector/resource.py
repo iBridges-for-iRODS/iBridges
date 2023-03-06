@@ -3,6 +3,18 @@
 class Resource(object):
 
     @property
+    def default_resc(self):
+        """Default resource name from iRODS environment.
+
+        Returns
+        -------
+        str
+            Resource name.
+
+        """
+        return self.ienv.get('irods_default_resource', None)
+
+    @property
     def resources(self):
         """iRODS resources metadata.
 
