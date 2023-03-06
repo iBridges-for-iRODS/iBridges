@@ -13,6 +13,17 @@ class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
 
     """
 
+    @property
+    def icommands(self):
+        """
+
+        Returns
+        -------
+        bool
+            Are the iCommands available?
+        """
+        return subprocess.call(['which', 'iinit'], shell=True, stderr=subprocess.PIPE) == 0
+
     def upload_data(self, source, destination, resource, size, buff=1024**3,
                     force=False, diffs=None):
         """
