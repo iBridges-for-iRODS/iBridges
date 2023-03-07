@@ -3,12 +3,13 @@
 import logging
 import irods.exception
 import irods.rule
+import irods.session
 import irodsConnector.keywords as kw
 
 
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
-    def get_user_info(self, session):
+    def get_user_info(self, session: irods.session):
         """Query for user type and groups.
 
         Parameters
@@ -35,7 +36,7 @@ class IrodsUtils(object):
         ]
         return user_type, user_groups
 
-    def search(self, session, key_vals=None):
+    def search(self, session: irods.session, key_vals: dict = None):
         """Given a dictionary with metadata attribute names as keys and
         associated values, query for collections and data objects that
         fullfill the criteria.  The key 'checksum' will be mapped to
@@ -123,7 +124,7 @@ class IrodsUtils(object):
                             res[list(res.keys())[2]]])
         return results
 
-    def execute_rule(self, session, rule_file, params, output='ruleExecOut'):
+    def execute_rule(self, session: irods.session, rule_file: str, params: dict, output: str = 'ruleExecOut'):
         """Execute an iRODS rule.
 
         Parameters
