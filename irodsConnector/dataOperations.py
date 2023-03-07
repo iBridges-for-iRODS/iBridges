@@ -26,38 +26,6 @@ class DataOperation(object):
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
             logging.info('ENSURE COLLECTION', exc_info=True)
             raise cnap
-        
-    def dataobject_exists(self, path):
-        """Check if an iRODS data object exists.
-
-        Parameters
-        ----------
-        path : str
-            Name of an iRODS data object.
-
-        Returns
-        -------
-        bool
-            Existence of the data object with `path`.
-
-        """
-        return self.session.data_objects.exists(path)
-
-    def collection_exists(self, path):
-        """Check if an iRODS collection exists.
-
-        Parameters
-        ----------
-        path : str
-            Name of an iRODS collection.
-
-        Returns
-        -------
-        bool
-            Existance of the collection with `path`.
-
-        """
-        return self.session.collections.exists(path)
 
     def get_dataobject(self, path):
         """Instantiate an iRODS data object.
@@ -186,24 +154,7 @@ class DataOperation(object):
         """
         return isinstance(obj, irods.collection.iRODSCollection)
 
-    @staticmethod
-    def is_dataobject_or_collection(obj):
-        """Check if `obj` is an iRODS data object or collection.
 
-        Parameters
-        ----------
-        obj : iRODS object instance
-            iRODS instance to check.
-
-        Returns
-        -------
-        bool
-            If `obj` is an iRODS data object or collection.
-
-        """
-        return isinstance(obj, (
-            irods.data_object.iRODSDataObject,
-            irods.collection.iRODSCollection))
 
     def upload_data(self, src_path, dst_coll, resc_name, size, buff=BUFF_SIZE,
                     force=False, diffs=None):

@@ -1,10 +1,10 @@
 """ resource operations
 """
+import logging
 import irods.exception
 import irods.session
 import irods.resource
 import irodsConnector.keywords as kw
-import logging
 
 
 class FreeSpaceNotSet(Exception):
@@ -39,7 +39,7 @@ class Resource(object):
     def resources(self, session: irods.session):
         """iRODS resources metadata.
 
-                Parameters
+        Parameters
         ----------
         session : irods session
 

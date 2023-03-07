@@ -1,89 +1,44 @@
 """IrodsConnector base
-
 """
-import base64
-import hashlib
-import json
+from json import load
+from os import environ
 import logging
-import os
-import random
-import shutil
 import ssl
-import string
-import subprocess
 
-import irods.access
-import irods.collection
-import irods.column
-import irods.connection
-import irods.data_object
+import irodsConnector.keywords as kw
+from utils import utils
+
+# import base64
+# import hashlib
+
+# import logging
+# import os
+# import random
+# import shutil
+# import ssl
+# import string
+# import subprocess
+
+# import irods.access
+# import irods.collection
+# import irods.column
+# import irods.connection
+# import irods.data_object
 import irods.exception
-import irods.keywords
-import irods.meta
-import irods.models
+# import irods.keywords
+# import irods.meta
+# import irods.models
 import irods.password_obfuscation
-import irods.rule
+# import irods.rule
 import irods.session
-import irods.ticket
-
-import utils
-
-# Keywords
-ALL_KW = irods.keywords.ALL_KW
-FORCE_FLAG_KW = irods.keywords.FORCE_FLAG_KW
-NUM_THREADS_KW = irods.keywords.NUM_THREADS_KW  # 'num_threads'
-DEST_RESC_NAME_KW = irods.keywords.DEST_RESC_NAME_KW
-RESC_NAME_KW = irods.keywords.RESC_NAME_KW
-VERIFY_CHKSUM_KW = irods.keywords.VERIFY_CHKSUM_KW
-REG_CHKSUM_KW = irods.keywords.REG_CHKSUM_KW
-# Map model names to iquest attribute names
-COLL_NAME = irods.models.Collection.name
-DATA_NAME = irods.models.DataObject.name
-DATA_CHECKSUM = irods.models.DataObject.checksum
-META_COLL_ATTR_NAME = irods.models.CollectionMeta.name
-META_COLL_ATTR_VALUE = irods.models.CollectionMeta.value
-META_DATA_ATTR_NAME = irods.models.DataObjectMeta.name
-META_DATA_ATTR_VALUE = irods.models.DataObjectMeta.value
-RESC_NAME = irods.models.Resource.name
-RESC_PARENT = irods.models.Resource.parent
-RESC_STATUS = irods.models.Resource.status
-RESC_CONTEXT = irods.models.Resource.context
-USER_GROUP_NAME = irods.models.UserGroup.name
-USER_NAME = irods.models.User.name
-USER_TYPE = irods.models.User.type
-# Query operators
-LIKE = irods.column.Like
-# ASCII colors
-BLUE = '\x1b[1;34m'
-DEFAULT = '\x1b[0m'
-RED = '\x1b[1;31m'
-YEL = '\x1b[1;33m'
-# Misc
-BUFF_SIZE = 10**9
-MULTIPLIER = 1 / 10**9
-NUM_THREADS = 4
-
-
-class FreeSpaceNotSet(Exception):
-    """Custom Exception for when free_space iRODS parameter missing.
-
-    """
-
-
-class NotEnoughFreeSpace(Exception):
-    """Custom Exception for when the reported free_space is too low.
-
-    """
+# import irods.ticket
 
 
 class IrodsConnector():
     """Create a connection to an iRODS system.
-
     """
     _ienv = {}
     _password = ''
-    _permissions = None
-    _resources = None
     _session = None
 
     def __init__(self, irods_env_file='', password='', application_name=None):
@@ -114,7 +69,7 @@ class IrodsConnector():
         if password:
             self.password = password
         self.application_name = application_name
-        self.multiplier = MULTIPLIER
+        self.multiplier = kw.MULTIPLIER
 
     @property
     def davrods(self):
@@ -129,175 +84,173 @@ class IrodsConnector():
         # FIXME move iBridges parameters to iBridges configuration
         return self.ienv.get('davrods_server', None)
 
+    @property
+    def ienv(self):
+        """iRODS environment dictionary.
 
+        Returns
+        -------
+        dict
+            iRODS environment dictionary obtained from its JSON file.
 
+        """
+        if not self._ienv:
+            irods_env_file = utils.LocalPath(self.irods_env_file)
+            if irods_env_file.is_file():
+                with open(irods_env_file, encoding='utf-8') as envfd:
+                    self._ienv = load(envfd)
+        return self._ienv
 
-
-
-
-    def get_user_info(self):
-        """Query for user type and groups.
+    @property
+    def password(self):
+        """iRODS password.
 
         Returns
         -------
         str
-            iRODS user type name.
-        list
-            iRODS group names.
+            iRODS password pre-set or decoded from iRODS authentication
+            file. Can be a PAM negotiated password.
 
         """
-        query = self.session.query(USER_TYPE).filter(LIKE(
-            USER_NAME, self.session.username))
-        user_type = [
-            list(result.values())[0] for result in query.get_results()
-        ][0]
-        query = self.session.query(USER_GROUP_NAME).filter(LIKE(
-            USER_NAME, self.session.username))
-        user_groups = [
-            list(result.values())[0] for result in query.get_results()
-        ]
-        return user_type, user_groups
+        if not self._password:
+            irods_auth_file = environ.get(
+                'IRODS_AUTHENTICATION_FILE', None)
+            if irods_auth_file is None:
+                irods_auth_file = utils.LocalPath(
+                    '~/.irods/.irodsA').expanduser()
+            if irods_auth_file.exists():
+                with open(irods_auth_file, encoding='utf-8') as authfd:
+                    self._password = irods.password_obfuscation.decode(
+                        authfd.read())
+        return self._password
 
+    @password.setter
+    def password(self, password):
+        """iRODS password setter method.
 
+        Pararmeters
+        -----------
+        password : str
+            Unencrypted iRODS password.
 
+        """
+        if password:
+            self._password = password
 
+    @password.deleter
+    def password(self):
+        """iRODS password deleter method.
 
-    def search(self, key_vals=None):
-        """Given a dictionary with metadata attribute names as keys and
-        associated values, query for collections and data objects that
-        fullfill the criteria.  The key 'checksum' will be mapped to
-        DataObject.checksum, the key 'path' will be mapped to
-        Collection.name and the key 'object' will be mapped to
-        DataObject.name:
+        """
+        self._password = ''
 
-        {
-            'checksum': '',
-            'key1': 'val1',
-            'key2': 'val2',
-            'path': '',
-            'object': '',
-        }
-
-        By Default, if `key_vals` is empty, all accessible collections
-        and data objects will be returned.
-
-        Parameters
-        ----------
-        key_vals : dict
-            Attribute name mapping to values.
+    @property
+    def session(self):
+        """iRODS session.
 
         Returns
         -------
-        list: [[Collection name, Object name, checksum]]
+        iRODSSession
+            iRODS connection based on given environment and password.
 
         """
-        coll_query = None
-        data_query = None
-        # data query
-        if 'checksum' in key_vals or 'object' in key_vals:
-            data_query = self.session.query(
-                COLL_NAME, DATA_NAME, DATA_CHECKSUM)
-            if 'object' in key_vals:
-                if key_vals['object']:
-                    data_query = data_query.filter(
-                        LIKE(DATA_NAME, key_vals['object']))
-            if 'checksum' in key_vals:
-                if key_vals['checksum']:
-                    data_query = data_query.filter(LIKE(
-                        DATA_CHECKSUM, key_vals['checksum']))
+        if self._session is None:
+            options = {
+                'irods_env_file': self.irods_env_file,
+                'application_name': self.application_name,
+            }
+            if self.ienv is not None:
+                options.update(self.ienv.copy())
+            # Compare given password with potentially cached password.
+            given_pass = self.password
+            del self.password
+            cached_pass = self.password
+            if given_pass != cached_pass:
+                options['password'] = given_pass
+            self._session = self._get_irods_session(options)
+            try:
+                # Check for good authentication and cache PAM password
+                if 'password' in options:
+                    self._session.pool.get_connection()
+                    self._write_pam_password()
+            except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
+                raise error
+            print('Welcome to iRODS:')
+            print(f'iRODS Zone: {self._session.zone}')
+            print(f'You are: {self._session.username}')
+            print(f'Default resource: {self.default_resc}')
+            print('You have access to: \n')
+            home_path = f'/{self._session.zone}/home'
+            if self._session.collections.exists(home_path):
+                colls = self._session.collections.get(home_path).subcollections
+                print('\n'.join([coll.path for coll in colls]))
+            logging.info(
+                'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
+                self._session.zone, self._session.host)
+        return self._session
+
+    @staticmethod
+    def _get_irods_session(options):
+        """Run through different types of authentication methods and
+        instantiate an iRODS session.
+
+        Parameters
+        ----------
+        options : dict
+            Initial iRODS settings for the session.
+
+        Returns
+        -------
+        iRODSSession
+            iRODS connection based on given environment and password.
+
+        """
+        if 'password' not in options:
+            try:
+                print('AUTH FILE SESSION')
+                return irods.session.iRODSSession(
+                    irods_env_file=options['irods_env_file'])
+            except Exception as error:
+                print(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
         else:
-            coll_query = self.session.query(COLL_NAME)
-            data_query = self.session.query(
-                COLL_NAME, DATA_NAME, DATA_CHECKSUM)
+            try:
+                print('FULL ENVIRONMENT SESSION')
+                return irods.session.iRODSSession(**options)
+            except irods.connection.PlainTextPAMPasswordError as ptppe:
+                print(f'{kw.RED}ENVIRONMENT INCOMPLETE? {ptppe!r}{kw.DEFAULT}')
+                try:
+                    ssl_context = ssl.create_default_context(
+                        purpose=ssl.Purpose.SERVER_AUTH,
+                        cafile=None, capath=None, cadata=None)
+                    ssl_settings = {
+                        'client_server_negotiation':
+                            'request_server_negotiation',
+                        'client_server_policy': 'CS_NEG_REQUIRE',
+                        'encryption_algorithm': 'AES-256-CBC',
+                        'encryption_key_size': 32,
+                        'encryption_num_hash_rounds': 16,
+                        'encryption_salt_size': 8,
+                        'ssl_context': ssl_context,
+                    }
+                    options.update(ssl_settings)
+                    print('PARTIAL ENVIRONMENT SESSION')
+                    return irods.session.iRODSSession(**options)
+                except Exception as error:
+                    print(f'{kw.RED}PARTIAL ENVIRONMENT LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                    raise error
+            except Exception as autherror:
+                logging.info('AUTHENTICATION ERROR', exc_info=True)
+                print(f'{kw.RED}AUTHENTICATION ERROR: {autherror!r}{kw.DEFAULT}')
+                raise autherror
 
-        if 'path' in key_vals and key_vals['path']:
-            if coll_query:
-                coll_query = coll_query.filter(LIKE(
-                    COLL_NAME, key_vals['path']))
-            data_query = data_query.filter(LIKE(
-                COLL_NAME, key_vals['path']))
-        for key in key_vals:
-            if key not in ['checksum', 'path', 'object']:
-                if data_query:
-                    data_query.filter(META_DATA_ATTR_NAME == key)
-                if coll_query:
-                    coll_query.filter(META_COLL_ATTR_NAME == key)
-                if key_vals[key]:
-                    if data_query:
-                        data_query.filter(
-                            META_DATA_ATTR_VALUE == key_vals[key])
-                    if coll_query:
-                        coll_query.filter(
-                            META_COLL_ATTR_VALUE == key_vals[key])
-        results = [['', '', ''], ['', '', ''], ['', '', '']]
-        coll_batch = [[]]
-        data_batch = [[]]
-        # Return only 100 results.
-        if coll_query:
-            num_colls = len(list(coll_query))
-            results[0] = [f'Collections found: {num_colls}', '', '']
-            coll_batch = list(coll_query.get_batches())
-        if data_query:
-            num_objs = len(list(data_query))
-            results[1] = [f'Objects found: {num_objs}', '', '']
-            data_batch = list(data_query.get_batches())
-        for res in coll_batch[0][:50]:
-            results.append([res[list(res.keys())[0]], '', ''])
-        for res in data_batch[0][:50]:
-            results.append([res[list(res.keys())[0]],
-                            res[list(res.keys())[1]],
-                            res[list(res.keys())[2]]])
-        return results
-
-    def execute_rule(self, rule_file, params, output='ruleExecOut'):
-        """Execute an iRODS rule.
-
-        Parameters
-        ----------
-        rule_file : str, file-like
-            Name of the iRODS rule file, or a file-like object representing it.
-        params : dict
-            Rule arguments.
-        output : str
-            Rule output variable(s).
-
-        Returns
-        -------
-        tuple
-            (stdout, stderr)
-
-        `params` format example:
-
-        params = {  # extra quotes for string literals
-            '*obj': '"/zone/home/user"',
-            '*name': '"attr_name"',
-            '*value': '"attr_value"'
-        }
+    def _write_pam_password(self):
+        """Store the returned PAM/LDAP password in the iRODS
+        authentication file in obfuscated form.
 
         """
-        try:
-            rule = irods.rule.Rule(
-                self.session, rule_file=rule_file, params=params, output=output,
-                instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
-            out = rule.execute()
-        except irods.exception.NetworkException as netexc:
-            logging.info('Lost connection to iRODS server.')
-            return '', repr(netexc)
-        except irods.exception.SYS_HEADER_READ_LEN_ERR as shrle:
-            logging.info('iRODS server hiccuped.  Check the results and try again.')
-            return '', repr(shrle)
-        except Exception as error:
-            logging.info('RULE EXECUTION ERROR', exc_info=True)
-            return '', repr(error)
-        stdout, stderr = '', ''
-        if len(out.MsParam_PI) > 0:
-            buffers = out.MsParam_PI[0].inOutStruct
-            stdout = (buffers.stdoutBuf.buf or b'').decode()
-            # Remove garbage after terminal newline.
-            stdout = '\n'.join(stdout.split('\n')[:-1])
-            stderr = (buffers.stderrBuf.buf or b'').decode()
-        return stdout, stderr
-
-
-
-
+        pam_passwords = self._session.pam_pw_negotiated
+        if len(pam_passwords):
+            irods_auth_file = self._session.get_irods_password_file()
+            with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
+                authfd.write(
+                    irods.password_obfuscation.encode(pam_passwords[0]))
