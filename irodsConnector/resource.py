@@ -62,7 +62,7 @@ class Resource(object):
                 name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
-                    free_space = self.get_free_space(name, multiplier=kw.MULTIPLIER)
+                    free_space = self.get_free_space(session, name, multiplier=kw.MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,

@@ -3,27 +3,15 @@
 import logging
 import os
 import shutil
-import subprocess
+from subprocess import Popen, PIPE
 
-import IrodsConnector
+import pythonClient
 
 
-class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
+class IrodsConnectorIcommands(pythonClient.IrodsConnector):
     """Connection to an iRODS server while using iCommands.
 
     """
-
-    @property
-    def icommands(self):
-        """
-
-        Returns
-        -------
-        bool
-            Are the iCommands available?
-        """
-        return subprocess.call(['which', 'iinit'], shell=True, stderr=subprocess.PIPE) == 0
-
     def upload_data(self, source, destination, resource, size, buff=1024**3,
                     force=False, diffs=None):
         """
@@ -43,18 +31,17 @@ class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
         ValueError (if resource too small or buffer is too small)
 
         """
-        logging.info('iRODS UPLOAD: ' + source + '-->' + str(destination) + ', ' + str(resource))
+        logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(resource))
         if not force:
             try:
                 space = self.resource_space(resource)
                 if int(size) > (int(space) - buff):
-                    logging.info('ERROR iRODS upload: Not enough space on resource.')
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
-                    logging.info('ERROR iRODS upload: Negative resource buffer.')
                     raise BufferError('ERROR iRODS upload: Negative resource buffer.')
             except Exception as error:
-                raise
+                logging.error(error)
+                raise error
 
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
@@ -65,20 +52,20 @@ class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
             self.session.collections.create(destination.path + '/' + os.path.basename(source))
-            subColl = self.session.collections.get(destination.path + '/' + os.path.basename(source))
+            sub_coll = self.session.collections.get(destination.path + '/' + os.path.basename(source))
             if resource:
-                cmd = 'irsync -aKr ' + source + ' i:' + subColl.path + ' -R ' + resource
+                cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + resource
             else:
-                cmd = 'irsync -aKr ' + source + ' i:' + subColl.path
+                cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path
         else:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise FileNotFoundError('ERROR iRODS upload: not a valid source path')
-        logging.info('IRODS UPLOAD: ' + cmd)
-        p = subprocess.Popen([cmd], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        logging.info('IRODS UPLOAD: %s', cmd)
+        p = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = p.communicate()
-        logging.info('IRODS UPLOAD INFO: out:' + str(out) + '\nerr: ' + str(err))
+        logging.info('IRODS UPLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def download_data( self, source, destination, size, buff=1024**3, force=False, diffs=None):
+    def download_data(self, source, destination, size, buff=1024**3, force=False, diffs=None):
         """
         Download object or collection.
         source: iRODS collection or data object
@@ -86,7 +73,7 @@ class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
         size: size of data to be downloaded in bytes
         buff: buffer on the filesystem that should be left over
         """
-        logging.info('iRODS DOWNLOAD: ' + str(source) + '-->' + destination)
+        logging.info('iRODS DOWNLOAD: %s --> %s', str(source), destination)
         destination = '/' + destination.strip('/')
         if not os.access(destination, os.W_OK):
             logging.info('IRODS DOWNLOAD: No rights to write to destination.')
@@ -115,7 +102,7 @@ class IrodsConnectorIcommands(IrodsConnector.pythonClient.IrodsConnector):
             cmd = 'irsync -Kr i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError('IRODS download: not a valid source.')
-        logging.info('IRODS DOWNLOAD: ' + cmd)
-        p = subprocess.Popen([cmd], stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-        out, err = p.communicate()
-        logging.info('IRODS DOWNLOAD INFO: out:' + str(out) + '\nerr: ' + str(err))
+        logging.info('IRODS DOWNLOAD: %s', cmd)
+        pros = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
+        out, err = pros.communicate()
+        logging.info('IRODS DOWNLOAD INFO: out:%s \nerr: %s', str(out), str(err))

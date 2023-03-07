@@ -12,7 +12,6 @@ import irodsConnector.keywords as kw
 
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
-    #TODO: move to logical place, interface? so functions like tickets can call it...
     @staticmethod
     def icommands():
         """
