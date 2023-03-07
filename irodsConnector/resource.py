@@ -1,6 +1,27 @@
+""" resource operations
+"""
+import irods.exception
+import irods.session
+import irods.resource
+import irodsConnector.keywords as kw
+import logging
+
+
+class FreeSpaceNotSet(Exception):
+    """Custom Exception for when free_space iRODS parameter missing.
+
+    """
+
+
+class NotEnoughFreeSpace(Exception):
+    """Custom Exception for when the reported free_space is too low.
+
+    """
 
 
 class Resource(object):
+    """Irods Resource operations """
+    _resources = None
 
     @property
     def default_resc(self):
@@ -15,8 +36,12 @@ class Resource(object):
         return self.ienv.get('irods_default_resource', None)
 
     @property
-    def resources(self):
+    def resources(self, session: irods.session):
         """iRODS resources metadata.
+
+                Parameters
+        ----------
+        session : irods session
 
         Returns
         -------
@@ -30,14 +55,14 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = self.session.query(
-                RESC_NAME, RESC_PARENT, RESC_STATUS, RESC_CONTEXT)
+            query = session.query(
+                kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
-                    free_space = self.get_free_space(name, multiplier=MULTIPLIER)
+                    free_space = self.get_free_space(name, multiplier=kw.MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
@@ -119,11 +144,12 @@ class Resource(object):
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
-    def get_resource(self, resc_name):
+    def get_resource(self, session: irods.session, resc_name: str):
         """Instantiate an iRODS resource.
 
         Prameters
         ---------
+        session : irods session
         resc_name : str
             Name of the iRODS resource.
 
@@ -137,11 +163,11 @@ class Resource(object):
 
         """
         try:
-            return self.session.resources.get(resc_name)
+            return session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
             print(f'Resource with name {resc_name} not found')
             raise rdne
-        
+
     def resource_space(self, resc_name):
         """Find the available space left on a resource in bytes.
 
@@ -173,9 +199,9 @@ class Resource(object):
             raise FreeSpaceNotSet(
                 f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
         # For convenience, free_space is stored multiplied by MULTIPLIER.
-        return int(space / MULTIPLIER)
+        return int(space / kw.MULTIPLIER)
 
-    def get_free_space(self, resc_name, multiplier=1):
+    def get_free_space(self, session: irods.session, resc_name: str, multiplier: int = 1):
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -185,6 +211,7 @@ class Resource(object):
 
         Parameters
         ----------
+        session : irods session
         resc_name : str
             Name of monolithic resource or the top of a resource tree.
         multiplier : int
@@ -205,20 +232,19 @@ class Resource(object):
 
         """
         try:
-            resc = self.session.resources.get(resc_name)
+            resc = session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             print(f'Resource with name {resc_name} not found')
             return -1
         if resc.free_space is not None:
             return round(int(resc.free_space) * multiplier)
-        children = get_resource_children(resc)
+        children = self.get_resource_children(resc)
         free_space = sum((
             int(child.free_space) for child in children
             if child.free_space is not None))
         return round(free_space * multiplier)
 
-
-    def get_resource_children(resc):
+    def get_resource_children(self, resc: irods.resource):
         """Get all the children for the resource `resc`.
 
         Parameters
@@ -234,5 +260,5 @@ class Resource(object):
         """
         children = []
         for child in resc.children:
-            children.extend(get_resource_children(child))
+            children.extend(self.get_resource_children(child))
         return resc.children + children
