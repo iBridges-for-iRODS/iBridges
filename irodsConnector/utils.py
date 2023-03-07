@@ -1,5 +1,6 @@
 """ irods utils
 """
+from subprocess import call, PIPE
 import logging
 import irods.exception
 import irods.rule
@@ -9,6 +10,18 @@ import irodsConnector.keywords as kw
 
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
+    #TODO: move to logical place, interface? so functions like tickets can call it...
+    @staticmethod
+    def icommands():
+        """
+
+        Returns
+        -------
+        bool
+            Are the iCommands available?
+        """
+        return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
+
     def get_user_info(self, session: irods.session):
         """Query for user type and groups.
 

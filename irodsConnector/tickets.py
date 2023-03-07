@@ -1,13 +1,23 @@
+""" ticket operations
+"""
+from random import choice
+from string import ascii_letters
+from subprocess import Popen, PIPE
+import logging
+import irods.ticket
+import irods.session
+from irodsConnector.utils import IrodsUtils
 
 
 class Tickets(object):
-    
-    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
+    """Irods Ticket operations """
+    def create_ticket(self, session: irods.session, obj_path: str, expiry_string: str = '') -> tuple:
         """Create an iRODS ticket to allow read access to the object
         referenced by `obj_path`.
 
         Parameters
         ----------
+        session : irods session
         obj_path : str
             Name to create ticket for.
         expiry_string : str
@@ -20,16 +30,16 @@ class Tickets(object):
             (str, bool)
 
         """
-        ticket_id = ''.join(random.choice(string.ascii_letters) for _ in range(20))
-        ticket = irods.ticket.Ticket(self.session, ticket_id)
+        ticket_id = ''.join(choice(ascii_letters) for _ in range(20))
+        ticket = irods.ticket.Ticket(session, ticket_id)
         ticket.issue('read', obj_path)
-        logging.info(f'CREATE TICKET: {ticket.ticket}: {obj_path}')
+        logging.info('CREATE TICKET: %s: %s', ticket.ticket, obj_path)
         expiration_set = False
         if expiry_string != '':
             try:
                 expiration_set = self._modify_ticket(ticket, expiry_string)
             except Exception as error:
-                logging.info(f'Could not set expiration date: {error}')
+                logging.info('Could not set expiration date: %s', str(error))
         return ticket.ticket, expiration_set
 
     def _modify_ticket(self, ticket: irods.ticket.Ticket, expiry_string: str) -> bool:
@@ -49,12 +59,12 @@ class Tickets(object):
 
         """
         # TODO improve error handling, if necessary
-        if not self.icommands:
+        if not IrodsUtils.icommands():
             return ticket.modify('expire', expiry_string) == ticket
         else:
             command = f'iticket mod {ticket.ticket} expire {expiry_string}'
-            p = subprocess.Popen(
-                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            p = Popen(
+                command, stdout=PIPE, stderr=PIPE,
                 shell=True)
-            out, err = p.communicate()
+            _, err = p.communicate()
             return err == b''
