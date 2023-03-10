@@ -4,6 +4,8 @@ import logging
 import os
 import shutil
 from subprocess import call, Popen, PIPE
+import irodsConnector.keywords as kw
+import irodsConnector.session
 
 
 class IrodsConnectorIcommands():
@@ -22,23 +24,26 @@ class IrodsConnectorIcommands():
         """
         return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
-    def upload_data(self, source, destination, resource, size, buff=1024**3,
-                    force=False, diffs=None):
-        """
-        source: absolute path to file or folder
-        destination: iRODS collection where data is uploaded to
-        resource: name of the iRODS storage resource to use
-        size: size of data to be uploaded in bytes
-        buf: buffer on resource that should be left over
-        diffs: Leave empty, placeholder to be in sync with IrodsConnector class function
+    def upload_data(self, ses_man: irodsConnector.session.Session, source: str, destination: None, resource: str, 
+                    size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
+        """Upload files or folders to an iRODS collection.
 
-        The function uploads the contents of a folder with all subfolders to 
-        an iRODS collection.
-        If source is the path to a file, the file will be uploaded.
+        Parameters
+        ----------
+        ses_man : irods session
+            Instance of the Session class     
+        source: str
+            absolute path to file or folder
+        destination: iRODS collection to upload to
 
-        Throws:
-        ResourceDoesNotExist
-        ValueError (if resource too small or buffer is too small)
+        resource: str
+            name of the iRODS storage resource to use
+        size: int
+            size of data to be uploaded in bytes
+        buf: int
+            buffer on resource that should be left over
+        force: bool
+            upload without checking the available space
 
         """
         logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(resource))
@@ -55,14 +60,14 @@ class IrodsConnectorIcommands():
 
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
-            self.session.collections.create(destination.path)
+            ses_man.session.collections.create(destination.path)
             if resource:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + resource
             else:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
-            self.session.collections.create(destination.path + '/' + os.path.basename(source))
-            sub_coll = self.session.collections.get(destination.path + '/' + os.path.basename(source))
+            ses_man.session.collections.create(destination.path + '/' + os.path.basename(source))
+            sub_coll = ses_man.session.collections.get(destination.path + '/' + os.path.basename(source))
             if resource:
                 cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + resource
             else:
@@ -75,13 +80,22 @@ class IrodsConnectorIcommands():
         out, err = p.communicate()
         logging.info('IRODS UPLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def download_data(self, source, destination, size, buff=1024**3, force=False, diffs=None):
-        """
-        Download object or collection.
+    def download_data(self, ses_man: irodsConnector.session.Session, source: None, destination: str,
+                      size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
+        """Download object or collection.
+
+        Parameters
+        ----------
+        ses_man : irods session
+            Instance of the Session class
         source: iRODS collection or data object
-        destination: absolut path to download folder
-        size: size of data to be downloaded in bytes
-        buff: buffer on the filesystem that should be left over
+
+        destination: str
+            absolut path to download folder
+        size: int
+            size of data to be downloaded in bytes
+        buff: int
+            buffer on the filesystem that should be left over
         """
         logging.info('iRODS DOWNLOAD: %s --> %s', str(source), destination)
         destination = '/' + destination.strip('/')
@@ -105,10 +119,9 @@ class IrodsConnectorIcommands():
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error
 
-        if self.session.data_objects.exists(source.path):
-            # -f overwrite, -K control checksum, -r recursive (collections)
+        if ses_man.session.data_objects.exists(source.path):
             cmd = 'irsync -K i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
-        elif self.session.collections.exists(source.path):
+        elif ses_man.session.collections.exists(source.path):
             cmd = 'irsync -Kr i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError('IRODS download: not a valid source.')
@@ -116,3 +129,40 @@ class IrodsConnectorIcommands():
         pros = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = pros.communicate()
         logging.info('IRODS DOWNLOAD INFO: out:%s \nerr: %s', str(out), str(err))
+
+    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
+        """Upload `local_path` to `irods_path` following iRODS `options`.
+
+        Parameters
+        ----------
+        ses_man : irods session
+            Instance of the Session class
+        local_path : str
+            Path of local file or directory/folder.
+        irods_path : str
+            Path of iRODS data object or collection.
+        resc_name : str
+            Optional resource name.
+
+        """
+        commands = [f'iput -aK -N {kw.NUM_THREADS}']
+        if resc_name:
+            commands.append(f'-R {resc_name}')
+        commands.append(f'{local_path} {irods_path}')
+        call(' '.join(commands), shell=True)
+
+    def irods_get(self, irods_path: str, local_path: str):
+        """ Download `irods_path` to `local_path` following iRODS `options`.
+
+        Parameters
+        ----------
+        ses_man : irods session
+            Instance of the Session class
+        irods_path : str
+            Path of iRODS data object or collection.
+        local_path : str
+            Path of local file or directory/folder.
+
+        """
+        commands = [f'iget -K -N {kw.NUM_THREADS} {irods_path} {local_path}']
+        call(' '.join(commands), shell=True)
