@@ -12,61 +12,6 @@ import irodsConnector.keywords as kw
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
 
-    @staticmethod
-    def is_dataobject_or_collection(obj):
-        """Check if `obj` is an iRODS data object or collection.
-
-        Parameters
-        ----------
-        obj : iRODS object instance
-            iRODS instance to check.
-
-        Returns
-        -------
-        bool
-            If `obj` is an iRODS data object or collection.
-
-        """
-        return isinstance(obj, (
-            irods.data_object.iRODSDataObject,
-            irods.collection.iRODSCollection))
-
-    @staticmethod
-    def dataobject_exists(session: irods.session, path: str):
-        """Check if an iRODS data object exists.
-
-        Parameters
-        ----------
-        session : irods session
-        path : str
-            Name of an iRODS data object.
-
-        Returns
-        -------
-        bool
-            Existence of the data object with `path`.
-
-        """
-        return session.data_objects.exists(path)
-
-    @staticmethod
-    def collection_exists(session: irods.session, path: str):
-        """Check if an iRODS collection exists.
-
-        Parameters
-        ----------
-        session : irods session 
-        path : str
-            Name of an iRODS collection.
-
-        Returns
-        -------
-        bool
-            Existance of the collection with `path`.
-
-        """
-        return session.collections.exists(path)
-
     def get_user_info(self, session: irods.session):
         """Query for user type and groups.
 
