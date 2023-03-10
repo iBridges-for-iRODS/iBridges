@@ -13,8 +13,7 @@ class Permission(object):
     """Irods permission operations """
     _permissions = None
 
-    @property
-    def permissions(self, session: irods.session):
+    def permissions(self, session: irods.session) -> dict:
         """iRODS permissions mapping.
 
         Parameters
@@ -39,7 +38,7 @@ class Permission(object):
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions
 
-    def get_permissions(self, session: irods.session, path: str = '', obj: irods.collection = None):
+    def get_permissions(self, session: irods.session, path: str = '', obj: irods.collection = None) -> list:
         """Discover ACLs for an iRODS collection expressed as a `path`
         or an `obj`ect.
 

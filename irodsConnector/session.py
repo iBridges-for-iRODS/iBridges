@@ -11,8 +11,45 @@ from utils import utils
 
 class Session(object):
     """Irods session operations """
+    _irods_env_file = ''
     _password = ''
     _session = None
+
+    def __init__(self, irods_env_file='', password=''):
+        """ iRODS authentication with Python client.
+
+        Parameters
+        ----------
+        irods_env_file : str
+            JSON document with iRODS connection parameters.
+        password : str
+            Plain text password.
+
+        The 'ienv' and 'password' properties can autoload from their
+        respective caches, but can be overridden by the `ienv` and
+        `password` arguments, respectively.  The iRODS environment file
+        is expected in the standard location
+        (~/.irods/irods_environment.json) or to be specified in the
+        local environment with the IRODS_ENVIRONMENT_FILE variable, and
+        the iRODS authentication file is expected in the standard
+        location (~/.irods/.irodsA) or to be specified in the local
+        environment with the IRODS_AUTHENTICATION_FILE variable.
+        """
+        self._irods_env_file = irods_env_file
+        if password:
+            self._password = password
+
+    @property
+    def irods_env_file(self):
+        """iRODS environment filename
+
+        Returns
+        -------
+        str
+            the path to the iRODS environment file.
+
+        """
+        return self._irods_env_file
 
     @property
     def password(self):
@@ -67,13 +104,25 @@ class Session(object):
             iRODS connection based on given environment and password.
 
         """
+        return self._session
+
+    @property
+    def connect(self, application_name: str, default_resc: str, ienv: dict):
+        """iRODS session creation.
+
+        Returns
+        -------
+        iRODSSession
+            iRODS connection based on given environment and password.
+
+        """
         if self._session is None:
             options = {
-                'irods_env_file': self.irods_env_file,
-                'application_name': self.application_name,
+                'irods_env_file': self._irods_env_file,
+                'application_name': application_name,
             }
-            if self.ienv is not None:
-                options.update(self.ienv.copy())
+            if ienv is not None:
+                options.update(ienv.copy())
             # Compare given password with potentially cached password.
             given_pass = self.password
             del self.password
@@ -91,7 +140,7 @@ class Session(object):
             print('Welcome to iRODS:')
             print(f'iRODS Zone: {self._session.zone}')
             print(f'You are: {self._session.username}')
-            print(f'Default resource: {self.default_resc}')
+            print(f'Default resource: {default_resc}')
             print('You have access to: \n')
             home_path = f'/{self._session.zone}/home'
             if self._session.collections.exists(home_path):
@@ -100,7 +149,6 @@ class Session(object):
             logging.info(
                 'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
                 self._session.zone, self._session.host)
-        return self._session
 
     @staticmethod
     def _get_irods_session(options):

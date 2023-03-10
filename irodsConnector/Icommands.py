@@ -3,15 +3,25 @@
 import logging
 import os
 import shutil
-from subprocess import Popen, PIPE
-
-import pythonClient
+from subprocess import call, Popen, PIPE
 
 
-class IrodsConnectorIcommands(pythonClient.IrodsConnector):
+class IrodsConnectorIcommands():
     """Connection to an iRODS server while using iCommands.
 
     """
+
+    @staticmethod
+    def icommands():
+        """
+
+        Returns
+        -------
+        bool
+            Are the iCommands available?
+        """
+        return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
+
     def upload_data(self, source, destination, resource, size, buff=1024**3,
                     force=False, diffs=None):
         """

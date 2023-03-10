@@ -1,6 +1,5 @@
 """ irods utils
 """
-from subprocess import call, PIPE
 import logging
 import irods.collection
 import irods.data_object
@@ -12,16 +11,6 @@ import irodsConnector.keywords as kw
 
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
-    @staticmethod
-    def icommands():
-        """
-
-        Returns
-        -------
-        bool
-            Are the iCommands available?
-        """
-        return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
     @staticmethod
     def is_dataobject_or_collection(obj):
