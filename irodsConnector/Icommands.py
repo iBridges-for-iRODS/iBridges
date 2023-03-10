@@ -5,7 +5,8 @@ import os
 import shutil
 from subprocess import call, Popen, PIPE
 import irodsConnector.keywords as kw
-import irodsConnector.session
+from irodsConnector.resource import Resource
+from irodsConnector.session import Session
 
 
 class IrodsConnectorIcommands():
@@ -24,14 +25,14 @@ class IrodsConnectorIcommands():
         """
         return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
-    def upload_data(self, ses_man: irodsConnector.session.Session, source: str, destination: None, resource: str, 
+    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: None, resource: str,
                     size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Upload files or folders to an iRODS collection.
 
         Parameters
         ----------
         ses_man : irods session
-            Instance of the Session class     
+            Instance of the Session class
         source: str
             absolute path to file or folder
         destination: iRODS collection to upload to
@@ -49,7 +50,7 @@ class IrodsConnectorIcommands():
         logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(resource))
         if not force:
             try:
-                space = self.resource_space(resource)
+                space = res_man.resource_space(ses_man, resource)
                 if int(size) > (int(space) - buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
@@ -80,7 +81,7 @@ class IrodsConnectorIcommands():
         out, err = p.communicate()
         logging.info('IRODS UPLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def download_data(self, ses_man: irodsConnector.session.Session, source: None, destination: str,
+    def download_data(self, ses_man: Session, source: None, destination: str,
                       size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Download object or collection.
 
