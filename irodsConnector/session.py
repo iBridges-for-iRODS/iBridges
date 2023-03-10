@@ -1,10 +1,12 @@
 """ session operations
 """
+from json import load
 from os import environ
 import logging
 import ssl
 import irods.exception
 import irods.password_obfuscation
+import irods.session
 import irodsConnector.keywords as kw
 from utils import utils
 
@@ -12,6 +14,7 @@ from utils import utils
 class Session(object):
     """Irods session operations """
     _irods_env_file = ''
+    _ienv = {}
     _password = ''
     _session = None
 
@@ -40,7 +43,7 @@ class Session(object):
             self._password = password
 
     @property
-    def irods_env_file(self):
+    def irods_env_file(self) -> str:
         """iRODS environment filename
 
         Returns
@@ -52,7 +55,49 @@ class Session(object):
         return self._irods_env_file
 
     @property
-    def password(self):
+    def ienv(self):
+        """iRODS environment dictionary.
+
+        Returns
+        -------
+        dict
+            iRODS environment dictionary obtained from its JSON file.
+
+        """
+        if not self._ienv:
+            irods_env_file = utils.LocalPath(self._irods_env_file)
+            if irods_env_file.is_file():
+                with open(irods_env_file, encoding='utf-8') as envfd:
+                    self._ienv = load(envfd)
+        return self._ienv
+
+    @property
+    def davrods(self):
+        """DavRODS server URL.
+
+        Returns
+        -------
+        str
+            URL of the configured DavRODS server.
+
+        """
+        # FIXME move iBridges parameters to iBridges configuration
+        return self._ienv.get('davrods_server', None)
+
+    @property
+    def default_resc(self) -> str:
+        """Default resource name from iRODS environment.
+
+        Returns
+        -------
+        str
+            Resource name.
+
+        """
+        return self._ienv.get('irods_default_resource', None)
+
+    @property
+    def password(self) -> str:
         """iRODS password.
 
         Returns
@@ -80,7 +125,7 @@ class Session(object):
 
         Pararmeters
         -----------
-        password : str
+        password: str
             Unencrypted iRODS password.
 
         """
@@ -95,7 +140,7 @@ class Session(object):
         self._password = ''
 
     @property
-    def session(self):
+    def session(self) -> irods.session.iRODSSession:
         """iRODS session.
 
         Returns
@@ -106,9 +151,13 @@ class Session(object):
         """
         return self._session
 
-    @property
-    def connect(self, application_name: str, default_resc: str, ienv: dict):
+    def connect(self, application_name: str) -> irods.session.iRODSSession:
         """iRODS session creation.
+
+        Pararmeters
+        -----------
+        application_name: str
+            Name of the python application
 
         Returns
         -------
@@ -121,8 +170,8 @@ class Session(object):
                 'irods_env_file': self._irods_env_file,
                 'application_name': application_name,
             }
-            if ienv is not None:
-                options.update(ienv.copy())
+            if self.ienv is not None:
+                options.update(self.ienv.copy())
             # Compare given password with potentially cached password.
             given_pass = self.password
             del self.password
@@ -140,7 +189,7 @@ class Session(object):
             print('Welcome to iRODS:')
             print(f'iRODS Zone: {self._session.zone}')
             print(f'You are: {self._session.username}')
-            print(f'Default resource: {default_resc}')
+            print(f'Default resource: {self.default_resc}')
             print('You have access to: \n')
             home_path = f'/{self._session.zone}/home'
             if self._session.collections.exists(home_path):

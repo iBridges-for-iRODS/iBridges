@@ -4,7 +4,7 @@ import logging
 import irods.access
 import irods.collection
 import irods.exception
-import irods.session
+import irodsConnector.session
 import irodsConnector.keywords as kw
 from irodsConnector.utils import IrodsUtils
 
@@ -13,13 +13,13 @@ class Permission(object):
     """Irods permission operations """
     _permissions = None
 
-    def permissions(self, session: irods.session) -> dict:
+    def permissions(self, ses_man: irodsConnector.session.Session) -> dict:
         """iRODS permissions mapping.
 
         Parameters
         ----------
-        session : irods session
-
+        ses_man : irods session
+            instance of the Session class
         Returns
         -------
         dict
@@ -33,18 +33,20 @@ class Permission(object):
                 'modify_object': 'write',
                 'own': 'own',
             }
-            if session.server_version < (4, 3, 0):
+            if ses_man.session.server_version < (4, 3, 0):
                 self._permissions.update(
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions
 
-    def get_permissions(self, session: irods.session, path: str = '', obj: irods.collection = None) -> list:
+    def get_permissions(self, ses_man: irodsConnector.session.Session, path: str = '', obj: irods.collection = None) \
+            -> list:
         """Discover ACLs for an iRODS collection expressed as a `path`
         or an `obj`ect.
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irods session
+            instance of the Session class
         path : str
             Logical iRODS path of a collection or data object.
         obj : iRODSCollection, iRODSDataObject
@@ -59,23 +61,24 @@ class Permission(object):
         logging.info('GET PERMISSIONS')
         if isinstance(path, str) and path:
             try:
-                return session.permissions.get(
-                    session.collections.get(path))
+                return ses_man.session.permissions.get(
+                    ses_man.session.collections.get(path))
             except irods.exception.CollectionDoesNotExist:
-                return session.permissions.get(
-                    session.data_objects.get(path))
+                return ses_man.session.permissions.get(
+                    ses_man.session.data_objects.get(path))
         if IrodsUtils.is_dataobject_or_collection(obj):
-            return session.permissions.get(obj)
+            return ses_man.session.permissions.get(obj)
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
         return []
 
-    def set_permissions(self, session: irods.session, perm: str, path: str, user: str = '', zone: str = '',
-                        recursive: bool = False, admin: bool = False):
+    def set_permissions(self, ses_man: irodsConnector.session.Session, perm: str, path: str, user: str = '', 
+                        zone: str = '', recursive: bool = False, admin: bool = False):
         """Set permissions (ACL) for an iRODS collection or data object.
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irodsConnector.session
+            instance of the Session class
         perm : str
             Name of permission string: own, read, write, or null.
         path : str
@@ -92,8 +95,9 @@ class Permission(object):
         """
         acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if IrodsUtils.dataobject_exists(session, path) or IrodsUtils.collection_exists(session, path):
-                session.permissions.set(acl, recursive=recursive, admin=admin)
+            if IrodsUtils.dataobject_exists(ses_man.session, path) or \
+                    IrodsUtils.collection_exists(ses_man.session, path):
+                ses_man.session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as ciu:
             print(f'{kw.RED}ACL ERROR: user unknown{kw.DEFAULT}')
             raise ciu
