@@ -27,15 +27,19 @@ class IrodsConnector(object):
         self.__name__ = 'IrodsConnector'
         self.application_name = application_name
         self.multiplier = kw.MULTIPLIER
-
+        self._data_op = irodsConnector.dataOperations.DataOperation(self)
+        self._icommands = irodsConnector.Icommands.IrodsConnectorIcommands(self)
         self._meta = irodsConnector.meta.Meta(self)
         self._permission = irodsConnector.permission.Permission(self)
         self._resource = irodsConnector.resource.Resource(self)
         self._session = irodsConnector.session.Session(irods_env_file, password)
+        self._tickets = irodsConnector.tickets.Tickets()
+        self._utils = irodsConnector.utils.IrodsUtils()
         " Connect to iRODS server"
         self._session.connect(application_name)
 
-    """ Implementation of metadata clas"""
+
+    """ Implementation of metadata class"""
     def add_metadata(self, items: list, key: str, value: str, units: str = None):
         return self._meta.add(items, key, value, units)
 
@@ -48,7 +52,7 @@ class IrodsConnector(object):
     def delete_metadata(self, items: list, key: str, value: str, units: str = None):
         return self._meta.delete(items, key, value, units)
 
-    """ Implementation of permission clas"""
+    """ Implementation of permission class"""
     def permissions(self) -> dict:
         return self._permission.permissions(self._session)
 
@@ -59,7 +63,7 @@ class IrodsConnector(object):
                         recursive: bool = False, admin: bool = False):
         return self._permission.set_permissions(self._session, perm, path, user, zone, recursive, admin)
 
-    """ Implementation of resource clas"""
+    """ Implementation of resource class"""
     def resources(self) -> dict:
         return self._resource.resources(self._session)
 
@@ -78,7 +82,7 @@ class IrodsConnector(object):
     def get_resource_children(self, resc: irods.resource.Resource) -> list:
         return self._resource.get_resource_children(resc)
 
-    """ Implementation of session clas"""
+    """ Implementation of session class"""
     def irods_env_file(self) -> str:
         return self._session.irods_env_file
 
@@ -87,3 +91,57 @@ class IrodsConnector(object):
 
     def session(self) -> irods.session.iRODSSession:
         return self._session.session
+
+    def upload_data(self, source: str, destination: irods.collection.Collection,
+                    res_name: str, size: int, buff: int, force: bool = False, diffs: tuple = None):
+        if self._icommands.icommands():
+            return self._icommands.upload_data(self._session, self._resource, source, destination,
+                                               res_name, size, buff, force)
+        else:
+            return self._data_op.upload_data(self._session, source, destination, res_name, size, buff, force, diffs)
+
+    def download_data(self, source: None, destination: str,
+                      size: int, buff: int, force: bool = False, diffs: tuple = None):
+        if self._icommands.icommands():
+            return self._icommands.download_data(self._session, source, destination, size, buff, force)
+        else:
+            return self._data_op.download_data(self._session, source, destination, size, buff, force, diffs)
+
+    def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
+        if self._icommands.icommands():
+            return self._icommands.irods_put(local_path, irods_path, res_name)
+        else:
+            return self._data_op.irods_put(self._session, local_path, irods_path, res_name)
+
+    def irods_get(self, irods_path: str, local_path: str, options: dict = None):
+        if self._icommands.icommands():
+            return self._icommands.irods_get(irods_path, local_path)
+        else:
+            return self._data_op.irods_get(self._session, irods_path, local_path, options)
+
+    def diff_obj_file(self, objpath: str, fspath: str, scope: str = "size") -> tuple:
+        return self._data_op.diff_obj_file(self._session, objpath, fspath, scope)
+
+    def diff_irods_localfs(self, coll: irods.collection.Collection,
+                           dirpath: str, scope: str = "size") -> tuple:
+        return self._data_op.diff_irods_localfs(self._session, coll, dirpath, scope)
+
+    def delete_data(self, item: None):
+        return self._data_op.delete_data(self._session, item)
+
+    def get_irods_size(self, path_names: list) -> int:
+        return self._data_op.get_irods_size(self._session, path_names)
+
+    """ Implementation of ticket class"""
+    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
+        return self._tickets.create_ticket(self._session, obj_path, expiry_string)
+
+    """ Implementation of utils class"""
+    def get_user_info(self) -> tuple:
+        return self._utils.get_user_info(self._session)
+
+    def search(self, key_vals: dict = None) -> list:
+        return self._utils.search(self._session, key_vals)
+
+    def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
+        return self._utils.execute_rule(self._session, rule_file, params, output)

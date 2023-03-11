@@ -5,41 +5,42 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.rule
-import irods.session
 import irodsConnector.keywords as kw
+from irodsConnector.session import Session
 
 
 class IrodsUtils(object):
     """Irods calls which don't fit in one of the existing groups"""
 
-    def get_user_info(self, session: irods.session):
+    def get_user_info(self, ses_man: Session) -> tuple:
         """Query for user type and groups.
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irods session
+            Instance of the Session class
 
         Returns
         -------
-        str
-            iRODS user type name.
         list
-            iRODS group names.
+            iRODS user type names
+        list
+            iRODS group names
 
         """
-        query = session.query(kw.USER_TYPE).filter(kw.LIKE(
-            kw.USER_NAME, session.username))
+        query = ses_man.session.query(kw.USER_TYPE).filter(kw.LIKE(
+            kw.USER_NAME, ses_man.session.username))
         user_type = [
             list(result.values())[0] for result in query.get_results()
         ][0]
-        query = session.query(kw.USER_GROUP_NAME).filter(kw.LIKE(
-            kw.USER_NAME, session.username))
+        query = ses_man.session.query(kw.USER_GROUP_NAME).filter(kw.LIKE(
+            kw.USER_NAME, ses_man.session.username))
         user_groups = [
             list(result.values())[0] for result in query.get_results()
         ]
         return user_type, user_groups
 
-    def search(self, session: irods.session, key_vals: dict = None):
+    def search(self, ses_man: Session, key_vals: dict = None) -> list:
         """Given a dictionary with metadata attribute names as keys and
         associated values, query for collections and data objects that
         fullfill the criteria.  The key 'checksum' will be mapped to
@@ -60,7 +61,8 @@ class IrodsUtils(object):
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irods session
+            Instance of the Session class
         key_vals : dict
             Attribute name mapping to values.
 
@@ -73,7 +75,7 @@ class IrodsUtils(object):
         data_query = None
         # data query
         if 'checksum' in key_vals or 'object' in key_vals:
-            data_query = session.query(
+            data_query = ses_man.session.query(
                 kw.COLL_NAME, kw.DATA_NAME, kw.DATA_CHECKSUM)
             if 'object' in key_vals:
                 if key_vals['object']:
@@ -84,8 +86,8 @@ class IrodsUtils(object):
                     data_query = data_query.filter(kw.LIKE(
                         kw.DATA_CHECKSUM, key_vals['checksum']))
         else:
-            coll_query = session.query(kw.COLL_NAME)
-            data_query = session.query(
+            coll_query = ses_man.session.query(kw.COLL_NAME)
+            data_query = ses_man.session.query(
                 kw.COLL_NAME, kw.DATA_NAME, kw.DATA_CHECKSUM)
 
         if 'path' in key_vals and key_vals['path']:
@@ -127,12 +129,13 @@ class IrodsUtils(object):
                             res[list(res.keys())[2]]])
         return results
 
-    def execute_rule(self, session: irods.session, rule_file: str, params: dict, output: str = 'ruleExecOut'):
+    def execute_rule(self, ses_man: Session, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         """Execute an iRODS rule.
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irods session
+            Instance of the Session class
         rule_file : str, file-like
             Name of the iRODS rule file, or a file-like object representing it.
         params : dict
@@ -146,7 +149,6 @@ class IrodsUtils(object):
             (stdout, stderr)
 
         `params` format example:
-
         params = {  # extra quotes for string literals
             '*obj': '"/zone/home/user"',
             '*name': '"attr_name"',
@@ -156,7 +158,7 @@ class IrodsUtils(object):
         """
         try:
             rule = irods.rule.Rule(
-                session, rule_file=rule_file, params=params, output=output,
+                ses_man.session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except irods.exception.NetworkException as netexc:

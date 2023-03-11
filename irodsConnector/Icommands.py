@@ -25,7 +25,7 @@ class IrodsConnectorIcommands():
         """
         return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
-    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: None, resource: str,
+    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: None, res_name: str,
                     size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Upload files or folders to an iRODS collection.
 
@@ -33,11 +33,13 @@ class IrodsConnectorIcommands():
         ----------
         ses_man : irods session
             Instance of the Session class
+        res_man : irods resource
+            Instance of the Reource class
         source: str
             absolute path to file or folder
         destination: iRODS collection to upload to
 
-        resource: str
+        res_name: str
             name of the iRODS storage resource to use
         size: int
             size of data to be uploaded in bytes
@@ -47,10 +49,10 @@ class IrodsConnectorIcommands():
             upload without checking the available space
 
         """
-        logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(resource))
+        logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(res_name))
         if not force:
             try:
-                space = res_man.resource_space(ses_man, resource)
+                space = res_man.resource_space(ses_man, res_name)
                 if int(size) > (int(space) - buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
@@ -62,15 +64,15 @@ class IrodsConnectorIcommands():
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
             ses_man.session.collections.create(destination.path)
-            if resource:
-                cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + resource
+            if res_name:
+                cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + res_name
             else:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
             ses_man.session.collections.create(destination.path + '/' + os.path.basename(source))
             sub_coll = ses_man.session.collections.get(destination.path + '/' + os.path.basename(source))
-            if resource:
-                cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + resource
+            if res_name:
+                cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + res_name
             else:
                 cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path
         else:
@@ -131,7 +133,7 @@ class IrodsConnectorIcommands():
         out, err = pros.communicate()
         logging.info('IRODS DOWNLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
+    def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
@@ -142,13 +144,13 @@ class IrodsConnectorIcommands():
             Path of local file or directory/folder.
         irods_path : str
             Path of iRODS data object or collection.
-        resc_name : str
+        res_name : str
             Optional resource name.
 
         """
         commands = [f'iput -aK -N {kw.NUM_THREADS}']
-        if resc_name:
-            commands.append(f'-R {resc_name}')
+        if res_name:
+            commands.append(f'-R {res_name}')
         commands.append(f'{local_path} {irods_path}')
         call(' '.join(commands), shell=True)
 

@@ -52,7 +52,7 @@ class Meta(object):
                 print("ERROR UPDATE META: no permissions")
                 raise cnap
             except Exception:
-                print(f"{kw.RED}INFO ADD MULTIPLE META: unexpected error{kw.DEFAULT}")      
+                print(f"{kw.RED}INFO ADD MULTIPLE META: unexpected error{kw.DEFAULT}")
 
     def update(self, items: list, key: str, value: str, units: str = None):
         """

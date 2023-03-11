@@ -8,9 +8,9 @@ from shutil import disk_usage
 import irods.collection
 import irods.data_object
 import irods.exception
-import irodsConnector.session
 import irodsConnector.keywords as kw
-from irodsConnector.resource import NotEnoughFreeSpace
+from irodsConnector.resource import NotEnoughFreeSpace, Resource
+from irodsConnector.session import Session
 from utils import utils
 
 
@@ -36,7 +36,7 @@ class DataOperation(object):
             irods.collection.iRODSCollection))
 
     @staticmethod
-    def dataobject_exists(ses_man: irodsConnector.session.Session, path: str) -> bool:
+    def dataobject_exists(ses_man: Session, path: str) -> bool:
         """Check if an iRODS data object exists.
 
         Parameters
@@ -55,7 +55,7 @@ class DataOperation(object):
         return ses_man.session.data_objects.exists(path)
 
     @staticmethod
-    def collection_exists(ses_man: irodsConnector.session.Session, path: str) -> bool:
+    def collection_exists(ses_man: Session, path: str) -> bool:
         """Check if an iRODS collection exists.
 
         Parameters
@@ -124,7 +124,7 @@ class DataOperation(object):
         """
         return utils.IrodsPath(path).parent
 
-    def ensure_coll(self, ses_man: irodsConnector.session.Session, coll_name: str) -> irods.collection.Collection:
+    def ensure_coll(self, ses_man: Session, coll_name: str) -> irods.collection.Collection:
         """Optimally create a collection with `coll_name` if one does
         not exist.
 
@@ -152,7 +152,7 @@ class DataOperation(object):
             logging.info('ENSURE COLLECTION', exc_info=True)
             raise cnap
 
-    def get_dataobject(self, ses_man: irodsConnector.session.Session, path: str) -> irods.data_object.DataObject:
+    def get_dataobject(self, ses_man: Session, path: str) -> irods.data_object.DataObject:
         """Instantiate an iRODS data object.
 
         Parameters
@@ -172,7 +172,7 @@ class DataOperation(object):
             return ses_man.session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
 
-    def get_collection(self, ses_man: irodsConnector.session.Session, path: str) -> irods.collection.Collection:
+    def get_collection(self, ses_man: Session, path: str) -> irods.collection.Collection:
         """Instantiate an iRODS collection.
 
         Parameters
@@ -192,9 +192,8 @@ class DataOperation(object):
             return ses_man.session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, ses_man: irodsConnector.session.Session, local_path: str, irods_path: str, resc_name: str = ''):
-        """Upload `local_path` to `irods_path` following iRODS
-        `options`.
+    def irods_put(self, ses_man: Session, local_path: str, irods_path: str, resc_name: str = ''):
+        """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
         ----------
@@ -218,9 +217,8 @@ class DataOperation(object):
             options[kw.RESC_NAME_KW] = resc_name
         ses_man.session.data_objects.put(local_path, irods_path, **options)
 
-    def irods_get(self, ses_man: irodsConnector.session.Session, irods_path: str, local_path: str, options: dict = None):
-        """Download `irods_path` to `local_path` following iRODS
-        `options`.
+    def irods_get(self, ses_man: Session, irods_path: str, local_path: str, options: dict = None):
+        """Download `irods_path` to `local_path` following iRODS `options`.
 
         Parameters
         ----------
@@ -242,24 +240,26 @@ class DataOperation(object):
             })
         ses_man.session.data_objects.get(irods_path, local_path, **options)
 
-    def upload_data(self, ses_man: irodsConnector.session.Session, src_path: str, dst_coll: irods.collection.Collection,
-                    resc_name: str, size: int, buff: int = kw.BUFF_SIZE, force=False, diffs=None):
-        """Upload data from the local `src_path` to the iRODS
-        `dst_coll`.
+    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: irods.collection.Collection,
+                    res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
+        """Upload data from the local `source` to the iRODS
+        `destination`.
 
-        When `src_path` is a folder/directory, upload its contents
-        recursively to the iRODS collection `dst_coll`.  If `src_path`
+        When `source` is a folder/directory, upload its contents
+        recursively to the iRODS collection `destination`.  If `source`
         is the path to a file, upload the file.
 
         Parameters
         ----------
         ses_man: irods session
             Instance of the Session class
-        src_path : str
+        res_man : irods resource
+            Instance of the Reource class
+        source : str
             Absolute path to local file or folder.
-        dst_coll : iRODSCollection
+        destination : iRODSCollection
             The iRODS collection to where the data will be uploaded.
-        resc_name : str
+        res_name : str
             Name of the top-level iRODS resource.
         size : int
             Size of data to be uploaded in bytes.
@@ -274,31 +274,31 @@ class DataOperation(object):
 
         """
         logging.info(
-            'iRODS UPLOAD: %s-->%s %s', src_path, dst_coll.path,
-            resc_name or '')
-        src_path = utils.LocalPath(src_path)
-        if src_path.is_file() or src_path.is_dir():
-            if self.is_collection(dst_coll):
-                cmp_path = utils.IrodsPath(dst_coll.path, src_path.name)
+            'iRODS UPLOAD: %s-->%s %s', source, destination.path,
+            res_name or '')
+        source = utils.LocalPath(source)
+        if source.is_file() or source.is_dir():
+            if self.is_collection(destination):
+                cmp_path = utils.IrodsPath(destination.path, source.name)
             else:
-                raise irods.exception.CollectionDoesNotExist(dst_coll)
+                raise irods.exception.CollectionDoesNotExist(destination)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS upload: not a valid source path')
-        if resc_name in [None, '']:
-            resc_name = ses_man.default_resc
+        if res_name in [None, '']:
+            res_name = ses_man.default_resc
         if diffs is None:
-            if src_path.is_file():
+            if source.is_file():
                 diff, only_fs, _, _ = self.diff_obj_file(
-                    ses_man, cmp_path, src_path, scope='checksum')
+                    ses_man, cmp_path, source, scope='checksum')
             else:
                 cmp_coll = self.ensure_coll(ses_man, cmp_path)
                 diff, only_fs, _, _ = self.diff_irods_localfs(
-                    ses_man, cmp_coll, src_path)
+                    ses_man, cmp_coll, source)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
-            space = self.resource_space(resc_name)
+            space = res_man.resource_space(res_name)
             if size > (space - buff):
                 logging.info(
                     'ERROR iRODS upload: Not enough free space on resource.',
@@ -307,10 +307,10 @@ class DataOperation(object):
                     'ERROR iRODS upload: Not enough free space on resource.')
         try:
             # Data object
-            if src_path.is_file() and len(diff + only_fs) > 0:
+            if source.is_file() and len(diff + only_fs) > 0:
                 logging.info(
-                    'IRODS UPLOADING file %s to %s', src_path, cmp_path)
-                self.irods_put(src_path, cmp_path, resc_name)
+                    'IRODS UPLOADING file %s to %s', source, cmp_path)
+                self.irods_put(source, cmp_path, res_name)
             # Collection
             else:
                 logging.info('IRODS UPLOAD started:')
@@ -319,12 +319,12 @@ class DataOperation(object):
                     _ = self.ensure_coll(ses_man, self.irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
-                    self.irods_put(local_path, irods_path, resc_name)
+                    self.irods_put(local_path, irods_path, res_name)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
                     # Create subcollections and upload.
                     rel_path = utils.PurePath(rel_path)
-                    local_path = src_path.joinpath(rel_path)
+                    local_path = source.joinpath(rel_path)
                     if len(rel_path.parts) > 1:
                         new_path = cmp_path.joinpath(rel_path.parent)
                     else:
@@ -333,28 +333,28 @@ class DataOperation(object):
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
-                    self.irods_put(local_path, irods_path, resc_name)
+                    self.irods_put(local_path, irods_path, res_name)
         except Exception as error:
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
 
-    def download_data(self, ses_man: irodsConnector.session.Session, src_obj: None, dst_path: str, size: int,
-                      buff: int = kw.BUFF_SIZE, force: bool = False, diffs: bool = None):
-        """Dowload data from an iRODS `src_obj` to the local `dst_path`.
+    def download_data(self, ses_man: Session, source: None, destination: str, size: int,
+                      buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
+        """Dowload data from an iRODS `source` to the local `destination`.
 
-        When `src_obj` is a collection, download its contents
-        recursively to the local folder/directory `dst_path`.  If
-        `src_obj` is a data object, download it to a file in the local
+        When `source` is a collection, download its contents
+        recursively to the local folder/directory `destination`.  If
+        `source` is a data object, download it to a file in the local
         folder/director.
 
         Parameters
         ----------
         ses_man: irods session
             Instance of the Session class
-        src_obj : iRODSCollection, iRODSDataObject
+        source : iRODSCollection, iRODSDataObject
             The iRODS collection or data object from where the data will
             be downloaded.
-        dst_path : str
+        destination : str
             Absolute path to local folder/directory.
         size : int
             Size of data to be uploaded in bytes.
@@ -362,48 +362,48 @@ class DataOperation(object):
             Buffer size on local storage that should remain after
             download in bytes.
         force : bool
-            Ignore storage capacity on the storage system of `dst_path`.
+            Ignore storage capacity on the storage system of `destination`.
         diffs : list
             Output of diff functions.
 
         """
-        logging.info('iRODS DOWNLOAD: %s-->%s', src_obj.path, dst_path)
-        if self.is_dataobject_or_collection(src_obj):
-            src_path = utils.IrodsPath(src_obj.path)
+        logging.info('iRODS DOWNLOAD: %s-->%s', source.path, destination)
+        if self.is_dataobject_or_collection(source):
+            source = utils.IrodsPath(source.path)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS download: not a valid source path'
             )
-        dst_path = utils.LocalPath(dst_path)
-        if not dst_path.is_dir():
+        destination = utils.LocalPath(destination)
+        if not destination.is_dir():
             logging.info(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
                 exc_info=True)
             raise FileNotFoundError(
                 'ERROR iRODS download: destination path does not exist or is not directory')
-        if not os.access(dst_path, os.W_OK):
+        if not os.access(destination, os.W_OK):
             logging.info(
                 'DOWNLOAD ERROR: No rights to write to destination.',
                 exc_info=True)
             raise PermissionError(
                 'ERROR iRODS download: No rights to write to destination.')
-        cmp_path = dst_path.joinpath(src_path.name)
+        cmp_path = destination.joinpath(source.name)
         # TODO perhaps treat this path as part of the diff
-        if self.is_collection(src_obj) and not cmp_path.is_dir():
+        if self.is_collection(source) and not cmp_path.is_dir():
             os.mkdir(cmp_path)
         # Only download if not present or difference in files.
         if diffs is None:
-            if self.is_dataobject(src_obj):
+            if self.is_dataobject(source):
                 diff, _, only_irods, _ = self.diff_obj_file(
-                    ses_man, src_path, cmp_path, scope="checksum")
+                    ses_man, source, cmp_path, scope="checksum")
             else:
                 diff, _, only_irods, _ = self.diff_irods_localfs(
-                    ses_man, src_obj, cmp_path, scope="checksum")
+                    ses_man, source, cmp_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
         if not force:
-            space = disk_usage(dst_path).free
+            space = disk_usage(destination).free
             if size > (space - buff):
                 logging.info(
                     'ERROR iRODS download: Not enough space on local disk.',
@@ -415,12 +415,12 @@ class DataOperation(object):
         options = {kw.FORCE_FLAG_KW: ''}
         try:
             # Data object
-            if self.is_dataobject(src_obj) and len(diff + only_irods) > 0:
+            if self.is_dataobject(source) and len(diff + only_irods) > 0:
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
-                    src_path, cmp_path)
+                    source, cmp_path)
                 self.irods_get(
-                    ses_man, src_path, cmp_path, options=options)
+                    ses_man, source, cmp_path, options=options)
             # Collection
             # TODO add support for "downloading" empty collections?
             else:
@@ -435,7 +435,7 @@ class DataOperation(object):
                 for rel_path in only_irods:
                     # Create subdirectories and download.
                     rel_path = utils.PurePath(rel_path)
-                    irods_path = src_path.joinpath(rel_path)
+                    irods_path = source.joinpath(rel_path)
                     local_path = cmp_path.joinpath(rel_path)
                     if not local_path.parent.is_dir():
                         local_path.parent.mkdir(parents=True, exist_ok=True)
@@ -447,7 +447,7 @@ class DataOperation(object):
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
 
-    def diff_obj_file(self, ses_man: irodsConnector.session.Session, objpath: str, fspath: str,
+    def diff_obj_file(self, ses_man: Session, objpath: str, fspath: str,
                       scope: str = "size") -> tuple:
         """
         Compares and iRODS object to a file system file.
@@ -516,7 +516,7 @@ class DataOperation(object):
                 else:
                     return ([], [], [], [(objpath, fspath)])
 
-    def diff_irods_localfs(self, ses_man: irodsConnector.session.Session, coll: irods.collection.Collection,
+    def diff_irods_localfs(self, ses_man: Session, coll: irods.collection.Collection,
                            dirpath: str, scope: str = "size") -> tuple:
         '''
         Compares and iRODS tree to a directory and lists files that are not in sync.
@@ -602,7 +602,7 @@ class DataOperation(object):
             irodsonly[i] = irodsonly[i].replace(os.sep, "/")
         return (diff, list(set(list_dir).difference(listcoll)), irodsonly, same)
 
-    def delete_data(self, ses_man: irodsConnector.session.Session, item: None):
+    def delete_data(self, ses_man: Session, item: None):
         """
         Delete a data object or a collection recursively.
         Parameters
@@ -628,7 +628,7 @@ class DataOperation(object):
                 print("ERROR IRODS DELETE: no permissions "+item.path)
                 raise cnap
 
-    def get_irods_size(self, ses_man: irodsConnector.session.Session, path_names: list) -> int:
+    def get_irods_size(self, ses_man: Session, path_names: list) -> int:
         """Collect the sizes of a set of iRODS data objects and/or
         collections and determine the total size.
 

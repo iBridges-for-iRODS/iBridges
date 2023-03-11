@@ -5,19 +5,20 @@ from string import ascii_letters
 from subprocess import Popen, PIPE
 import logging
 import irods.ticket
-import irods.session
-from irodsConnector.utils import IrodsUtils
+from irodsConnector.Icommands import IrodsConnectorIcommands
+from irodsConnector.session import Session
 
 
 class Tickets(object):
     """Irods Ticket operations """
-    def create_ticket(self, session: irods.session, obj_path: str, expiry_string: str = '') -> tuple:
+    def create_ticket(self, ses_man: Session, obj_path: str, expiry_string: str = '') -> tuple:
         """Create an iRODS ticket to allow read access to the object
         referenced by `obj_path`.
 
         Parameters
         ----------
-        session : irods session
+        ses_man : irods session
+            Instance of the Session class
         obj_path : str
             Name to create ticket for.
         expiry_string : str
@@ -31,7 +32,7 @@ class Tickets(object):
 
         """
         ticket_id = ''.join(choice(ascii_letters) for _ in range(20))
-        ticket = irods.ticket.Ticket(session, ticket_id)
+        ticket = irods.ticket.Ticket(ses_man.session, ticket_id)
         ticket.issue('read', obj_path)
         logging.info('CREATE TICKET: %s: %s', ticket.ticket, obj_path)
         expiration_set = False
@@ -59,7 +60,7 @@ class Tickets(object):
 
         """
         # TODO improve error handling, if necessary
-        if not IrodsUtils.icommands():
+        if not IrodsConnectorIcommands.icommands():
             return ticket.modify('expire', expiry_string) == ticket
         else:
             command = f'iticket mod {ticket.ticket} expire {expiry_string}'
