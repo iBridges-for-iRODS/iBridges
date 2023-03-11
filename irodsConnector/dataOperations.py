@@ -363,7 +363,7 @@ class DataOperation(object):
             download in bytes.
         force : bool
             Ignore storage capacity on the storage system of `destination`.
-        diffs : list
+        diffs : tuple
             Output of diff functions.
 
         """
@@ -456,9 +456,10 @@ class DataOperation(object):
         ----------
         ses_man: irods session
             Instance of the Session class
-        coll: irods collection
+        objpath: str
+            irods collection or dataobject
         dirpath: str
-            Local directory
+            Local file or directory
         scope: str
             Syncing scope can be 'size' or 'checksum'
         Returns

@@ -9,7 +9,7 @@ from irodsConnector.resource import Resource
 from irodsConnector.session import Session
 
 
-class IrodsConnectorIcommands():
+class IrodsConnectorIcommands:
     """Connection to an iRODS server while using iCommands.
 
     """

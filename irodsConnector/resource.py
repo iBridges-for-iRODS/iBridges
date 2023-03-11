@@ -5,7 +5,7 @@ import irods.exception
 import irods.session
 import irods.resource
 import irodsConnector.keywords as kw
-import irodsConnector.session
+from irodsConnector.session import Session
 
 
 class FreeSpaceNotSet(Exception):
@@ -24,7 +24,7 @@ class Resource(object):
     """Irods Resource operations """
     _resources = None
 
-    def resources(self, ses_man: irodsConnector.session.Session) -> dict:
+    def resources(self, ses_man: Session) -> dict:
         """iRODS resources metadata.
 
         Parameters
@@ -85,7 +85,7 @@ class Resource(object):
                 print('    -=WARNING=-    '*4)
         return self._resources
 
-    def list_resources(self, ses_man: irodsConnector.session.Session, attr_names: list = None) -> tuple:
+    def list_resources(self, ses_man: Session, attr_names: list = None) -> tuple:
         """Discover all writable root resources available in the current
         system producing 2 lists by default, one with resource names and
         another the value of the free_space annotation.  The parent,
@@ -137,7 +137,7 @@ class Resource(object):
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
-    def get_resource(self, ses_man: irodsConnector.session.Session, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, ses_man: Session, resc_name: str) -> irods.resource.Resource:
         """Instantiate an iRODS resource.
 
         Prameters
@@ -162,7 +162,7 @@ class Resource(object):
             print(f'Resource with name {resc_name} not found')
             raise rdne
 
-    def resource_space(self, ses_man: irodsConnector.session.Session, resc_name: str) -> int:
+    def resource_space(self, ses_man: Session, resc_name: str) -> int:
         """Find the available space left on a resource in bytes.
 
         Parameters
@@ -197,7 +197,7 @@ class Resource(object):
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / kw.MULTIPLIER)
 
-    def get_free_space(self, ses_man: irodsConnector.session.Session, resc_name: str, multiplier: int = 1) -> int:
+    def get_free_space(self, ses_man: Session, resc_name: str, multiplier: int = 1) -> int:
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
