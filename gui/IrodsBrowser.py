@@ -488,10 +488,11 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         # If table is filled
         if self.collTable.item(self.current_browser_row, 1) is not None:
             objName = self.collTable.item(self.current_browser_row, 1).text()
-            if self.collTable.item(self.current_browser_row, 0).text() == '':
-                parent = self.inputPath.text()
+            if self.collTable.item(self.current_browser_row, 1).text().startswith("/" + self.ic.session.zone):
+                parent = '/'.join(objName.split("/")[:len(objName.split("/"))-1])
+                objName = objName.split("/")[len(objName.split("/"))-1]
             else:
-                parent = self.collTable.item(self.current_browser_row, 0).text()
+                parent = self.inputPath.text()
             try:
                 if self.ic.session.data_objects.exists(parent+'/'+objName):
                     downloadDir = utils.utils.get_downloads_dir()
