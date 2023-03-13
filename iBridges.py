@@ -62,7 +62,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             os.path.join('~', '.ibridges')).expanduser()
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
-        self.ibridges_config = ibridges_path.joinpath('config.json')
+        self.ibridges_config = ibridges_path.joinpath('ibridges_config.json')
         self.ibridges = utils.utils.JsonConfig(self.ibridges_config)
         if self.ibridges.config is None:
             self.ibridges.config = {}
@@ -194,6 +194,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
                 ConnectionRefusedError):
             self.envError.clear()
             self.passError.setText('ERROR: Wrong password.')
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+        except irods.exception.CAT_PASSWORD_EXPIRED:
+            self.envError.clear()
+            self.passError.setText('ERROR: Cached password expired. Re-enter password.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         except irods.exception.NetworkException:
             self.passError.clear()
