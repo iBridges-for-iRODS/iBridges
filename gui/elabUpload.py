@@ -26,7 +26,7 @@ class elabUpload(QWidget, Ui_tabELNData):
     thread = None
     worker = None
 
-    def __init__(self, ic):
+    def __init__(self, ic, ienv):
         """
 
         Parameters
@@ -36,6 +36,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.elab = None
         self.coll = None
         self.ic = ic
+        self.ienv = ienv
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
@@ -57,6 +58,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         self.elnIrodsPath.setText(
                 '/'+self.ic.session.zone+'/home/'+self.ic.session.username)
         # defining events and listeners
+        self.elnTokenInput.setText(self.ienv.get('eln_token'))
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)

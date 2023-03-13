@@ -19,7 +19,7 @@ from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
 
 class amberWorkflow(QWidget, Ui_tabAmberData):
-    def __init__(self, ic):
+    def __init__(self, ic, ienv):
         """
         Parameters
         ----------
@@ -28,6 +28,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         self.amber = None
         self.coll = None
         self.ic = ic
+        self.ienv = ienv
         super(amberWorkflow, self).__init__()
         if getattr(sys, 'frozen', False):
             super(amberWorkflow, self).setupUi(self)
@@ -38,6 +39,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         self._initialize_local_model(self.irodsUploadTree)
         self._initialize_irods_model(self.irodsDownloadTree)
         
+        self.amberToken.setText(self.ienv.get("amber_token"))
         self.amberToken.returnPressed.connect(self.connectAmber)
         
         self.refreshJobsButton.setEnabled(False)
