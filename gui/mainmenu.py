@@ -11,7 +11,6 @@ import PyQt6.uic
 import gui
 import utils
 
-
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
         super(QPlainTextEditLogger, self).__init__()
@@ -56,6 +55,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                 'tabDataBundle': self.setupTabDataBundle,
                 'tabCreateTicket': self.setupTabCreateTicket,
                 'tabInfo': self.setupTabInfo,
+                'tabAmberWorkflow': self.setupTabAmberWorkflow,
             }
             found = ienv.get('ui_tabs', False)
             if not found:
@@ -77,6 +77,12 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                     logging.info(
                         f'Only {", ".join(expected)} tabs supported')
         self.tabWidget.setCurrentIndex(0)
+
+
+    def setupTabAmberWorkflow(self, ic):
+        self.amberTab = gui.amberWorkflow.amberWorkflow(ic)
+        self.tabWidget.addTab(self.amberTab, "AmberScript Connection")
+
 
     def setupTabBrowser(self, ic):
         # needed for Search
