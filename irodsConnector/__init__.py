@@ -1,6 +1,6 @@
 """ iBridges irods modules
 """
-from . import Anonymous
+from . import AnonymousManager
 from . import dataOperations
 from . import Icommands
 from . import keywords
