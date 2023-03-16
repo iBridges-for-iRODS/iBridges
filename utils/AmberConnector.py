@@ -65,12 +65,12 @@ class AmberConnector():
     def submit_job(self, data, glossary_id = None):
         url = 'https://api.amberscript.com/api/jobs/upload-media'
         if glossary_id:
-            querystring = {"jobType":"direct","language":"nl",
+            querystring = {"jobType":"direct","language":"en",
                            "transcriptionType":"transcription", 
                            "glossaryId":glossary_id,
                            "apiKey":self._token}
         else:
-            querystring = {"jobType":"direct","language":"nl",
+            querystring = {"jobType":"direct","language":"en",
                            "transcriptionType":"transcription",
                            "apiKey":self._token}
 

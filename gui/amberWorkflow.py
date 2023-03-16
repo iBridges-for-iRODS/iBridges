@@ -118,7 +118,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
                     info = self.ac.submit_job(path, 
                                               self.glossaryBox.currentText().split(" / ")[1])
                 self.jobSubmitLabel.setText(
-                        info["jobId"]+" / "+info["filename"]+" / "+info["status"])
+                        info["jobStatus"]["jobId"]+" / "+info["jobStatus"]["filename"]+" / "+info["jobStatus"]["status"])
             except Exception as e:
                 self.jobSubmitLabel.setText("AMBER ERROR: "+repr(e))
         else:
@@ -127,12 +127,15 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def previewData(self):
         self.importLabel.clear()
         info = self.jobBox.currentText().split(' / ')
-        results = self.ac.get_results_txt(info[2])
-        self.previewBrowser.clear()
-        if info[1] == "DONE":
-            self.previewBrowser.append(results)
-        else:
+        if 'OPEN' in info:
             self.importLabel.setText("AMBER ERROR: Job not finished yet.")
+        else:
+            results = self.ac.get_results_txt(info[2])
+            self.previewBrowser.clear()
+            if info[1] == "DONE":
+                self.previewBrowser.append(results)
+            else:
+                self.importLabel.setText("AMBER ERROR: Job not finished yet.")
 
     def importData(self):
         self.importLabel.clear()
@@ -145,6 +148,8 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
                 with obj.open('w') as obj_desc:
                     results = self.ac.get_results_txt(info[2])
                     obj_desc.write(results.encode())
+                self.ic.addMetadata([obj], 'prov:softwareAgent', "Amberscript")
+                self.ic.addMetadata([obj], 'AmberscriptJob', info[2])
                 self.importLabel.setText("IRODS INFO: "+obj.path)
             else:
                 self.importLabel.setText("AMBER ERROR: Job not finished yet.")
