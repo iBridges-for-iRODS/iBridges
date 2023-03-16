@@ -94,4 +94,8 @@ class IbridgesContext():
             raise e
 
     def save_config(self, config: JsonConfig):
+        """
+        Overwrites the json document of an existing JsonConfig or, if not present yet,
+        creates the filepath and stores the JsonConfig as json.
+        """
         config.config = config.config
