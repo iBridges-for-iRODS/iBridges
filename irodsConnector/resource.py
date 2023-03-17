@@ -23,14 +23,23 @@ class NotEnoughFreeSpace(Exception):
 class Resource(object):
     """Irods Resource operations """
     _resources = None
+    _ses_man = None
 
-    def resources(self, ses_man: Session) -> dict:
+    def __init__(self, ses_man: Session):
+        """ iRODS resource initialization
+
+            Parameters
+            ----------
+            ses_man : irods session
+                instance of the Session class
+        """
+        self._ses_man = ses_man
+
+    def resources(self) -> dict:
         """iRODS resources metadata.
 
         Parameters
         ----------
-        ses_man : irods session
-            instance of the Session class
 
         Returns
         -------
@@ -44,14 +53,14 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = ses_man.session.query(
+            query = self._ses_man.session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
-                    free_space = self.get_free_space(ses_man.session, name, multiplier=kw.MULTIPLIER)
+                    free_space = self.get_free_space(name, multiplier=kw.MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
@@ -78,14 +87,14 @@ class Resource(object):
                         continue
                 if metadata['parent'] is None and metadata['free_space'] > 0:
                     resc_names.append(name)
-            if ses_man.default_resc not in resc_names:
+            if self._ses_man.default_resc not in resc_names:
                 print('    -=WARNING=-    '*4)
-                print(f'The default resource ({ses_man.default_resc}) not found in available resources!')
+                print(f'The default resource ({self._ses_man.default_resc}) not found in available resources!')
                 print('Check "irods_default_resource" and "force_unknown_free_space" settings.')
                 print('    -=WARNING=-    '*4)
         return self._resources
 
-    def list_resources(self, ses_man: Session, attr_names: list = None) -> tuple:
+    def list_resources(self, attr_names: list = None) -> tuple:
         """Discover all writable root resources available in the current
         system producing 2 lists by default, one with resource names and
         another the value of the free_space annotation.  The parent,
@@ -95,8 +104,6 @@ class Resource(object):
 
         Parameters
         ----------
-        ses_man : irods session
-            instance of the Session class
         ienv: dict
             iRODS environment dictionary
         attr_names : list
@@ -112,7 +119,7 @@ class Resource(object):
         if not attr_names:
             attr_names = ['name', 'free_space']
         vals, spaces = [], []
-        for name, metadata in self.resources(ses_man.session).items():
+        for name, metadata in self.resources().items():
             # Add name to dictionary for convenience.
             metadata['name'] = name
             # Resource is writable?
@@ -132,18 +139,16 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not ses_man.ienv.get('force_unknown_free_space', False):
+        if not self._ses_man.ienv.get('force_unknown_free_space', False):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
-    def get_resource(self, ses_man: Session, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, resc_name: str) -> irods.resource.Resource:
         """Instantiate an iRODS resource.
 
         Prameters
         ---------
-        ses_man : irods session
-            instance of the Session class
         resc_name : str
             Name of the iRODS resource.
 
@@ -157,18 +162,16 @@ class Resource(object):
 
         """
         try:
-            return ses_man.session.resources.get(resc_name)
+            return self._ses_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
             print(f'Resource with name {resc_name} not found')
             raise rdne
 
-    def resource_space(self, ses_man: Session, resc_name: str) -> int:
+    def resource_space(self, resc_name: str) -> int:
         """Find the available space left on a resource in bytes.
 
         Parameters
         ----------
-        ses_man : irods session
-            instance of the Session class
         resc_name : str
             Name of an iRODS resource.
 
@@ -181,7 +184,7 @@ class Resource(object):
                 FreeSpaceNotSet if 'free_space' not set
 
         """
-        space = self.resources(ses_man)[resc_name]['free_space']
+        space = self.resources()[resc_name]['free_space']
         if space == -1:
             logging.info(
                 'RESOURCE ERROR: Resource %s does not exist (typo?).',
@@ -197,7 +200,7 @@ class Resource(object):
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / kw.MULTIPLIER)
 
-    def get_free_space(self, ses_man: Session, resc_name: str, multiplier: int = 1) -> int:
+    def get_free_space(self, resc_name: str, multiplier: int = 1) -> int:
         """Determine free space in a resource hierarchy.
 
         If the specified resource name has the free space annotated,
@@ -207,8 +210,6 @@ class Resource(object):
 
         Parameters
         ----------
-        ses_man : irods session
-            instance of the Session class
         resc_name : str
             Name of monolithic resource or the top of a resource tree.
         multiplier : int
@@ -229,7 +230,7 @@ class Resource(object):
 
         """
         try:
-            resc = ses_man.session.resources.get(resc_name)
+            resc = self._ses_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             print(f'Resource with name {resc_name} not found')
             return -1

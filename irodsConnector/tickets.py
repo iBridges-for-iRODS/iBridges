@@ -11,14 +11,25 @@ from irodsConnector.session import Session
 
 class Tickets(object):
     """Irods Ticket operations """
-    def create_ticket(self, ses_man: Session, obj_path: str, expiry_string: str = '') -> tuple:
+    _ses_man = None
+
+    def __init__(self, ses_man: Session):
+        """ iRODS data operations initialization
+
+            Parameters
+            ----------
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._ses_man = ses_man
+
+    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
         """Create an iRODS ticket to allow read access to the object
         referenced by `obj_path`.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         obj_path : str
             Name to create ticket for.
         expiry_string : str
@@ -32,7 +43,7 @@ class Tickets(object):
 
         """
         ticket_id = ''.join(choice(ascii_letters) for _ in range(20))
-        ticket = irods.ticket.Ticket(ses_man.session, ticket_id)
+        ticket = irods.ticket.Ticket(self._ses_man.session, ticket_id)
         ticket.issue('read', obj_path)
         logging.info('CREATE TICKET: %s: %s', ticket.ticket, obj_path)
         expiration_set = False

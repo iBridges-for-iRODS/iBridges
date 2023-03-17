@@ -8,13 +8,24 @@ from irodsConnector.session import Session
 
 class Rules(object):
     """Irods Rule operations """
-    def execute_rule(self, ses_man: Session, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
+    _ses_man = None
+
+    def __init__(self, ses_man: Session):
+        """ iRODS data operations initialization
+
+            Parameters
+            ----------
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._ses_man = ses_man
+
+    def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         """Execute an iRODS rule.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         rule_file : str, file-like
             Name of the iRODS rule file, or a file-like object representing it.
         params : dict
@@ -37,7 +48,7 @@ class Rules(object):
         """
         try:
             rule = irods.rule.Rule(
-                ses_man.session, rule_file=rule_file, params=params, output=output,
+                self._ses_man.session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except irods.exception.NetworkException as netexc:

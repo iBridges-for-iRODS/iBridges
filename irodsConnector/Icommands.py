@@ -11,8 +11,23 @@ from irodsConnector.session import Session
 
 class IrodsConnectorIcommands:
     """Connection to an iRODS server while using iCommands.
-
     """
+    _res_man = None
+    _ses_man = None
+
+    def __init__(self, res_man: Resource, ses_man: Session):
+        """ iRODS icommands initialization
+
+            Parameters
+            ----------
+            res_man : irods resource
+                Instance of the Reource class
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._res_man = res_man
+        self._ses_man = ses_man
 
     @staticmethod
     def icommands():
@@ -25,16 +40,12 @@ class IrodsConnectorIcommands:
         """
         return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
-    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: None, res_name: str,
+    def upload_data(self, source: str, destination: None, res_name: str,
                     size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Upload files or folders to an iRODS collection.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
-        res_man : irods resource
-            Instance of the Reource class
         source: str
             absolute path to file or folder
         destination: iRODS collection to upload to
@@ -52,7 +63,7 @@ class IrodsConnectorIcommands:
         logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(res_name))
         if not force:
             try:
-                space = res_man.resource_space(ses_man, res_name)
+                space = self._res_man.resource_space(self._ses_man, res_name)
                 if int(size) > (int(space) - buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
@@ -63,14 +74,14 @@ class IrodsConnectorIcommands:
 
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
-            ses_man.session.collections.create(destination.path)
+            self._ses_man.session.collections.create(destination.path)
             if res_name:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + res_name
             else:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
-            ses_man.session.collections.create(destination.path + '/' + os.path.basename(source))
-            sub_coll = ses_man.session.collections.get(destination.path + '/' + os.path.basename(source))
+            self._ses_man.session.collections.create(destination.path + '/' + os.path.basename(source))
+            sub_coll = self._ses_man.session.collections.get(destination.path + '/' + os.path.basename(source))
             if res_name:
                 cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + res_name
             else:
@@ -83,14 +94,12 @@ class IrodsConnectorIcommands:
         out, err = p.communicate()
         logging.info('IRODS UPLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def download_data(self, ses_man: Session, source: None, destination: str,
+    def download_data(self, source: None, destination: str,
                       size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Download object or collection.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         source: iRODS collection or data object
 
         destination: str
@@ -122,9 +131,9 @@ class IrodsConnectorIcommands:
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error
 
-        if ses_man.session.data_objects.exists(source.path):
+        if self._ses_man.session.data_objects.exists(source.path):
             cmd = 'irsync -K i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
-        elif ses_man.session.collections.exists(source.path):
+        elif self._ses_man.session.collections.exists(source.path):
             cmd = 'irsync -Kr i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError('IRODS download: not a valid source.')

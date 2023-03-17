@@ -6,7 +6,20 @@ from irodsConnector.session import Session
 
 class Query(object):
     """Irods Query operations """
-    def search(self, ses_man: Session, key_vals: dict = None) -> list:
+    _ses_man = None
+
+    def __init__(self, ses_man: Session):
+        """ iRODS data operations initialization
+
+            Parameters
+            ----------
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._ses_man = ses_man
+
+    def search(self, key_vals: dict = None) -> list:
         """Given a dictionary with metadata attribute names as keys and
         associated values, query for collections and data objects that
         fullfill the criteria.  The key 'checksum' will be mapped to
@@ -27,8 +40,6 @@ class Query(object):
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         key_vals : dict
             Attribute name mapping to values.
 
@@ -41,7 +52,7 @@ class Query(object):
         data_query = None
         # data query
         if 'checksum' in key_vals or 'object' in key_vals:
-            data_query = ses_man.session.query(
+            data_query = self._ses_man.session.query(
                 kw.COLL_NAME, kw.DATA_NAME, kw.DATA_CHECKSUM)
             if 'object' in key_vals:
                 if key_vals['object']:
@@ -52,8 +63,8 @@ class Query(object):
                     data_query = data_query.filter(kw.LIKE(
                         kw.DATA_CHECKSUM, key_vals['checksum']))
         else:
-            coll_query = ses_man.session.query(kw.COLL_NAME)
-            data_query = ses_man.session.query(
+            coll_query = self._ses_man.session.query(kw.COLL_NAME)
+            data_query = self._ses_man.session.query(
                 kw.COLL_NAME, kw.DATA_NAME, kw.DATA_CHECKSUM)
 
         if 'path' in key_vals and key_vals['path']:

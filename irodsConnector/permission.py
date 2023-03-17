@@ -12,14 +12,26 @@ from irodsConnector.session import Session
 class Permission(object):
     """Irods permission operations """
     _permissions = None
+    _data_man = None
+    _ses_man = None
 
-    def permissions(self, ses_man: Session) -> dict:
+    def __init__(self, data_man: DataOperation, ses_man: Session):
+        """ iRODS data operations initialization
+
+            Parameters
+            ----------
+            data_man: irods Datamanager
+                instance of the Dataoperation class
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._data_man = data_man
+        self._ses_man = ses_man
+
+    def permissions(self) -> dict:
         """iRODS permissions mapping.
 
-        Parameters
-        ----------
-        ses_man: irods session
-            Instance of the Session class
         Returns
         -------
         dict
@@ -33,20 +45,18 @@ class Permission(object):
                 'modify_object': 'write',
                 'own': 'own',
             }
-            if ses_man.session.server_version < (4, 3, 0):
+            if self._ses_man.session.server_version < (4, 3, 0):
                 self._permissions.update(
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions
 
-    def get_permissions(self, ses_man: Session, path: str = '', obj: irods.collection = None) \
+    def get_permissions(self, path: str = '', obj: irods.collection = None) \
             -> list:
         """Discover ACLs for an iRODS collection expressed as a `path`
         or an `obj`ect.
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         path: str
             Logical iRODS path of a collection or data object.
         obj: iRODSCollection, iRODSDataObject
@@ -61,24 +71,22 @@ class Permission(object):
         logging.info('GET PERMISSIONS')
         if isinstance(path, str) and path:
             try:
-                return ses_man.session.permissions.get(
-                    ses_man.session.collections.get(path))
+                return self._ses_man.session.permissions.get(
+                    self._ses_man.session.collections.get(path))
             except irods.exception.CollectionDoesNotExist:
-                return ses_man.session.permissions.get(
-                    ses_man.session.data_objects.get(path))
+                return self._ses_man.session.permissions.get(
+                    self._ses_man.session.data_objects.get(path))
         if DataOperation.is_dataobject_or_collection(obj):
-            return ses_man.session.permissions.get(obj)
+            return self._ses_man.session.permissions.get(obj)
         print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
         return []
 
-    def set_permissions(self, ses_man: Session, perm: str, path: str, user: str = '',
+    def set_permissions(self, perm: str, path: str, user: str = '',
                         zone: str = '', recursive: bool = False, admin: bool = False):
         """Set permissions (ACL) for an iRODS collection or data object.
 
         Parameters
         ----------
-        ses_man: irodsConnector.session
-            Instance of the Session class
         perm: str
             Name of permission string: own, read, write, or null.
         path: str
@@ -95,9 +103,9 @@ class Permission(object):
         """
         acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if DataOperation.dataobject_exists(ses_man.session, path) or \
-                    DataOperation.collection_exists(ses_man.session, path):
-                ses_man.session.permissions.set(acl, recursive=recursive, admin=admin)
+            if self._data_man.dataobject_exists(path) or \
+                    self._data_man.collection_exists(path):
+                self._ses_man.session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as ciu:
             print(f'{kw.RED}ACL ERROR: user unknown{kw.DEFAULT}')
             raise ciu

@@ -16,6 +16,23 @@ from utils import utils
 
 class DataOperation(object):
     """ Irods collections and data objects operations"""
+    _res_man = None
+    _ses_man = None
+
+    def __init__(self, res_man: Resource, ses_man: Session):
+        """ iRODS data operations initialization
+
+            Parameters
+            ----------
+            res_man : irods resource
+                Instance of the Reource class
+            ses_man : irods session
+                instance of the Session class
+
+        """
+        self._res_man = res_man
+        self._ses_man = ses_man
+
     @staticmethod
     def is_dataobject_or_collection(obj: None):
         """Check if `obj` is an iRODS data object or collection.
@@ -35,14 +52,11 @@ class DataOperation(object):
             irods.data_object.iRODSDataObject,
             irods.collection.iRODSCollection))
 
-    @staticmethod
-    def dataobject_exists(ses_man: Session, path: str) -> bool:
+    def dataobject_exists(self, path: str) -> bool:
         """Check if an iRODS data object exists.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         path : str
             Name of an iRODS data object.
 
@@ -52,16 +66,13 @@ class DataOperation(object):
             Existence of the data object with `path`.
 
         """
-        return ses_man.session.data_objects.exists(path)
+        return self._ses_man.session.data_objects.exists(path)
 
-    @staticmethod
-    def collection_exists(ses_man: Session, path: str) -> bool:
+    def collection_exists(self, path: str) -> bool:
         """Check if an iRODS collection exists.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         path : str
             Name of an iRODS collection.
 
@@ -71,7 +82,7 @@ class DataOperation(object):
             Existance of the collection with `path`.
 
         """
-        return ses_man.session.collections.exists(path)
+        return self._ses_man.session.collections.exists(path)
 
     @staticmethod
     def is_dataobject(obj):
@@ -124,14 +135,12 @@ class DataOperation(object):
         """
         return utils.IrodsPath(path).parent
 
-    def ensure_coll(self, ses_man: Session, coll_name: str) -> irods.collection.Collection:
+    def ensure_coll(self, coll_name: str) -> irods.collection.Collection:
         """Optimally create a collection with `coll_name` if one does
         not exist.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         coll_name : str
             Name of the collection to check/create.
 
@@ -145,20 +154,18 @@ class DataOperation(object):
 
         """
         try:
-            if ses_man.session.collections.exists(coll_name):
-                return ses_man.session.collections.get(coll_name)
-            return ses_man.session.collections.create(coll_name)
+            if self._ses_man.session.collections.exists(coll_name):
+                return self._ses_man.session.collections.get(coll_name)
+            return self._ses_man.session.collections.create(coll_name)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
             logging.info('ENSURE COLLECTION', exc_info=True)
             raise cnap
 
-    def get_dataobject(self, ses_man: Session, path: str) -> irods.data_object.DataObject:
+    def get_dataobject(self, path: str) -> irods.data_object.DataObject:
         """Instantiate an iRODS data object.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         path : str
             Name of an iRODS data object.
 
@@ -168,17 +175,15 @@ class DataOperation(object):
             Instance of the data object with `path`.
 
         """
-        if self.dataobject_exists(ses_man, path):
-            return ses_man.session.data_objects.get(path)
+        if self.dataobject_exists(path):
+            return self._ses_man.session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
 
-    def get_collection(self, ses_man: Session, path: str) -> irods.collection.Collection:
+    def get_collection(self, path: str) -> irods.collection.Collection:
         """Instantiate an iRODS collection.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         path : str
             Name of an iRODS collection.
 
@@ -188,17 +193,15 @@ class DataOperation(object):
             Instance of the collection with `path`.
 
         """
-        if self.collection_exists(ses_man, path):
-            return ses_man.session.collections.get(path)
+        if self.collection_exists(path):
+            return self._ses_man.session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, ses_man: Session, local_path: str, irods_path: str, resc_name: str = ''):
+    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         local_path : str
             Path of local file or directory/folder.
         irods_path : str
@@ -215,15 +218,13 @@ class DataOperation(object):
         }
         if resc_name not in ['', None]:
             options[kw.RESC_NAME_KW] = resc_name
-        ses_man.session.data_objects.put(local_path, irods_path, **options)
+        self._ses_man.session.data_objects.put(local_path, irods_path, **options)
 
-    def irods_get(self, ses_man: Session, irods_path: str, local_path: str, options: dict = None):
+    def irods_get(self, irods_path: str, local_path: str, options: dict = None):
         """Download `irods_path` to `local_path` following iRODS `options`.
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         irods_path : str
             Path of iRODS data object or collection.
         local_path : str
@@ -238,9 +239,9 @@ class DataOperation(object):
             kw.NUM_THREADS_KW: kw.NUM_THREADS,
             kw.VERIFY_CHKSUM_KW: '',
             })
-        ses_man.session.data_objects.get(irods_path, local_path, **options)
+        self._ses_man.session.data_objects.get(irods_path, local_path, **options)
 
-    def upload_data(self, ses_man: Session, res_man: Resource, source: str, destination: irods.collection.Collection,
+    def upload_data(self, source: str, destination: irods.collection.Collection,
                     res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
         """Upload data from the local `source` to the iRODS
         `destination`.
@@ -251,10 +252,6 @@ class DataOperation(object):
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
-        res_man : irods resource
-            Instance of the Reource class
         source : str
             Absolute path to local file or folder.
         destination : iRODSCollection
@@ -286,19 +283,17 @@ class DataOperation(object):
             raise FileNotFoundError(
                 'ERROR iRODS upload: not a valid source path')
         if res_name in [None, '']:
-            res_name = ses_man.default_resc
+            res_name = self._ses_man.default_resc
         if diffs is None:
             if source.is_file():
-                diff, only_fs, _, _ = self.diff_obj_file(
-                    ses_man, cmp_path, source, scope='checksum')
+                diff, only_fs, _, _ = self.diff_obj_file(cmp_path, source, scope='checksum')
             else:
-                cmp_coll = self.ensure_coll(ses_man, cmp_path)
-                diff, only_fs, _, _ = self.diff_irods_localfs(
-                    ses_man, cmp_coll, source)
+                cmp_coll = self.ensure_coll(cmp_path)
+                diff, only_fs, _, _ = self.diff_irods_localfs(cmp_coll, source)
         else:
             diff, only_fs, _, _ = diffs
         if not force:
-            space = res_man.resource_space(res_name)
+            space = self._res_man.resource_space(res_name)
             if size > (space - buff):
                 logging.info(
                     'ERROR iRODS upload: Not enough free space on resource.',
@@ -316,7 +311,7 @@ class DataOperation(object):
                 logging.info('IRODS UPLOAD started:')
                 for irods_path, local_path in diff:
                     # Upload files to distinct data objects.
-                    _ = self.ensure_coll(ses_man, self.irods_dirname(irods_path))
+                    _ = self.ensure_coll(self.irods_dirname(irods_path))
                     logging.info(
                         'REPLACE: %s with %s', irods_path, local_path)
                     self.irods_put(local_path, irods_path, res_name)
@@ -329,7 +324,7 @@ class DataOperation(object):
                         new_path = cmp_path.joinpath(rel_path.parent)
                     else:
                         new_path = cmp_path
-                    _ = self.ensure_coll(ses_man, new_path)
+                    _ = self.ensure_coll(new_path)
                     logging.info('UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
                     logging.info('CREATE %s', irods_path)
@@ -338,7 +333,7 @@ class DataOperation(object):
             logging.info('UPLOAD ERROR', exc_info=True)
             raise error
 
-    def download_data(self, ses_man: Session, source: None, destination: str, size: int,
+    def download_data(self, source: None, destination: str, size: int,
                       buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
         """Dowload data from an iRODS `source` to the local `destination`.
 
@@ -349,8 +344,6 @@ class DataOperation(object):
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         source : iRODSCollection, iRODSDataObject
             The iRODS collection or data object from where the data will
             be downloaded.
@@ -395,10 +388,10 @@ class DataOperation(object):
         if diffs is None:
             if self.is_dataobject(source):
                 diff, _, only_irods, _ = self.diff_obj_file(
-                    ses_man, source, cmp_path, scope="checksum")
+                    source, cmp_path, scope="checksum")
             else:
                 diff, _, only_irods, _ = self.diff_irods_localfs(
-                    ses_man, source, cmp_path, scope="checksum")
+                    source, cmp_path, scope="checksum")
         else:
             diff, _, only_irods, _ = diffs
         # Check space on destination.
@@ -420,7 +413,7 @@ class DataOperation(object):
                     'IRODS DOWNLOADING object: %s to %s',
                     source, cmp_path)
                 self.irods_get(
-                    ses_man, source, cmp_path, options=options)
+                    source, cmp_path, options=options)
             # Collection
             # TODO add support for "downloading" empty collections?
             else:
@@ -429,7 +422,7 @@ class DataOperation(object):
                     # Download data objects to distinct files.
                     logging.info(
                         'REPLACE: %s with %s', local_path, irods_path)
-                    self.irods_get(ses_man, irods_path, local_path, options=options)
+                    self.irods_get(irods_path, local_path, options=options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
                 for rel_path in only_irods:
@@ -442,20 +435,18 @@ class DataOperation(object):
                     logging.info(
                         'INFO: Downloading %s to %s', irods_path,
                         local_path)
-                    self.irods_get(ses_man, irods_path, local_path, options=options)
+                    self.irods_get(irods_path, local_path, options=options)
         except Exception as error:
             logging.info('DOWNLOAD ERROR', exc_info=True)
             raise error
 
-    def diff_obj_file(self, ses_man: Session, objpath: str, fspath: str,
+    def diff_obj_file(self, objpath: str, fspath: str,
                       scope: str = "size") -> tuple:
         """
         Compares and iRODS object to a file system file.
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         objpath: str
             irods collection or dataobject
         dirpath: str
@@ -471,17 +462,17 @@ class DataOperation(object):
         """
         if os.path.isdir(fspath) and not os.path.isfile(fspath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
-        if ses_man.session.collections.exists(objpath):
+        if self._ses_man.session.collections.exists(objpath):
             raise IsADirectoryError("IRODS FS DIFF: object exists already as collection. "+objpath)
 
-        if not os.path.isfile(fspath) and ses_man.session.data_objects.exists(objpath):
+        if not os.path.isfile(fspath) and self._ses_man.session.data_objects.exists(objpath):
             return ([], [], [objpath], [])
 
-        elif not ses_man.session.data_objects.exists(objpath) and os.path.isfile(fspath):
+        elif not self._ses_man.session.data_objects.exists(objpath) and os.path.isfile(fspath):
             return ([], [fspath], [], [])
 
         # both, file and object exist
-        obj = ses_man.session.data_objects.get(objpath)
+        obj = self._ses_man.session.data_objects.get(objpath)
         if scope == "size":
             objsize = obj.size
             fsize = os.path.getsize(fspath)
@@ -517,15 +508,13 @@ class DataOperation(object):
                 else:
                     return ([], [], [], [(objpath, fspath)])
 
-    def diff_irods_localfs(self, ses_man: Session, coll: irods.collection.Collection,
+    def diff_irods_localfs(self, coll: irods.collection.Collection,
                            dirpath: str, scope: str = "size") -> tuple:
         '''
         Compares and iRODS tree to a directory and lists files that are not in sync.
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         coll: irods collection
         dirpath: str
             Local directory
@@ -556,18 +545,18 @@ class DataOperation(object):
         for locpartialpath in set(list_dir).intersection(listcoll):
             ipartialpath = locpartialpath.replace(os.sep, "/")
             if scope == "size":
-                objsize = ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).size
+                objsize = self._ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).size
                 fsize = os.path.getsize(os.path.join(dirpath, ipartialpath))
                 if objsize != fsize:
                     diff.append((coll.path + '/' + ipartialpath, os.path.join(dirpath, locpartialpath)))
                 else:
                     same.append((coll.path + '/' + ipartialpath, os.path.join(dirpath, locpartialpath)))
             elif scope == "checksum":
-                objcheck = ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).checksum
+                objcheck = self._ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).checksum
                 if objcheck is None:
                     try:
-                        ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).chksum()
-                        objcheck = ses_man.session.data_objects.get(
+                        self._ses_man.session.data_objects.get(coll.path + '/' + ipartialpath).chksum()
+                        objcheck = self._ses_man.session.data_objects.get(
                                     coll.path + '/' + ipartialpath).checksum
                     except Exception:
                         logging.info('No checksum for %s/%s', coll.path, ipartialpath)
@@ -603,25 +592,23 @@ class DataOperation(object):
             irodsonly[i] = irodsonly[i].replace(os.sep, "/")
         return (diff, list(set(list_dir).difference(listcoll)), irodsonly, same)
 
-    def delete_data(self, ses_man: Session, item: None):
+    def delete_data(self, item: None):
         """
         Delete a data object or a collection recursively.
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         item: iRODS data object or collection
             item to delete
         """
 
-        if ses_man.session.collections.exists(item.path):
+        if self._ses_man.session.collections.exists(item.path):
             logging.info("IRODS DELETE: %s", item.path)
             try:
                 item.remove(recurse=True, force=True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
                 print("ERROR IRODS DELETE: no permissions")
                 raise cnap
-        elif ses_man.session.data_objects.exists(item.path):
+        elif self._ses_man.session.data_objects.exists(item.path):
             logging.info("IRODS DELETE: %s", item.path)
             try:
                 item.unlink(force=True)
@@ -629,14 +616,12 @@ class DataOperation(object):
                 print("ERROR IRODS DELETE: no permissions "+item.path)
                 raise cnap
 
-    def get_irods_size(self, ses_man: Session, path_names: list) -> int:
+    def get_irods_size(self, path_names: list) -> int:
         """Collect the sizes of a set of iRODS data objects and/or
         collections and determine the total size.
 
         Parameters
         ----------
-        ses_man: irods session
-            Instance of the Session class
         path_names : list
             Names of logical iRODS paths.
 
@@ -650,12 +635,12 @@ class DataOperation(object):
         irods_sizes = []
         for path_name in path_names:
             irods_name = utils.IrodsPath(path_name)
-            if self.collection_exists(ses_man, irods_name):
+            if self.collection_exists(irods_name):
                 irods_sizes.append(
                     utils.get_coll_size(
-                        self.get_collection(ses_man, irods_name)))
-            elif self.dataobject_exists(ses_man, irods_name):
+                        self.get_collection(irods_name)))
+            elif self.dataobject_exists(irods_name):
                 irods_sizes.append(
                     utils.get_data_size(
-                        self.get_dataobject(ses_man, irods_name)))
+                        self.get_dataobject(irods_name)))
         return sum(irods_sizes)
