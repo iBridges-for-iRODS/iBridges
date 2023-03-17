@@ -4,6 +4,7 @@ import irods.collection
 import irods.resource
 import irods.session
 import irodsConnector
+import irodsConnector.keywords as kw
 
 
 class IrodsConnector(object):
@@ -28,7 +29,7 @@ class IrodsConnector(object):
         self._resource = irodsConnector.resource.Resource(self._session)
         self._data_op = irodsConnector.dataOperations.DataOperation(self._resource, self._session)
         self._icommands = irodsConnector.Icommands.IrodsConnectorIcommands(self._resource, self._session)
-        self._meta = irodsConnector.meta.Meta(self)
+        self._meta = irodsConnector.meta.Meta()
         self._permission = irodsConnector.permission.Permission(self._data_op, self._session)
         self._query = irodsConnector.query.Query(self._session)
         self._rules = irodsConnector.rules.Rules(self._session)
@@ -76,6 +77,9 @@ class IrodsConnector(object):
     def get_resource_children(self, resc: irods.resource.Resource) -> list:
         return self._resource.get_resource_children(resc)
 
+    def ienv(self) -> dict:
+        return self._session.ienv()
+    
     def irods_env_file(self) -> str:
         return self._session.irods_env_file
 
@@ -85,8 +89,17 @@ class IrodsConnector(object):
     def session(self) -> irods.session.iRODSSession:
         return self._session.session
 
+    def cleanup(self):
+        return self._session.cleanup()
+
+    def default_resc(self) -> str:
+        return self._session.default_resc()
+
+    def ensure_coll(self, coll_name: str) -> irods.collection.Collection:
+        return self._data_op.ensure_coll(coll_name)
+
     def upload_data(self, source: str, destination: irods.collection.Collection,
-                    res_name: str, size: int, buff: int, force: bool = False, diffs: tuple = None):
+                    res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
         if self._icommands.icommands():
             return self._icommands.upload_data(source, destination,
                                                res_name, size, buff, force)
@@ -94,7 +107,7 @@ class IrodsConnector(object):
             return self._data_op.upload_data(source, destination, res_name, size, buff, force, diffs)
 
     def download_data(self, source: None, destination: str,
-                      size: int, buff: int, force: bool = False, diffs: tuple = None):
+                      size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
         if self._icommands.icommands():
             return self._icommands.download_data(source, destination, size, buff, force)
         else:

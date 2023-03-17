@@ -55,7 +55,7 @@ class Session(object):
         return self._irods_env_file
 
     @property
-    def ienv(self):
+    def ienv(self) -> dict:
         """iRODS environment dictionary.
 
         Returns
@@ -150,6 +150,11 @@ class Session(object):
 
         """
         return self._session
+
+    def cleanup(self):
+        """ cleanup irods session.
+        """
+        return self._session.cleanup()
 
     def connect(self, application_name: str) -> irods.session.iRODSSession:
         """iRODS session creation.
