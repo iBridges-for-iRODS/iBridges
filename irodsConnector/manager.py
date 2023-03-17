@@ -31,10 +31,12 @@ class IrodsConnector(object):
         self._icommands = irodsConnector.Icommands.IrodsConnectorIcommands(self)
         self._meta = irodsConnector.meta.Meta(self)
         self._permission = irodsConnector.permission.Permission(self)
+        self._query = irodsConnector.query.Query(self)
+        self._rules = irodsConnector.rules.Rules(self)
         self._resource = irodsConnector.resource.Resource(self)
         self._session = irodsConnector.session.Session(irods_env_file, password)
         self._tickets = irodsConnector.tickets.Tickets()
-        self._utils = irodsConnector.utils.IrodsUtils()
+        self._users = irodsConnector.users.Users()
         " Connect to iRODS server"
         self._session.connect(application_name)
 
@@ -136,12 +138,11 @@ class IrodsConnector(object):
     def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
         return self._tickets.create_ticket(self._session, obj_path, expiry_string)
 
-    """ Implementation of utils class"""
     def get_user_info(self) -> tuple:
-        return self._utils.get_user_info(self._session)
+        return self._users.get_user_info(self._session)
 
     def search(self, key_vals: dict = None) -> list:
-        return self._utils.search(self._session, key_vals)
+        return self._query.search(self._session, key_vals)
 
     def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
-        return self._utils.execute_rule(self._session, rule_file, params, output)
+        return self._rules.execute_rule(self._session, rule_file, params, output)
