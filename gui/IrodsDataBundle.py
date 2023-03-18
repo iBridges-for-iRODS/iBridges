@@ -12,6 +12,7 @@ import PyQt6.uic
 
 import gui
 import utils
+import irodsConnector.keywords as kw
 
 CWD = os.getcwd()
 EXTENSIONS = [
@@ -52,7 +53,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.thread_extract = None
         self.worker_create = None
         self.worker_extract = None
-        self.root_path = f'/{ic.session.zone}'
+        self.root_path = f'/{ic.get_zone}'
         self.irodsZoneLabel.setText(f'{self.root_path}:')
         self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
         self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)
@@ -174,7 +175,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             self.enable_buttons()
             return
         resc_name, free_space = self.resourceBox.currentText().split(' / ')
-        if 2 * src_size * self.ic.multiplier > int(free_space):
+        if 2 * src_size * kw.MULTIPLIER > int(free_space):
             self.statusLabel.setText(
                 'CREATE ERROR: Resource must have enough free space in it')
             self.setCursor(

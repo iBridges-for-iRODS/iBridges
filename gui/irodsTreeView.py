@@ -53,7 +53,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
             self.user_groups = self.ic.get_user_info()[1]
         except irods.exception.NetworkException:
             logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
-        self.zone_path = f'/{self.ic.session.zone}'
+        self.zone_path = f'/{self.ic.get_zone}'
         self.base_path = f'{self.zone_path}/home'
         # Empty tree
         self.clear()
@@ -85,10 +85,10 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
         """
         # Initial tree information.
         try:
-            coll = self.ic.session.collections.get(self.base_path)
+            coll = self.ic.get_collection(self.base_path)
         except irods.exception.CollectionDoesNotExist:
-            self.base_path = self.base_path+'/'+self.ic.session.username
-            coll = self.ic.session.collections.get(self.base_path)
+            self.base_path = self.base_path+'/'+self.ic.get_username
+            coll = self.ic.get_collection(self.base_path)
         # FIXME narrow down exception possibilities
         except Exception:
             logging.info('IRODS TREE INIT ERROR', exc_info=True)
@@ -343,7 +343,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
             tree_item_data.append(child.data(0))
         irods_item_path = self.irods_path_from_tree_index(model_index)
         if tree_item_data[4] == 'C':
-            coll = self.ic.session.collections.get(irods_item_path)
+            coll = self.ic.get_collection(irods_item_path)
         else:
             return
         # Delete subtree in irodsFsdata and the tree_view.

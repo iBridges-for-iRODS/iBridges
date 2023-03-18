@@ -14,9 +14,10 @@ from gui.checkableFsTree import checkableFsTreeModel
 from gui.dataTransfer import dataTransfer
 from gui.popupWidgets import createDirectory
 from gui.ui_files.tabTicketAccess import Ui_tabTicketAccess
-from IrodsConnector.Anonymous import IrodsConnectorAnonymous
+from irodsConnector.AnonymousManager import IrodsConnectorAnonymous
 
 
+#TODO: Rewrite after AnonymousManager is rewriten
 class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     """
 

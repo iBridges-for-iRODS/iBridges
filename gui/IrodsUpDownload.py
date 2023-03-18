@@ -263,7 +263,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             return
         # TODO check if querying for collection is faster
         if self.ic.dataobject_exists(irods_path):
-            irods_obj = self.ic.session.data_objects.get(irods_path)
+            irods_obj = self.ic.get_dataobject(irods_path)
         else:
             irods_obj = self.ic.get_collection(irods_path)
         self.upload_window = gui.dataTransfer.dataTransfer(

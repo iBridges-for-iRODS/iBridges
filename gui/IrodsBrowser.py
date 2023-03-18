@@ -83,11 +83,11 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         elif 'irods_home' in ic.ienv:
             root_path = ic.ienv['irods_home']
         else:
-            root_path = f'/{ic.session.zone}/home/{ic.session.username}'
+            root_path = f'/{ic.get_zone}/home/{ic.get_username}'
         try:
             self.root_coll = ic.get_collection(root_path)
         except irods.exception.CollectionDoesNotExist:
-            self.root_coll = ic.get_collection(f'/{ic.session.zone}/home')
+            self.root_coll = ic.get_collection(f'/{ic.get_zone}/home')
         except irods.exception.NetworkException:
             self.errorLabel.setText(
                 'iRODS NETWORK ERROR: No Connection, please check network')
@@ -184,9 +184,9 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         self.aclBox.setCurrentText('')
         obj = None
         if self.ic.collection_exists(obj_path):
-            obj = self.ic.session.collections.get(obj_path)
+            obj = self.ic.get_collection(obj_path)
         elif self.ic.dataobject_exists(obj_path):
-            obj = self.ic.session.data_objects.get(obj_path)
+            obj = self.ic.get_dataobject(obj_path)
         if obj is not None:
             inheritance = ''
             if self.ic.is_collection(obj):
@@ -220,9 +220,9 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         self.metaUnitsField.clear()
         obj = None
         if self.ic.collection_exists(obj_path):
-            obj = self.ic.session.collections.get(obj_path)
+            obj = self.ic.get_collection(obj_path)
         elif self.ic.dataobject_exists(obj_path):
-            obj = self.ic.session.data_objects.get(obj_path)
+            obj = self.ic.get_dataobject(obj_path)
         if obj is not None:
             metadata = obj.metadata.items()
             self.metadataTable.setRowCount(len(metadata))
@@ -273,7 +273,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
 
     def _get_object_path_name(self, row):
         """"""
-        if self.collTable.item(row, 1).text().startswith("/"+self.ic._session.zone):
+        if self.collTable.item(row, 1).text().startswith("/"+self.ic.get_zone):
             print(self.collTable.item(row, 1).text())
             sub_paths = self.collTable.item(row, 1).text().strip("/").split("/")
             obj_path = "/"+"/".join(sub_paths[:len(sub_paths)-1])
@@ -409,10 +409,10 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             obj_name = self.collTable.item(row, 1).text()
             obj_path = "/"+path_name.strip("/")+"/"+obj_name.strip("/")
             try:
-                if self.ic.session.collections.exists(obj_path):
-                    irodsDict = utils.utils.get_coll_dict(self.ic.session.collections.get(obj_path))
-                elif self.ic.session.data_objects.exists(obj_path):
-                    irodsDict = {self.ic.session.data_objects.get(obj_path).path: []}
+                if self.ic.collection_exists(obj_path):
+                    irodsDict = utils.utils.get_coll_dict(self.ic.get_collection(obj_path))
+                elif self.ic.dataobject_exists(obj_path):
+                    irodsDict = {self.ic.get_dataobject(obj_path).path: []}
                 else:
                     self.errorLabel.setText("Load: nothing selected.")
                     pass
@@ -441,10 +441,10 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                 PyQt6.QtWidgets.QMessageBox.StandardButton.No)
             if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
                 try:
-                    if self.ic.session.collections.exists(deleteItem):
-                        item = self.ic.session.collections.get(deleteItem)
+                    if self.ic.collection_exists(deleteItem):
+                        item = self.ic.get_collection(deleteItem)
                     else:
-                        item = self.ic.session.data_objects.get(deleteItem)
+                        item = self.ic.get_dataobject(deleteItem)
                     self.ic.deleteData(item)
                     self.deleteSelectionBrowser.clear()
                     self.loadTable()
@@ -470,7 +470,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             try:
-                parentColl = self.ic.session.collections.get("/"+self.inputPath.text().strip("/"))
+                parentColl = self.ic.get_collection("/"+self.inputPath.text().strip("/"))
                 self.ic.upload_data(fileSelect[0], parentColl,
                         None, size, force=self.force)
                 self.loadTable()
@@ -493,13 +493,13 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             else:
                 parent = self.collTable.item(self.current_browser_row, 0).text()
             try:
-                if self.ic.session.data_objects.exists(parent+'/'+objName):
+                if self.ic.dataobject_exists(parent+'/'+objName):
                     downloadDir = utils.utils.get_downloads_dir()
                     buttonReply = PyQt6.QtWidgets.QMessageBox.question(
                         self, 'Message Box',
                         'Download\n'+parent+'/'+objName+'\tto\n'+downloadDir)
                     if buttonReply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
-                        obj = self.ic.session.data_objects.get(parent+'/'+objName)
+                        obj = self.ic.get_dataobject(parent+'/'+objName)
                         self.ic.download_data(obj, downloadDir, obj.size)
                         self.errorLabel.setText("File downloaded to: "+downloadDir)
             except irods.exception.NetworkException:
@@ -584,7 +584,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         try:
             if newKey != "" and newVal != "":
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
-                self.ic.updateMetadata([item], newKey, newVal, newUnits)
+                self.ic.update_metadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_replicas_tab(item.path)
         except irods.exception.NetworkException:
@@ -604,7 +604,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         if newKey != "" and newVal != "":
             try:
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
-                self.ic.addMetadata([item], newKey, newVal, newUnits)
+                self.ic.add_metadata([item], newKey, newVal, newUnits)
                 self._fill_metadata_tab(item.path)
                 self._fill_replicas_tab(item.path)
             except irods.exception.NetworkException:
@@ -624,7 +624,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         try:
             if key != "" and val != "":
                 item = self._get_irods_item_of_table_row(self.current_browser_row)
-                self.ic.deleteMetadata([item], key, val, units)
+                self.ic.delete_metadata([item], key, val, units)
                 self._fill_metadata_tab(item.path)
         except irods.exception.NetworkException:
             self.errorLabel.setText(
@@ -641,5 +641,5 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             items = self._get_selected_objects()
             avus = meta.metadataFileParser.parse(path)
             if len(items) and len(avus):
-                self.ic.addMultipleMetadata(items, avus)
+                self.ic.add_multiple_metadata(items, avus)
                 self._fill_metadata_tab(items[0].path)
