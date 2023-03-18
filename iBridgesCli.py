@@ -53,14 +53,14 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
         }
     """
     # YODA: webdav URL does not contain "home", but iRODS path does!
-    if ic.davrods and ("yoda" in ic._session._session.host or "uu.nl" in ic._session._session.host):
+    if ic.davrods and ("yoda" in ic.get_host or "uu.nl" in ic.get_host):
         elab.addMetadata(
             ic.davrods+'/'+coll.path.split('home/')[1].strip(),
             meta=annotation,
             title=title)
-    elif ic.davrods and "surfsara.nl" in ic._session._session.host:
+    elif ic.davrods and "surfsara.nl" in ic.get_host:
         elab.addMetadata(
-            ic.davrods+'/'+coll.path.split(ic._session._session.zone)[1].strip('/'),
+            ic.davrods+'/'+coll.path.split(ic.get_zone)[1].strip('/'),
             meta=annotation,
             title=title)
     elif ic.davrods:
@@ -69,10 +69,10 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
             meta=annotation,
             title=title)
     else:
-        host = ic._session._session.host
-        zone = ic._session._session.zone
-        name = ic._session._session.username
-        port = ic._session._session.port
+        host = ic.get_host
+        zone = ic.get_zone
+        name = ic.get_username
+        port = ic.get_port
         path = coll.path
         conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
         elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
@@ -91,7 +91,7 @@ def connectIRODS(config):
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
                 ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
                 try:
-                    _ = ic._session._session.server_version
+                    _ = ic.get_server_version
                     success = True
                 except Exception as e:
                     print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
@@ -115,7 +115,7 @@ def connectIRODS(config):
                     'Password for '+config['iRODS']['irodsenv']+': ')
             ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
             try:
-                ic._session._session.pool.get_connection()
+                ic.get_server_version()
                 success = True
             except Exception as e:
                 print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
@@ -254,16 +254,16 @@ def prepareUpload(dataPath, ic, config):
 
 
 def prepareDownload(irodsItemPath, ic, config):
-    if not ic._session._session.data_objects.exists(irodsItemPath) and \
-       not ic._session._session.collections.exists(irodsItemPath):
+    if not ic.dataobject_exists(irodsItemPath) and \
+       not ic.collection_exists(irodsItemPath):
         print(RED+'iRODS path does not exist'+DEFAULT)
         menu = input('Do you want to specify a new iRODS path? (Y/N)')
         if menu in ['YES', 'Yes', 'Y', 'y', '']:
             success = False
             while not success:
                 irodsItemPath = input('Full data path: ')
-                success = ic._session._session.data_objects.exists(irodsItemPath) or \
-                    ic._session._session.collections.exists(irodsItemPath)
+                success = ic.dataobject_exists(irodsItemPath) or \
+                    ic.collection_exists(irodsItemPath)
             config["iRODS"]["downloadItem"] = irodsItemPath
         else:
             print('Aborted: iRODS path not given')
@@ -370,7 +370,7 @@ def main(argv):
             #     iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
             else:
                 iPath = config['iRODS']['irodscoll']
-            iColl = ic._session._session.collections.get(iPath)
+            iColl = ic.get_collection(iPath)
             dataPath = config["iRODS"]["uploadItem"]
             ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'],
                            get_local_size([dataPath]), force=True)
@@ -379,11 +379,11 @@ def main(argv):
             sys.exit(2)
         # tag data in iRODS and metadata store
         if md is not None:
-            coll = ic._session._session.collections.get(iPath)
+            coll = ic.get_collection(iPath)
             metadata = {
                 "iRODS path": coll.path,
-                "iRODS server": ic._session._session.host,
-                "iRODS user": ic._session._session.username,
+                "iRODS server": ic.get_host,
+                "iRODS user": ic.get_username,
             }
             if config["ELN"]["title"] == '':
                 annotateElab(metadata, ic, md, coll, title='Data in iRODS')
@@ -391,11 +391,11 @@ def main(argv):
                 annotateElab(metadata, ic, md, coll, title=config["ELN"]["title"])
 
             if os.path.isfile(dataPath):
-                item = ic._session._session.data_objects.get(
+                item = ic.get_dataobject(
                     coll.path+'/'+os.path.basename(dataPath))
                 ic.add_metadata([item], 'ELN', md.metadataUrl)
             elif os.path.isdir(dataPath):
-                upColl = ic._session._session.collections.get(
+                upColl = ic.get_collection(
                             coll.path+'/'+os.path.basename(dataPath))
                 items = [upColl]
                 for c, _, objs in upColl.walk():
@@ -417,9 +417,9 @@ def main(argv):
                   str(ic.get_irods_size([irodsDataPath]) * kw.MULTIPLIER) + 'GB',
                   DEFAULT)
             try:
-                item = ic._session._session.collections.get(irodsDataPath)
+                item = ic.get_collection(irodsDataPath)
             except Exception:
-                item = ic._session._session.data_objects.get(irodsDataPath)
+                item = ic.get_dataobject(irodsDataPath)
             print(item, downloadDir)
             ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force=False)
             print()
