@@ -35,6 +35,7 @@ class Resource(object):
         """
         self._ses_man = ses_man
 
+    @property
     def resources(self) -> dict:
         """iRODS resources metadata.
 
@@ -119,7 +120,7 @@ class Resource(object):
         if not attr_names:
             attr_names = ['name', 'free_space']
         vals, spaces = [], []
-        for name, metadata in self.resources().items():
+        for name, metadata in self.resources.items():
             # Add name to dictionary for convenience.
             metadata['name'] = name
             # Resource is writable?
@@ -184,7 +185,7 @@ class Resource(object):
                 FreeSpaceNotSet if 'free_space' not set
 
         """
-        space = self.resources()[resc_name]['free_space']
+        space = self.resources[resc_name]['free_space']
         if space == -1:
             logging.info(
                 'RESOURCE ERROR: Resource %s does not exist (typo?).',

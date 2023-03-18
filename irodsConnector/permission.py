@@ -29,6 +29,7 @@ class Permission(object):
         self._data_man = data_man
         self._ses_man = ses_man
 
+    @property
     def permissions(self) -> dict:
         """iRODS permissions mapping.
 

@@ -85,7 +85,7 @@ class DataOperation(object):
         return self._ses_man.session.collections.exists(path)
 
     @staticmethod
-    def is_dataobject(obj):
+    def is_dataobject(obj) -> bool:
         """Check if `obj` is an iRODS data object.
 
         Parameters
@@ -102,7 +102,7 @@ class DataOperation(object):
         return isinstance(obj, irods.data_object.iRODSDataObject)
 
     @staticmethod
-    def is_collection(obj):
+    def is_collection(obj) -> bool:
         """Check if `obj` is an iRODS collection.
 
         Parameters

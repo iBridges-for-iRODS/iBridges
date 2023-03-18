@@ -72,7 +72,7 @@ class Session(object):
         return self._ienv
 
     @property
-    def davrods(self):
+    def davrods(self) -> str:
         """DavRODS server URL.
 
         Returns
@@ -95,6 +95,66 @@ class Session(object):
 
         """
         return self._ienv.get('irods_default_resource', None)
+
+    @property
+    def get_host(self) -> str:
+        """Retreive hostname of the iRODS server
+
+        Returns
+        -------
+        str
+            Hostname.
+
+        """
+        return self._session.host
+
+    @property
+    def get_port(self) -> str:
+        """Retreive port of the iRODS server
+
+        Returns
+        -------
+        str
+            Port.
+
+        """
+        return self._session.port
+
+    @property
+    def get_username(self) -> str:
+        """Retreive username
+
+        Returns
+        -------
+        str
+            Username.
+
+        """
+        return self._session.username
+
+    @property
+    def get_server_version(self) -> str:
+        """Retreive version of the iRODS server
+
+        Returns
+        -------
+        str
+            Server version.
+
+        """
+        return self._session.server_version
+
+    @property            
+    def get_zone(self) -> str:
+        """Retreive the zone name
+
+        Returns
+        -------
+        str
+            Zone.
+
+        """
+        return self._session.zone
 
     @property
     def password(self) -> str:
@@ -203,6 +263,7 @@ class Session(object):
             logging.info(
                 'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
                 self._session.zone, self._session.host)
+            return self._session
 
     @staticmethod
     def _get_irods_session(options):
