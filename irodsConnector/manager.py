@@ -133,6 +133,9 @@ class IrodsConnector(object):
     def ensure_coll(self, coll_name: str) -> irods.collection.Collection:
         return self._data_op.ensure_coll(coll_name)
 
+    def ensure_data_object(self, data_object_name: str) -> irods.data_object.DataObject:
+        return self._data_op.ensure_data_object(data_object_name)
+
     def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         return self._rules.execute_rule(rule_file, params, output)
 
@@ -160,6 +163,9 @@ class IrodsConnector(object):
     def get_user_info(self) -> tuple:
         return self._users.get_user_info()
 
+    def icommands(self) -> bool:
+        return self._icommands.icommands()
+    
     def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
         if self._icommands.icommands():
             return self._icommands.irods_put(local_path, irods_path, res_name)

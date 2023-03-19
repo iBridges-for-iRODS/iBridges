@@ -30,7 +30,7 @@ class IrodsConnectorIcommands:
         self._ses_man = ses_man
 
     @staticmethod
-    def icommands():
+    def icommands() -> bool:
         """
 
         Returns

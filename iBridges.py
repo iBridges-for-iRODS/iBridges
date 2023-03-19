@@ -130,10 +130,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            with open(os.devnull, 'w', encoding='utf-8') as devnull:
-                icommands_exist = subprocess.call(
-                    ['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
-            if icommands_exist:
+            if IrodsConnector().icommands():
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:

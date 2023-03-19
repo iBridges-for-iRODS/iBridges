@@ -135,6 +135,32 @@ class DataOperation(object):
         """
         return utils.IrodsPath(path).parent
 
+    def ensure_data_object(self, data_object_name: str) -> irods.data_object.DataObject:
+        """Optimally create a data object with `data_object_name` if one does
+        not exist.
+
+        Parameters
+        ----------
+        data_object_name : str
+            Name of the data object to check/create.
+
+        Returns
+        -------
+        iRODS Data object
+            Existing or new iRODS data object.
+
+        Raises:
+            irods.exception.CAT_NO_ACCESS_PERMISSION
+
+        """
+        try:
+            if self._ses_man.session.data_objects.exists(data_object_name):
+                return self._ses_man.session.data_objects.get(data_object_name)
+            return self._ses_man.session.data_objects.create(data_object_name)
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+            logging.info('ENSURE DATA OBJECT', exc_info=True)
+            raise cnap
+
     def ensure_coll(self, coll_name: str) -> irods.collection.Collection:
         """Optimally create a collection with `coll_name` if one does
         not exist.
@@ -362,7 +388,7 @@ class DataOperation(object):
         """
         logging.info('iRODS DOWNLOAD: %s-->%s', source.path, destination)
         if self.is_dataobject_or_collection(source):
-            source = utils.IrodsPath(source.path)
+            source_path = utils.IrodsPath(source.path)
         else:
             raise FileNotFoundError(
                 'ERROR iRODS download: not a valid source path'
@@ -380,7 +406,7 @@ class DataOperation(object):
                 exc_info=True)
             raise PermissionError(
                 'ERROR iRODS download: No rights to write to destination.')
-        cmp_path = destination.joinpath(source.name)
+        cmp_path = destination.joinpath(source_path.name)
         # TODO perhaps treat this path as part of the diff
         if self.is_collection(source) and not cmp_path.is_dir():
             os.mkdir(cmp_path)
@@ -388,7 +414,7 @@ class DataOperation(object):
         if diffs is None:
             if self.is_dataobject(source):
                 diff, _, only_irods, _ = self.diff_obj_file(
-                    source, cmp_path, scope="checksum")
+                    source_path, cmp_path, scope="checksum")
             else:
                 diff, _, only_irods, _ = self.diff_irods_localfs(
                     source, cmp_path, scope="checksum")
@@ -411,9 +437,9 @@ class DataOperation(object):
             if self.is_dataobject(source) and len(diff + only_irods) > 0:
                 logging.info(
                     'IRODS DOWNLOADING object: %s to %s',
-                    source, cmp_path)
+                    source_path, cmp_path)
                 self.irods_get(
-                    source, cmp_path, options=options)
+                    source_path, cmp_path, options=options)
             # Collection
             # TODO add support for "downloading" empty collections?
             else:
@@ -428,7 +454,7 @@ class DataOperation(object):
                 for rel_path in only_irods:
                     # Create subdirectories and download.
                     rel_path = utils.PurePath(rel_path)
-                    irods_path = source.joinpath(rel_path)
+                    irods_path = source_path.joinpath(rel_path)
                     local_path = cmp_path.joinpath(rel_path)
                     if not local_path.parent.is_dir():
                         local_path.parent.mkdir(parents=True, exist_ok=True)
