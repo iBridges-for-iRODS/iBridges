@@ -11,7 +11,6 @@ import PyQt6.uic
 import gui
 import utils
 
-
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
         super(QPlainTextEditLogger, self).__init__()
@@ -37,6 +36,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
         # stackedWddidget
         self.widget = widget
         self.ienv = ienv
+
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
@@ -55,6 +55,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                 'tabELNData': self.setupTabELNData,
                 'tabDataBundle': self.setupTabDataBundle,
                 'tabCreateTicket': self.setupTabCreateTicket,
+                'tabAmberWorkflow': self.setupTabAmberWorkflow,
                 'tabInfo': self.setupTabInfo,
             }
             found = ienv.get('ui_tabs', False)
@@ -68,7 +69,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             #      load other tabs at the same time?
             for uitab in expected:
                 if uitab in found:
-                    ui_tabs_lookup[uitab](ic)
+                    ui_tabs_lookup[uitab](ic, ienv)
                     logging.debug(f'Setup the {uitab} tab')
             for uitab in found:
                 if uitab not in expected:
@@ -78,30 +79,36 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                         f'Only {", ".join(expected)} tabs supported')
         self.tabWidget.setCurrentIndex(0)
 
-    def setupTabBrowser(self, ic):
+
+    def setupTabAmberWorkflow(self, ic, ienv):
+        self.amberTab = gui.amberWorkflow.amberWorkflow(ic, ienv)
+        self.tabWidget.addTab(self.amberTab, "AmberScript Connection")
+
+
+    def setupTabBrowser(self, ic, ienv):
         # needed for Search
         self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(ic)
         self.tabWidget.addTab(self.irodsBrowser, 'Browser')
 
-    def setupTabUpDownload(self, ic):
+    def setupTabUpDownload(self, ic, ienv):
         self.updownload = gui.IrodsUpDownload.IrodsUpDownload(ic, self.ienv)
         self.tabWidget.addTab(self.updownload, "Data Transfers")
         log_handler = QPlainTextEditLogger(self.updownload.logs)
         logging.getLogger().addHandler(log_handler)
 
-    def setupTabELNData(self, ic):
-        self.elnTab = gui.elabUpload.elabUpload(ic)
+    def setupTabELNData(self, ic, ienv):
+        self.elnTab = gui.elabUpload.elabUpload(ic, ienv)
         self.tabWidget.addTab(self.elnTab, "ELN Data upload")
 
-    def setupTabDataBundle(self, ic):
+    def setupTabDataBundle(self, ic, ienv):
         self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(ic, self.ienv)
         self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
 
-    def setupTabCreateTicket(self, ic):
+    def setupTabCreateTicket(self, ic, ienv):
         self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(ic)
         self.tabWidget.addTab(self.createTicket, "Create access tokens")
 
-    def setupTabInfo(self, ic):
+    def setupTabInfo(self, ic, ienv):
         self.irodsInfo = gui.irodsInfo.irodsInfo(ic)
         self.tabWidget.addTab(self.irodsInfo, "Info")
 

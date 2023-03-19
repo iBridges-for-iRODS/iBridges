@@ -1,7 +1,6 @@
 """iBridges utility classes and functions.
 
 """
-from __future__ import annotations
 import datetime
 import logging
 import logging.handlers
@@ -34,7 +33,6 @@ class PurePath(str):
     based on the best of str and pathlib.
 
     """
-    a: PurePath
     _path = None
     _posix = None
 
@@ -213,7 +211,6 @@ class IrodsPath(PurePath, irods.path.iRODSPath):
     instantiation.
 
     """
-    a: IrodsPath
 
     def __new__(cls, *args):
         """Instantiate an IrodsPath.
@@ -249,7 +246,6 @@ class LocalPath(PurePath):
     based on the best of str and pathlib.
 
     """
-    a: LocalPath
 
     def __new__(cls, *args, **kwargs):
         """Instantiate a LocalPath.

@@ -247,7 +247,7 @@ class Session(object):
             try:
                 # Check for good authentication and cache PAM password
                 if 'password' in options:
-                    self._session.pool.get_connection()
+                    _ = self._session.server_version
                     self._write_pam_password()
             except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
                 raise error
@@ -284,16 +284,21 @@ class Session(object):
         if 'password' not in options:
             try:
                 print('AUTH FILE SESSION')
-                return irods.session.iRODSSession(
+                session = irods.session.iRODSSession(
                     irods_env_file=options['irods_env_file'])
+                _ = session.server_version
+                return session
             except Exception as error:
                 print(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                raise error
         else:
             try:
                 print('FULL ENVIRONMENT SESSION')
-                return irods.session.iRODSSession(**options)
+                session = irods.session.iRODSSession(**options)
+                _ = session.server_version
+                return session
             except irods.connection.PlainTextPAMPasswordError as ptppe:
-                print(f'{kw.RED}ENVIRONMENT INCOMPLETE? {ptppe!r}{kw.DEFAULT}')
+                print(f'{kw.RED}SOMETHING WRONG WITH THE ENVIRONMENT JSON? {ptppe!r}{kw.DEFAULT}')
                 try:
                     ssl_context = ssl.create_default_context(
                         purpose=ssl.Purpose.SERVER_AUTH,
@@ -309,10 +314,12 @@ class Session(object):
                         'ssl_context': ssl_context,
                     }
                     options.update(ssl_settings)
-                    print('PARTIAL ENVIRONMENT SESSION')
-                    return irods.session.iRODSSession(**options)
+                    print('RETRY WITH DEFAULT SSL SETTINGS')
+                    session = irods.session.iRODSSession(**options)
+                    _ = session.server_version
+                    return session
                 except Exception as error:
-                    print(f'{kw.RED}PARTIAL ENVIRONMENT LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                    print(f'{kw.RED}RETRY FAILED: {error!r}{kw.DEFAULT}')
                     raise error
             except Exception as autherror:
                 logging.info('AUTHENTICATION ERROR', exc_info=True)
