@@ -67,7 +67,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         try:
             self.ic = IrodsConnectorAnonymous(
                 host, token, path, application_name=self.this_application)
-            self.coll = self.ic.getData()
+            self.coll = self.ic.get_data()
             self.loadTable()
             self.enableButtons(True)
         except Exception as e:

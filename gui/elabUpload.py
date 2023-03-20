@@ -56,7 +56,7 @@ class elabUpload(QWidget, Ui_tabELNData):
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
-                '/'+self.ic.get_zone+'/home/'+self.ic.get_username)
+                '/'+self.ic.zone+'/home/'+self.ic.username)
         # defining events and listeners
         self.elnTokenInput.setText(self.ienv.get('eln_token'))
         self.elnTokenInput.returnPressed.connect(self.connectElab)
@@ -256,7 +256,7 @@ class Worker(QObject):
                 self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 item = self.ic.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))
-                self.ic.addMetadata([item], 'ELN', self.expUrl)
+                self.ic.add_metadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
                 self.ic.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 upColl = self.ic.get_collection(
@@ -265,7 +265,7 @@ class Worker(QObject):
                 for c, _, objs in upColl.walk():
                     items.append(c)
                     items.extend(objs)
-                self.ic.addMetadata(items, 'ELN', self.expUrl)
+                self.ic.add_metadata(items, 'ELN', self.expUrl)
             self.progress.emit(3)
             self.finished.emit()
         except Exception as error:
@@ -289,27 +289,27 @@ class Worker(QObject):
         """
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
-        if self.ic.davrods and ("yoda" in self.ic.get_host or "uu.nl" in self.ic.get_host):
+        if self.ic.davrods and ("yoda" in self.ic.host or "uu.nl" in self.ic.host):
             self.elab.addMetadata(
                 self.ic.davrods+'/'+self.coll.path.split('home/')[1].strip(),
                 meta=annotation,
                 title='Data in iRODS')
-        elif self.ic.davrods and "surfsara.nl" in self.ic.get_host:
-                self.elab.addMetadata(
+        elif self.ic.davrods and "surfsara.nl" in self.ic.host:
+                self.elab.add_metadata(
                     self.ic.davrods+'/'+self.coll.path.split(
-                        self.ic.get_zone)[1].strip('/'), 
+                        self.ic.zone)[1].strip('/'), 
                     meta=annotation,
                     title='Data in iRODS')
         elif self.ic.davrods:
-            self.elab.addMetadata(
+            self.elab.add_metadata(
                     self.ic.davrods+'/'+self.coll.path.strip('/'), 
                     meta=annotation,
                     title='Data in iRODS')
         else:
-            host = self.ic.get_host
-            zone = self.ic.get_zone
-            name = self.ic.get_username
-            port = self.ic.get_port
+            host = self.ic.host
+            zone = self.ic.zone
+            name = self.ic.username
+            port = self.ic.port
             path = self.coll.path
             conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-            self.elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
+            self.elab.add_metadata(conn, meta=annotation, title='Data in iRODS')

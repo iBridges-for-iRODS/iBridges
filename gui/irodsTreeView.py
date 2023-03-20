@@ -87,7 +87,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel):
         try:
             coll = self.ic.get_collection(self.base_path)
         except irods.exception.CollectionDoesNotExist:
-            self.base_path = self.base_path+'/'+self.ic.get_username
+            self.base_path = self.base_path+'/'+self.ic.username
             coll = self.ic.get_collection(self.base_path)
         # FIXME narrow down exception possibilities
         except Exception:

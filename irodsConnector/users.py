@@ -31,12 +31,12 @@ class Users(object):
 
         """
         query = self._ses_man.session.query(kw.USER_TYPE).filter(kw.LIKE(
-            kw.USER_NAME, self._ses_man.session.username))
+            kw.USER_NAME, self._ses_man.username))
         user_type = [
             list(result.values())[0] for result in query.get_results()
         ][0]
         query = self._ses_man.session.query(kw.USER_GROUP_NAME).filter(kw.LIKE(
-            kw.USER_NAME, self._ses_man.session.username))
+            kw.USER_NAME, self._ses_man.username))
         user_groups = [
             list(result.values())[0] for result in query.get_results()
         ]

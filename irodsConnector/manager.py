@@ -57,24 +57,24 @@ class IrodsConnector(object):
         return self._session.irods_env_file
 
     @property
-    def get_host(self) -> str:
-        return self._session.get_host
+    def host(self) -> str:
+        return self._session.host
 
     @property
-    def get_port(self) -> str:
-        return self._session.get_port
+    def port(self) -> str:
+        return self._session.port
 
     @property
-    def get_server_version(self) -> str:
-        return self._session.get_server_version
+    def server_version(self) -> str:
+        return self._session.server_version
 
     @property
-    def get_username(self) -> str:
-        return self._session.get_username
+    def username(self) -> str:
+        return self._session.username
 
     @property
-    def get_zone(self) -> str:
-        return self._session.get_zone
+    def zone(self) -> str:
+        return self._session.zone
 
     @property
     def password(self) -> str:

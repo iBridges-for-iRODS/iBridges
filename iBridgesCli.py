@@ -53,14 +53,14 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
         }
     """
     # YODA: webdav URL does not contain "home", but iRODS path does!
-    if ic.davrods and ("yoda" in ic.get_host or "uu.nl" in ic.get_host):
+    if ic.davrods and ("yoda" in ic.host or "uu.nl" in ic.host):
         elab.addMetadata(
             ic.davrods+'/'+coll.path.split('home/')[1].strip(),
             meta=annotation,
             title=title)
-    elif ic.davrods and "surfsara.nl" in ic.get_host:
+    elif ic.davrods and "surfsara.nl" in ic.host:
         elab.addMetadata(
-            ic.davrods+'/'+coll.path.split(ic.get_zone)[1].strip('/'),
+            ic.davrods+'/'+coll.path.split(ic.zone)[1].strip('/'),
             meta=annotation,
             title=title)
     elif ic.davrods:
@@ -69,10 +69,10 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
             meta=annotation,
             title=title)
     else:
-        host = ic.get_host
-        zone = ic.get_zone
-        name = ic.get_username
-        port = ic.get_port
+        host = ic.host
+        zone = ic.zone
+        name = ic.username
+        port = ic.port
         path = coll.path
         conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
         elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
@@ -91,7 +91,7 @@ def connectIRODS(config):
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
                 ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
                 try:
-                    _ = ic.get_server_version
+                    _ = ic.server_version
                     success = True
                 except Exception as e:
                     print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
@@ -115,7 +115,7 @@ def connectIRODS(config):
                     'Password for '+config['iRODS']['irodsenv']+': ')
             ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
             try:
-                ic.get_server_version()
+                ic.server_version
                 success = True
             except Exception as e:
                 print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
@@ -382,8 +382,8 @@ def main(argv):
             coll = ic.get_collection(iPath)
             metadata = {
                 "iRODS path": coll.path,
-                "iRODS server": ic.get_host,
-                "iRODS user": ic.get_username,
+                "iRODS server": ic.host,
+                "iRODS user": ic.username,
             }
             if config["ELN"]["title"] == '':
                 annotateElab(metadata, ic, md, coll, title='Data in iRODS')

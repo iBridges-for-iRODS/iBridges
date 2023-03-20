@@ -65,7 +65,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(self.ic, treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = '/'+self.ic.get_zone
+        irodsRootColl = '/'+self.ic.zone
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -148,8 +148,8 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
                 with obj.open('w') as obj_desc:
                     results = self.ac.get_results_txt(info[2])
                     obj_desc.write(results.encode())
-                self.ic.addMetadata([obj], 'prov:softwareAgent', "Amberscript")
-                self.ic.addMetadata([obj], 'AmberscriptJob', info[2])
+                self.ic.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                self.ic.add_metadata([obj], 'AmberscriptJob', info[2])
                 self.importLabel.setText("IRODS INFO: "+obj.path)
             else:
                 self.importLabel.setText("AMBER ERROR: Job not finished yet.")

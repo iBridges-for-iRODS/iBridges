@@ -53,7 +53,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.thread_extract = None
         self.worker_create = None
         self.worker_extract = None
-        self.root_path = f'/{ic.get_zone}'
+        self.root_path = f'/{ic.zone}'
         self.irodsZoneLabel.setText(f'{self.root_path}:')
         self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
         self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)

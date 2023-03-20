@@ -46,7 +46,7 @@ class Permission(object):
                 'modify_object': 'write',
                 'own': 'own',
             }
-            if self._ses_man.session.server_version < (4, 3, 0):
+            if self._ses_man.server_version < (4, 3, 0):
                 self._permissions.update(
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions

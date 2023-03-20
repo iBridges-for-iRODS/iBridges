@@ -97,7 +97,7 @@ class Session(object):
         return self._ienv.get('irods_default_resource', None)
 
     @property
-    def get_host(self) -> str:
+    def host(self) -> str:
         """Retreive hostname of the iRODS server
 
         Returns
@@ -109,7 +109,7 @@ class Session(object):
         return self._session.host
 
     @property
-    def get_port(self) -> str:
+    def port(self) -> str:
         """Retreive port of the iRODS server
 
         Returns
@@ -121,7 +121,7 @@ class Session(object):
         return self._session.port
 
     @property
-    def get_username(self) -> str:
+    def username(self) -> str:
         """Retreive username
 
         Returns
@@ -133,7 +133,7 @@ class Session(object):
         return self._session.username
 
     @property
-    def get_server_version(self) -> str:
+    def server_version(self) -> str:
         """Retreive version of the iRODS server
 
         Returns
@@ -145,7 +145,7 @@ class Session(object):
         return self._session.server_version
 
     @property            
-    def get_zone(self) -> str:
+    def zone(self) -> str:
         """Retreive the zone name
 
         Returns

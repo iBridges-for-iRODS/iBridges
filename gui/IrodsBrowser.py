@@ -83,11 +83,11 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         elif 'irods_home' in ic.ienv:
             root_path = ic.ienv['irods_home']
         else:
-            root_path = f'/{ic.get_zone}/home/{ic.get_username}'
+            root_path = f'/{ic.zone}/home/{ic.username}'
         try:
             self.root_coll = ic.get_collection(root_path)
         except irods.exception.CollectionDoesNotExist:
-            self.root_coll = ic.get_collection(f'/{ic.get_zone}/home')
+            self.root_coll = ic.get_collection(f'/{ic.zone}/home')
         except irods.exception.NetworkException:
             self.errorLabel.setText(
                 'iRODS NETWORK ERROR: No Connection, please check network')

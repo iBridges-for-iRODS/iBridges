@@ -21,7 +21,7 @@ class irodsCreateTicket(QWidget, Ui_tabticketCreate):
             loadUi("gui/ui_files/tabTicketCreate.ui", self)
         self.irodsmodel = IrodsModel(ic, self.irodsFsTreeView)
         self.irodsFsTreeView.setModel(self.irodsmodel)
-        self.irodsRootColl = '/'+ic.get_zone
+        self.irodsRootColl = '/'+ic.zone
         self.irodsmodel.setHorizontalHeaderLabels(
             [self.irodsRootColl, 'Level', 'iRODS ID', 'parent ID', 'type'])
         self.irodsFsTreeView.expanded.connect(self.irodsmodel.refresh_subtree)
@@ -52,12 +52,12 @@ class irodsCreateTicket(QWidget, Ui_tabticketCreate):
             self.createTicketButton.setEnabled(True)
             return
         acls = [(acl.user_name, acl.access_name) for acl in self.ic.get_permissions(obj_path)]
-        if (self.ic.get_username, 'own') in acls:
+        if (self.ic.username, 'own') in acls:
             date = self.calendar.selectedDate()
             # format of time string for irods: 2012-05-07.23:00:00
             expiry_string = f'{date.toPyDate()}.23:59:59'
             ticket_name, expiration_set = self.ic.create_ticket(obj_path, expiry_string)
-            self.ticketInfoBrowser.append(f'iRODS server:\t{self.ic.get_host}')
+            self.ticketInfoBrowser.append(f'iRODS server:\t{self.ic.host}')
             self.ticketInfoBrowser.append(f'iRODS path:\t{obj_path}')
             self.ticketInfoBrowser.append(f'iRODS Ticket:\t{ticket_name}')
             if expiration_set:
