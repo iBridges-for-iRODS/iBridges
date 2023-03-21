@@ -274,8 +274,8 @@ class Worker(QObject):
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,
-            "iRODS server": self.ic.get_host,
-            "iRODS user": self.ic.get_username,
+            "iRODS server": self.ic.host,
+            "iRODS user": self.ic.username,
         }
         self.annotateElab(annotation)
 
