@@ -69,7 +69,6 @@ class Permission(object):
             iRODS ACL instances.
 
         """
-        logging.info('GET PERMISSIONS')
         if isinstance(path, str) and path:
             try:
                 return self._ses_man.session.permissions.get(
