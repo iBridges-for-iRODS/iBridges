@@ -156,17 +156,17 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         password = self.passwordField.text()
-        conn = IrodsConnector(irods_env_file=irods_env_file, password=password)
-        # Add own filepath for easy saving.
-        config = self.ibridges.config
-        config['ui_ienvFilePath'] = irods_env_file
-        config['last_ienv'] = irods_env_file.name
-        # Save iBridges config to disk and combine with iRODS config.
-        self.ibridges.config = config
-        # TODO consider passing separate configurations or rename
-        #  `ienv` to reflect common nature
-        ienv.update(config)
         try:
+            conn = IrodsConnector(irods_env_file=irods_env_file, password=password)
+            # Add own filepath for easy saving.
+            config = self.ibridges.config
+            config['ui_ienvFilePath'] = irods_env_file
+            config['last_ienv'] = irods_env_file.name
+            # Save iBridges config to disk and combine with iRODS config.
+            self.ibridges.config = config
+            # TODO consider passing separate configurations or rename
+            #  `ienv` to reflect common nature
+            ienv.update(config)
             # widget is a global variable
             browser = gui.mainmenu(widget, conn, ienv)
             if len(widget) == 1:
@@ -176,6 +176,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             widget.setCurrentIndex(widget.currentIndex()+1)
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
+                irods.exception.CAT_INVALID_USER,
                 ConnectionRefusedError):
             self.envError.clear()
             self.passError.setText('ERROR: Wrong password.')
