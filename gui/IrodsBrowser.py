@@ -273,7 +273,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
 
     def _get_object_path_name(self, row):
         """"""
-        if self.collTable.item(row, 1).text().startswith("/"+self.ic.get_zone):
+        if self.collTable.item(row, 1).text().startswith("/"+self.ic.zone):
             print(self.collTable.item(row, 1).text())
             sub_paths = self.collTable.item(row, 1).text().strip("/").split("/")
             obj_path = "/"+"/".join(sub_paths[:len(sub_paths)-1])
@@ -488,7 +488,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         # If table is filled
         if self.collTable.item(self.current_browser_row, 1) is not None:
             objName = self.collTable.item(self.current_browser_row, 1).text()
-            if self.collTable.item(self.current_browser_row, 1).text().startswith("/" + self.ic.get_zone):
+            if self.collTable.item(self.current_browser_row, 1).text().startswith("/" + self.ic.zone):
                 parent = '/'.join(objName.split("/")[:len(objName.split("/"))-1])
                 objName = objName.split("/")[len(objName.split("/"))-1]
             else:
