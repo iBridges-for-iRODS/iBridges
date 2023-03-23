@@ -1,6 +1,7 @@
 """IrodsConnector for eLabJournal
 
 """
+from urllib.parse import urlparse
 from elabjournal import elabjournal
 
 URL_PATH = '/members/experiments/browser/#view=experiment&nodeID='
@@ -11,155 +12,170 @@ BLUE = '\x1b[1;34m'
 
 
 class elabConnector():
+
     def __init__(self, token):
         try:
             self.elab = elabjournal.api(key=token)
             self.experiment = self.elab.experiments().first()
         except TypeError:
             raise PermissionError('Invalid token for ELN.')
+
         self.userId = self.elab.user().id()
         self.baseUrl = f'https://{token.split(";")[0]}'
         print(f'INFO: Default Experiment: {self.experiment.name()}')
         exp_id = self.experiment.id()
         self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         self.__name__ = 'ELN'
+        self.group = None
         print(f'INFO: Data will be linked to: {self.metadataUrl}')
 
     def showGroups(self, get=False):
-        groupsFrame = self.elab.groups().all(['name', 'description'])
-        print(groupsFrame)
+        groups_frame = self.elab.groups().all(['name', 'description'])
+        print(groups_frame)
         if get:
-            lines = groupsFrame.to_string().split('\n')[2:]
+            lines = groups_frame.to_string().split('\n')[2:]
             groups = [(group[0], ' '.join(group[1:]))
                       for group in [line.strip().split() for line in lines]]
             return groups
         return True
 
-    def __getGroupIds(self):
-        return self.elab.groups().all().index
-
-    def __chooseGroup(self):
+    def _choose_group(self):
         success = False
         while not success:
-            inVar = input('Choose Elab groupId:')
+            in_var = input('Choose Elab groupId:')
             try:
-                groupId = int(inVar)
-                if groupId in self.__getGroupIds():
+                group_id = int(in_var)
+                if group_id in self.elab.groups().all().index:
                     print(f'{BLUE}Group chosen: {self.elab.group().name()}{DEFAULT}')
                     success = True
-                    return groupId
-                else:
-                    print(f'{YEL}\nNot a valid groupId"{DEFAULT}')
+                    return group_id
+
+                print(f'{YEL}\nNot a valid group_id"{DEFAULT}')
             except ValueError:
                 print(r'{RED}Not a number{DEFAULT}')
 
-    def __switchGroup(self, groupId):
-        if groupId in self.elab.groups().all().index:
-            self.elab.set_group(groupId)
+    def _resolve_group_name(self, group_name):
+        all_groups = self.elab.groups().all()
+        if len(all_groups.loc[all_groups["name"]==group_name])==1:
+            return all_groups.loc[all_groups["name"]==group_name].index[0]
+        return group_name
+
+    def _switch_group(self, group_id):
+        if isinstance(group_id, str) and group_id.isnumeric():
+            group_id = int(group_id)
+        elif isinstance(group_id, str):
+            group_id = self._resolve_group_name(group_name=group_id)
+
+        if int(group_id) in self.elab.groups().all().index.to_list():
+            self.elab.set_group(group_id)
+            self.group = self.elab.groups().all().loc[[group_id]]
             return True
-        else:
-            raise ValueError('ERROR ELAB: groupId not found.')
+
+        raise ValueError('ERROR ELAB: groupId not found.')
 
     def showExperiments(self, groupId=None, get=False):
-        currentGroup = self.elab.group().id()
+        current_group = self.elab.group().id()
         if groupId is None:
             groupId = self.elab.group().id()
-        self.__switchGroup(groupId)
-        experiments = self.elab.experiments()
-        expFrames = self.elab.experiments().all()
+        self._switch_group(groupId)
+        exp_frames = self.elab.experiments().all()
         print('Your experiments:')
-        myExpFrame = expFrames.loc[expFrames['userID'] == self.userId, ['name', 'projectID']]
-        print(myExpFrame)
+        my_exp_frame = exp_frames.loc[exp_frames['userID'] == self.userId, ['name', 'projectID']]
+        print(my_exp_frame)
         print('Other experiments:')
-        otherExpFrame = expFrames.loc[expFrames['userID'] != self.userId, ['name', 'projectID']]
-        print(otherExpFrame)
-        self.__switchGroup(currentGroup)
+        other_exp_frame = exp_frames.loc[exp_frames['userID'] != self.userId, ['name', 'projectID']]
+        print(other_exp_frame)
+        self._switch_group(current_group)
 
         if get:
-            lines = myExpFrame.to_string().split('\n')[2:]
-            myExperiments = [(line[0], ' '.join(line[1:len(line) - 1]), line[len(line) - 1])
+            lines = my_exp_frame.to_string().split('\n')[2:]
+            my_experiments = [(line[0], ' '.join(line[1:len(line) - 1]), line[len(line) - 1])
                              for line in [l.split() for l in lines]]
-            lines = otherExpFrame.to_string().split('\n')[2:]
-            otherExperiments = [(line[0], ' '.join(line[1:len(line) - 1]), line[len(line) - 1])
+            lines = other_exp_frame.to_string().split('\n')[2:]
+            other_experiments = [(line[0], ' '.join(line[1:len(line) - 1]), line[len(line) - 1])
                                 for line in [l.split() for l in lines]]
 
-            return (myExperiments, otherExperiments)
+            return (my_experiments, other_experiments)
         return True
 
-    def __getExperimentIds(self, groupId=None):
-        currentGroup = self.elab.group().id()
-        if groupId is None:
-            groupId = self.elab.group().id()
-        self.__switchGroup(groupId)
-        experiments = self.elab.experiments()
-        expFrames = self.elab.experiments().all()
-        self.__switchGroup(currentGroup)
-        return expFrames.index
-
-    def __chooseExperiment(self, groupId=None):
-        currentGroup = self.elab.group().id()
-        if groupId is None:
-            groupId = self.elab.group().id()
+    def _choose_experiment(self, group_id=None):
+        current_group = self.elab.group().id()
+        if group_id is None:
+            group_id = self.elab.group().id()
         else:
-            self.__switchGroup(groupId)
+            self._switch_group(group_id)
         self.showExperiments()
         success = False
         while not success:
             try:
-                expId = int(input('Choose an experimentId:'))
-                assert expId in self.elab.experiments().all().index
+                exp_id = int(input('Choose an experimentId:'))
+                assert exp_id in self.elab.experiments().all().index
                 success = True
-                self.__switchGroup(currentGroup)
-                return expId
-            except Exception as error:
+                self._switch_group(current_group)
+                return exp_id
+            except Exception:
                 print(f'{RED}Not a valid Experiment ID.{DEFAULT}')
 
-    def __switchExperiment(self, expId):
+    def __resolve_experiment_name(self, exp_name):
+        all_exp = self.elab.experiments().all()
+        if len(all_exp.loc[all_exp["name"]==exp_name])==1:
+            return all_exp.loc[all_exp["name"]==exp_name].index[0]
+        return exp_name
+
+    def _switch_experiment(self, exp_id):
         # TODO determine if this call is needed
-        experiments = self.elab.experiments()
-        expFrames = self.elab.experiments().all()
-        if expId in expFrames.index:
-            self.experiment = self.elab.experiments().get(expId)
+        # experiments = self.elab.experiments()
+
+        if isinstance(exp_id, str) and exp_id.isnumeric():
+            exp_id = int(exp_id)
+        elif isinstance(exp_id, str):
+            exp_id = self.__resolve_experiment_name(exp_name=exp_id)
+
+        exp_frames = self.elab.experiments().all()
+        if exp_id in exp_frames.index:
+            self.experiment = self.elab.experiments().get(exp_id)
             return True
-        else:
-            raise ValueError("ERROR ELAB: expId not found.")
+
+        raise ValueError("ERROR ELAB: expId not found.")
 
     def updateMetadataUrlInteractive(self, **params):
-        currentGroup = self.elab.group().id()
-        currentUrl = self.metadataUrl
+        current_group = self.elab.group().id()
         if 'group' in params and params['group'] is True:
-            groupId = self.__chooseGroup()
+            group_id = self._choose_group()
         else:
-            groupId = currentGroup
+            group_id = current_group
 
-        expId = self.__chooseExperiment(groupId)
-        self.__switchGroup(groupId)
-        self.__switchExperiment(expId)
-        self.metadataUrl = f'{self.baseUrl}{URL_PATH}{expId}'
+        exp_id = self._choose_experiment(group_id)
+        self._switch_group(group_id)
+        self._switch_experiment(exp_id)
+        self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         return self.elab.group().name(), self.experiment.name()
 
     def updateMetadataUrl(self, **params):
-        try:
-            groupId = params['group']
-            expId = params['experiment']
-            self.__switchGroup(groupId)
-            self.__switchExperiment(expId)
-            self.metadataUrl = f'{self.baseUrl}{URL_PATH}{expId}'
-            return self.metadataUrl
-        except:
-            raise
+        group_id = params['group']
+        exp_id = params['experiment']
+        self._switch_group(group_id)
+        self._switch_experiment(exp_id)
+        self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
+        return self.metadataUrl
 
     def addMetadata(self, url, meta=None, title='Title'):
         infos = []
-        if 'http' in url and '://' in url:
+
+        url_parts = urlparse(url)
+        if all([url_parts.scheme, url_parts.netloc]):
             infos.append(f'<a href="{url}">Experiment data in iRODS</a>')
         else:
             infos.append(url)
+
         if meta is not None:
-            infos.append('<br><table style="width: 500px;" border="1" ')
-            infos.append('cellspacing="1" cellpadding="1"><tbody>')
+            infos.append('<br>')
+            infos.append('<table style="width: 500px;" border="1" cellspacing="1" cellpadding="1">')
+            infos.append('<tbody>')
             for key, value in meta.items():
                 infos.append(f'<tr><td>{key}</td><td>{value}</td></tr>')
-            infos.append('</tbody></table>')
+            infos.append('</tbody>')
+            infos.append('</table>')
+
         self.experiment.add(''.join(infos), title)
         return True
