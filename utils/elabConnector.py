@@ -96,16 +96,6 @@ class elabConnector():
             return (myExperiments, otherExperiments)
         return True
 
-    def __getExperimentIds(self, groupId=None):
-        currentGroup = self.elab.group().id()
-        if groupId is None:
-            groupId = self.elab.group().id()
-        self.__switchGroup(groupId)
-        experiments = self.elab.experiments()
-        expFrames = self.elab.experiments().all()
-        self.__switchGroup(currentGroup)
-        return expFrames.index
-
     def __chooseExperiment(self, groupId=None):
         currentGroup = self.elab.group().id()
         if groupId is None:
