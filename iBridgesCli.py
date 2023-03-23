@@ -280,7 +280,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             elab.showGroups()
             elab.updateMetadataUrlInteractive(group=True)
 
-        # TODO: while loop to ensure title? or is it not mandatory? or lose interactivity altogether
+        # TODO: while loop to ensure title? : is it actually mandatory? maybe lose interactivity altogether.
         if not 'title' in config or len(config['title']) == 0:
             title = input('ELN paragraph title: ')
         else:
@@ -346,11 +346,12 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
 
             # initialise medata store connections
-            # TODO
+
+            # TODO: setting 'upload' as a switch in a config seems misplaced; replaced by CLI-switch
             # if self.get_config(self.config_file, 'ELN', 'upload'):
             if self.get_config('ELN') and not self.skip_eln:
                 elab, title, group_id, experiment_id = self.setup_elab(config=self.get_config('ELN'))
-                # TODO: so we're just logging target root path, not actual files
+                # TODO: so we're just logging the target root path, not actual files: is that intentional?
                 target_path = f"{self.irods_path}/{elab.__name__}/{str(group_id)}/{str(experiment_id)}"
             else:
                 elab = None
