@@ -230,30 +230,30 @@ class getDataState(QObject):
                 # Data is placed inside of coll, check if dir or file is inside
                 newPath = self.coll.path + "/" + os.path.basename(self.localFsPath)
                 if os.path.isdir(self.localFsPath):
-                    if self.ic.session.collections.exists(newPath):
-                        subColl = self.ic.session.collections.get(newPath)
+                    if self.ic.collection_exists(newPath):
+                        subColl = self.ic.get_collection(newPath)
                     else:
                         subColl = None
-                    (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diff_irods_localfs(
                                                   subColl, self.localFsPath, scope="checksum")
                 elif os.path.isfile(self.localFsPath):
-                    (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diff_obj_file(
                                                         newPath, 
                                                         self.localFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyFS), len(diff))
             else:
                 # Data is placed inside fsDir, check if obj or coll is inside
                 newPath = os.path.join(self.localFsPath, self.coll.name)
-                if self.ic.session.collections.exists(self.coll.path):
+                if self.ic.collection_exists(self.coll.path):
                     if not os.path.isdir(newPath):
                         FsPath = None
                     else:
                         FsPath = newPath
-                    (diff, onlyFS, onlyIrods, same) = self.ic.diffIrodsLocalfs(
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diff_irods_localfs(
                                                   self.coll, FsPath, scope="checksum")                        
-                # elif self.ic.session.data_objects.exists(self.coll.path):
+                # elif self.ic.dataobject_exists(self.coll.path):
                 else:
-                    (diff, onlyFS, onlyIrods, same) = self.ic.diffObjFile(
+                    (diff, onlyFS, onlyIrods, same) = self.ic.diff_obj_file(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
         except:

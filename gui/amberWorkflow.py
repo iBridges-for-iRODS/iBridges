@@ -65,7 +65,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(self.ic, treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = '/'+self.ic.session.zone
+        irodsRootColl = '/'+self.ic.zone
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -140,16 +140,16 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def importData(self):
         self.importLabel.clear()
         (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
-        if self.ic.session.collections.exists(path):
+        if self.ic.collection_exists(path):
             info = self.jobBox.currentText().split(' / ')
             if info[1] == "DONE":
-                obj = self.ic.session.data_objects.create(path+'/'+info[0]+'_'+info[2]+'.txt')
+                obj = self.ic.ensure_data_object(path+'/'+info[0]+'_'+info[2]+'.txt')
                 self.importLabel.setText("IRODS INFO: writing to "+obj.path)
                 with obj.open('w') as obj_desc:
                     results = self.ac.get_results_txt(info[2])
                     obj_desc.write(results.encode())
-                self.ic.addMetadata([obj], 'prov:softwareAgent', "Amberscript")
-                self.ic.addMetadata([obj], 'AmberscriptJob', info[2])
+                self.ic.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                self.ic.add_metadata([obj], 'AmberscriptJob', info[2])
                 self.importLabel.setText("IRODS INFO: "+obj.path)
             else:
                 self.importLabel.setText("AMBER ERROR: Job not finished yet.")

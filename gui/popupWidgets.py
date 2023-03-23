@@ -129,7 +129,7 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         for row in selectedRows:
             extractPath = self.dataObjectTable.item(row, 0).text()
             destination = extractParent+'/'+extractPath
-            if self.ic.session.data_objects.exists(destination):
+            if self.ic.dataobject_exists(destination):
                 logString = logString+"\t Data already exists: "+destination+"; skipping\n"
             else:
                 logString = logString+"Extracting: "+extractPath+"\n"
@@ -140,7 +140,7 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
                         }
                 self.ic.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
                 logging.info("TAR EXTRACT SCHEDULED: ")
-                logging.info("iRODS user: "+self.ic.session.username)
+                logging.info("iRODS user: "+self.ic.get_username)
                 logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \

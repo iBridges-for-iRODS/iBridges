@@ -11,9 +11,9 @@ Implemented for:
 """
 
 from utils.elabConnector import elabConnector
-from utils.IrodsConnector import IrodsConnector
-from utils.IrodsConnector import FreeSpaceNotSet
-from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
+import irodsConnector.keywords as kw
+from irodsConnector.manager import IrodsConnector
+from irodsConnector.resource import FreeSpaceNotSet
 from irods.exception import ResourceDoesNotExist, NoResultFound
 
 import configparser
@@ -39,7 +39,6 @@ def getConfig(path):
     args = config._sections
     if 'iRODS' not in args:
         raise AttributeError("iRODS environment not defined.")
-
     return args
 
 
@@ -54,14 +53,14 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
         }
     """
     # YODA: webdav URL does not contain "home", but iRODS path does!
-    if ic.davrods and ("yoda" in ic.session.host or "uu.nl" in ic.session.host):
+    if ic.davrods and ("yoda" in ic.host or "uu.nl" in ic.host):
         elab.addMetadata(
             ic.davrods+'/'+coll.path.split('home/')[1].strip(),
             meta=annotation,
             title=title)
-    elif ic.davrods and "surfsara.nl" in ic.session.host:
+    elif ic.davrods and "surfsara.nl" in ic.host:
         elab.addMetadata(
-            ic.davrods+'/'+coll.path.split(ic.session.zone)[1].strip('/'),
+            ic.davrods+'/'+coll.path.split(ic.zone)[1].strip('/'),
             meta=annotation,
             title=title)
     elif ic.davrods:
@@ -70,10 +69,10 @@ def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
             meta=annotation,
             title=title)
     else:
-        host = ic.session.host
-        zone = ic.session.zone
-        name = ic.session.username
-        port = ic.session.port
+        host = ic.host
+        zone = ic.zone
+        name = ic.username
+        port = ic.port
         path = coll.path
         conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
         elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
@@ -86,28 +85,25 @@ def connectIRODS(config):
     if os.path.exists(standardEnv) and \
             (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
         try:
-            ic = IrodsConnectorIcommands()
-            print(BLUE+"INFO: Icommands and standard environment file are present.")
-            print("INFO: Using icommands for data up and download."+DEFAULT)
-        except ConnectionRefusedError:
-            raise
-        except FileNotFoundError:
-            raise
-        except EnvironmentError:
-            print("INFO: Connect with python API")
             success = False
             while not success:
                 passwd = getpass.getpass(
                     'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
                 ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
                 try:
-                    ic.session.pool.get_connection
+                    _ = ic.server_version
                     success = True
                 except Exception as e:
                     print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
                     res = input('Try again (Y/N): ')
                     if res not in ['Y', 'y']:
                         sys.exit(2)
+            print(BLUE+"INFO: standard environment file is present.")
+            print("INFO: Connected"+DEFAULT)
+        except ConnectionRefusedError:
+            raise
+        except FileNotFoundError:
+            raise
         except Exception:
             raise
 
@@ -119,7 +115,7 @@ def connectIRODS(config):
                     'Password for '+config['iRODS']['irodsenv']+': ')
             ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
             try:
-                ic.session.pool.get_connection()
+                ic.server_version
                 success = True
             except Exception as e:
                 print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
@@ -168,31 +164,31 @@ def setupIRODS(config, operation):
         resource = ic.get_resource(config['iRODS']['irodsresc'])
         try:
             print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                  str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
+                  str(round(int(ic.resource_space(resource.name) * kw.MULTIPLIER)) + 'GB'))
         except FreeSpaceNotSet:
             ic.ienv.setdefault('force_unknown_free_space', 'True')
             print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
     except (NoResultFound, ResourceDoesNotExist):
         print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
         try:
-            print(YEL+'Checking env-file: '+ic.default_resc)
-            resource = ic.get_resource(ic.default_resc)
-            config['iRODS']['irodsresc'] = ic.default_resc
+            print(YEL+'Checking env-file: '+ic.default_resc())
+            resource = ic.get_resource(ic.default_resc())
+            config['iRODS']['irodsresc'] = ic.default_resc()
             try:
                 print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                      str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
+                      str(round(int(ic.resource_space(resource.name) * kw.MULTIPLIER)) + 'GB'))
             except FreeSpaceNotSet:
                 ic.ienv.setdefault('force_unknown_free_space', 'True')
                 print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
         except Exception:
             print(RED+"No resource set in environment file either ('irods_resource_name')"+DEFAULT)
             print(RED+"ERROR: No resource set"+DEFAULT)
-            ic.session.cleanup()
+            ic.cleanup()
             sys.exit(2)
     except Exception:
         print(RED+'iRODS resource not found: '+config['iRODS']['irodsresc']+DEFAULT)
         print(RED+'No valid resource set.')
-        ic.session.cleanup()
+        ic.cleanup()
         sys.exit(2)
 
     return ic
@@ -243,7 +239,7 @@ def prepareUpload(dataPath, ic, config):
 
     size = get_local_size([dataPath])
     freeSpace = int(ic.get_free_space(config['iRODS']['irodsresc']))
-    print('Checking storage capacity for ' + dataPath + ', ' + str(float(size) * ic.multiplier) + 'GB')
+    print('Checking storage capacity for ' + dataPath + ', ' + str(float(size) * kw.MULTIPLIER) + 'GB')
 
     if freeSpace is not None and int(freeSpace)-1000**3 < size:
         print(RED+'Not enough space left on iRODS resource.'+DEFAULT)
@@ -258,16 +254,16 @@ def prepareUpload(dataPath, ic, config):
 
 
 def prepareDownload(irodsItemPath, ic, config):
-    if not ic.session.data_objects.exists(irodsItemPath) and \
-       not ic.session.collections.exists(irodsItemPath):
+    if not ic.dataobject_exists(irodsItemPath) and \
+       not ic.collection_exists(irodsItemPath):
         print(RED+'iRODS path does not exist'+DEFAULT)
         menu = input('Do you want to specify a new iRODS path? (Y/N)')
         if menu in ['YES', 'Yes', 'Y', 'y', '']:
             success = False
             while not success:
                 irodsItemPath = input('Full data path: ')
-                success = ic.session.data_objects.exists(irodsItemPath) or \
-                    ic.session.collections.exists(irodsItemPath)
+                success = ic.dataobject_exists(irodsItemPath) or \
+                    ic.collection_exists(irodsItemPath)
             config["iRODS"]["downloadItem"] = irodsItemPath
         else:
             print('Aborted: iRODS path not given')
@@ -287,7 +283,7 @@ def prepareDownload(irodsItemPath, ic, config):
             if not success:
                 abort = input('Abort download? (Y/N): ')
                 if abort == "Y":
-                    ic.session.cleanup()
+                    ic.cleanup()
                     sys.exit(2)
             else:
                 config["DOWNLOAD"]["path"] = dataPath
@@ -374,20 +370,20 @@ def main(argv):
             #     iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
             else:
                 iPath = config['iRODS']['irodscoll']
-            iColl = ic.session.collections.get(iPath)
+            iColl = ic.get_collection(iPath)
             dataPath = config["iRODS"]["uploadItem"]
             ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'],
                            get_local_size([dataPath]), force=True)
         else:
-            ic.session.cleanup()
+            ic.cleanup()
             sys.exit(2)
         # tag data in iRODS and metadata store
         if md is not None:
-            coll = ic.session.collections.get(iPath)
+            coll = ic.get_collection(iPath)
             metadata = {
                 "iRODS path": coll.path,
-                "iRODS server": ic.session.host,
-                "iRODS user": ic.session.username,
+                "iRODS server": ic.host,
+                "iRODS user": ic.username,
             }
             if config["ELN"]["title"] == '':
                 annotateElab(metadata, ic, md, coll, title='Data in iRODS')
@@ -395,44 +391,44 @@ def main(argv):
                 annotateElab(metadata, ic, md, coll, title=config["ELN"]["title"])
 
             if os.path.isfile(dataPath):
-                item = ic.session.data_objects.get(
+                item = ic.get_dataobject(
                     coll.path+'/'+os.path.basename(dataPath))
-                ic.addMetadata([item], 'ELN', md.metadataUrl)
+                ic.add_metadata([item], 'ELN', md.metadataUrl)
             elif os.path.isdir(dataPath):
-                upColl = ic.session.collections.get(
+                upColl = ic.get_collection(
                             coll.path+'/'+os.path.basename(dataPath))
                 items = [upColl]
                 for c, _, objs in upColl.walk():
                     items.append(c)
                     items.extend(objs)
-                ic.addMetadata(items, 'ELN', md.metadataUrl)
+                ic.add_metadata(items, 'ELN', md.metadataUrl)
 
         print()
         print(BLUE+'Upload complete with the following parameters:')
         print(json.dumps(config, indent=4))
         print(DEFAULT)
-        ic.session.cleanup()
+        ic.cleanup()
     elif operation == 'download':
         if prepareDownload(irodsPath, ic, config):
             downloadDir = config['DOWNLOAD']['path']
             irodsDataPath = config["iRODS"]["downloadItem"]
             print(YEL,
                   'Downloading: ' + irodsDataPath + ', ' + \
-                  str(ic.get_irods_size([irodsDataPath]) * ic.multiplier) + 'GB',
+                  str(ic.get_irods_size([irodsDataPath]) * kw.MULTIPLIER) + 'GB',
                   DEFAULT)
             try:
-                item = ic.session.collections.get(irodsDataPath)
+                item = ic.get_collection(irodsDataPath)
             except Exception:
-                item = ic.session.data_objects.get(irodsDataPath)
+                item = ic.get_dataobject(irodsDataPath)
             print(item, downloadDir)
             ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force=False)
             print()
             print(BLUE+'Download complete with the following parameters:')
             print(json.dumps(config, indent=4))
             print(DEFAULT)
-            ic.session.cleanup()
+            ic.cleanup()
         else:
-            ic.session.cleanup()
+            ic.cleanup()
             sys.exit(2)
     else:
         print('Not an implemented operation.')

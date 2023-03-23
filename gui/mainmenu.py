@@ -121,7 +121,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
-                self.ic.session.cleanup()
+                self.ic.cleanup()
             elif self.ticketAccessTab.ic:
                 self.ticketAccessTab.ic.closeSession()
             sys.exit()
@@ -136,9 +136,9 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.ic:
-                self.ic.session.cleanup()
+                self.ic.cleanup()
             elif self.ticketAccessTab.ic:
-                self.ticketAccessTab.ic.closeSession()
+                self.ticketAccessTab.ic.close_session()
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)

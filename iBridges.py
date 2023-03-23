@@ -15,6 +15,7 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+from irodsConnector.manager import IrodsConnector
 import utils
 
 app = PyQt6.QtWidgets.QApplication(sys.argv)
@@ -33,7 +34,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
     def __init__(self):
         super().__init__()
         self.icommands = False
-        self._connector = None
         self._load_gui()
         self._init_configs_and_logging()
         self._init_envbox()
@@ -101,21 +101,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
 
         """
-        conn = self.connector()
+        conn = IrodsConnector()
         if conn.password:
             self.passwordField.setText(conn.password)
-
-    @property
-    def connector(self):
-        """IrodsConnector factory.
-
-        Returns
-        -------
-        IrodsConnector
-            iRODS session container.
-
-        """
-        return utils.IrodsConnector.IrodsConnector
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text
@@ -142,10 +130,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            with open(os.devnull, 'w', encoding='utf-8') as devnull:
-                icommands_exist = subprocess.call(
-                    ['which', 'iinit'], stdout=devnull, stderr=devnull) == 0
-            if icommands_exist:
+            if IrodsConnector().icommands():
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
@@ -171,17 +156,17 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         password = self.passwordField.text()
-        conn = self.connector(irods_env_file=irods_env_file, password=password)
-        # Add own filepath for easy saving.
-        config = self.ibridges.config
-        config['ui_ienvFilePath'] = irods_env_file
-        config['last_ienv'] = irods_env_file.name
-        # Save iBridges config to disk and combine with iRODS config.
-        self.ibridges.config = config
-        # TODO consider passing separate configurations or rename
-        #  `ienv` to reflect common nature
-        ienv.update(config)
         try:
+            conn = IrodsConnector(irods_env_file=irods_env_file, password=password)
+            # Add own filepath for easy saving.
+            config = self.ibridges.config
+            config['ui_ienvFilePath'] = irods_env_file
+            config['last_ienv'] = irods_env_file.name
+            # Save iBridges config to disk and combine with iRODS config.
+            self.ibridges.config = config
+            # TODO consider passing separate configurations or rename
+            #  `ienv` to reflect common nature
+            ienv.update(config)
             # widget is a global variable
             browser = gui.mainmenu(widget, conn, ienv)
             if len(widget) == 1:
@@ -191,6 +176,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             widget.setCurrentIndex(widget.currentIndex()+1)
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
+                irods.exception.CAT_INVALID_USER,
                 ConnectionRefusedError):
             self.envError.clear()
             self.passError.setText('ERROR: Wrong password.')
@@ -227,7 +213,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
 def closeClean():
     activeWidget = widget.currentWidget()
     try:
-        activeWidget.ic.session.cleanup()
+        activeWidget.ic.cleanup()
     except:
         pass
 
