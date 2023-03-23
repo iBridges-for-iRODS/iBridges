@@ -239,6 +239,37 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         print_success('Download complete')
         return True
 
+    @classmethod
+    def upload(cls, irods_conn, irods_resc, source, target_path):
+        # check if intended upload target exists
+        try:
+            irods_conn.ensure_coll(target_path)
+            print_warning(f"Uploading to {target_path}")
+        except Exception:
+            print_error(f"Collection path invalid: {target_path}")
+            return False
+
+        # check if there's enough space left on the resource
+        upload_size = get_local_size([source])
+        # TODO
+        # free_space = int(irods_conn.get_free_space(resc_name=irods_resc))
+        # print(free_space)
+        free_space = None
+        if free_space is not None and free_space-1000**3 < upload_size:
+            print_error('Not enough space left on iRODS resource to upload.')
+            return False
+
+        irods_conn.upload_data(
+            src_path=source,
+            dst_coll=irods_conn.get_collection(target_path),
+            resc_name=irods_resc,
+            size=upload_size,
+            force=True)
+
+        return True
+
+
+
 
 def setupIRODS(config, operation):
     """
