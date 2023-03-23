@@ -268,129 +268,69 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return True
 
+    @classmethod
+    def setup_elab(cls, config):
+        elab = elabConnector(config['token'])
 
-
-
-def setupIRODS(config, operation):
-    """
-    Connects to iRODS and sets up the environment.
-    """
-    ic = connectIRODS(config)
-    if operation == 'download':
-        return ic
-
-    # set iRODS path
-    try:
-        ic.ensure_coll(config['iRODS']['irodscoll'])
-        print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
-    except Exception:
-        print(RED+"Collection path not set in config or invalid: " + config['iRODS']['irodscoll']+DEFAULT)
-        success = False
-        while not success:
-            iPath = input('Choose iRODS collection: ')
+        if 'group' in config and 'experiment' in config \
+            and len(config['group']) > 0 and len(config['experiment']) > 0:
             try:
-                ic.ensure_coll(iPath)
-                config['iRODS']['irodscoll'] = iPath
-                print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
-                success = True
+                elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
             except Exception:
-                print(RED+"Collection path not valid: " + config['iRODS']['irodscoll']+DEFAULT)
-
-    # Set iRODS resource
-    # Look in config, then in ienv
-
-    print(YEL+"Confirming resource in config: " + config['iRODS']['irodsresc'])
-    try:
-        resource = ic.get_resource(config['iRODS']['irodsresc'])
-        try:
-            print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                  str(round(int(ic.resource_space(resource.name) * kw.MULTIPLIER)) + 'GB'))
-        except FreeSpaceNotSet:
-            ic.ienv.setdefault('force_unknown_free_space', 'True')
-            print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
-    except (NoResultFound, ResourceDoesNotExist):
-        print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
-        try:
-            print(YEL+'Checking env-file: '+ic.default_resc())
-            resource = ic.get_resource(ic.default_resc())
-            config['iRODS']['irodsresc'] = ic.default_resc()
-            try:
-                print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                      str(round(int(ic.resource_space(resource.name) * kw.MULTIPLIER)) + 'GB'))
-            except FreeSpaceNotSet:
-                ic.ienv.setdefault('force_unknown_free_space', 'True')
-                print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
-        except Exception:
-            print(RED+"No resource set in environment file either ('irods_resource_name')"+DEFAULT)
-            print(RED+"ERROR: No resource set"+DEFAULT)
-            ic.cleanup()
-            sys.exit(2)
-    except Exception:
-        print(RED+'iRODS resource not found: '+config['iRODS']['irodsresc']+DEFAULT)
-        print(RED+'No valid resource set.')
-        ic.cleanup()
-        sys.exit(2)
-
-    return ic
-
-
-def setupELN(config):
-    md = elabConnector(config['ELN']['token'])
-    if config['ELN']['group'] != '' and config['ELN']['experiment'] != '':
-        try:
-            md.updateMetadataUrl(group=config['ELN']['group'],
-                                 experiment=config['ELN']['experiment'])
-        except Exception:
-            print(RED+'ELN groupID or experimentID not set or valid.'+DEFAULT)
-            md.showGroups()
-            md.updateMetadataUrlInteractive(group=True)
-    else:
-        md.showGroups()
-        md.updateMetadataUrlInteractive(group=True)
-
-    if config['ELN']['title'] == '':
-        config['ELN']['title'] = input('ELN paragraph title: ')
-
-    print(BLUE+('Link Data to experiment: '))
-    print(md.metadataUrl)
-    config['ELN']['experiment'] = md.experiment.id()
-    config['ELN']['group'] = md.elab.group().id()
-    print('with title: '+config['ELN']['title']+DEFAULT)
-
-    return md, config['ELN']['title']
-
-
-def prepareUpload(dataPath, ic, config):
-    if not os.path.exists(dataPath):
-        print(RED+'Data path does not exist'+DEFAULT)
-        menu = input('Do you want to specify a new path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y', '']:
-            success = False
-            while not success:
-                dataPath = input('Full data path: ')
-                success = os.path.exists(dataPath)
+                print_error(f"ELN groupID {config['group']} or experimentID {config['experiment']} not set or valid.")
+                elab.showGroups()
+                elab.updateMetadataUrlInteractive(group=True)
         else:
-            print('Aborted: Data path not given')
-            return False
-    else:
-        pass
-    # store verified dataPath
-    config["iRODS"]["uploadItem"] = dataPath
+            elab.showGroups()
+            elab.updateMetadataUrlInteractive(group=True)
 
-    size = get_local_size([dataPath])
-    freeSpace = int(ic.get_free_space(config['iRODS']['irodsresc']))
-    print('Checking storage capacity for ' + dataPath + ', ' + str(float(size) * kw.MULTIPLIER) + 'GB')
-
-    if freeSpace is not None and int(freeSpace)-1000**3 < size:
-        print(RED+'Not enough space left on iRODS resource.'+DEFAULT)
-        res = input('Do you want to force the upload (Y/N): ')
-        if res != 'Y':
-            print('Aborted: Not enough space left.')
-            return False
+        # TODO: while loop to ensure title? or is it not mandatory? or lose interactivity altogether
+        if not 'title' in config or len(config['title']) == 0:
+            title = input('ELN paragraph title: ')
         else:
-            return True
-    else:
-        return True
+            title = config['title']
+
+        print_message('Link Data to experiment: ')
+        print_message(elab.metadataUrl)
+        print_message(f'with title: {title}')
+
+        return elab, title, elab.group.index[0], elab.experiment.id()
+
+    @classmethod
+    def annotate_elab(cls, irods_conn, elab, source, target_path, title='Data in iRODS'):  # pylint: disable=too-many-arguments
+        coll = irods_conn.get_collection(target_path)
+
+        annotation = {
+            "iRODS path": coll.path,
+            "iRODS server": irods_conn.host,
+            "iRODS user": irods_conn.username,
+        }
+
+        # YODA: webdav URL does not contain "home", but iRODS path does!
+        if irods_conn.davrods and ("yoda" in irods_conn.host or "uu.nl" in irods_conn.host):
+            url = f"{irods_conn.davrods}/{coll.path.split('home/')[1].strip()}"
+        elif irods_conn.davrods and "surfsara.nl" in irods_conn.host:
+            url = f"{irods_conn.davrods}/{coll.path.split(irods_conn.zone)[1].strip('/')}"
+        elif irods_conn.davrods:
+            url = f"{irods_conn.davrods}/{coll.path.strip('/')}"
+        else:
+            url = '{' + "\n".join([irods_conn.host, irods_conn.zone,
+                                   irods_conn.username, str(irods_conn.port), coll.path]) + '}'
+
+        elab.addMetadata(url=url, meta=annotation, title=title)
+
+        if os.path.isfile(source):
+            item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(source)}")
+            irods_conn.add_metadata([item], 'ELN', elab.metadataUrl)
+        elif os.path.isdir(source):
+            uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(source)}")
+            items = [uploaded_coll]
+            for this_coll, _, objs in uploaded_coll.walk():
+                items.append(this_coll)
+                items.extend(objs)
+            irods_conn.add_metadata(items, 'ELN', elab.metadataUrl)
+
+
 
 
 
