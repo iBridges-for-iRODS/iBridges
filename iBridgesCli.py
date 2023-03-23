@@ -330,8 +330,60 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 items.extend(objs)
             irods_conn.add_metadata(items, 'ELN', elab.metadataUrl)
 
+    def _run(self):
+        self.irods_conn = self.connect_irods(irods_env=self.irods_env)
+
+        if not self.irods_conn:
+            self._clean_exit("Connection failed")
+
+        if self.operation == 'download':
+
+            if not self.download(irods_conn=self.irods_conn, source=self.irods_path, target_folder=self.local_path):
+                self._clean_exit()
+
+        elif self.operation == 'upload':
+
+            # check if specified iRODS resource exists
+            try:
+                _ = self.irods_conn.session.resources.get(self.irods_resc)
+            except ResourceDoesNotExist:
+                self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
+
+            # initialise medata store connections
+            # TODO
+            # if self.get_config(self.config_file, 'ELN', 'upload'):
+            if self.get_config('ELN') and not self.skip_eln:
+                elab, title, group_id, experiment_id = self.setup_elab(config=self.get_config('ELN'))
+                # TODO: so we're just logging target root path, not actual files
+                target_path = f"{self.irods_path}/{elab.__name__}/{str(group_id)}/{str(experiment_id)}"
+            else:
+                elab = None
+                target_path = self.irods_path
+                print_message("INFO: No metadata store configured. Only upload data to iRODS.")
+
+            if not self.upload(irods_conn=self.irods_conn,
+                               irods_resc=self.irods_resc,
+                               source=self.local_path,
+                               target_path=target_path):
+                self._clean_exit()
+
+            if elab:
+                self.annotate_elab(irods_conn=self.irods_conn,
+                                   elab=elab,
+                                   source=self.local_path,
+                                   target_path=target_path,
+                                   title=title)
+        else:
+            print_error(f'Unknown operation: {self.operation}')
+
+        self._clean_exit(exit_code=0)
 
 
+if __name__ == "__main__":
+
+    cli = iBridgesCli.from_arguments()
+    # or
+    # cli = iBridgesCli(input_csv='/data/ibridges/test.csv', transfer_config='...', output_folder='...')
 
 
 
@@ -346,135 +398,3 @@ def printHelp():
     print('Uploading: ./iBridgesCli.py -c <yourConfigFile> --data=/my/data/path')
 
 
-def main(argv):
-
-    irodsEnvPath = os.path.expanduser('~') + os.sep + ".irods"
-    setup_logger(irodsEnvPath, "iBridgesCli")
-
-    try:
-        opts, args = getopt.getopt(argv, "hc:d:i:", ["config=", "data=", "irods="])
-    except getopt.GetoptError:
-        print(RED+"ERROR: incorrect usage."+DEFAULT)
-        printHelp()
-        sys.exit(2)
-
-    config = None
-    operation = None
-
-    for opt, arg in opts:
-        if opt == '-h':
-            printHelp()
-            sys.exit(2)
-        elif opt in ['-c', '--config']:
-            try:
-                config = getConfig(arg)
-            except Exception:
-                print(RED+'No config file found.'+DEFAULT)
-                sys.exit(2)
-        elif opt in ['-i', '--irods']:
-            operation = 'download'
-            if arg.endswith("/"):
-                irodsPath = arg[:-1]
-            else:
-                irodsPath = arg
-        elif opt in ['-d', '--data']:
-            operation = 'upload'
-            if arg.endswith("/"):
-                dataPath = arg[:-1]
-            else:
-                dataPath = arg
-        else:
-            printHelp()
-            sys.exit(2)
-
-    # initialise iRODS
-    if operation is None:
-        print(RED+"ERROR: missing parameter."+DEFAULT)
-        printHelp()
-        sys.exit(2)
-    ic = setupIRODS(config, operation)
-    # initialise medata store connetcions
-    if 'ELN' in config and operation == 'upload':
-        md, title = setupELN(config)
-    else:
-        md = None
-
-    # check files for upload
-    if operation == 'upload':
-        if len(config) == 1:
-            print(BLUE+"INFO: No metadata store configured. Only upload data to iRODS."+DEFAULT)
-        if prepareUpload(dataPath, ic, config):
-            if md is not None:
-                iPath = config['iRODS']['irodscoll'] + '/' + md.__name__ + '/' + \
-                    str(config['ELN']['group']) + '/'+str(config['ELN']['experiment'])
-            # elif os.path.isdir(dataPath):
-            #     iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
-            else:
-                iPath = config['iRODS']['irodscoll']
-            iColl = ic.get_collection(iPath)
-            dataPath = config["iRODS"]["uploadItem"]
-            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'],
-                           get_local_size([dataPath]), force=True)
-        else:
-            ic.cleanup()
-            sys.exit(2)
-        # tag data in iRODS and metadata store
-        if md is not None:
-            coll = ic.get_collection(iPath)
-            metadata = {
-                "iRODS path": coll.path,
-                "iRODS server": ic.host,
-                "iRODS user": ic.username,
-            }
-            if config["ELN"]["title"] == '':
-                annotateElab(metadata, ic, md, coll, title='Data in iRODS')
-            else:
-                annotateElab(metadata, ic, md, coll, title=config["ELN"]["title"])
-
-            if os.path.isfile(dataPath):
-                item = ic.get_dataobject(
-                    coll.path+'/'+os.path.basename(dataPath))
-                ic.add_metadata([item], 'ELN', md.metadataUrl)
-            elif os.path.isdir(dataPath):
-                upColl = ic.get_collection(
-                            coll.path+'/'+os.path.basename(dataPath))
-                items = [upColl]
-                for c, _, objs in upColl.walk():
-                    items.append(c)
-                    items.extend(objs)
-                ic.add_metadata(items, 'ELN', md.metadataUrl)
-
-        print()
-        print(BLUE+'Upload complete with the following parameters:')
-        print(json.dumps(config, indent=4))
-        print(DEFAULT)
-        ic.cleanup()
-    elif operation == 'download':
-        if prepareDownload(irodsPath, ic, config):
-            downloadDir = config['DOWNLOAD']['path']
-            irodsDataPath = config["iRODS"]["downloadItem"]
-            print(YEL,
-                  'Downloading: ' + irodsDataPath + ', ' + \
-                  str(ic.get_irods_size([irodsDataPath]) * kw.MULTIPLIER) + 'GB',
-                  DEFAULT)
-            try:
-                item = ic.get_collection(irodsDataPath)
-            except Exception:
-                item = ic.get_dataobject(irodsDataPath)
-            print(item, downloadDir)
-            ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force=False)
-            print()
-            print(BLUE+'Download complete with the following parameters:')
-            print(json.dumps(config, indent=4))
-            print(DEFAULT)
-            ic.cleanup()
-        else:
-            ic.cleanup()
-            sys.exit(2)
-    else:
-        print('Not an implemented operation.')
-        sys.exit(2)
-
-
-if __name__ == "__main__":
-    main(sys.argv[1:])
