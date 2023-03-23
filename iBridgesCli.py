@@ -203,13 +203,14 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
                 irods_conn = IrodsConnector(irods_env, secret)
-                # irods_conn.session.pool.get_connection()
-                _ = irods_conn.server_version
+                if not irods_conn.session:
+                    raise ValueError("No session")
                 break
             except Exception as exception:
-                print_error(f"AUTHENTICATION failed. {repr(exception)}")
+                # print_error(f"AUTHENTICATION failed. {repr(exception)}")
+                print_error(f"Failed to connect")
                 attempts += 1
-                if attempts >= 3 or input('Try again (Y/N): ') not in ['Y', 'y']:
+                if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
 
         return irods_conn
@@ -256,9 +257,9 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             return False
 
         irods_conn.upload_data(
-            src_path=source,
-            dst_coll=irods_conn.get_collection(target_path),
-            resc_name=irods_resc,
+            source=source,
+            destination=irods_conn.get_collection(target_path),
+            res_name=irods_resc,
             size=upload_size,
             force=True)
 
