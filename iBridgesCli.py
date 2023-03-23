@@ -200,95 +200,23 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                    skip_eln=args.skip_eln,
                    )
 
-
-
-def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
-    """
-    Example annotation
-    annotation = {
-            "Data size": f'{size} Bytes',
-            "iRODS path": coll.path,
-            "iRODS server": ic.session.host,
-            "iRODS user": ic.session.username,
-        }
-    """
-    # YODA: webdav URL does not contain "home", but iRODS path does!
-    if ic.davrods and ("yoda" in ic.host or "uu.nl" in ic.host):
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.split('home/')[1].strip(),
-            meta=annotation,
-            title=title)
-    elif ic.davrods and "surfsara.nl" in ic.host:
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.split(ic.zone)[1].strip('/'),
-            meta=annotation,
-            title=title)
-    elif ic.davrods:
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.strip('/'),
-            meta=annotation,
-            title=title)
-    else:
-        host = ic.host
-        zone = ic.zone
-        name = ic.username
-        port = ic.port
-        path = coll.path
-        conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-        elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
-
-
-def connectIRODS(config):
-
-    # icommands present and irods_environment file present and user wants to use standard envFile
-    standardEnv = os.path.expanduser('~' + os.sep+'.irods' + os.sep + 'irods_environment.json')
-    if os.path.exists(standardEnv) and \
-            (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
-        try:
-            success = False
-            while not success:
-                passwd = getpass.getpass(
-                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-                ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
-                try:
-                    _ = ic.server_version
-                    success = True
-                except Exception as e:
-                    print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
-                    res = input('Try again (Y/N): ')
-                    if res not in ['Y', 'y']:
-                        sys.exit(2)
-            print(BLUE+"INFO: standard environment file is present.")
-            print("INFO: Connected"+DEFAULT)
-        except ConnectionRefusedError:
-            raise
-        except FileNotFoundError:
-            raise
-        except Exception:
-            raise
-
-    elif os.path.exists(config['iRODS']['irodsenv']):
-        print("INFO: Connect with python API")
-        success = False
-        while not success:
-            passwd = getpass.getpass(
-                    'Password for '+config['iRODS']['irodsenv']+': ')
-            ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
+    @classmethod
+    def connect_irods(cls, irods_env):
+        attempts = 0
+        while True:
+            secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
-                ic.server_version
-                success = True
-            except Exception as e:
-                print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
-                res = input('Try again (Y/N): ')
-                if res not in ['Y', 'y']:
-                    sys.exit(2)
+                irods_conn = IrodsConnector(irods_env, secret)
+                # irods_conn.session.pool.get_connection()
+                _ = irods_conn.server_version
+                break
+            except Exception as exception:
+                print_error(f"AUTHENTICATION failed. {repr(exception)}")
+                attempts += 1
+                if attempts >= 3 or input('Try again (Y/N): ') not in ['Y', 'y']:
+                    return False
 
-        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
-
-    else:
-        raise FileNotFoundError('Environment file not found e.g. ' + standardEnv)
-
-    return ic
+        return irods_conn
 
 
 def setupIRODS(config, operation):
