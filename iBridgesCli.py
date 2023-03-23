@@ -59,6 +59,81 @@ def print_message(msg):
     logging.info(msg)
 
 
+class iBridgesCli:                          # pylint: disable=too-many-instance-attributes
+    """
+    Class for up- and downloading to YODA/iRODS via the command line.
+    Includes option for writing metadata to Elab Journal.
+    """
+    def __init__(self,                      # pylint: disable=too-many-arguments
+                 config_file: str,
+                 local_path: str,
+                 irods_path: str,
+                 irods_env: str,
+                 irods_resc: str,
+                 operation: str,
+                 logdir: str,
+                 skip_eln: bool) -> None:
+
+        self.irods_env = None
+        self.irods_path = None
+        self.irods_resc = None
+        self.local_path = None
+        self.config_file = None
+
+        # reading optional config file
+        if config_file:
+            if not os.path.exists(config_file):
+                self._clean_exit(f"{config_file} does not exist")
+
+            self.config_file = os.path.expanduser(config_file)
+            if not self.get_config('iRODS'):
+                self._clean_exit(f"{config_file} misses iRODS section")
+
+        # CLI parameters override config-file
+        self.irods_env = irods_env or self.get_config('iRODS', 'irodsenv') \
+                         or self._clean_exit("need iRODS environment file", True)
+        self.irods_path = irods_path or self.get_config('iRODS', 'irodscoll') \
+                          or self._clean_exit("need iRODS path", True)
+        self.local_path = local_path or self.get_config('LOCAL', 'path') \
+                          or self._clean_exit("need local path", True)
+
+        self.irods_env = Path(os.path.expanduser(self.irods_env))
+        self.local_path = Path(os.path.expanduser(self.local_path))
+        self.irods_path = self.irods_path.rstrip("/")
+        logdir = Path(logdir)
+
+        # checking if paths actually exist
+        for path in [self.irods_env, self.local_path, logdir]:
+            if not path.exists():
+                self._clean_exit(f"{path} does not exist")
+
+        # reading default irods_resc from env file if not specified otherwise
+        self.irods_resc = irods_resc or self.get_config('iRODS', 'irodsresc') or None
+        if not self.irods_resc:
+            with open(self.irods_env,'r',encoding='utf-8') as file:
+                cfg = json.load(file)
+                if 'default_resource_name' in cfg:
+                    self.irods_resc = cfg['default_resource_name']
+
+        if not self.irods_resc:
+            self._clean_exit("need an iRODS resource", True)
+
+        self.operation = operation
+        self.skip_eln = skip_eln
+        setup_logger(logdir, "iBridgesCli")
+        self._run()
+
+    def _clean_exit(self, message=None, show_help=False, exit_code=1):
+        if message:
+            print_error(message)
+        if show_help:
+            iBridgesCli.parser.print_help()
+        if self.irods_conn:
+            self.irods_conn.cleanup()
+        sys.exit(exit_code)
+
+
+
 
 def getConfig(path):
     """
