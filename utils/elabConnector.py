@@ -36,16 +36,13 @@ class elabConnector():
             return groups
         return True
 
-    def __getGroupIds(self):
-        return self.elab.groups().all().index
-
     def __chooseGroup(self):
         success = False
         while not success:
             inVar = input('Choose Elab groupId:')
             try:
                 groupId = int(inVar)
-                if groupId in self.__getGroupIds():
+                if groupId in self.elab.groups().all().index:
                     print(f'{BLUE}Group chosen: {self.elab.group().name()}{DEFAULT}')
                     success = True
                     return groupId
