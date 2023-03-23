@@ -378,23 +378,8 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         self._clean_exit(exit_code=0)
 
-
 if __name__ == "__main__":
 
     cli = iBridgesCli.from_arguments()
     # or
     # cli = iBridgesCli(input_csv='/data/ibridges/test.csv', transfer_config='...', output_folder='...')
-
-
-
-def printHelp():
-    print('Data upload client')
-    print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
-    print('Usage: ./iBridgesCli.py -c, --config= \t config file')
-    print('\t\t    -d, --data= \t datapath')
-    print('\t\t    -i, --irods= \t irodspath (download)')
-    print('Examples:')
-    print('Downloading: ./iBridgesCli.py -c <yourConfigFile> --irods=/npecZone/home')
-    print('Uploading: ./iBridgesCli.py -c <yourConfigFile> --data=/my/data/path')
-
-
