@@ -16,12 +16,15 @@ from irodsConnector.manager import IrodsConnector
 from irodsConnector.resource import FreeSpaceNotSet
 from irods.exception import ResourceDoesNotExist, NoResultFound
 
+import argparse
+import logging
 import configparser
 import os
 import sys
 import json
 import getopt
 import getpass
+from pathlib import Path
 from utils.utils import setup_logger, get_local_size, ensure_dir
 
 RED = '\x1b[1;31m'
