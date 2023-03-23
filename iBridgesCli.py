@@ -27,10 +27,37 @@ import getpass
 from pathlib import Path
 from utils.utils import setup_logger, get_local_size, ensure_dir
 
-RED = '\x1b[1;31m'
-DEFAULT = '\x1b[0m'
-YEL = '\x1b[1;33m'
-BLUE = '\x1b[1;34m'
+log_colors = {
+    0: '\x1b[0m',    # DEFAULT (info)
+    1: '\x1b[1;33m', # YEL (warn)
+    2: '\x1b[1;31m', # RED (error)
+    3: '\x1b[1;34m', # BLUE (success)
+}
+
+def print_error(msg):
+    """
+    Adds color code for error to message and calls logging.error.
+    """
+    logging.error("%s%s%s", log_colors[2], msg, log_colors[0])
+
+def print_warning(msg):
+    """
+    Adds color code for warning to message and calls logging.warning.
+    """
+    logging.warning("%s%s%s", log_colors[1], msg, log_colors[0])
+
+def print_success(msg):
+    """
+    Adds color code for success to message and calls logging.info.
+    """
+    logging.info("%s%s%s", log_colors[1], msg, log_colors[0])
+
+def print_message(msg):
+    """
+    Calls logging.info.
+    """
+    logging.info(msg)
+
 
 
 def getConfig(path):
