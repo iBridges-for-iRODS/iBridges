@@ -121,7 +121,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
     def _clean_exit(self, message=None, show_help=False, exit_code=1):
         if message:
-            print_error(message)
+            print_message(message) if exit_code==0 else print_error(message)
         if show_help:
             iBridgesCli.parser.print_help()
         if self.irods_conn:
@@ -203,8 +203,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
                 irods_conn = IrodsConnector(irods_env, secret)
-                if not irods_conn.session:
-                    raise ValueError("No session")
+                _ = irods_conn.session
                 break
             except Exception as exception:
                 # print_error(f"AUTHENTICATION failed. {repr(exception)}")
@@ -325,6 +324,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             for this_coll, _, objs in uploaded_coll.walk():
                 items.append(this_coll)
                 items.extend(objs)
+
             irods_conn.add_metadata(items, 'ELN', elab.metadataUrl)
 
     def _run(self):
@@ -374,7 +374,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         else:
             print_error(f'Unknown operation: {self.operation}')
 
-        self._clean_exit(exit_code=0)
+        self._clean_exit(message="Done", exit_code=0)
 
 if __name__ == "__main__":
 
