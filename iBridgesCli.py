@@ -154,6 +154,53 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return False
 
+    @classmethod
+    def from_arguments(cls):
+        cls.parser = argparse.ArgumentParser(
+            prog='python iBridgesCli.py',
+            description="",
+            epilog=""
+            )
+
+        default_logdir = os.path.join(str(os.getenv('HOME')), '.irods')
+        default_irods_env = os.path.join(str(os.getenv('HOME')), '.irods', 'irods_environment.json')
+
+        cls.parser.add_argument('--config', '-c',
+                            type=str,
+                            help='Config file')
+        cls.parser.add_argument('--local_path', '-l',
+                            help='Local path to download to, or upload from',
+                            type=str)
+        cls.parser.add_argument('--irods_path', '-i',
+                            help='iRods path to upload to, or download from',
+                            type=str)
+        cls.parser.add_argument('--operation', '-o',
+                            type=str,
+                            choices=['upload', 'download'],
+                            required=True)
+        cls.parser.add_argument('--env', '-e', type=str,
+                            help=f'iRods environment file. (example: {default_irods_env})')
+        cls.parser.add_argument('--irods_resc', '-r', type=str,
+                            help='iRods resource. If omitted default will be read from iRods env file.')
+        cls.parser.add_argument('--logdir', type=str,
+                            help=f'Directory for logfile. Default: {default_logdir}',
+                            default=default_logdir)
+        cls.parser.add_argument('--skip_eln', action="store_true",
+                            help='Skip writing to ELN')
+
+        args = cls.parser.parse_args()
+
+        return cls(config_file=args.config,
+                   irods_env=args.env,
+                   irods_resc=args.irods_resc,
+                   local_path=args.local_path,
+                   irods_path=args.irods_path,
+                   operation=args.operation,
+                   logdir=args.logdir,
+                   skip_eln=args.skip_eln,
+                   )
+
+
 
 def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
     """
