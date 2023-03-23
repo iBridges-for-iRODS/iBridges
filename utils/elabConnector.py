@@ -51,9 +51,21 @@ class elabConnector():
             except ValueError:
                 print(r'{RED}Not a number{DEFAULT}')
 
+    def __resolveGroupName(self, groupName):
+        all = self.elab.groups().all()
+        if len(all.loc[all["name"]==groupName])==1:
+            return all.loc[all["name"]==groupName].index[0]
+        return groupName
+
     def __switchGroup(self, groupId):
-        if groupId in self.elab.groups().all().index:
+        if isinstance(groupId, str) and groupId.isnumeric():
+            groupId = int(groupId)
+        elif isinstance(groupId, str):
+            groupId = self.__resolveGroupName(groupId)
+
+        if int(groupId) in self.elab.groups().all().index.to_list():
             self.elab.set_group(groupId)
+            self.group = self.elab.groups().all().loc[[groupId]]
             return True
         else:
             raise ValueError('ERROR ELAB: groupId not found.')
