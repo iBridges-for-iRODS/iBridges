@@ -132,19 +132,27 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             self.irods_conn.cleanup()
         sys.exit(exit_code)
 
+    def get_config(self, section: str, option: str=None):
+        """
+        Reads config file.
+        """
+        if not self.config_file:
+            return False
 
+        config = configparser.ConfigParser()
+        with open(self.config_file, encoding='utf-8') as file:
+            config.read_file(file)
 
+            if section not in config.sections():
+                return False
 
-def getConfig(path):
-    """
-    Reads in config file. checks that at least section "iRODS" exists
-    """
-    config = configparser.ConfigParser()
-    config.read_file(open(path))
-    args = config._sections
-    if 'iRODS' not in args:
-        raise AttributeError("iRODS environment not defined.")
-    return args
+            if not option:
+                return dict(config.items(section))
+
+            if option in [x[0] for x in config.items(section)]:
+                return config.get(section, option)
+
+        return False
 
 
 def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
