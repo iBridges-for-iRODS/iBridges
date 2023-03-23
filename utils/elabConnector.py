@@ -114,9 +114,21 @@ class elabConnector():
             except Exception as error:
                 print(f'{RED}Not a valid Experiment ID.{DEFAULT}')
 
+    def __resolveExperimentName(self, expName):
+        all = self.elab.experiments().all()
+        if len(all.loc[all["name"]==expName])==1:
+            return all.loc[all["name"]==expName].index[0]
+        return expName
+
     def __switchExperiment(self, expId):
         # TODO determine if this call is needed
-        experiments = self.elab.experiments()
+        # experiments = self.elab.experiments()
+
+        if isinstance(expId, str) and expId.isnumeric():
+            expId = int(expId)
+        elif isinstance(expId, str):
+            expId = self.__resolveExperimentName(expId)
+
         expFrames = self.elab.experiments().all()
         if expId in expFrames.index:
             self.experiment = self.elab.experiments().get(expId)
