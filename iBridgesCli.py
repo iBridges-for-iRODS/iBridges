@@ -218,6 +218,27 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return irods_conn
 
+    @classmethod
+    def download(cls, irods_conn, source, target_folder):
+        # checks if remote object exists and if it's an object or a collection
+        if irods_conn.collection_exists(source):
+            item = irods_conn.get_collection(source)
+        elif irods_conn.dataobject_exists(source):
+            item = irods_conn.get_dataobject(source)
+        else:
+            print_error(f'iRODS path {source} does not exist')
+            return False
+
+        # get its size to check if there's enough space
+        download_size = irods_conn.get_irods_size([source])
+        print_message(f"Downloading '{source}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
+
+        # download
+        irods_conn.download_data(src_obj=item, dst_path=target_folder, size=download_size, force=False)
+
+        print_success('Download complete')
+        return True
+
 
 def setupIRODS(config, operation):
     """
@@ -341,45 +362,6 @@ def prepareUpload(dataPath, ic, config):
         return True
 
 
-def prepareDownload(irodsItemPath, ic, config):
-    if not ic.dataobject_exists(irodsItemPath) and \
-       not ic.collection_exists(irodsItemPath):
-        print(RED+'iRODS path does not exist'+DEFAULT)
-        menu = input('Do you want to specify a new iRODS path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y', '']:
-            success = False
-            while not success:
-                irodsItemPath = input('Full data path: ')
-                success = ic.dataobject_exists(irodsItemPath) or \
-                    ic.collection_exists(irodsItemPath)
-            config["iRODS"]["downloadItem"] = irodsItemPath
-        else:
-            print('Aborted: iRODS path not given')
-            return False
-    else:
-        config["iRODS"]["downloadItem"] = irodsItemPath
-
-    if 'DOWNLOAD' not in config.keys():
-        config['DOWNLOAD'] = {'path': ''}
-
-    if config['DOWNLOAD']['path'] == '' or os.path.isfile(config['DOWNLOAD']['path']):
-        print(RED+'No download directory given'+DEFAULT)
-        success = False
-        while not success:
-            dataPath = input('Download directory: ')
-            success = ensure_dir(dataPath)
-            if not success:
-                abort = input('Abort download? (Y/N): ')
-                if abort == "Y":
-                    ic.cleanup()
-                    sys.exit(2)
-            else:
-                config["DOWNLOAD"]["path"] = dataPath
-                return ensure_dir(config['DOWNLOAD']['path'])
-    else:
-        return ensure_dir(config['DOWNLOAD']['path'])
-
-    return True
 
 
 def printHelp():
