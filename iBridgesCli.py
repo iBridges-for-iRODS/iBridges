@@ -9,23 +9,19 @@ Implemented for:
     Metadata stores:
         Elabjournal
 """
-
-from utils.elabConnector import elabConnector
-import irodsConnector.keywords as kw
-from irodsConnector.manager import IrodsConnector
-from irodsConnector.resource import FreeSpaceNotSet
-from irods.exception import ResourceDoesNotExist, NoResultFound
-
 import argparse
 import logging
 import configparser
 import os
 import sys
 import json
-import getopt
 import getpass
 from pathlib import Path
-from utils.utils import setup_logger, get_local_size, ensure_dir
+from irods.exception import ResourceDoesNotExist
+import irodsConnector.keywords as kw
+from irodsConnector.manager import IrodsConnector
+from utils.elabConnector import elabConnector
+from utils.utils import setup_logger, get_local_size
 
 log_colors = {
     0: '\x1b[0m',    # DEFAULT (info)
@@ -251,9 +247,9 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         # check if there's enough space left on the resource
         upload_size = get_local_size([source])
-        # TODO
+
+        # TODO: does irods_conn.get_free_space() work yet?
         # free_space = int(irods_conn.get_free_space(resc_name=irods_resc))
-        # print(free_space)
         free_space = None
         if free_space is not None and free_space-1000**3 < upload_size:
             print_error('Not enough space left on iRODS resource to upload.')
