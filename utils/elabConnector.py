@@ -1,6 +1,7 @@
 """IrodsConnector for eLabJournal
 
 """
+from urllib.parse import urlparse
 from elabjournal import elabjournal
 
 URL_PATH = '/members/experiments/browser/#view=experiment&nodeID='
@@ -151,15 +152,21 @@ class elabConnector():
 
     def addMetadata(self, url, meta=None, title='Title'):
         infos = []
-        if 'http' in url and '://' in url:
+
+        url_parts = urlparse(url)
+        if all([url_parts.scheme, url_parts.netloc]):
             infos.append(f'<a href="{url}">Experiment data in iRODS</a>')
         else:
             infos.append(url)
+
         if meta is not None:
-            infos.append('<br><table style="width: 500px;" border="1" ')
-            infos.append('cellspacing="1" cellpadding="1"><tbody>')
+            infos.append('<br>')
+            infos.append('<table style="width: 500px;" border="1" cellspacing="1" cellpadding="1">')
+            infos.append('<tbody>')
             for key, value in meta.items():
                 infos.append(f'<tr><td>{key}</td><td>{value}</td></tr>')
-            infos.append('</tbody></table>')
+            infos.append('</tbody>')
+            infos.append('</table>')
+
         self.experiment.add(''.join(infos), title)
         return True
