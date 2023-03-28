@@ -195,6 +195,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             try:
                 irods_conn = IrodsConnector(irods_env, secret)
                 assert irods_conn.session, "No session"
+                break
             except Exception as exception:
                 logging.error("Failed to connect (%s)", str(exception))
                 attempts += 1

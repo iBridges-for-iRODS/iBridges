@@ -1,7 +1,12 @@
 import logging
+import os
 from utils.elabConnector import elabConnector
 
 class ElabPlugin():
+
+    def __init__(self) -> None:
+        self.elab = None
+        self.title = None
 
     def setup(self, calling_class):
 
@@ -18,7 +23,8 @@ class ElabPlugin():
             try:
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
             except Exception:
-                logging.error(f"ELN groupID {config['group']} or experimentID {config['experiment']} not set or valid.")
+                logging.error("ELN groupID %s or experimentID %s not set or valid.",
+                              config['group'], config['experiment'])
                 self.elab.showGroups()
                 self.elab.updateMetadataUrlInteractive(group=True)
         else:
@@ -31,17 +37,17 @@ class ElabPlugin():
         else:
             self.title = config['title']
 
-        logging.info('Link Data to experiment: ')
-        logging.info(self.elab.metadataUrl)
-        logging.info(f'with title: {self.title}')
+        logging.info("Link Data to experiment: %s", self.elab.metadataUrl)
+        logging.info("with title: %s", self.title)
 
-        calling_class.target_path = f"{calling_class.irods_path}/{self.elab.__name__}/{str(self.elab.group.index[0])}/{str(self.elab.experiment.id())}"
+        calling_class.target_path = f"{calling_class.irods_path}/{self.elab.__name__}/" + \
+                                    f"{str(self.elab.group.index[0])}/{str(self.elab.experiment.id())}"
 
     def annotate(self, calling_class):
 
         if not self.elab:
             return
-       
+
         irods_conn = calling_class.irods_conn
         coll = irods_conn.get_collection(calling_class.target_path)
 
@@ -64,16 +70,14 @@ class ElabPlugin():
 
         self.elab.addMetadata(url=url, meta=annotation, title=self.title)
 
-        # if os.path.isfile(source):
-        #     item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(source)}")
-        #     irods_conn.add_metadata([item], 'ELN', elab.metadataUrl)
-        # elif os.path.isdir(source):
-        #     uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(source)}")
-        #     items = [uploaded_coll]
-        #     for this_coll, _, objs in uploaded_coll.walk():
-        #         items.append(this_coll)
-        #         items.extend(objs)
+        if os.path.isfile(calling_class.local_path):
+            item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+            irods_conn.add_metadata([item], 'ELN', self.elab.metadataUrl)
+        elif os.path.isdir(calling_class.local_path):
+            uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+            items = [uploaded_coll]
+            for this_coll, _, objs in uploaded_coll.walk():
+                items.append(this_coll)
+                items.extend(objs)
 
-        #     irods_conn.add_metadata(items, 'ELN', elab.metadataUrl)
-
-
+            irods_conn.add_metadata(items, 'ELN', self.elab.metadataUrl)
