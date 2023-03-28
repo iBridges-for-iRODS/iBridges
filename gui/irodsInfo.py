@@ -32,9 +32,9 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         self.rescTable.setRowCount(0)
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # irods Zone
-        self.zoneLabel.setText(self.ic.session.zone)
+        self.zoneLabel.setText(self.ic.zone)
         # irods user
-        self.userLabel.setText(self.ic.session.username)
+        self.userLabel.setText(self.ic.username)
         # irods user type and groups
         user_type, user_groups = self.ic.get_user_info()
         self.typeLabel.setText(user_type)
@@ -42,9 +42,9 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         # default resource
         self.rescLabel.setText(self.ic.default_resc)
         # irods server and version
-        self.serverLabel.setText(self.ic.session.host)
+        self.serverLabel.setText(self.ic.host)
         self.versionLabel.setText(
-            '.'.join((str(num) for num in self.ic.session.server_version)))
+            '.'.join((str(num) for num in self.ic.server_version)))
         # irods resources
         resc_info = self.ic.list_resources(['name', 'status', 'free_space'])
         self.rescTable.setRowCount(len(resc_info[0]))

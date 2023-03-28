@@ -147,12 +147,12 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
-                        if self.ic.session.collections.exists(p):
-                            item = self.ic.session.collections.get(p)
+                        if self.ic.collection_exists(p):
+                            item = self.ic.get_collection(p)
                             self.ic.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
-                        elif self.ic.session.data_objects.exists(p):
-                            item = self.ic.session.data_objects.get(p)
+                        elif self.ic.dataobject_exists(p):
+                            item = self.ic.get_dataobject(p)
                             self.ic.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
