@@ -649,6 +649,90 @@ class JsonConfig:
         self.filepath.unlink(missing_ok=True)
 
 
+class IbridgesContext():
+    """
+    Gathers all config parameters from the irods_environment.json and
+    the ~/.ibridges/config.json if present
+    """
+
+    def __init__(self):
+        self.irods_env_file_path = ""
+        self.irods_config = None
+
+        # ibridges config path: ~/.ibridges/ibridges_config.json
+        self.ibridges_config_file_path = LocalPath(os.path.expanduser('~/.ibridges/config.json'))
+        self.ibridges_config = JsonConfig(os.path.expanduser(self.ibridges_config_file_path))
+        if self.ibridges_config.config == None:
+            self.ibridges_config.config = {}
+
+    def read_irods_config(self, irods_env_file_path: str) -> None:
+        self.irods_env_file_path = irods_env_file_path
+        self.irods_config = JsonConfig(irods_env_file_path)
+
+        self._mandatory_keys_present()
+        self._force_unknown_free_space()
+        self._davrods()
+
+    def _mandatory_keys_present(self):
+        mandatory_keys = ['irods_host', 'irods_user_name',
+                          'irods_port', 'irods_zone_name',
+                          'irods_default_resource']
+        for key in mandatory_keys:
+            if key not in self.irods_config.config:
+                raise Exception(f'Missing key in irods_environment: {key}')
+
+    @property
+    def irods_env_file(self):
+        return self.irods_env_file_path
+
+    @property
+    def ibridges_config_file(self):
+        return self.ibridges_config_file_path
+
+    # Move config items to correct config object, can be deleted once 
+    # https://github.com/chStaiger/iBridges-Gui/issues/70 is solved
+    def _force_unknown_free_space(self):
+        if 'force_unknown_free_space' in self.irods_config.config:
+            self.update_ibridges_keyval('force_unknown_free_space',
+                                        self.irods_config.config['force_unknown_free_space'])
+
+    def _davrods(self):
+        if 'davrods_server' in self.irods_config.config:
+            self.update_ibridges_keyval('davrods_server',
+                                        self.irods_config.config['davrods_server'])
+
+    @property
+    def irods_env(self):
+        return self.irods_config.config
+
+    @property
+    def ibridges_env(self):
+        return self.ibridges_config.config
+
+    def update_ibridges_keyval(self, key, value):
+        try:
+            if self.ibridges_config.config:
+                self.ibridges_config.config[key] = value
+            else:
+                self.ibridges_config.config = {}
+                self.ibridges_config.config[key] = value
+        except Exception as e:
+            raise e
+
+    def update_irods_keyval(self, key, value):
+        try:
+            self.irods_config.config[key] = value
+        except Exception as e:
+            raise e
+
+    def save_config(self, config: JsonConfig):
+        """
+        Overwrites the json document of an existing JsonConfig or, if not present yet,
+        creates the filepath and stores the JsonConfig as json.
+        """
+        config.config = config.config
+
+
 def ensure_dir(pathname: str) -> bool:
     """Ensure `pathname` exists as a directory.
 
