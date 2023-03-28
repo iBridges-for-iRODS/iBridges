@@ -62,6 +62,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             os.path.join('~', '.ibridges')).expanduser()
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
+        # Loads ibridges config if present, otherwise instantiaties ibridges context with {}
         self.context = utils.utils.IbridgesContext()
         self.irods_path = utils.utils.LocalPath(
             os.path.join('~', '.irods')).expanduser()
@@ -81,10 +82,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             self.envError.setText(f'ERROR: no "irods_environment*json" files found in {self.irods_path}')
         self.envbox.clear()
         self.envbox.addItems(env_jsons)
-        conf = self.context.ibridges_env
         envname = ''
-        if 'last_ienv' in conf and conf['last_ienv'] in env_jsons:
-            envname = conf['last_ienv']
+        if 'last_ienv' in self.context.ibridges_env and self.context.ibridges_env['last_ienv'] in env_jsons:
+            envname = self.context.ibridges_env['last_ienv']
         elif 'irods_environment.json' in env_jsons:
             envname = 'irods_environment.json'
         index = 0
