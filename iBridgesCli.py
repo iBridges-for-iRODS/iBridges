@@ -99,13 +99,12 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                         { 'slot': 'post', 'function': function_after }
                     ]
                 }
-            ]        
+            ]
         """
-
         plugins = [x for x in plugins if 'hook' in x and 'actions' in x]
-        for k, v in enumerate(plugins):
-            plugins[k]['actions'] = [x for x in v['actions'] 
-                                     if 'function' in x and callable(x['function']) 
+        for key, val in enumerate(plugins):
+            plugins[key]['actions'] = [x for x in val['actions']
+                                     if 'function' in x and callable(x['function'])
                                      and 'slot' in x and x['slot'] in ['pre', 'post']]
         
         return [x for x in plugins if len(x['actions'])>0]
@@ -178,7 +177,10 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
     def _clean_exit(self, message=None, show_help=False, exit_code=1):
         if message:
-            logging.info(message) if exit_code==0 else logging.error(message)
+            if exit_code==0:
+                logging.info(message)
+            else:
+                logging.error(message)
         if show_help:
             iBridgesCli.parser.print_help()
         if self.irods_conn:
@@ -194,16 +196,16 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 irods_conn = IrodsConnector(irods_env, secret)
                 _ = irods_conn.session
                 break
-            except Exception as exception:
+            except Exception:
                 # logging.error(f"AUTHENTICATION failed. {repr(exception)}")
-                logging.error(f"Failed to connect")
+                logging.error("Failed to connect")
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
 
         return irods_conn
 
-    def plugin_hook(func):
+    def plugin_hook(self, func):
         def wrapper(self, **kwargs):
             pre_fs = post_fs = []
             actions = [x['actions'] for x in self.plugins if x['hook']==func.__name__]
@@ -303,7 +305,7 @@ if __name__ == "__main__":
 
     elab = ElabPlugin()
 
-    plugins = [
+    cli = iBridgesCli.from_arguments(plugins=[
         {
             'hook': 'upload',
             'actions' : [
@@ -311,6 +313,4 @@ if __name__ == "__main__":
                 { 'slot': 'post', 'function': elab.annotate }
             ]
         }
-    ]
-
-    cli = iBridgesCli.from_arguments(plugins=plugins)
+    ])
