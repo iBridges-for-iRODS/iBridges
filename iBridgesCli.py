@@ -89,6 +89,19 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
     @classmethod
     def _cleanup_plugins(cls, plugins):
+        """
+            Format:
+            plugins = [
+                {
+                    'hook': 'upload',
+                    'actions' : [
+                        { 'slot': 'pre', 'function': function_before },
+                        { 'slot': 'post', 'function': function_after }
+                    ]
+                }
+            ]        
+        """
+
         plugins = [x for x in plugins if 'hook' in x and 'actions' in x]
         for k, v in enumerate(plugins):
             plugins[k]['actions'] = [x for x in v['actions'] 
@@ -301,4 +314,3 @@ if __name__ == "__main__":
     ]
 
     cli = iBridgesCli.from_arguments(plugins=plugins)
-
