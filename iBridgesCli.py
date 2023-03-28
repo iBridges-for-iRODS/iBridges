@@ -67,8 +67,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                  irods_env: str,
                  irods_resc: str,
                  operation: str,
-                 logdir: str,
-                 skip_eln: bool) -> None:
+                 logdir: str) -> None:
 
         self.irods_env = None
         self.irods_path = None
@@ -115,7 +114,6 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             self._clean_exit("need an iRODS resource", True)
 
         self.operation = operation
-        self.skip_eln = skip_eln
         setup_logger(logdir, "iBridgesCli")
         self._run()
 
@@ -181,8 +179,6 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         cls.parser.add_argument('--logdir', type=str,
                             help=f'Directory for logfile. Default: {default_logdir}',
                             default=default_logdir)
-        cls.parser.add_argument('--skip_eln', action="store_true",
-                            help='Skip writing to ELN')
 
         args = cls.parser.parse_args()
 
@@ -192,8 +188,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                    local_path=args.local_path,
                    irods_path=args.irods_path,
                    operation=args.operation,
-                   logdir=args.logdir,
-                   skip_eln=args.skip_eln,
+                   logdir=args.logdir
                    )
 
     @classmethod
@@ -356,7 +351,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
             # TODO: setting 'upload' as a switch in a config seems misplaced; replaced by CLI-switch
             # if self.get_config(self.config_file, 'ELN', 'upload'):
-            if self.get_config('ELN') and not self.skip_eln:
+            if self.get_config('ELN'):
                 elab, title, group_id, experiment_id = self.setup_elab(config=self.get_config('ELN'))
                 # TODO: so we're just logging the target root path, not actual files: is that intentional?
                 self.target_path = f"{self.irods_path}/{elab.__name__}/{str(group_id)}/{str(experiment_id)}"
