@@ -23,38 +23,6 @@ from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
 from utils.elab_plugin import ElabPlugin
 
-log_colors = {
-    0: '\x1b[0m',    # DEFAULT (info)
-    1: '\x1b[1;33m', # YEL (warn)
-    2: '\x1b[1;31m', # RED (error)
-    3: '\x1b[1;34m', # BLUE (success)
-}
-
-def print_error(msg):
-    """
-    Adds color code for error to message and calls logging.error.
-    """
-    logging.error("%s%s%s", log_colors[2], msg, log_colors[0])
-
-def print_warning(msg):
-    """
-    Adds color code for warning to message and calls logging.warning.
-    """
-    logging.warning("%s%s%s", log_colors[1], msg, log_colors[0])
-
-def print_success(msg):
-    """
-    Adds color code for success to message and calls logging.info.
-    """
-    logging.info("%s%s%s", log_colors[1], msg, log_colors[0])
-
-def print_message(msg):
-    """
-    Calls logging.info.
-    """
-    logging.info(msg)
-
-
 class iBridgesCli:                          # pylint: disable=too-many-instance-attributes
     """
     Class for up- and downloading to YODA/iRODS via the command line.
@@ -197,7 +165,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
     def _clean_exit(self, message=None, show_help=False, exit_code=1):
         if message:
-            print_message(message) if exit_code==0 else print_error(message)
+            logging.info(message) if exit_code==0 else logging.error(message)
         if show_help:
             iBridgesCli.parser.print_help()
         if self.irods_conn:
@@ -214,8 +182,8 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 _ = irods_conn.session
                 break
             except Exception as exception:
-                # print_error(f"AUTHENTICATION failed. {repr(exception)}")
-                print_error(f"Failed to connect")
+                # logging.error(f"AUTHENTICATION failed. {repr(exception)}")
+                logging.error(f"Failed to connect")
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
@@ -248,17 +216,17 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         elif self.irods_conn.dataobject_exists(self.irods_path):
             item = self.irods_conn.get_dataobject(self.irods_path)
         else:
-            print_error(f'iRODS path {self.irods_path} does not exist')
+            logging.error(f'iRODS path {self.irods_path} does not exist')
             return False
 
         # get its size to check if there's enough space
         download_size = self.irods_conn.get_irods_size([self.irods_path])
-        print_message(f"Downloading '{self.irods_path}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
+        logging.info(f"Downloading '{self.irods_path}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
 
         # download
         self.irods_conn.download_data(src_obj=item, dst_path=self.local_path, size=download_size, force=False)
 
-        print_success('Download complete')
+        logging.info('Download complete')
         return True
 
     @plugin_hook
@@ -266,9 +234,9 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
-            print_warning(f"Uploading to {self.target_path}")
+            logging.warning(f"Uploading to {self.target_path}")
         except Exception:
-            print_error(f"Collection path invalid: {self.target_path}")
+            logging.error(f"Collection path invalid: {self.target_path}")
             return False
 
         # check if there's enough space left on the resource
@@ -278,7 +246,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         # free_space = int(irods_conn.get_free_space(resc_name=irods_resc))
         free_space = None
         if free_space is not None and free_space-1000**3 < upload_size:
-            print_error('Not enough space left on iRODS resource to upload.')
+            logging.error('Not enough space left on iRODS resource to upload.')
             return False
 
         self.irods_conn.upload_data(
@@ -314,7 +282,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit()
 
         else:
-            print_error(f'Unknown operation: {self.operation}')
+            logging.error(f'Unknown operation: {self.operation}')
 
         self._clean_exit(message="Done", exit_code=0)
 
