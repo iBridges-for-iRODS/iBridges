@@ -214,7 +214,13 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return irods_conn
 
-    # @hook
+    def hook(func):
+        def wrapper(self, **kwargs):
+            # func.__name__
+            func(self, **kwargs)
+        return wrapper
+
+    @hook
     def download(self):
         # checks if remote object exists and if it's an object or a collection
         if self.irods_conn.collection_exists(self.irods_path):
@@ -235,7 +241,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         print_success('Download complete')
         return True
 
-    # @hook
+    @hook
     def upload(self):
         # check if intended upload target exists
         try:
