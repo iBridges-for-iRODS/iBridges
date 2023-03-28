@@ -106,7 +106,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             plugins[key]['actions'] = [x for x in val['actions']
                                      if 'function' in x and callable(x['function'])
                                      and 'slot' in x and x['slot'] in ['pre', 'post']]
-        
+
         return [x for x in plugins if len(x['actions'])>0]
 
     def get_config(self, section: str, option: str=None):
@@ -205,7 +205,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return irods_conn
 
-    def plugin_hook(self, func):
+    def plugin_hook(func):
         def wrapper(self, **kwargs):
             pre_fs = post_fs = []
             actions = [x['actions'] for x in self.plugins if x['hook']==func.__name__]
@@ -231,15 +231,15 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         elif self.irods_conn.dataobject_exists(self.irods_path):
             item = self.irods_conn.get_dataobject(self.irods_path)
         else:
-            logging.error(f'iRODS path {self.irods_path} does not exist')
+            logging.error("iRODS path %s does not exist", self.irods_path)
             return False
 
         # get its size to check if there's enough space
         download_size = self.irods_conn.get_irods_size([self.irods_path])
-        logging.info(f"Downloading '{self.irods_path}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
+        logging.info("Downloading '%s' (approx. %sGB)", self.irods_path, round(download_size * kw.MULTIPLIER, 2))
 
         # download
-        self.irods_conn.download_data(src_obj=item, dst_path=self.local_path, size=download_size, force=False)
+        self.irods_conn.download_data(source=item, destination=self.local_path, size=download_size, force=False)
 
         logging.info('Download complete')
         return True
@@ -249,9 +249,9 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
-            logging.warning(f"Uploading to {self.target_path}")
+            logging.warning("Uploading to %s", self.target_path)
         except Exception:
-            logging.error(f"Collection path invalid: {self.target_path}")
+            logging.error("Collection path invalid: %s", self.target_path)
             return False
 
         # check if there's enough space left on the resource
@@ -297,7 +297,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit()
 
         else:
-            logging.error(f'Unknown operation: {self.operation}')
+            logging.error("Unknown operation: %s", {self.operation})
 
         self._clean_exit(message="Done", exit_code=0)
 
