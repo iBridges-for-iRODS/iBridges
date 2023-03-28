@@ -214,39 +214,39 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return irods_conn
 
-    @classmethod
-    def download(cls, irods_conn, source, target_folder):
+    # @hook
+    def download(self):
         # checks if remote object exists and if it's an object or a collection
-        if irods_conn.collection_exists(source):
-            item = irods_conn.get_collection(source)
-        elif irods_conn.dataobject_exists(source):
-            item = irods_conn.get_dataobject(source)
+        if self.irods_conn.collection_exists(self.irods_path):
+            item = self.irods_conn.get_collection(self.irods_path)
+        elif self.irods_conn.dataobject_exists(self.irods_path):
+            item = self.irods_conn.get_dataobject(self.irods_path)
         else:
-            print_error(f'iRODS path {source} does not exist')
+            print_error(f'iRODS path {self.irods_path} does not exist')
             return False
 
         # get its size to check if there's enough space
-        download_size = irods_conn.get_irods_size([source])
-        print_message(f"Downloading '{source}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
+        download_size = self.irods_conn.get_irods_size([self.irods_path])
+        print_message(f"Downloading '{self.irods_path}' (approx. {round(download_size * kw.MULTIPLIER, 2)}GB)")
 
         # download
-        irods_conn.download_data(src_obj=item, dst_path=target_folder, size=download_size, force=False)
+        self.irods_conn.download_data(src_obj=item, dst_path=self.local_path, size=download_size, force=False)
 
         print_success('Download complete')
         return True
 
-    @classmethod
-    def upload(cls, irods_conn, irods_resc, source, target_path):
+    # @hook
+    def upload(self):
         # check if intended upload target exists
         try:
-            irods_conn.ensure_coll(target_path)
-            print_warning(f"Uploading to {target_path}")
+            self.irods_conn.ensure_coll(self.target_path)
+            print_warning(f"Uploading to {self.target_path}")
         except Exception:
-            print_error(f"Collection path invalid: {target_path}")
+            print_error(f"Collection path invalid: {self.target_path}")
             return False
 
         # check if there's enough space left on the resource
-        upload_size = get_local_size([source])
+        upload_size = get_local_size([self.local_path])
 
         # TODO: does irods_conn.get_free_space() work yet?
         # free_space = int(irods_conn.get_free_space(resc_name=irods_resc))
@@ -255,10 +255,10 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             print_error('Not enough space left on iRODS resource to upload.')
             return False
 
-        irods_conn.upload_data(
-            source=source,
-            destination=irods_conn.get_collection(target_path),
-            res_name=irods_resc,
+        self.irods_conn.upload_data(
+            source=self.local_path,
+            destination=self.irods_conn.get_collection(self.target_path),
+            res_name=self.irods_resc,
             size=upload_size,
             force=True)
 
@@ -335,7 +335,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         if self.operation == 'download':
 
-            if not self.download(irods_conn=self.irods_conn, source=self.irods_path, target_folder=self.local_path):
+            if not self.download():
                 self._clean_exit()
 
         elif self.operation == 'upload':
@@ -353,16 +353,13 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             if self.get_config('ELN') and not self.skip_eln:
                 elab, title, group_id, experiment_id = self.setup_elab(config=self.get_config('ELN'))
                 # TODO: so we're just logging the target root path, not actual files: is that intentional?
-                target_path = f"{self.irods_path}/{elab.__name__}/{str(group_id)}/{str(experiment_id)}"
+                self.target_path = f"{self.irods_path}/{elab.__name__}/{str(group_id)}/{str(experiment_id)}"
             else:
                 elab = None
-                target_path = self.irods_path
+                self.target_path = self.irods_path
                 print_message("INFO: No metadata store configured. Only upload data to iRODS.")
 
-            if not self.upload(irods_conn=self.irods_conn,
-                               irods_resc=self.irods_resc,
-                               source=self.local_path,
-                               target_path=target_path):
+            if not self.upload():
                 self._clean_exit()
 
             if elab:
