@@ -322,7 +322,7 @@ class Session(object):
                     print(f'{kw.RED}RETRY FAILED: {error!r}{kw.DEFAULT}')
                     raise error
             except Exception as autherror:
-                logging.info('AUTHENTICATION ERROR', exc_info=True)
+                logging.info('AUTHENTICATION ERROR')
                 print(f'{kw.RED}AUTHENTICATION ERROR: {autherror!r}{kw.DEFAULT}')
                 raise autherror
 
