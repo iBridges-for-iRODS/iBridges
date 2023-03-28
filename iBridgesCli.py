@@ -17,7 +17,7 @@ import sys
 import json
 import getpass
 from pathlib import Path
-from irods.exception import ResourceDoesNotExist
+from irods.exception import ResourceDoesNotExist, REMOTE_SERVER_AUTHENTICATION_FAILURE
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
@@ -194,11 +194,9 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
                 irods_conn = IrodsConnector(irods_env, secret)
-                _ = irods_conn.session
-                break
-            except Exception:
-                # logging.error(f"AUTHENTICATION failed. {repr(exception)}")
-                logging.error("Failed to connect")
+                assert irods_conn.session, "No session"
+            except Exception as exception:
+                logging.error("Failed to connect (%s)", str(exception))
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
