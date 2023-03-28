@@ -17,7 +17,7 @@ import sys
 import json
 import getpass
 from pathlib import Path
-from irods.exception import ResourceDoesNotExist, REMOTE_SERVER_AUTHENTICATION_FAILURE
+from irods.exception import ResourceDoesNotExist
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
