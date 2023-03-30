@@ -62,12 +62,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             os.path.join('~', '.ibridges')).expanduser()
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
-        self.ibridges_config = ibridges_path.joinpath('ibridges_config.json')
-        self.ibridges = utils.utils.JsonConfig(self.ibridges_config)
-        if self.ibridges.config is None:
-            self.ibridges.config = {}
-        # iRODS configuration (environment)
-        self.irods = None
+        # Loads ibridges config if present, otherwise instantiaties ibridges context with {}
+        self.context = utils.utils.Context()
         self.irods_path = utils.utils.LocalPath(
             os.path.join('~', '.irods')).expanduser()
         if not self.irods_path.is_dir():
@@ -86,10 +82,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             self.envError.setText(f'ERROR: no "irods_environment*json" files found in {self.irods_path}')
         self.envbox.clear()
         self.envbox.addItems(env_jsons)
-        conf = self.ibridges.config
         envname = ''
-        if 'last_ienv' in conf and conf['last_ienv'] in env_jsons:
-            envname = conf['last_ienv']
+        if 'last_ienv' in self.context.ibridges_env and self.context.ibridges_env['last_ienv'] in env_jsons:
+            envname = self.context.ibridges_env['last_ienv']
         elif 'irods_environment.json' in env_jsons:
             envname = 'irods_environment.json'
         index = 0
@@ -143,13 +138,13 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         # TODO expand JsonConfig usage to all relevant modules
-        ienv = utils.utils.JsonConfig(irods_env_file).config
-        if ienv is None:
+        self.context.read_irods_config(irods_env_file)
+        if self.context.irods_env is None:
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment file not found.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        if 'irods_host' in ienv and not utils.utils.can_connect(ienv['irods_host']):
+        if not utils.utils.can_connect(self.context.irods_env['irods_host']):
             logging.info('iRODS login: No network connection to server')
             self.envError.setText('No network connection to server')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
@@ -159,16 +154,15 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         try:
             conn = IrodsConnector(irods_env_file=irods_env_file, password=password)
             # Add own filepath for easy saving.
-            config = self.ibridges.config
-            config['ui_ienvFilePath'] = irods_env_file
-            config['last_ienv'] = irods_env_file.name
+            self.context.update_ibridges_keyval('ui_ienvFilePath', irods_env_file)
+            self.context.update_ibridges_keyval('last_ienv', irods_env_file.name)
             # Save iBridges config to disk and combine with iRODS config.
-            self.ibridges.config = config
-            # TODO consider passing separate configurations or rename
-            #  `ienv` to reflect common nature
-            ienv.update(config)
+            self.context.save_ibridges_config()
             # widget is a global variable
-            browser = gui.mainmenu(widget, conn, ienv)
+            stacked_envs = {}
+            stacked_envs.update(self.context.irods_env)
+            stacked_envs.update(self.context.ibridges_env)
+            browser = gui.mainmenu(widget, conn, stacked_envs)
             if len(widget) == 1:
                 widget.addWidget(browser)
             self._reset_mouse_and_error_labels()

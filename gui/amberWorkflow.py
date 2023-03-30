@@ -139,22 +139,25 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
 
     def importData(self):
         self.importLabel.clear()
-        (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
-        if self.ic.collection_exists(path):
-            info = self.jobBox.currentText().split(' / ')
-            if info[1] == "DONE":
-                obj = self.ic.ensure_data_object(path+'/'+info[0]+'_'+info[2]+'.txt')
-                self.importLabel.setText("IRODS INFO: writing to "+obj.path)
-                with obj.open('w') as obj_desc:
-                    results = self.ac.get_results_txt(info[2])
-                    obj_desc.write(results.encode())
-                self.ic.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
-                self.ic.add_metadata([obj], 'AmberscriptJob', info[2])
-                self.importLabel.setText("IRODS INFO: "+obj.path)
+        try:
+            (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
+            if self.ic.collection_exists(path):
+                info = self.jobBox.currentText().split(' / ')
+                if info[1] == "DONE":
+                    obj = self.ic.ensure_data_object(path+'/'+info[0]+'_'+info[2]+'.txt')
+                    self.importLabel.setText("IRODS INFO: writing to "+obj.path)
+                    with obj.open('w') as obj_desc:
+                        results = self.ac.get_results_txt(info[2])
+                        obj_desc.write(results.encode())
+                    self.ic.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                    self.ic.add_metadata([obj], 'AmberscriptJob', info[2])
+                    self.importLabel.setText("IRODS INFO: "+obj.path)
+                else:
+                    self.importLabel.setText("AMBER ERROR: Job not finished yet.")
             else:
-                self.importLabel.setText("AMBER ERROR: Job not finished yet.")
-        else:
-            self.importLabel.setText("IRODS ERROR: Not a collection.")
+                self.importLabel.setText("IRODS ERROR: Not a collection.")
+        except Exception as e:
+            self.importLabel.setText(f"ERROR: Choose destination.")
 
     def getPathsFromTrees(self, treeView, local):
         index = treeView.selectedIndexes()[0]
