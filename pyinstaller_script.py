@@ -23,7 +23,7 @@ def run_cmd(command: str):
 
     """
     # POSIX
-    if utils.utils.is_posix():
+    if utils.path.is_posix():
         proc = subprocess.run(
             command, stderr=subprocess.STDOUT, shell=True,
             universal_newlines=True, executable='/bin/bash')
@@ -53,9 +53,9 @@ def ui_to_py(dirname: str, py_exec: str):
         python -m PyQt6.uic.pyuic -x file.ui -o file.py
 
     """
-    for uipath in sorted(utils.utils.LocalPath(dirname).glob('*.ui')):
+    for uipath in sorted(utils.path.LocalPath(dirname).glob('*.ui')):
         basename = uipath.stem
-        pypath = utils.utils.LocalPath(dirname, f'{basename}.py')
+        pypath = utils.path.LocalPath(dirname, f'{basename}.py')
         print(f'Converting {uipath} to {pypath}')
         run_cmd(f'{py_exec} -m PyQt6.uic.pyuic -x {uipath} -o {pypath}')
         # Find and replace the pixelmap references.  They are hardcoded.
@@ -76,7 +76,7 @@ def ui_to_py(dirname: str, py_exec: str):
                     first, icon_path, last = inline.split('"')
                     icon_path = icon_path.split("..")[-1]
                     outlines.append(
-                        f'{first}r"..{utils.utils.LocalPath(icon_path)}"{last}')
+                        f'{first}r"..{utils.path.LocalPath(icon_path)}"{last}')
         else:
             outlines.extend(inlines.split('\n'))
         pypath.write_text(
@@ -92,7 +92,7 @@ def remove_pyui_files(dirname: str):
         Name of directory holding UI files.
 
     """
-    for pypath in sorted(utils.utils.LocalPath(dirname).glob('*.py')):
+    for pypath in sorted(utils.path.LocalPath(dirname).glob('*.py')):
         if '__init__.py' not in pypath:
             print(f'Removing {pypath}')
             pypath.unlink()
@@ -109,7 +109,7 @@ def replace_directory(source: str, destination: str):
         Name of destination directory.
 
     """
-    utils.utils.LocalPath(source).copy_path(destination, squash=True)
+    utils.path.LocalPath(source).copy_path(destination, squash=True)
 
 
 def main() -> int:
@@ -127,7 +127,7 @@ def main() -> int:
         Exit code of the program.
 
     """
-    relpath = utils.utils.LocalPath('.')
+    relpath = utils.path.LocalPath('.')
     iconpath = relpath.joinpath('gui', 'icons')
     uipath = relpath.joinpath('gui', 'ui_files')
     venvpath = relpath.joinpath('venv')
@@ -144,7 +144,7 @@ def main() -> int:
     # so we need to use a venv.
     try:
         venvpath.mkdir(exist_ok=True)
-        if utils.utils.is_posix():
+        if utils.path.is_posix():
             venv_script = venvpath.joinpath('bin', 'activate')
             venv_activate = f'source {venv_script}'
         else:

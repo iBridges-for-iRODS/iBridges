@@ -255,7 +255,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
             self.previewBrowser.append(preview_string)
         elif self.ic.dataobject_exists(obj_path):
             obj = self.ic.get_dataobject(obj_path)
-            file_type = utils.utils.IrodsPath(obj_path).suffix[1:]
+            file_type = utils.path.IrodsPath(obj_path).suffix[1:]
             if file_type in ['txt', 'json', 'csv']:
                 try:
                     with obj.open('r') as objfd:
@@ -306,7 +306,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         try:
             self._clear_error_label()
             self._clear_view_tabs()
-            obj_path = utils.utils.IrodsPath(self.inputPath.text())
+            obj_path = utils.path.IrodsPath(self.inputPath.text())
             if self.ic.collection_exists(obj_path):
                 coll = self.ic.get_collection(obj_path)
                 self.collTable.setRowCount(len(coll.data_objects)+len(coll.subcollections))
@@ -360,7 +360,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
                     "iRODS NETWORK ERROR: No Connection, please check network")
 
     def set_parent_path(self):
-        current_path = utils.utils.IrodsPath(self.inputPath.text())
+        current_path = utils.path.IrodsPath(self.inputPath.text())
         self.inputPath.setText(current_path.parent)
         self.loadTable()
 
@@ -373,7 +373,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         self._clear_error_label()
         row = index.row()
         obj_path, obj_name = self._get_object_path_name(row)
-        full_path = utils.utils.IrodsPath(obj_path, obj_name)
+        full_path = utils.path.IrodsPath(obj_path, obj_name)
         if self.ic.collection_exists(full_path):
             self.inputPath.setText(full_path)
             self.loadTable()
@@ -388,7 +388,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         row = index.row()
         self.current_browser_row = row
         obj_path, obj_name = self._get_object_path_name(row)
-        obj_path = utils.utils.IrodsPath(obj_path, obj_name)
+        obj_path = utils.path.IrodsPath(obj_path, obj_name)
         self._clear_view_tabs()
         try:
             self._fill_preview_tab(obj_path)
@@ -544,7 +544,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         self.errorLabel.clear()
         errors = {}
         obj_path, obj_name = self._get_object_path_name(self.current_browser_row)
-        obj_path = utils.utils.IrodsPath(obj_path, obj_name)
+        obj_path = utils.path.IrodsPath(obj_path, obj_name)
         user_name = self.aclUserField.text()
         if not user_name:
             errors['User name'] = None

@@ -11,9 +11,12 @@ import irods.collection
 from irods.exception import CAT_SQL_ERR
 from irods.session import iRODSSession
 from irods.ticket import Ticket
-from utils.utils import ensure_dir, save_irods_env
 from irodsConnector.Icommands import IrodsConnectorIcommands
 import irodsConnector.keywords as kw
+
+import utils
+
+context = utils.context.Context()
 
 
 # TODO
@@ -52,14 +55,15 @@ class IrodsConnectorAnonymous:
         self.path = path
 
         if IrodsConnectorIcommands.icommands():
-            ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
+            utils.utils.ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
             # move previous iRODS sessions to tmp file (envFile and .irodsA file)
             self._move_prev_session_configs(False)
             env = {"irods_host": self.session.host,
                    "irods_port": 1247,
                    "irods_user_name": "anonymous",
                    "irods_zone_name": self.session.zone}
-            save_irods_env(env)
+            context.irods.update(env)
+            context.save_irods()
             logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
             pros = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             _, err_login = pros.communicate()

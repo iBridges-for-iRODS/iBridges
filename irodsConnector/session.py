@@ -1,14 +1,16 @@
 """ session operations
 """
-from json import load
-from os import environ
 import logging
+import json
+import os
 import ssl
+
 import irods.exception
 import irods.password_obfuscation
 import irods.session
 import irodsConnector.keywords as kw
-from utils import utils
+
+import utils
 
 
 class Session(object):
@@ -65,10 +67,10 @@ class Session(object):
 
         """
         if not self._ienv:
-            irods_env_file = utils.LocalPath(self._irods_env_file)
+            irods_env_file = utils.path.LocalPath(self._irods_env_file)
             if irods_env_file.is_file():
                 with open(irods_env_file, encoding='utf-8') as envfd:
-                    self._ienv = load(envfd)
+                    self._ienv = json.load(envfd)
         return self._ienv
 
     @property
@@ -168,10 +170,10 @@ class Session(object):
 
         """
         if not self._password:
-            irods_auth_file = environ.get(
+            irods_auth_file = os.environ.get(
                 'IRODS_AUTHENTICATION_FILE', None)
             if irods_auth_file is None:
-                irods_auth_file = utils.LocalPath(
+                irods_auth_file = utils.path.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
                 with open(irods_auth_file, encoding='utf-8') as authfd:
