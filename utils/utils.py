@@ -649,7 +649,7 @@ class JsonConfig:
         self.filepath.unlink(missing_ok=True)
 
 
-class IbridgesContext():
+class Context():
     """
     Gathers all config parameters from the irods_environment.json and
     the ~/.ibridges/config.json if present
@@ -660,7 +660,7 @@ class IbridgesContext():
         self.irods_config = None
 
         # ibridges config path: ~/.ibridges/ibridges_config.json
-        self.ibridges_config_file_path = LocalPath(os.path.expanduser('~/.ibridges/config.json'))
+        self.ibridges_config_file_path = LocalPath(os.path.expanduser('~/.ibridges/ibridges_config.json'))
         self.ibridges_config = JsonConfig(os.path.expanduser(self.ibridges_config_file_path))
         if self.ibridges_config.config == None:
             self.ibridges_config.config = {}

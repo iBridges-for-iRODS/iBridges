@@ -63,7 +63,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         if not ibridges_path.is_dir():
             ibridges_path.mkdir(parents=True)
         # Loads ibridges config if present, otherwise instantiaties ibridges context with {}
-        self.context = utils.utils.IbridgesContext()
+        self.context = utils.utils.Context()
         self.irods_path = utils.utils.LocalPath(
             os.path.join('~', '.irods')).expanduser()
         if not self.irods_path.is_dir():
