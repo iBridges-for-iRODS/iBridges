@@ -157,7 +157,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
             self.context.update_ibridges_keyval('ui_ienvFilePath', irods_env_file)
             self.context.update_ibridges_keyval('last_ienv', irods_env_file.name)
             # Save iBridges config to disk and combine with iRODS config.
-            self.context.save_config(self.context.ibridges_config)
+            self.context.save_ibridges_config()
             # widget is a global variable
             stacked_envs = {}
             stacked_envs.update(self.context.irods_env)
