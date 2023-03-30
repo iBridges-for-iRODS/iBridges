@@ -649,6 +649,16 @@ class JsonConfig:
         self.filepath.unlink(missing_ok=True)
 
 
+def singleton(class_):
+    instances = {}
+    def getinstance(*args, **kwargs):
+        if class_ not in instances:
+            instances[class_] = class_(*args, **kwargs)
+        return instances[class_]
+    return getinstance
+
+
+@singleton
 class Context():
     """
     Gathers all config parameters from the irods_environment.json and
