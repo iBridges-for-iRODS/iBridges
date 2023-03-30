@@ -6,8 +6,6 @@ Commandline client to upload data to a storage service and double-link the stora
 Implemented for:
     Storage types:
         iRODS
-    Metadata stores:
-        Elabjournal
 """
 import argparse
 import logging
@@ -17,13 +15,38 @@ import sys
 import json
 import getpass
 from pathlib import Path
-from irods.exception import ResourceDoesNotExist
+from irods.exception import ResourceDoesNotExist, CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
 from utils.elab_plugin import ElabPlugin
 
-class iBridgesCli:                          # pylint: disable=too-many-instance-attributes
+def plugin_hook(func):
+    """
+    Callable function for the plugin_hook decorator.
+    """
+    def wrapper(self, **kwargs):
+        """
+        Executes hooked functions pre and post the decorated function.
+        """
+
+        pre_fs = post_fs = []
+        actions = [x['actions'] for x in self.plugins if x['hook']==func.__name__]
+        if actions:
+            pre_fs = [x['function'] for x in actions[0] if x['slot']=='pre']
+            post_fs = [x['function'] for x in actions[0] if x['slot']=='post']
+
+        for pre_f in pre_fs:
+            pre_f(calling_class=self, **kwargs)
+
+        func(self, **kwargs)
+
+        for post_f in post_fs:
+            post_f(calling_class=self, **kwargs)
+
+    return wrapper
+
+class IBridgesCli:                          # pylint: disable=too-many-instance-attributes
     """
     Class for up- and downloading to YODA/iRODS via the command line.
     Includes option for writing metadata to Elab Journal.
@@ -43,6 +66,8 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         self.irods_resc = None
         self.local_path = None
         self.config_file = None
+        self.download_finished = None
+        self.upload_finished = None
 
         # reading optional config file
         if config_file:
@@ -64,10 +89,10 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         self.irods_env = Path(os.path.expanduser(self.irods_env))
         self.local_path = Path(os.path.expanduser(self.local_path))
         self.irods_path = self.irods_path.rstrip("/")
-        logdir = Path(logdir)
+        logdir_path = Path(logdir)
 
         # checking if paths actually exist
-        for path in [self.irods_env, self.local_path, logdir]:
+        for path in [self.irods_env, self.local_path, logdir_path]:
             if not path.exists():
                 self._clean_exit(f"{path} does not exist")
 
@@ -84,7 +109,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         self.operation = operation
         self.plugins = self._cleanup_plugins(plugins)
-        setup_logger(logdir, "iBridgesCli")
+        setup_logger(logdir_path, "iBridgesCli")
         self._run()
 
     @classmethod
@@ -133,6 +158,10 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
     @classmethod
     def from_arguments(cls, **kwargs):
+        """
+        Creates class instance from CLI-arguments. Optionally, functions to be triggered
+        at hook-points can be specified.
+        """
         cls.parser = argparse.ArgumentParser(
             prog='python iBridgesCli.py',
             description="",
@@ -182,13 +211,16 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             else:
                 logging.error(message)
         if show_help:
-            iBridgesCli.parser.print_help()
+            IBridgesCli.parser.print_help()
         if self.irods_conn:
             self.irods_conn.cleanup()
         sys.exit(exit_code)
 
     @classmethod
     def connect_irods(cls, irods_env):
+        """
+        Connect to iRods instance after interactivelty asking for password.
+        """
         attempts = 0
         while True:
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
@@ -196,7 +228,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
                 irods_conn = IrodsConnector(irods_env, secret)
                 assert irods_conn.session, "No session"
                 break
-            except Exception as exception:
+            except AssertionError as exception:
                 logging.error("Failed to connect (%s)", str(exception))
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
@@ -204,26 +236,14 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
 
         return irods_conn
 
-    def plugin_hook(func):
-        def wrapper(self, **kwargs):
-            pre_fs = post_fs = []
-            actions = [x['actions'] for x in self.plugins if x['hook']==func.__name__]
-            if actions:
-                pre_fs = [x['function'] for x in actions[0] if x['slot']=='pre']
-                post_fs = [x['function'] for x in actions[0] if x['slot']=='post']
-
-            for pre_f in pre_fs:
-                pre_f(calling_class=self, **kwargs)
-
-            func(self, **kwargs)
-
-            for post_f in post_fs:
-                post_f(calling_class=self, **kwargs)
-
-        return wrapper
-
     @plugin_hook
     def download(self):
+        """
+        Download dataobject or collection from iRods.
+        """
+        # status for ther benefit of the plugin
+        self.download_finished = False
+
         # checks if remote object exists and if it's an object or a collection
         if self.irods_conn.collection_exists(self.irods_path):
             item = self.irods_conn.get_collection(self.irods_path)
@@ -240,16 +260,24 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         # download
         self.irods_conn.download_data(source=item, destination=self.local_path, size=download_size, force=False)
 
+        self.download_finished = True
+
         logging.info('Download complete')
         return True
 
     @plugin_hook
     def upload(self):
+        """
+        Uploads local file(s) to iRods.
+        """
+        # status for ther benefit of the plugin
+        self.upload_finished = False
+
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
             logging.warning("Uploading to %s", self.target_path)
-        except Exception:
+        except (CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM):
             logging.error("Collection path invalid: %s", self.target_path)
             return False
 
@@ -257,7 +285,7 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
         upload_size = get_local_size([self.local_path])
 
         # TODO: does irods_conn.get_free_space() work yet?
-        # free_space = int(irods_conn.get_free_space(resc_name=irods_resc))
+        # free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
         free_space = None
         if free_space is not None and free_space-1000**3 < upload_size:
             logging.error('Not enough space left on iRODS resource to upload.')
@@ -269,6 +297,8 @@ class iBridgesCli:                          # pylint: disable=too-many-instance-
             res_name=self.irods_resc,
             size=upload_size,
             force=True)
+
+        self.upload_finished = True
 
         return True
 
@@ -304,7 +334,7 @@ if __name__ == "__main__":
 
     elab = ElabPlugin()
 
-    cli = iBridgesCli.from_arguments(plugins=[
+    cli = IBridgesCli.from_arguments(plugins=[
         {
             'hook': 'upload',
             'actions' : [

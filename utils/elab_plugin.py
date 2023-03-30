@@ -1,15 +1,25 @@
+"""
+Plugin for IBridgesCli for annotating eLab Journal.
+"""
+
 import logging
 import os
+from irods.exception import CollectionDoesNotExist, CAT_NO_ACCESS_PERMISSION
 from utils.elabConnector import elabConnector
 
 class ElabPlugin():
+    """
+    Clas containing functions called before and after upload to iRods.
+    """
 
     def __init__(self) -> None:
         self.elab = None
         self.title = None
 
     def setup(self, calling_class):
-
+        """
+        Setup, called before upload to iRods.
+        """
         config = calling_class.get_config('ELN')
 
         if not config:
@@ -22,16 +32,15 @@ class ElabPlugin():
             and len(config['group']) > 0 and len(config['experiment']) > 0:
             try:
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
-            except Exception:
-                logging.error("ELN groupID %s or experimentID %s not set or valid.",
-                              config['group'], config['experiment'])
+            except ValueError as exception:
+                logging.error("ELN groupID %s or experimentID %s not set or invalid. (%s)",
+                              config['group'], config['experiment'], str(exception))
                 self.elab.showGroups()
                 self.elab.updateMetadataUrlInteractive(group=True)
         else:
             self.elab.showGroups()
             self.elab.updateMetadataUrlInteractive(group=True)
 
-        # TODO: while loop to ensure title? : is it actually mandatory? maybe lose interactivity altogether.
         if not 'title' in config or len(config['title']) == 0:
             self.title = input('ELN paragraph title: ')
         else:
@@ -44,12 +53,24 @@ class ElabPlugin():
                                     f"{str(self.elab.group.index[0])}/{str(self.elab.experiment.id())}"
 
     def annotate(self, calling_class):
+        """
+        Setup, called after upload to iRods.
+        """
 
         if not self.elab:
             return
 
+        if not calling_class.upload_finished:
+            logging.warning("Upload unsuccesful, aborting eLab annotation")
+            return
+
         irods_conn = calling_class.irods_conn
-        coll = irods_conn.get_collection(calling_class.target_path)
+
+        try:
+            coll = irods_conn.get_collection(calling_class.target_path)
+        except CollectionDoesNotExist as exception:
+            logging.error("Could not get collection: %s (%s)", calling_class.target_path, str(exception))
+            return
 
         annotation = {
             "iRODS path": coll.path,
@@ -68,16 +89,22 @@ class ElabPlugin():
             url = '{' + "\n".join([irods_conn.host, irods_conn.zone,
                                    irods_conn.username, str(irods_conn.port), coll.path]) + '}'
 
-        self.elab.addMetadata(url=url, meta=annotation, title=self.title)
+        try:
+            self.elab.addMetadata(url=url, meta=annotation, title=self.title)
+        except ValueError as exception:
+            logging.error("Could not add eLab-metadata: %s", str(exception))
 
-        if os.path.isfile(calling_class.local_path):
-            item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
-            irods_conn.add_metadata([item], 'ELN', self.elab.metadataUrl)
-        elif os.path.isdir(calling_class.local_path):
-            uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
-            items = [uploaded_coll]
-            for this_coll, _, objs in uploaded_coll.walk():
-                items.append(this_coll)
-                items.extend(objs)
+        try:
+            if os.path.isfile(calling_class.local_path):
+                item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+                irods_conn.add_metadata([item], 'ELN', self.elab.metadataUrl)
+            elif os.path.isdir(calling_class.local_path):
+                uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+                items = [uploaded_coll]
+                for this_coll, _, objs in uploaded_coll.walk():
+                    items.append(this_coll)
+                    items.extend(objs)
 
-            irods_conn.add_metadata(items, 'ELN', self.elab.metadataUrl)
+                irods_conn.add_metadata(items, 'ELN', self.elab.metadataUrl)
+        except CAT_NO_ACCESS_PERMISSION as exception:
+            logging.error("Could not add iRods-metadata: %s", str(exception))
