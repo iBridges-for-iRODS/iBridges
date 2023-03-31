@@ -333,9 +333,13 @@ class Session(object):
         authentication file in obfuscated form.
 
         """
+        conn = self._session.pool.get_connection()
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
                     irods.password_obfuscation.encode(pam_passwords[0]))
+        else:
+            logging.info('WARNING -- unable to cache obfuscated password locally')
+        conn.release()
