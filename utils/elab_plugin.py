@@ -7,6 +7,7 @@ import os
 from irods.exception import CollectionDoesNotExist, CAT_NO_ACCESS_PERMISSION
 from utils.elabConnector import elabConnector
 
+
 class ElabPlugin():
     """
     Clas containing functions called before and after upload to iRods.
@@ -29,7 +30,7 @@ class ElabPlugin():
         self.elab = elabConnector(config['token'])
 
         if 'group' in config and 'experiment' in config \
-            and len(config['group']) > 0 and len(config['experiment']) > 0:
+                and len(config['group']) > 0 and len(config['experiment']) > 0:
             try:
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
             except ValueError as exception:
@@ -41,7 +42,7 @@ class ElabPlugin():
             self.elab.showGroups()
             self.elab.updateMetadataUrlInteractive(group=True)
 
-        if not 'title' in config or len(config['title']) == 0:
+        if 'title' not in config or len(config['title']) == 0:
             self.title = input('ELN paragraph title: ')
         else:
             self.title = config['title']

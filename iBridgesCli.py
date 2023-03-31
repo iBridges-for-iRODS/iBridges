@@ -21,6 +21,7 @@ from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
 from utils.elab_plugin import ElabPlugin
 
+
 def plugin_hook(func):
     """
     Callable function for the plugin_hook decorator.
@@ -31,10 +32,10 @@ def plugin_hook(func):
         """
 
         pre_fs = post_fs = []
-        actions = [x['actions'] for x in self.plugins if x['hook']==func.__name__]
+        actions = [x['actions'] for x in self.plugins if x['hook'] == func.__name__]
         if actions:
-            pre_fs = [x['function'] for x in actions[0] if x['slot']=='pre']
-            post_fs = [x['function'] for x in actions[0] if x['slot']=='post']
+            pre_fs = [x['function'] for x in actions[0] if x['slot'] == 'pre']
+            post_fs = [x['function'] for x in actions[0] if x['slot'] == 'post']
 
         for pre_f in pre_fs:
             pre_f(calling_class=self, **kwargs)
@@ -45,6 +46,7 @@ def plugin_hook(func):
             post_f(calling_class=self, **kwargs)
 
     return wrapper
+
 
 class IBridgesCli:                          # pylint: disable=too-many-instance-attributes
     """
@@ -80,11 +82,11 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         # CLI parameters override config-file
         self.irods_env = irods_env or self.get_config('iRODS', 'irodsenv') \
-                         or self._clean_exit("need iRODS environment file", True)
+            or self._clean_exit("need iRODS environment file", True)
         self.irods_path = irods_path or self.get_config('iRODS', 'irodscoll') \
-                          or self._clean_exit("need iRODS path", True)
+            or self._clean_exit("need iRODS path", True)
         self.local_path = local_path or self.get_config('LOCAL', 'path') \
-                          or self._clean_exit("need local path", True)
+            or self._clean_exit("need local path", True)
 
         self.irods_env = Path(os.path.expanduser(self.irods_env))
         self.local_path = Path(os.path.expanduser(self.local_path))
@@ -99,7 +101,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         # reading default irods_resc from env file if not specified otherwise
         self.irods_resc = irods_resc or self.get_config('iRODS', 'irodsresc') or None
         if not self.irods_resc:
-            with open(self.irods_env,'r',encoding='utf-8') as file:
+            with open(self.irods_env, 'r', encoding='utf-8') as file:
                 cfg = json.load(file)
                 if 'default_resource_name' in cfg:
                     self.irods_resc = cfg['default_resource_name']
@@ -129,12 +131,12 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         plugins = [x for x in plugins if 'hook' in x and 'actions' in x]
         for key, val in enumerate(plugins):
             plugins[key]['actions'] = [x for x in val['actions']
-                                     if 'function' in x and callable(x['function'])
-                                     and 'slot' in x and x['slot'] in ['pre', 'post']]
+                                       if 'function' in x and callable(x['function'])
+                                       and 'slot' in x and x['slot'] in ['pre', 'post']]
 
-        return [x for x in plugins if len(x['actions'])>0]
+        return [x for x in plugins if len(x['actions']) > 0]
 
-    def get_config(self, section: str, option: str=None):
+    def get_config(self, section: str, option: str = None):
         """
         Reads config file.
         """
@@ -172,25 +174,25 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         default_irods_env = os.path.join(str(os.getenv('HOME')), '.irods', 'irods_environment.json')
 
         cls.parser.add_argument('--config', '-c',
-                            type=str,
-                            help='Config file')
+                                type=str,
+                                help='Config file')
         cls.parser.add_argument('--local_path', '-l',
-                            help='Local path to download to, or upload from',
-                            type=str)
+                                help='Local path to download to, or upload from',
+                                type=str)
         cls.parser.add_argument('--irods_path', '-i',
-                            help='iRods path to upload to, or download from',
-                            type=str)
+                                help='iRods path to upload to, or download from',
+                                type=str)
         cls.parser.add_argument('--operation', '-o',
-                            type=str,
-                            choices=['upload', 'download'],
-                            required=True)
+                                type=str,
+                                choices=['upload', 'download'],
+                                required=True)
         cls.parser.add_argument('--env', '-e', type=str,
-                            help=f'iRods environment file. (example: {default_irods_env})')
+                                help=f'iRods environment file. (example: {default_irods_env})')
         cls.parser.add_argument('--irods_resc', '-r', type=str,
-                            help='iRods resource. If omitted default will be read from iRods env file.')
+                                help='iRods resource. If omitted default will be read from iRods env file.')
         cls.parser.add_argument('--logdir', type=str,
-                            help=f'Directory for logfile. Default: {default_logdir}',
-                            default=default_logdir)
+                                help=f'Directory for logfile. Default: {default_logdir}',
+                                default=default_logdir)
 
         args = cls.parser.parse_args()
 
@@ -206,7 +208,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
     def _clean_exit(self, message=None, show_help=False, exit_code=1):
         if message:
-            if exit_code==0:
+            if exit_code == 0:
                 logging.info(message)
             else:
                 logging.error(message)
@@ -330,6 +332,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         self._clean_exit(message="Done", exit_code=0)
 
+
 if __name__ == "__main__":
 
     elab = ElabPlugin()
@@ -337,9 +340,9 @@ if __name__ == "__main__":
     cli = IBridgesCli.from_arguments(plugins=[
         {
             'hook': 'upload',
-            'actions' : [
-                { 'slot': 'pre', 'function': elab.setup },
-                { 'slot': 'post', 'function': elab.annotate }
+            'actions': [
+                {'slot': 'pre', 'function': elab.setup},
+                {'slot': 'post', 'function': elab.annotate}
             ]
         }
     ])
