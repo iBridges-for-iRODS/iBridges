@@ -9,11 +9,14 @@ from PyQt6.uic import loadUi
 
 from gui.irodsTreeView import IrodsModel
 from gui.ui_files.tabTicketCreate import Ui_tabticketCreate
+import utils
+
+context = utils.context.Context()
 
 
 class irodsCreateTicket(QWidget, Ui_tabticketCreate):
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self):
+        self.conn = context.conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)

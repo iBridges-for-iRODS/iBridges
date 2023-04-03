@@ -39,16 +39,11 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
     """
     current_browser_row = -1
 
-    def __init__(self, conn):
+    def __init__(self):
         """Initialize an iRODS browser view.
 
-        Parameters
-        ----------
-        conn
-            Connector manager
-
         """
-        self.conn = conn
+        self.conn = context.conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
@@ -71,7 +66,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         # If user is not a rodsadmin, hide Admin controls.
         user_type = ''
         try:
-            user_type, _ = conn.get_user_info()
+            user_type, _ = self.conn.get_user_info()
         except irods.exception.NetworkException:
             self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
@@ -86,11 +81,11 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget, gui.ui_files.tabBrowser.Ui_tabBrowse
         elif 'irods_home' in context.irods:
             root_path = context.irods['irods_home']
         else:
-            root_path = f'/{conn.zone}/home/{conn.username}'
+            root_path = f'/{self.conn.zone}/home/{self.conn.username}'
         try:
-            self.root_coll = conn.get_collection(root_path)
+            self.root_coll = self.conn.get_collection(root_path)
         except irods.exception.CollectionDoesNotExist:
-            self.root_coll = conn.get_collection(f'/{conn.zone}/home')
+            self.root_coll = self.conn.get_collection(f'/{self.conn.zone}/home')
         except irods.exception.NetworkException:
             self.errorLabel.setText(
                 'iRODS NETWORK ERROR: No Connection, please check network')

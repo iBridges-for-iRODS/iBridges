@@ -10,6 +10,9 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+import utils
+
+context = utils.context.Context()
 
 REMOVE_LOCAL = 'ui_remLocalcopy'
 UPLOAD_HOSTS = [
@@ -26,13 +29,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
 
     """
 
-    def __init__(self, conn):
+    def __init__(self):
         """Construct the transfer window.
-
-        Parameters
-        ----------
-        conn : IrodsConnector
-            Connection to an iRODS session.
 
         """
         super().__init__()
@@ -40,7 +38,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabUpDownload.ui", self)
-        self.conn = conn
+        self.conn = context.conn
         self.localmodel = None
         self.irodsmodel = None
         self.syncing = False

@@ -14,11 +14,12 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
-from irodsConnector.manager import IrodsConnector
+import irodsConnector
 import utils
 
 context = utils.context.Context()
 context.application_name = 'iBridges'
+context.conn = irodsConnector.manager.IrodsConnector()
 
 app = PyQt6.QtWidgets.QApplication(sys.argv)
 widget = PyQt6.QtWidgets.QStackedWidget()
@@ -88,9 +89,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
 
         """
-        conn_man = IrodsConnector()
-        if conn_man.password:
-            self.passwordField.setText(conn_man.password)
+        if context.conn.password:
+            self.passwordField.setText(context.conn.password)
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text
@@ -117,7 +117,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if IrodsConnector().icommands:
+            if context.conn.icommands:
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
@@ -148,9 +148,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         context.save_ibridges()
         password = self.passwordField.text()
         try:
-            conn = IrodsConnector(password=password)
+            # Setting to private attribute preserves singleton context members
+            context.conn._password = password
             # widget is a global variable
-            browser = gui.mainmenu(widget, conn)
+            browser = gui.mainmenu(widget)
             if len(widget) == 1:
                 widget.addWidget(browser)
             self._reset_mouse_and_error_labels()
@@ -196,7 +197,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
 def closeClean():
     activeWidget = widget.currentWidget()
     try:
-        activeWidget.conn_man.cleanup()
+        activeWidget.conn.cleanup()
     except:
         pass
 

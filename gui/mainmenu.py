@@ -29,20 +29,19 @@ class QPlainTextEditLogger(logging.Handler):
 
 
 class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
-    def __init__(self, widget, conn):
+    def __init__(self, widget):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi('gui/ui_files/MainMenu.ui', self)
-        self.conn = conn
         # stackedWddidget
         self.widget = widget
 
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-        if not context.irods or not conn:
+        if not context.irods or not context.conn:
             self.actionSearch.setEnabled(False)
             # self.actionSaveConfig.setEnabled(False)
             self.ticketAccessTab = gui.irodsTicketLogin.irodsTicketLogin()
@@ -72,7 +71,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             #      load other tabs at the same time?
             for uitab in expected:
                 if uitab in found:
-                    ui_tabs_lookup[uitab](conn)
+                    ui_tabs_lookup[uitab]()
                     logging.debug(f'Setup the {uitab} tab')
             for uitab in found:
                 if uitab not in expected:
@@ -82,35 +81,35 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                         f'Only {", ".join(expected)} tabs supported')
         self.tabWidget.setCurrentIndex(0)
 
-    def setupTabAmberWorkflow(self, conn):
-        self.amberTab = gui.amberWorkflow.amberWorkflow(conn)
+    def setupTabAmberWorkflow(self):
+        self.amberTab = gui.amberWorkflow.amberWorkflow()
         self.tabWidget.addTab(self.amberTab, "AmberScript Connection")
 
-    def setupTabBrowser(self, conn):
+    def setupTabBrowser(self):
         # needed for Search
-        self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser(conn)
+        self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser()
         self.tabWidget.addTab(self.irodsBrowser, 'Browser')
 
-    def setupTabUpDownload(self, conn):
-        self.updownload = gui.IrodsUpDownload.IrodsUpDownload(conn)
+    def setupTabUpDownload(self):
+        self.updownload = gui.IrodsUpDownload.IrodsUpDownload()
         self.tabWidget.addTab(self.updownload, "Data Transfers")
         log_handler = QPlainTextEditLogger(self.updownload.logs)
         logging.getLogger().addHandler(log_handler)
 
-    def setupTabELNData(self, conn):
-        self.elnTab = gui.elabUpload.elabUpload(conn)
+    def setupTabELNData(self):
+        self.elnTab = gui.elabUpload.elabUpload()
         self.tabWidget.addTab(self.elnTab, "ELN Data upload")
 
-    def setupTabDataBundle(self, conn):
-        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle(conn)
+    def setupTabDataBundle(self):
+        self.bundleTab = gui.IrodsDataBundle.IrodsDataBundle()
         self.tabWidget.addTab(self.bundleTab, "Compress/bundle data")
 
-    def setupTabCreateTicket(self, conn):
-        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket(conn)
+    def setupTabCreateTicket(self):
+        self.createTicket = gui.irodsCreateTicket.irodsCreateTicket()
         self.tabWidget.addTab(self.createTicket, "Create access tokens")
 
-    def setupTabInfo(self, conn):
-        self.irodsInfo = gui.irodsInfo.irodsInfo(conn)
+    def setupTabInfo(self):
+        self.irodsInfo = gui.irodsInfo.irodsInfo()
         self.tabWidget.addTab(self.irodsInfo, "Info")
 
     # Connect functions
@@ -121,8 +120,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
-            if self.conn:
-                del self.conn
+            if context.conn:
+                del context.conn
             elif self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.closeSession()
             sys.exit()
@@ -136,8 +135,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
-            if self.conn:
-                self.conn.cleanup()
+            if context.conn:
+                context.conn.cleanup()
             elif self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.close_session()
             currentWidget = self.widget.currentWidget()
@@ -150,7 +149,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
 
     def search(self):
         search = gui.irodsSearch.irodsSearch(
-            self.conn, self.irodsBrowser.collTable)
+            context.conn, self.irodsBrowser.collTable)
         search.exec()
 
     def saveConfig(self):

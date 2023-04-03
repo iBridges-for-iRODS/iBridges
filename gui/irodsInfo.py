@@ -8,6 +8,9 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+import utils
+
+context = utils.context.Context()
 
 
 class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
@@ -15,8 +18,8 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
 
     """
 
-    def __init__(self, conn):
-        self.conn = conn
+    def __init__(self):
+        self.conn = context.conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)

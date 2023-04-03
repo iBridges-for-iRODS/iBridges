@@ -14,6 +14,8 @@ import gui
 import utils
 import irodsConnector.keywords as kw
 
+context = utils.context.Context()
+
 CWD = os.getcwd()
 EXTENSIONS = [
     'tar',
@@ -31,13 +33,8 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
 
     """
 
-    def __init__(self, conn):
+    def __init__(self):
         """Construct the data bundle window.
-
-        Parameters
-        ----------
-        conn : IrodsConnector
-            Connection to an iRODS session.
 
         """
         super().__init__()
@@ -45,12 +42,12 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
-        self.conn = conn
+        self.conn = context.conn
         self.thread_create = None
         self.thread_extract = None
         self.worker_create = None
         self.worker_extract = None
-        self.root_path = f'/{conn.zone}'
+        self.root_path = f'/{self.conn.zone}'
         self.irodsZoneLabel.setText(f'{self.root_path}:')
         self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
         self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)

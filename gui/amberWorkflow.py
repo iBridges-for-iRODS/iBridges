@@ -14,18 +14,15 @@ import utils
 
 context = utils.context.Context()
 
+
 class amberWorkflow(QWidget, Ui_tabAmberData):
-    def __init__(self, conn):
+    def __init__(self):
         """
-        Parameters
-        ----------
-        conn
-            Connector manaager
 
         """
         self.amber = None
         self.coll = None
-        self.conn = conn
+        self.conn = context.conn
         super(amberWorkflow, self).__init__()
         if getattr(sys, 'frozen', False):
             super(amberWorkflow, self).setupUi(self)

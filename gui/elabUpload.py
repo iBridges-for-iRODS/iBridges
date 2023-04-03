@@ -26,17 +26,13 @@ class elabUpload(QWidget, Ui_tabELNData):
     thread = None
     worker = None
 
-    def __init__(self, conn):
+    def __init__(self):
         """
 
-        Parameters
-        ----------
-        conn
-            Connector manager
         """
         self.elab = None
         self.coll = None
-        self.conn = conn
+        self.conn = context.conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)

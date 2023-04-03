@@ -19,6 +19,7 @@ class Context:
     configurations and iBridges session instance.
 
     """
+    _conn = None
     _ibridges = None
     _instance = None
     _irods = None
@@ -42,6 +43,37 @@ class Context:
 
     def __del__(self):
         del self.session
+
+    @property
+    def conn(self):
+        """An iBridges connection manager.
+
+        Returns
+        -------
+        irodsConnector.manager.IrodsConnector
+            The iBridges connection manager.
+        """
+        return self._conn
+
+    @conn.setter
+    def conn(self, conn):
+        """Connection manager setter.
+
+        Parameters
+        ----------
+        irods.session.iRODSSession
+            The iRODS session.
+
+        """
+        self._conn = conn
+
+    @conn.deleter
+    def conn(self):
+        """Connection manager deleter.
+
+        """
+        del self._conn
+        self._conn = None
 
     @property
     def ibridges(self) -> dict:
