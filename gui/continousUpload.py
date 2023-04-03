@@ -1,16 +1,19 @@
+"""Continuous upload tools
+
+"""
+from queue import Queue
+from threading import Thread
+from os import path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler, FileModifiedEvent
-from threading import Thread
-from queue import Queue
-from time import sleep
-from os import path
-import logging
 
+import utils
 
+context = utils.context.Context()
 new_files_queue = Queue()
 
 
-# Callback for file creation and manipulation, this thread stores asll file creations in a queue.
+# Callback for file creation and manipulation, this thread stores all file creations in a queue.
 class FileEventHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if "." in event.src_path: # Ignore folders
@@ -33,15 +36,15 @@ class FileWatcher():
 
 # Continous upload thread
 class contUpload(Thread):
-    def __init__(self, ic, source, destColl, upload_mode = "all", r_local_copy = False):
+    def __init__(self, conn, source, destColl, upload_mode ="all", r_local_copy = False):
         self.tosync_dictionary = {}
         self.fWatcher = FileWatcher(source)
         self._running = True
-        self.ic = ic
+        self.conn = conn
         self.destColl = destColl
         self.upload_mode = upload_mode
         self.r_local_copy = r_local_copy
-        self.force = ic.ienv.get('force_unknown_free_space', False)
+        self.force = context.irods.get('force_unknown_free_space', False)
         Thread.__init__(self)
 
 
@@ -55,7 +58,7 @@ class contUpload(Thread):
                 if filename == "metadata.json":
                     if filepath in self.tosync_dictionary:
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
-                        self.ic.upload_data(filepath, self.destColl, None, None, force=self.force)
+                        self.conn.upload_data(filepath, self.destColl, None, None, force=self.force)
                     else:
                         print("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
@@ -71,7 +74,7 @@ class contUpload(Thread):
                 print("TODO figure out how to do the F500 upload")
                 
             else: # "all"
-                self.ic.upload_data(new_file, self.destColl, None, None, force=self.force)
+                self.conn.upload_data(new_file, self.destColl, None, None, force=self.force)
             
         # Stop file watcher
         self.fWatcher.stop()

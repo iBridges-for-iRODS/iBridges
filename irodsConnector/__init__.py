@@ -8,8 +8,8 @@ from . import manager
 from . import meta
 from . import permission
 from . import query
-from . import rules
 from . import resource
+from . import rules
 from . import session
 from . import tickets
 from . import users

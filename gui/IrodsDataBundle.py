@@ -31,15 +31,13 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
 
     """
 
-    def __init__(self, ic, ienv):
-        """Construct the bundle window.
+    def __init__(self, conn):
+        """Construct the data bundle window.
 
         Parameters
         ----------
-        ic : IrodsConnector
+        conn : IrodsConnector
             Connection to an iRODS session.
-        ienv : dict
-            iRODS environment settings.
 
         """
         super().__init__()
@@ -47,13 +45,12 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
-        self.ic = ic
-        self.ienv = ienv
+        self.conn = conn
         self.thread_create = None
         self.thread_extract = None
         self.worker_create = None
         self.worker_extract = None
-        self.root_path = f'/{ic.zone}'
+        self.root_path = f'/{conn.zone}'
         self.irodsZoneLabel.setText(f'{self.root_path}:')
         self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
         self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)
@@ -84,7 +81,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             Constructed tree view.
 
         """
-        model = gui.irodsTreeView.IrodsModel(self.ic, tree_view)
+        model = gui.irodsTreeView.IrodsModel(self.conn, tree_view)
         tree_view.setModel(model)
         model.setHorizontalHeaderLabels(
             [self.root_path, 'Level', 'iRODS ID', 'parent ID', 'type'])
@@ -107,12 +104,12 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         selector : QtWidget
 
         """
-        names, spaces = self.ic.list_resources()
+        names, spaces = self.conn.list_resources()
         resources = [
             f'{name} / {space}' for name, space in zip(names, spaces)]
         selector.clear()
         selector.addItems(resources)
-        default_resc = self.ic.default_resc
+        default_resc = self.conn.default_resc
         if default_resc in names:
             ridx = names.index(default_resc)
             index = selector.findText(resources[ridx])
@@ -150,7 +147,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         else:
             coll_name = self.irods_tree_model.irods_path_from_tree_index(coll_indexes[0])
-        if not self.ic.collection_exists(coll_name):
+        if not self.conn.collection_exists(coll_name):
             self.statusLabel.setText(
                 'CREATE ERROR: A collection must be selected')
             self.setCursor(
@@ -165,7 +162,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        src_coll = self.ic.get_collection(coll_name)
+        src_coll = self.conn.get_collection(coll_name)
         src_size = utils.utils.get_coll_size(src_coll)
         if src_size == 0:
             self.statusLabel.setText(
@@ -184,7 +181,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         obj_path = f'{coll_name}.tar'
         force = self.forceCheckBox.isChecked()
-        if self.ic.dataobject_exists(obj_path):
+        if self.conn.dataobject_exists(obj_path):
             if not force:
                 self.statusLabel.setText(
                     f'CREATE ERROR: Destination bundle ({obj_path}) exists.  Use force to override')
@@ -203,7 +200,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.thread_create = PyQt6.QtCore.QThread()
         self.statusLabel.setText(f'CREATE STATUS: Creating {obj_path}')
         self.worker_create = RuleRunner(
-            self.ic, io.StringIO(CREATE_RULE), params, 'CREATE')
+            self.conn, io.StringIO(CREATE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
         self.thread_create.started.connect(self.worker_create.run)
         self.worker_create.finished.connect(self.thread_create.quit)
@@ -230,14 +227,14 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         else:
             obj_path = self.irods_tree_model.irods_path_from_tree_index(obj_indexes[0])
-        if not self.ic.dataobject_exists(obj_path):
+        if not self.conn.dataobject_exists(obj_path):
             self.statusLabel.setText(
                 'EXTRACT ERROR: A data object must be selected')
             self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        obj_path = utils.utils.IrodsPath(obj_path)
+        obj_path = utils.path.IrodsPath(obj_path)
         file_type = ''.join(obj_path.suffixes)[1:]
         if file_type not in EXTENSIONS:
             self.statusLabel.setText(
@@ -248,8 +245,8 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         force = self.forceCheckBox.isChecked()
         coll_name = obj_path.with_suffix('').with_suffix('')
-        if self.ic.collection_exists(coll_name):
-            bund_coll = self.ic.get_collection(coll_name)
+        if self.conn.collection_exists(coll_name):
+            bund_coll = self.conn.get_collection(coll_name)
             if len(bund_coll.subcollections) or len(bund_coll.data_objects):
                 if not force:
                     self.statusLabel.setText(
@@ -260,7 +257,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
                     return
                 else:
                     bund_coll.remove(force=force)
-        self.ic.ensure_coll(coll_name)
+        self.conn.ensure_coll(coll_name)
         resc_name = self.resourceBox.currentText().split(' / ')[0]
         force_flag = 'force' if force else ''
         params = {
@@ -273,7 +270,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.statusLabel.setText(
             f'EXTRACT STATUS: Extracting {coll_name}')
         self.worker_extract = RuleRunner(
-            self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
+            self.conn, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
         self.worker_extract.moveToThread(self.thread_extract)
         self.thread_extract.started.connect(self.worker_extract.run)
         self.worker_extract.finished.connect(self.thread_extract.quit)
@@ -314,11 +311,11 @@ class RuleRunner(PyQt6.QtCore.QObject):
     """
     finished = PyQt6.QtCore.pyqtSignal(bool, tuple, str)
 
-    def __init__(self, ic, rule_file, params, operation):
+    def __init__(self, conn, rule_file, params, operation):
         """
         Parameters
         ----------
-        ic : IrodsConnector
+        conn : IrodsConnector
             Connection to an iRODS session.
         rule_file : str, file-like
             Name of the iRODS rule file, or a file-like object representing it.
@@ -329,7 +326,7 @@ class RuleRunner(PyQt6.QtCore.QObject):
 
         """
         super().__init__()
-        self.ic = ic
+        self.conn = conn
         self.rule_file = rule_file
         self.params = params
         self.operation = operation
@@ -338,7 +335,7 @@ class RuleRunner(PyQt6.QtCore.QObject):
         """Run the rule and "return" the results.
 
         """
-        stdout, stderr = self.ic.execute_rule(self.rule_file, self.params)
+        stdout, stderr = self.conn.execute_rule(self.rule_file, self.params)
         if stderr == '':
             self.finished.emit(True, (stdout, stderr), self.operation)
         else:

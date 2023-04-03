@@ -18,12 +18,12 @@ class irodsSearch(QDialog, Ui_searchDialog):
 
     """
 
-    def __init__(self, ic, collTable):
+    def __init__(self, conn, collTable):
         """
 
         Parameters
         ----------
-        ic
+        conn
         collTable
 
         """
@@ -32,7 +32,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/searchDialog.ui", self)
-        self.ic = ic
+        self.conn = conn
         self.collTable = collTable
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]
@@ -77,7 +77,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 criteria[key] = keyVals[key]
         
         # get search results as [[collname, objname, checksum]...[]]
-        results = self.ic.search(criteria)
+        results = self.conn.search(criteria)
         
         row = 0 
         if len(results) == 0:
@@ -130,9 +130,9 @@ class irodsSearch(QDialog, Ui_searchDialog):
         # TODO check that this is correct
         irodsPaths = []
         for row in rows:
-            path0 = utils.utils.IrodsPath(
+            path0 = utils.path.IrodsPath(
                 self.searchResultTable.item(row, 0).text())
-            path1 = utils.utils.IrodsPath(
+            path1 = utils.path.IrodsPath(
                 self.searchResultTable.item(row, 1).text())
             if path1 == '':
                 irodsPaths.append(path0)
@@ -147,13 +147,13 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
-                        if self.ic.collection_exists(p):
-                            item = self.ic.get_collection(p)
-                            self.ic.download_data(item, downloadDir, 0, force=True)
+                        if self.conn.collection_exists(p):
+                            item = self.conn.get_collection(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
-                        elif self.ic.dataobject_exists(p):
-                            item = self.ic.get_dataobject(p)
-                            self.ic.download_data(item, downloadDir, 0, force=True)
+                        elif self.conn.dataobject_exists(p):
+                            item = self.conn.get_dataobject(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
                             self.errorLabel.setText(

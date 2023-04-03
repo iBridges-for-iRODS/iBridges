@@ -1,11 +1,16 @@
 """ resource operations
 """
 import logging
+
 import irods.exception
 import irods.session
 import irods.resource
-import irodsConnector.keywords as kw
-from irodsConnector.session import Session
+
+from . import keywords as kw
+from . import session
+import utils
+
+context = utils.context.Context()
 
 
 class FreeSpaceNotSet(Exception):
@@ -23,17 +28,16 @@ class NotEnoughFreeSpace(Exception):
 class Resource(object):
     """Irods Resource operations """
     _resources = None
-    _ses_man = None
 
-    def __init__(self, ses_man: Session):
+    def __init__(self, sess_man: session.Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            ses_man : irods session
+            sess_man : irods session
                 instance of the Session class
         """
-        self._ses_man = ses_man
+        self.sess_man = sess_man
 
     @property
     def resources(self) -> dict:
@@ -54,18 +58,18 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = self._ses_man.session.query(
+            query = self.sess_man.session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
-                name, parent, status, context = item.values()
+                name, parent, status, context_ = item.values()
                 free_space = 0
                 if parent is None:
                     free_space = self.get_free_space(name, multiplier=kw.MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
-                    'context': context,
+                    'context': context_,
                     'free_space': free_space,
                 }
                 resc_list.append((name, metadata))
@@ -75,9 +79,9 @@ class Resource(object):
             # Check for inclusion of default resource.
             resc_names = []
             for name, metadata in self._resources.items():
-                context = metadata['context']
-                if context is not None:
-                    for kvp in context.split(';'):
+                context_ = metadata['context']
+                if context_ is not None:
+                    for kvp in context_.split(';'):
                         if 'write' in kvp:
                             _, val = kvp.split('=')
                             if float(val) == 0.0:
@@ -88,9 +92,9 @@ class Resource(object):
                         continue
                 if metadata['parent'] is None and metadata['free_space'] > 0:
                     resc_names.append(name)
-            if self._ses_man.default_resc not in resc_names:
+            if self.sess_man.default_resc not in resc_names:
                 print('    -=WARNING=-    '*4)
-                print(f'The default resource ({self._ses_man.default_resc}) not found in available resources!')
+                print(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
                 print('Check "irods_default_resource" and "force_unknown_free_space" settings.')
                 print('    -=WARNING=-    '*4)
         return self._resources
@@ -105,8 +109,6 @@ class Resource(object):
 
         Parameters
         ----------
-        ienv: dict
-            iRODS environment dictionary
         attr_names : list
             Names of resource attributes to assemble.
 
@@ -124,9 +126,9 @@ class Resource(object):
             # Add name to dictionary for convenience.
             metadata['name'] = name
             # Resource is writable?
-            context = metadata['context']
-            if context is not None:
-                for kvp in context.split(';'):
+            _context = metadata['context']
+            if _context is not None:
+                for kvp in _context.split(';'):
                     if 'write' in kvp:
                         _, val = kvp.split('=')
                         if float(val) == 0.0:
@@ -140,7 +142,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not self._ses_man.ienv.get('force_unknown_free_space', False):
+        if not context.irods.get('force_unknown_free_space', False):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
@@ -163,7 +165,7 @@ class Resource(object):
 
         """
         try:
-            return self._ses_man.session.resources.get(resc_name)
+            return self.sess_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
             print(f'Resource with name {resc_name} not found')
             raise rdne
@@ -231,7 +233,7 @@ class Resource(object):
 
         """
         try:
-            resc = self._ses_man.session.resources.get(resc_name)
+            resc = self.sess_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             print(f'Resource with name {resc_name} not found')
             return -1

@@ -12,16 +12,16 @@ from gui.ui_files.tabTicketCreate import Ui_tabticketCreate
 
 
 class irodsCreateTicket(QWidget, Ui_tabticketCreate):
-    def __init__(self, ic):
-        self.ic = ic
+    def __init__(self, conn):
+        self.conn = conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabTicketCreate.ui", self)
-        self.irodsmodel = IrodsModel(ic, self.irodsFsTreeView)
+        self.irodsmodel = IrodsModel(conn, self.irodsFsTreeView)
         self.irodsFsTreeView.setModel(self.irodsmodel)
-        self.irodsRootColl = '/'+ic.zone
+        self.irodsRootColl = '/' + conn.zone
         self.irodsmodel.setHorizontalHeaderLabels(
             [self.irodsRootColl, 'Level', 'iRODS ID', 'parent ID', 'type'])
         self.irodsFsTreeView.expanded.connect(self.irodsmodel.refresh_subtree)
@@ -46,18 +46,18 @@ class irodsCreateTicket(QWidget, Ui_tabticketCreate):
         obj_path = ''
         if len(indexes):
             obj_path = self.irodsmodel.irods_path_from_tree_index(indexes[0])
-        if not self.ic.collection_exists(obj_path):
+        if not self.conn.collection_exists(obj_path):
             self.infoLabel.setText('ERROR: Please select a collection.')
             self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             self.createTicketButton.setEnabled(True)
             return
-        acls = [(acl.user_name, acl.access_name) for acl in self.ic.get_permissions(obj_path)]
-        if (self.ic.username, 'own') in acls:
+        acls = [(acl.user_name, acl.access_name) for acl in self.conn.get_permissions(obj_path)]
+        if (self.conn.username, 'own') in acls:
             date = self.calendar.selectedDate()
             # format of time string for irods: 2012-05-07.23:00:00
             expiry_string = f'{date.toPyDate()}.23:59:59'
-            ticket_name, expiration_set = self.ic.create_ticket(obj_path, expiry_string)
-            self.ticketInfoBrowser.append(f'iRODS server:\t{self.ic.host}')
+            ticket_name, expiration_set = self.conn.create_ticket(obj_path, expiry_string)
+            self.ticketInfoBrowser.append(f'iRODS server:\t{self.conn.host}')
             self.ticketInfoBrowser.append(f'iRODS path:\t{obj_path}')
             self.ticketInfoBrowser.append(f'iRODS Ticket:\t{ticket_name}')
             if expiration_set:

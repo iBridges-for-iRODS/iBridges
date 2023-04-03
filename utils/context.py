@@ -3,6 +3,8 @@
 """
 import logging
 
+import irods.session as irods_session
+
 from . import json_config
 from . import path
 
@@ -14,16 +16,16 @@ DEFAULT_IRODS_ENV_FILE = f'{IRODS_DIR}/irods_environment.json'
 
 class Context:
     """The singleton context of an iBridges session including singleton
-    configurations and iRODS session.
+    configurations and iBridges session instance.
 
     """
     _ibridges = None
     _instance = None
     _irods = None
     _session = None
+    application_name = ''
     ibridges_conf_file = ''
     irods_env_file = ''
-    password = ''
 
     def __new__(cls):
         """Give only a single new instance ever.
@@ -37,6 +39,9 @@ class Context:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
+
+    def __del__(self):
+        del self.session
 
     @property
     def ibridges(self) -> dict:
@@ -110,14 +115,36 @@ class Context:
         return self._irods
 
     @property
-    def session(self):
+    def session(self) -> irods_session.iRODSSession:
         """iRODSSession instantiated from the iRODS environment.
 
+        Returns
+        -------
+        irods.session.iRODSSession
+            The iRODS session.
         """
-        if self._session is None:
-            # do something
-            pass
         return self._session
+
+    @session.setter
+    def session(self, session: irods_session.iRODSSession):
+        """iRODSSession setter.
+
+        Parameters
+        ----------
+        irods.session.iRODSSession
+            The iRODS session.
+
+        """
+        self._session = session
+
+    @session.deleter
+    def session(self):
+        """iRODSSession deleter.
+
+        """
+        self._session.cleanup()
+        del self._session
+        self._session = None
 
     def save_ibridges(self):
         """Save iBridges configuration to disk.
@@ -132,10 +159,3 @@ class Context:
         """
         filepath = path.LocalPath(self.irods_env_file).expanduser()
         json_config.JsonConfig(filepath).config = self.irods
-
-    def save_all(self):
-        """Save all configurations to disk.
-
-        """
-        self.save_ibridges()
-        self.save_irods()

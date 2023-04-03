@@ -1,34 +1,31 @@
 """eLabJournal electronic laboratory notebook upload tab.
 """
 import logging
-import os
 import sys
-import logging
-import datetime
 
-from utils.AmberConnector import AmberConnector
-from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6 import QtCore
+from PyQt6.QtWidgets import QWidget
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.uic import loadUi
 from gui.ui_files.tabAmberData import Ui_tabAmberData
 from gui.irodsTreeView import IrodsModel
-from utils.utils import file_exists
-from irods.exception import CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 
+import utils
+
+context = utils.context.Context()
 
 class amberWorkflow(QWidget, Ui_tabAmberData):
-    def __init__(self, ic, ienv):
+    def __init__(self, conn):
         """
         Parameters
         ----------
-        ic
+        conn
+            Connector manaager
+
         """
         self.amber = None
         self.coll = None
-        self.ic = ic
-        self.ienv = ienv
+        self.conn = conn
         super(amberWorkflow, self).__init__()
         if getattr(sys, 'frozen', False):
             super(amberWorkflow, self).setupUi(self)
@@ -39,7 +36,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         self._initialize_local_model(self.irodsUploadTree)
         self._initialize_irods_model(self.irodsDownloadTree)
         
-        self.amberToken.setText(self.ienv.get("amber_token"))
+        self.amberToken.setText(context.irods.get("amber_token", ''))
         self.amberToken.returnPressed.connect(self.connectAmber)
         
         self.refreshJobsButton.setEnabled(False)
@@ -63,9 +60,9 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         treeView.setCurrentIndex(index)
 
     def _initialize_irods_model(self, treeView):
-        self.irodsmodel = IrodsModel(self.ic, treeView)
+        self.irodsmodel = IrodsModel(self.conn, treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = '/'+self.ic.zone
+        irodsRootColl = '/'+self.conn.zone
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -84,7 +81,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def connectAmber(self):
         token = self.amberToken.text()
         try:
-            self.ac = AmberConnector(token)
+            self.ac = utils.AmberConnector.AmberConnector(token)
             glossary_names = ["None"]+[g['name']+" / "+g['id'] for g in self.ac.glossaries]
             self.glossaryBox.clear()
             self.glossaryBox.addItems(glossary_names)
@@ -110,7 +107,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
     def submitData(self):
         self.jobSubmitLabel.clear()
         (index, path) = self.getPathsFromTrees(self.irodsUploadTree, True)
-        if file_exists(path) and path.endswith("wav"):
+        if utils.utils.file_exists(path) and path.endswith("wav"):
             try:
                 if self.glossaryBox.currentText() == "None":
                     info = self.ac.submit_job(path)
@@ -141,16 +138,16 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         self.importLabel.clear()
         try:
             (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
-            if self.ic.collection_exists(path):
+            if self.conn.collection_exists(path):
                 info = self.jobBox.currentText().split(' / ')
                 if info[1] == "DONE":
-                    obj = self.ic.ensure_data_object(path+'/'+info[0]+'_'+info[2]+'.txt')
+                    obj = self.conn.ensure_data_object(path + '/' + info[0] + '_' + info[2] + '.txt')
                     self.importLabel.setText("IRODS INFO: writing to "+obj.path)
                     with obj.open('w') as obj_desc:
                         results = self.ac.get_results_txt(info[2])
                         obj_desc.write(results.encode())
-                    self.ic.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
-                    self.ic.add_metadata([obj], 'AmberscriptJob', info[2])
+                    self.conn.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                    self.conn.add_metadata([obj], 'AmberscriptJob', info[2])
                     self.importLabel.setText("IRODS INFO: "+obj.path)
                 else:
                     self.importLabel.setText("AMBER ERROR: Job not finished yet.")

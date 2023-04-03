@@ -4,30 +4,32 @@ import logging
 import os
 import shutil
 from subprocess import call, Popen, PIPE
-import irodsConnector.keywords as kw
-from irodsConnector.resource import Resource
-from irodsConnector.session import Session
+
+import irods.collection
+import irods.data_object
+
+from . import keywords as kw
+from . import resource
+from . import session
 
 
 class IrodsConnectorIcommands:
     """Connection to an iRODS server while using iCommands.
     """
-    _res_man = None
-    _ses_man = None
 
-    def __init__(self, res_man: Resource, ses_man: Session):
+    def __init__(self, resc_man: resource.Resource, sess_man: session.Session):
         """ iRODS icommands initialization
 
             Parameters
             ----------
-            res_man : irods resource
+            resc_man : irods resource
                 Instance of the Reource class
-            ses_man : irods session
+            sess_man : irods session
                 instance of the Session class
 
         """
-        self._res_man = res_man
-        self._ses_man = ses_man
+        self.resc_man = resc_man
+        self.sess_man = sess_man
 
     @staticmethod
     def icommands() -> bool:
@@ -40,7 +42,7 @@ class IrodsConnectorIcommands:
         """
         return call(['which', 'iinit'], shell=True, stderr=PIPE) == 0
 
-    def upload_data(self, source: str, destination: None, res_name: str,
+    def upload_data(self, source: str, destination: irods.collection.iRODSCollection, res_name: str,
                     size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Upload files or folders to an iRODS collection.
 
@@ -54,7 +56,7 @@ class IrodsConnectorIcommands:
             name of the iRODS storage resource to use
         size: int
             size of data to be uploaded in bytes
-        buf: int
+        buff: int
             buffer on resource that should be left over
         force: bool
             upload without checking the available space
@@ -63,7 +65,7 @@ class IrodsConnectorIcommands:
         logging.info('iRODS UPLOAD: %s --> %s, %s', source, str(destination), str(res_name))
         if not force:
             try:
-                space = self._res_man.resource_space(self._ses_man, res_name)
+                space = self.resc_man.resource_space(res_name)
                 if int(size) > (int(space) - buff):
                     raise ValueError('ERROR iRODS upload: Not enough space on resource.')
                 if buff < 0:
@@ -74,14 +76,14 @@ class IrodsConnectorIcommands:
 
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
-            self._ses_man.session.collections.create(destination.path)
+            self.sess_man.session.collections.create(destination.path)
             if res_name:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + res_name
             else:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
-            self._ses_man.session.collections.create(destination.path + '/' + os.path.basename(source))
-            sub_coll = self._ses_man.session.collections.get(destination.path + '/' + os.path.basename(source))
+            self.sess_man.session.collections.create(destination.path + '/' + os.path.basename(source))
+            sub_coll = self.sess_man.session.collections.get(destination.path + '/' + os.path.basename(source))
             if res_name:
                 cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + res_name
             else:
@@ -94,7 +96,7 @@ class IrodsConnectorIcommands:
         out, err = p.communicate()
         logging.info('IRODS UPLOAD INFO: out:%s \nerr: %s', str(out), str(err))
 
-    def download_data(self, source: None, destination: str,
+    def download_data(self, source: (irods.collection.iRODSCollection, irods.data_object.iRODSDataObject), destination: str,
                       size: int, buff: int = kw.BUFF_SIZE, force: bool = False):
         """Download object or collection.
 
@@ -131,9 +133,9 @@ class IrodsConnectorIcommands:
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error
 
-        if self._ses_man.session.data_objects.exists(source.path):
+        if self.sess_man.session.data_objects.exists(source.path):
             cmd = 'irsync -K i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
-        elif self._ses_man.session.collections.exists(source.path):
+        elif self.sess_man.session.collections.exists(source.path):
             cmd = 'irsync -Kr i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError('IRODS download: not a valid source.')
@@ -147,8 +149,6 @@ class IrodsConnectorIcommands:
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         local_path : str
             Path of local file or directory/folder.
         irods_path : str
@@ -168,8 +168,6 @@ class IrodsConnectorIcommands:
 
         Parameters
         ----------
-        ses_man : irods session
-            Instance of the Session class
         irods_path : str
             Path of iRODS data object or collection.
         local_path : str
