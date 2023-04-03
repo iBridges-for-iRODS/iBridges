@@ -252,7 +252,7 @@ class IrodsConnector(object):
     # Session functionality
     #
     def cleanup(self):
-        del self.session
+        self.session.session.cleanup()
 
     @property
     def davrods(self) -> str:
