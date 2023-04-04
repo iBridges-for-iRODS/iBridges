@@ -10,6 +10,9 @@ from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 import utils
 
 context = utils.context.Context()
+CONN = context.irods_connector
+IENV = context.irods_environment
+
 new_files_queue = Queue()
 
 
@@ -36,15 +39,14 @@ class FileWatcher():
 
 # Continous upload thread
 class contUpload(Thread):
-    def __init__(self, conn, source, destColl, upload_mode ="all", r_local_copy = False):
+    def __init__(self, source, destColl, upload_mode ="all", r_local_copy = False):
         self.tosync_dictionary = {}
         self.fWatcher = FileWatcher(source)
         self._running = True
-        self.conn = conn
         self.destColl = destColl
         self.upload_mode = upload_mode
         self.r_local_copy = r_local_copy
-        self.force = context.irods.get('force_unknown_free_space', False)
+        self.force = IENV.get('force_unknown_free_space', False)
         Thread.__init__(self)
 
 
@@ -58,7 +60,7 @@ class contUpload(Thread):
                 if filename == "metadata.json":
                     if filepath in self.tosync_dictionary:
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
-                        self.conn.upload_data(filepath, self.destColl, None, None, force=self.force)
+                        CONN.upload_data(filepath, self.destColl, None, None, force=self.force)
                     else:
                         print("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
@@ -72,10 +74,10 @@ class contUpload(Thread):
                         print("TODO, this should not happen? {filepath}  {filename}")
             elif self.upload_mode == "f500":
                 print("TODO figure out how to do the F500 upload")
-                
+
             else: # "all"
-                self.conn.upload_data(new_file, self.destColl, None, None, force=self.force)
-            
+                CONN.upload_data(new_file, self.destColl, None, None, force=self.force)
+
         # Stop file watcher
         self.fWatcher.stop()
 

@@ -51,6 +51,7 @@ class IrodsConnector(object):
         self._password = password
 
     def __del__(self):
+        self.cleanup()
         del self.session
 
     # Properties for all the classes themselves

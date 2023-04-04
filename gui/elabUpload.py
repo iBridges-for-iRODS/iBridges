@@ -17,6 +17,8 @@ from gui.ui_files.tabELNData import Ui_tabELNData
 import utils
 
 context = utils.context.Context()
+CONN = context.irods_connector
+IENV = context.irods_environment
 
 
 class elabUpload(QWidget, Ui_tabELNData):
@@ -32,7 +34,6 @@ class elabUpload(QWidget, Ui_tabELNData):
         """
         self.elab = None
         self.coll = None
-        self.conn = context.conn
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
@@ -52,9 +53,9 @@ class elabUpload(QWidget, Ui_tabELNData):
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
-                '/' + self.conn.zone + '/home/' + self.conn.username)
+                '/' + CONN.zone + '/home/' + CONN.username)
         # defining events and listeners
-        self.elnTokenInput.setText(context.irods.get('eln_token', ''))
+        self.elnTokenInput.setText(IENV.get('eln_token', ''))
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
@@ -178,7 +179,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             size = utils.utils.get_local_size([path])
             # if user specifies a different path than standard home
             collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
-            self.coll = self.conn.ensure_coll(collPath)
+            self.coll = CONN.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
             buttonReply = QMessageBox.question(
                 self.elnUploadButton,
@@ -192,7 +193,7 @@ class elabUpload(QWidget, Ui_tabELNData):
                 # start own thread for the upload
                 self.thread = QThread()
                 self.worker = Worker(
-                    self.conn, self.elab, self.coll, size, path, expUrl,
+                    self.elab, self.coll, size, path, expUrl,
                     self.elnPreviewBrowser, self.errorLabel)
                 self.worker.moveToThread(self.thread)
                 self.thread.started.connect(self.worker.run)
@@ -219,13 +220,12 @@ class Worker(QObject):
     finished = pyqtSignal()
     progress = pyqtSignal(int)
 
-    def __init__(self, conn, elab, coll, size, filePath, expUrl,
+    def __init__(self, elab, coll, size, filePath, expUrl,
                  elnPreviewBrowser, errorLabel):
         """
 
         Parameters
         ----------
-        conn
         elab
         coll
         size
@@ -235,7 +235,6 @@ class Worker(QObject):
         errorLabel
         """
         super().__init__()
-        self.conn = conn
         self.coll = coll
         self.filePath = filePath
         self.elnPreviewBrowser = elnPreviewBrowser
@@ -249,19 +248,19 @@ class Worker(QObject):
         try:
             if os.path.isfile(self.filePath):
                 # TODO should all the "force"es here be configurable?
-                self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
-                item = self.conn.get_dataobject(
+                CONN.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                item = CONN.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))
-                self.conn.add_metadata([item], 'ELN', self.expUrl)
+                CONN.add_metadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
-                upColl = self.conn.get_collection(
+                CONN.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                upColl = CONN.get_collection(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]
                 for c, _, objs in upColl.walk():
                     items.append(c)
                     items.extend(objs)
-                self.conn.add_metadata(items, 'ELN', self.expUrl)
+                CONN.add_metadata(items, 'ELN', self.expUrl)
             self.progress.emit(3)
             self.finished.emit()
         except Exception as error:
@@ -270,8 +269,8 @@ class Worker(QObject):
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,
-            "iRODS server": self.conn.host,
-            "iRODS user": self.conn.username,
+            "iRODS server": CONN.host,
+            "iRODS user": CONN.username,
         }
         self.annotateElab(annotation)
 
@@ -285,27 +284,27 @@ class Worker(QObject):
         """
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
-        if self.conn.davrods and ("yoda" in self.conn.host or "uu.nl" in self.conn.host):
+        if CONN.davrods and ("yoda" in CONN.host or "uu.nl" in CONN.host):
             self.elab.addMetadata(
-                self.conn.davrods + '/' + self.coll.path.split('home/')[1].strip(),
+                CONN.davrods + '/' + self.coll.path.split('home/')[1].strip(),
                 meta=annotation,
                 title='Data in iRODS')
-        elif self.conn.davrods and "surfsara.nl" in self.conn.host:
+        elif CONN.davrods and "surfsara.nl" in CONN.host:
                 self.elab.add_metadata(
-                    self.conn.davrods + '/' + self.coll.path.split(
-                        self.conn.zone)[1].strip('/'),
+                    CONN.davrods + '/' + self.coll.path.split(
+                        CONN.zone)[1].strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
-        elif self.conn.davrods:
+        elif CONN.davrods:
             self.elab.add_metadata(
-                self.conn.davrods + '/' + self.coll.path.strip('/'),
+                CONN.davrods + '/' + self.coll.path.strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
         else:
-            host = self.conn.host
-            zone = self.conn.zone
-            name = self.conn.username
-            port = self.conn.port
+            host = CONN.host
+            zone = CONN.zone
+            name = CONN.username
+            port = CONN.port
             path = self.coll.path
             conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
             self.elab.add_metadata(conn, meta=annotation, title='Data in iRODS')

@@ -13,6 +13,8 @@ from gui.irodsTreeView import IrodsModel
 import utils
 
 context = utils.context.Context()
+CONN = context.irods_connector
+IENV = context.irods_environment
 
 
 class amberWorkflow(QWidget, Ui_tabAmberData):
@@ -22,20 +24,19 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         """
         self.amber = None
         self.coll = None
-        self.conn = context.conn
         super(amberWorkflow, self).__init__()
         if getattr(sys, 'frozen', False):
             super(amberWorkflow, self).setupUi(self)
         else:
             loadUi("gui/ui_files/tabAmberData.ui", self)
-        
+
         # Selecting and uploading local files and folders
         self._initialize_local_model(self.irodsUploadTree)
         self._initialize_irods_model(self.irodsDownloadTree)
-        
-        self.amberToken.setText(context.irods.get("amber_token", ''))
+
+        self.amberToken.setText(IENV.get("amber_token", ''))
         self.amberToken.returnPressed.connect(self.connectAmber)
-        
+
         self.refreshJobsButton.setEnabled(False)
         self.refreshJobsButton.clicked.connect(self.refreshJobs)
         self.submitButton.setEnabled(False)
@@ -57,9 +58,9 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         treeView.setCurrentIndex(index)
 
     def _initialize_irods_model(self, treeView):
-        self.irodsmodel = IrodsModel(self.conn, treeView)
+        self.irodsmodel = IrodsModel(treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = '/'+self.conn.zone
+        irodsRootColl = '/'+CONN.zone
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -135,16 +136,16 @@ class amberWorkflow(QWidget, Ui_tabAmberData):
         self.importLabel.clear()
         try:
             (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
-            if self.conn.collection_exists(path):
+            if CONN.collection_exists(path):
                 info = self.jobBox.currentText().split(' / ')
                 if info[1] == "DONE":
-                    obj = self.conn.ensure_data_object(path + '/' + info[0] + '_' + info[2] + '.txt')
+                    obj = CONN.ensure_data_object(path + '/' + info[0] + '_' + info[2] + '.txt')
                     self.importLabel.setText("IRODS INFO: writing to "+obj.path)
                     with obj.open('w') as obj_desc:
                         results = self.ac.get_results_txt(info[2])
                         obj_desc.write(results.encode())
-                    self.conn.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
-                    self.conn.add_metadata([obj], 'AmberscriptJob', info[2])
+                    CONN.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                    CONN.add_metadata([obj], 'AmberscriptJob', info[2])
                     self.importLabel.setText("IRODS INFO: "+obj.path)
                 else:
                     self.importLabel.setText("AMBER ERROR: Job not finished yet.")

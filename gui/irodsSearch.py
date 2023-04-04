@@ -12,18 +12,20 @@ from PyQt6.uic import loadUi
 from gui.ui_files.searchDialog import Ui_searchDialog
 import utils
 
+context = utils.context.Context()
+CONN = context.irods_connector
+
 
 class irodsSearch(QDialog, Ui_searchDialog):
     """
 
     """
 
-    def __init__(self, conn, collTable):
+    def __init__(self, collTable):
         """
 
         Parameters
         ----------
-        conn
         collTable
 
         """
@@ -32,7 +34,6 @@ class irodsSearch(QDialog, Ui_searchDialog):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/searchDialog.ui", self)
-        self.conn = conn
         self.collTable = collTable
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]
@@ -77,7 +78,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 criteria[key] = keyVals[key]
         
         # get search results as [[collname, objname, checksum]...[]]
-        results = self.conn.search(criteria)
+        results = CONN.search(criteria)
         
         row = 0 
         if len(results) == 0:
@@ -147,13 +148,13 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
-                        if self.conn.collection_exists(p):
-                            item = self.conn.get_collection(p)
-                            self.conn.download_data(item, downloadDir, 0, force=True)
+                        if CONN.collection_exists(p):
+                            item = CONN.get_collection(p)
+                            CONN.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
-                        elif self.conn.dataobject_exists(p):
-                            item = self.conn.get_dataobject(p)
-                            self.conn.download_data(item, downloadDir, 0, force=True)
+                        elif CONN.dataobject_exists(p):
+                            item = CONN.get_dataobject(p)
+                            CONN.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
                             self.errorLabel.setText(

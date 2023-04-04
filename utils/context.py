@@ -3,8 +3,6 @@
 """
 import logging
 
-import irods.session as irods_session
-
 from . import json_config
 from . import path
 
@@ -19,11 +17,10 @@ class Context:
     configurations and iBridges session instance.
 
     """
-    _conn = None
-    _ibridges = None
+    _ibridges_configuration = None
     _instance = None
-    _irods = None
-    _session = None
+    _irods_connector = None
+    _irods_environment = None
     application_name = ''
     ibridges_conf_file = ''
     irods_env_file = ''
@@ -42,10 +39,10 @@ class Context:
         return cls._instance
 
     def __del__(self):
-        del self.session
+        del self.irods_connector
 
     @property
-    def conn(self):
+    def irods_connector(self):
         """An iBridges connection manager.
 
         Returns
@@ -53,30 +50,30 @@ class Context:
         irodsConnector.manager.IrodsConnector
             The iBridges connection manager.
         """
-        return self._conn
+        return self._irods_connector
 
-    @conn.setter
-    def conn(self, conn):
+    @irods_connector.setter
+    def irods_connector(self, connector):
         """Connection manager setter.
 
         Parameters
         ----------
-        irods.session.iRODSSession
-            The iRODS session.
+        connector : irodsConnector.manager.IrodsConnector
+            The iBridges connection manager.
 
         """
-        self._conn = conn
+        self._irods_connector = connector
 
-    @conn.deleter
-    def conn(self):
+    @irods_connector.deleter
+    def irods_connector(self):
         """Connection manager deleter.
 
         """
-        del self._conn
-        self._conn = None
+        del self._irods_connector
+        self._irods_connector = None
 
     @property
-    def ibridges(self) -> dict:
+    def ibridges_configuration(self) -> dict:
         """iBridges configuration dictionary loaded from the
         configuration file.
 
@@ -86,7 +83,7 @@ class Context:
             Configuration dictionary if mandatory keys are present.
 
         """
-        if self._ibridges is None:
+        if self._ibridges_configuration is None:
             if not self.ibridges_conf_file:
                 self.ibridges_conf_file = DEFAULT_IBRIDGES_CONF_FILE
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
@@ -107,11 +104,11 @@ class Context:
                 logging.info(f'Missing key(s) in iBridges configuration: {missing}')
                 logging.info('Please fix and try again!')
             else:
-                self._ibridges = conf_dict
-        return self._ibridges
+                self._ibridges_configuration = conf_dict
+        return self._ibridges_configuration
 
     @property
-    def irods(self) -> dict:
+    def irods_environment(self) -> dict:
         """iRODS environment dictionary loaded from the
         configuration file.
 
@@ -121,7 +118,7 @@ class Context:
             Configuration dictionary if mandatory keys are present.
 
         """
-        if self._irods is None:
+        if self._irods_environment is None:
             if not self.irods_env_file:
                 self.irods_env_file = DEFAULT_IRODS_ENV_FILE
             filepath = path.LocalPath(self.irods_env_file).expanduser()
@@ -143,51 +140,19 @@ class Context:
                 logging.info(f'Missing key(s) in iRODS environment: {missing}')
                 logging.info('Please fix and try again!')
             else:
-                self._irods = env_dict
-        return self._irods
+                self._irods_environment = env_dict
+        return self._irods_environment
 
-    @property
-    def session(self) -> irods_session.iRODSSession:
-        """iRODSSession instantiated from the iRODS environment.
-
-        Returns
-        -------
-        irods.session.iRODSSession
-            The iRODS session.
-        """
-        return self._session
-
-    @session.setter
-    def session(self, session: irods_session.iRODSSession):
-        """iRODSSession setter.
-
-        Parameters
-        ----------
-        irods.session.iRODSSession
-            The iRODS session.
-
-        """
-        self._session = session
-
-    @session.deleter
-    def session(self):
-        """iRODSSession deleter.
-
-        """
-        self._session.cleanup()
-        del self._session
-        self._session = None
-
-    def save_ibridges(self):
+    def save_ibridges_configuration(self):
         """Save iBridges configuration to disk.
 
         """
         filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
-        json_config.JsonConfig(filepath).config = self.ibridges
+        json_config.JsonConfig(filepath).config = self.ibridges_configuration
 
-    def save_irods(self):
+    def save_irods_environment(self):
         """Save iRODS environment to disk.
 
         """
         filepath = path.LocalPath(self.irods_env_file).expanduser()
-        json_config.JsonConfig(filepath).config = self.irods
+        json_config.JsonConfig(filepath).config = self.irods_environment

@@ -11,6 +11,7 @@ from . import session
 import utils
 
 context = utils.context.Context()
+IENV = context.irods_environment
 
 
 class FreeSpaceNotSet(Exception):
@@ -142,7 +143,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not context.irods.get('force_unknown_free_space', False):
+        if not IENV.get('force_unknown_free_space', False):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)

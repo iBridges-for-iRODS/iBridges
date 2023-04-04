@@ -13,13 +13,19 @@ import PyQt6.QtGui
 import PyQt6.QtWidgets
 import PyQt6.uic
 
-import gui
 import irodsConnector
 import utils
 
 context = utils.context.Context()
 context.application_name = 'iBridges'
-context.conn = irodsConnector.manager.IrodsConnector()
+CONF = context.ibridges_configuration
+CONN = context.irods_connector = irodsConnector.manager.IrodsConnector()
+IENV = context.irods_environment
+
+# To allow universal use of the initialized Context singleton in the
+# global namespace, those modules need to be imported _after_ the
+# initialization.
+import gui
 
 app = PyQt6.QtWidgets.QApplication(sys.argv)
 widget = PyQt6.QtWidgets.QStackedWidget()
@@ -76,8 +82,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         self.envbox.clear()
         self.envbox.addItems(env_jsons)
         envname = ''
-        if 'last_ienv' in context.ibridges and context.ibridges['last_ienv'] in env_jsons:
-            envname = context.ibridges['last_ienv']
+        if 'last_ienv' in CONF and CONF['last_ienv'] in env_jsons:
+            envname = CONF['last_ienv']
         elif 'irods_environment.json' in env_jsons:
             envname = 'irods_environment.json'
         index = 0
@@ -89,8 +95,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
 
         """
-        if context.conn.password:
-            self.passwordField.setText(context.conn.password)
+        if CONN.password:
+            self.passwordField.setText(CONN.password)
 
     def _reset_mouse_and_error_labels(self):
         """Reset cursor and clear error text
@@ -117,7 +123,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if context.conn.icommands:
+            if CONN.icommands:
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
@@ -130,12 +136,12 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         """
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         context.irods_env_file = irods_env_file
-        if context.irods is None:
+        if IENV is None:
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment file not found.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        if not utils.utils.can_connect(context.irods['irods_host']):
+        if not utils.utils.can_connect(IENV['irods_host']):
             logging.info('iRODS login: No network connection to server')
             self.envError.setText('No network connection to server')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
@@ -143,15 +149,15 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # TODO DEPRECATED?
         # Add own filepath for easy saving.
-        # context.ibridges['ui_ienvFilePath'] = irods_env_file
-        context.ibridges['last_ienv'] = irods_env_file.name
-        context.save_ibridges()
+        # CONF['ui_ienvFilePath'] = irods_env_file
+        CONF['last_ienv'] = irods_env_file.name
+        context.save_ibridges_configuration()
         password = self.passwordField.text()
         try:
             # Setting to private attribute preserves singleton context members
-            context.conn._password = password
+            CONN._password = password
             # widget is a global variable
-            browser = gui.mainmenu(widget)
+            browser = gui.mainmenu.mainmenu(widget)
             if len(widget) == 1:
                 widget.addWidget(browser)
             self._reset_mouse_and_error_labels()
@@ -184,7 +190,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
 
         """
         # widget is a global variable
-        browser = gui.mainmenu(widget, None)
+        browser = gui.mainmenu.mainmenu(widget)
         browser.menuOptions.clear()
         browser.menuOptions.deleteLater()
         if len(widget) == 1:
@@ -195,11 +201,12 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog, gui.ui_files.irodsLogin.Ui_irods
 
 
 def closeClean():
-    activeWidget = widget.currentWidget()
-    try:
-        activeWidget.conn.cleanup()
-    except:
-        pass
+    # activeWidget = widget.currentWidget()
+    # try:
+    #     activeWidget.conn.cleanup()
+    # except:
+    #     pass
+    CONN.cleanup()
 
 
 def main():

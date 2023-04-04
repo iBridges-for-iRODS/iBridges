@@ -16,6 +16,8 @@ from gui.ui_files.dataTransferState import Ui_dataTransferState
 import utils
 
 context = utils.context.Context()
+CONN = context.irods_connector
+IENV = context.irods_environment
 
 
 class dataTransfer(QDialog, Ui_dataTransferState):
@@ -24,13 +26,11 @@ class dataTransfer(QDialog, Ui_dataTransferState):
     """
     finished = pyqtSignal(bool, object)
 
-    def __init__(self, conn, upload, localFsPath, irodsColl, irodsTreeIdx=None, resource=None):
+    def __init__(self, upload, localFsPath, irodsColl, irodsTreeIdx=None, resource=None):
         """
 
         Parameters
         ----------
-        conn
-            Connector manager
         upload
         localFsPath
         irodsColl
@@ -43,7 +43,6 @@ class dataTransfer(QDialog, Ui_dataTransferState):
         else:
             loadUi("gui/ui_files/dataTransferState.ui", self)
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        self.conn = conn
         self.localFsPath = localFsPath
         self.coll = irodsColl
         self.TreeInd = irodsTreeIdx
@@ -54,7 +53,7 @@ class dataTransfer(QDialog, Ui_dataTransferState):
         self.diff = []
         self.updateFiles = []
         self.updateSize = 0
-        self.force = context.irods.get('force_unknown_free_space', False)
+        self.force = IENV.get('force_unknown_free_space', False)
         self.statusLbl.setText("Loading")
         self.cancelBtn.clicked.connect(self.cancel)
         self.confirmBtn.clicked.connect(self.confirm)
@@ -62,7 +61,7 @@ class dataTransfer(QDialog, Ui_dataTransferState):
         if self.upload:
             self.confirmBtn.setText("Upload")
         else:
-            self.confirmBtn.setText("Download")        
+            self.confirmBtn.setText("Download")
         self.confirmBtn.setEnabled(False)
 
         self.loading_movie = QMovie("gui/icons/loading_circle.gif")
@@ -71,7 +70,7 @@ class dataTransfer(QDialog, Ui_dataTransferState):
 
         # Get information in separate thread
         self.thread = QThread()
-        self.worker = getDataState(self.conn, localFsPath, irodsColl, upload)
+        self.worker = getDataState(localFsPath, irodsColl, upload)
         self.worker.moveToThread(self.thread)
         self.thread.started.connect(self.worker.run)
         self.worker.updLabels.connect(self.updLabels)
@@ -115,9 +114,8 @@ class dataTransfer(QDialog, Ui_dataTransferState):
             self.loadingLbl.setHidden(True)
         else:
             self.worker = UpDownload(
-                self.conn, self.upload, self.localFsPath, self.coll,
-                total_size, self.resource, self.diff, self.addFiles,
-                self.force)
+                self.upload, self.localFsPath, self.coll, total_size,
+                self.resource, self.diff, self.addFiles, self.force)
             self.worker.moveToThread(self.thread)
             self.thread.started.connect(self.worker.run)
             self.worker.finished.connect(self.thread.quit)
@@ -209,19 +207,16 @@ class getDataState(QObject):
     # Lists with size in bytes
     finished = pyqtSignal(list, list, str, str)
 
-    def __init__(self, conn, localFsPath, coll, upload):
+    def __init__(self, localFsPath, coll, upload):
         """
 
         Parameters
         ----------
-        conn
-            Connector manager
         localFsPath
         coll
         upload
         """
         super().__init__()
-        self.conn = conn
         self.localFsPath = localFsPath
         self.coll = coll
         self.upload = upload
@@ -234,30 +229,30 @@ class getDataState(QObject):
                 # Data is placed inside of coll, check if dir or file is inside
                 newPath = self.coll.path + "/" + os.path.basename(self.localFsPath)
                 if os.path.isdir(self.localFsPath):
-                    if self.conn.collection_exists(newPath):
-                        subColl = self.conn.get_collection(newPath)
+                    if CONN.collection_exists(newPath):
+                        subColl = CONN.get_collection(newPath)
                     else:
                         subColl = None
-                    (diff, onlyFS, onlyIrods, same) = self.conn.diff_irods_localfs(
+                    (diff, onlyFS, onlyIrods, same) = CONN.diff_irods_localfs(
                                                   subColl, self.localFsPath, scope="checksum")
                 elif os.path.isfile(self.localFsPath):
-                    (diff, onlyFS, onlyIrods, same) = self.conn.diff_obj_file(
+                    (diff, onlyFS, onlyIrods, same) = CONN.diff_obj_file(
                                                         newPath, 
                                                         self.localFsPath, scope="checksum")
                 self.updLabels.emit(len(onlyFS), len(diff))
             else:
                 # Data is placed inside fsDir, check if obj or coll is inside
                 newPath = os.path.join(self.localFsPath, self.coll.name)
-                if self.conn.collection_exists(self.coll.path):
+                if CONN.collection_exists(self.coll.path):
                     if not os.path.isdir(newPath):
                         FsPath = None
                     else:
                         FsPath = newPath
-                    (diff, onlyFS, onlyIrods, same) = self.conn.diff_irods_localfs(
+                    (diff, onlyFS, onlyIrods, same) = CONN.diff_irods_localfs(
                                                   self.coll, FsPath, scope="checksum")                        
-                # elif self.conn.dataobject_exists(self.coll.path):
+                # elif CONN.dataobject_exists(self.coll.path):
                 else:
-                    (diff, onlyFS, onlyIrods, same) = self.conn.diff_obj_file(
+                    (diff, onlyFS, onlyIrods, same) = CONN.diff_obj_file(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
         except:
@@ -277,12 +272,12 @@ class getDataState(QObject):
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
-            updateSize = self.conn.get_irods_size(irodsDiffFiles)
+            updateSize = CONN.get_irods_size(irodsDiffFiles)
             onlyIrodsFullPath = onlyIrods.copy()
             for i in range(len(onlyIrodsFullPath)):
                 if not onlyIrods[i].startswith(self.coll.path):
                     onlyIrodsFullPath[i] = f'{self.coll.path}/{onlyIrods[i]}'
-            addSize = self.conn.get_irods_size(onlyIrodsFullPath)
+            addSize = CONN.get_irods_size(onlyIrodsFullPath)
             self.finished.emit(onlyIrods, diff, str(addSize), str(updateSize))
 
 
@@ -292,13 +287,11 @@ class UpDownload(QObject):
     """
     finished = pyqtSignal(bool, str)
 
-    def __init__(self, conn, upload, localFS, Coll, totalSize, resource, diff, addFiles, force):
+    def __init__(self, upload, localFS, Coll, totalSize, resource, diff, addFiles, force):
         """
 
         Parameters
         ----------
-        conn
-            Connector manager
         upload
         localFS
         Coll
@@ -309,7 +302,6 @@ class UpDownload(QObject):
         force
         """
         super().__init__()
-        self.conn = conn
         self.upload = upload
         self.localFS = localFS
         self.Coll = Coll
@@ -318,13 +310,13 @@ class UpDownload(QObject):
         self.diff = diff
         self.addFiles = addFiles
         # TODO prefer setting here?
-        self.force = context.irods.get('force_unknown_free_space', force)
+        self.force = IENV.get('force_unknown_free_space', force)
 
     def run(self):    
         try:
             if self.upload:
                 diffs = (self.diff, self.addFiles, [], [])
-                self.conn.upload_data(
+                CONN.upload_data(
                     self.localFS, self.Coll, self.resource,
                     int(self.totalSize), buff=1024**3,
                     force=self.force, diffs=diffs)
@@ -332,7 +324,7 @@ class UpDownload(QObject):
             else:
                 diffs = (self.diff, [], self.addFiles, [])
                 logging.info("UpDownload Diff: "+str(diffs))
-                self.conn.download_data(
+                CONN.download_data(
                     self.Coll, self.localFS, int(self.totalSize),
                     buff=1024**3, force=False, diffs=diffs)
                 self.finished.emit(True, "Download finished")                

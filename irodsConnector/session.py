@@ -13,6 +13,7 @@ from . import keywords as kw
 import utils
 
 context = utils.context.Context()
+IENV = context.irods_environment
 
 
 class Session(object):
@@ -49,7 +50,7 @@ class Session(object):
 
         """
         # FIXME move iBridges parameters to iBridges configuration
-        return context.irods.get('davrods_server', None)
+        return IENV.get('davrods_server', None)
 
     @property
     def default_resc(self) -> str:
@@ -61,7 +62,7 @@ class Session(object):
             Resource name.
 
         """
-        return context.irods.get('irods_default_resource', None)
+        return IENV.get('irods_default_resource', None)
 
     @property
     def host(self) -> str:
@@ -180,8 +181,8 @@ class Session(object):
                 'irods_env_file': context.irods_env_file,
                 'application_name': context.application_name,
             }
-            if context.irods is not None:
-                options.update(context.irods)
+            if IENV is not None:
+                options.update(IENV)
             # Compare given password with potentially cached password.
             given_pass = self.password
             del self.password

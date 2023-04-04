@@ -17,9 +17,14 @@ from PyQt6 import QtGui
 from gui.ui_files.createCollection import Ui_createCollection
 from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
+import utils
+
+context = utils.context.Context()
+CONN = context.irods_connector
+
 
 class irodsCreateCollection(QDialog, Ui_createCollection):
-    def __init__(self, parent, conn):
+    def __init__(self, parent):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
@@ -27,7 +32,6 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
             loadUi("gui/ui_files/createCollection.ui", self)
         self.setWindowTitle("Create iRODS collection")
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
-        self.conn = conn
         self.parent = parent
         self.label.setText(self.parent + "/")
         self.buttonBox.accepted.connect(self.accept)
@@ -36,7 +40,7 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
         if self.collPathLine.text() != "":
             newCollPath = self.parent + "/" + self.collPathLine.text()
             try:
-                self.conn.ensure_coll(newCollPath)
+                CONN.ensure_coll(newCollPath)
                 self.done(1)
             except Exception as error:
                 if hasattr(error, 'message'):
@@ -72,7 +76,7 @@ class createDirectory(QDialog, Ui_createCollection):
 
 
 class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
-    def __init__(self, conn, irodsTarIndexFileList, tarFilePath, statusLabel):
+    def __init__(self, irodsTarIndexFileList, tarFilePath, statusLabel):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
@@ -88,7 +92,6 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         self.formatJSON(irodsTarIndexFileList)
         for line in irodsTarIndexFileList:
             self.textBrowser.append(line)
-        self.conn = conn
         self.tarFilePath = tarFilePath
         self.extractButton.clicked.connect(self.extractSelection)
 
@@ -129,18 +132,18 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
         for row in selectedRows:
             extractPath = self.dataObjectTable.item(row, 0).text()
             destination = extractParent+'/'+extractPath
-            if self.conn.dataobject_exists(destination):
+            if CONN.dataobject_exists(destination):
                 logString = logString+"\t Data already exists: "+destination+"; skipping\n"
             else:
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
                         '*obj': '"'+self.tarFilePath+'"',
-                        '*resource': '"' + self.conn.default_resc + '"',
+                        '*resource': '"' + CONN.default_resc + '"',
                         '*extract': '"'+extractPath+'"',
                         }
-                self.conn.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
+                CONN.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
                 logging.info("TAR EXTRACT SCHEDULED: ")
-                logging.info("iRODS user: " + self.conn.get_username)
+                logging.info("iRODS user: " + CONN.get_username)
                 logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \
