@@ -271,6 +271,10 @@ class IrodsConnector(object):
     def password(self) -> str:
         return self.session.password
 
+    @password.setter
+    def password(self, password: str):
+        self.session.password = password
+
     @property
     def port(self) -> str:
         return self.session.port
