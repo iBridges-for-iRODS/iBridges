@@ -104,7 +104,7 @@ class IrodsConnector(object):
 
     @session.deleter
     def session(self):
-        # del self._session
+        del self._session
         self._session = None
 
     @property
@@ -252,7 +252,7 @@ class IrodsConnector(object):
         del self.session
 
     def cleanup(self):
-        if self._session:
+        if self._session and self.session._session:
             self.session.session.cleanup()
 
     @property

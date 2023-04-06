@@ -107,7 +107,7 @@ class Context:
         """Connection manager deleter.
 
         """
-        # del self._irods_connector
+        del self._irods_connector
         self._irods_connector = None
 
     @property
@@ -165,12 +165,11 @@ class Context:
         """Reset existing instances of dynamic class members
 
         """
+        del self.irods_connector
         if self.ibridges_configuration:
             self.ibridges_configuration.reset()
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
             self.ibridges_configuration.filepath = filepath
-        if self.irods_connector:
-            self.irods_connector.reset()
         if self.irods_environment:
             self.irods_environment.reset()
             filepath = path.LocalPath(self.irods_env_file).expanduser()

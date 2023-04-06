@@ -126,6 +126,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """Check connectivity and log in to iRODS handling common errors.
 
         """
+        if not self.context.irods_connector:
+            self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
         # Required for new sessions

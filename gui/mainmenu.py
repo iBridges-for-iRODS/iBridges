@@ -142,8 +142,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
             self.widget.removeWidget(currentWidget)
-            currentWidget = self.widget.currentWidget()
-            #currentWidget._init_envbox()
+            # currentWidget = self.widget.currentWidget()
+            # currentWidget._init_envbox()
         else:
             pass
 
