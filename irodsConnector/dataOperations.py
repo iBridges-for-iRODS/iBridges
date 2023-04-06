@@ -15,8 +15,6 @@ from . import resource
 from . import session
 import utils
 
-context = utils.context.Context()
-
 
 class DataOperation(object):
     """ Irods collections and data objects operations"""

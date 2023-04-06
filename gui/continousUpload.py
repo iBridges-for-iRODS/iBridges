@@ -9,10 +9,6 @@ from watchdog.events import FileSystemEventHandler, FileModifiedEvent
 
 import utils
 
-context = utils.context.Context()
-CONN = context.irods_connector
-IENV = context.irods_environment
-
 new_files_queue = Queue()
 
 
@@ -38,7 +34,7 @@ class FileWatcher():
 
 
 # Continous upload thread
-class contUpload(Thread):
+class contUpload(Thread, utils.context.ContextContainer):
     def __init__(self, source, destColl, upload_mode ="all", r_local_copy = False):
         self.tosync_dictionary = {}
         self.fWatcher = FileWatcher(source)
@@ -46,7 +42,7 @@ class contUpload(Thread):
         self.destColl = destColl
         self.upload_mode = upload_mode
         self.r_local_copy = r_local_copy
-        self.force = IENV.get('force_unknown_free_space', False)
+        self.force = self.ienv.get('force_unknown_free_space', False)
         Thread.__init__(self)
 
 
@@ -60,7 +56,7 @@ class contUpload(Thread):
                 if filename == "metadata.json":
                     if filepath in self.tosync_dictionary:
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
-                        CONN.upload_data(filepath, self.destColl, None, None, force=self.force)
+                        self.conn.upload_data(filepath, self.destColl, None, None, force=self.force)
                     else:
                         print("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
@@ -76,7 +72,7 @@ class contUpload(Thread):
                 print("TODO figure out how to do the F500 upload")
 
             else: # "all"
-                CONN.upload_data(new_file, self.destColl, None, None, force=self.force)
+                self.conn.upload_data(new_file, self.destColl, None, None, force=self.force)
 
         # Stop file watcher
         self.fWatcher.stop()

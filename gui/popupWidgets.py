@@ -19,11 +19,8 @@ from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
 import utils
 
-context = utils.context.Context()
-CONN = context.irods_connector
 
-
-class irodsCreateCollection(QDialog, Ui_createCollection):
+class irodsCreateCollection(QDialog, Ui_createCollection, utils.context.ContextContainer):
     def __init__(self, parent):
         super().__init__()
         if getattr(sys, 'frozen', False):
@@ -40,7 +37,7 @@ class irodsCreateCollection(QDialog, Ui_createCollection):
         if self.collPathLine.text() != "":
             newCollPath = self.parent + "/" + self.collPathLine.text()
             try:
-                CONN.ensure_coll(newCollPath)
+                self.conn.ensure_coll(newCollPath)
                 self.done(1)
             except Exception as error:
                 if hasattr(error, 'message'):
@@ -75,7 +72,7 @@ class createDirectory(QDialog, Ui_createCollection):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
+class irodsIndexPopup(QDialog, Ui_irodsIndexPopup, utils.context.ContextContainer):
     def __init__(self, irodsTarIndexFileList, tarFilePath, statusLabel):
         super().__init__()
         if getattr(sys, 'frozen', False):
@@ -125,25 +122,25 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
 
         selection = self.dataObjectTable.selectedIndexes()
         selectedRows = set([index.row() for index in selection])
-        
+
         extractParent = os.path.dirname(self.tarFilePath)+'/' + \
                         os.path.basename(self.tarFilePath).split('.irods')[0]
         logString = "Archive File: " + self.tarFilePath+"\n"
         for row in selectedRows:
             extractPath = self.dataObjectTable.item(row, 0).text()
             destination = extractParent+'/'+extractPath
-            if CONN.dataobject_exists(destination):
+            if self.conn.dataobject_exists(destination):
                 logString = logString+"\t Data already exists: "+destination+"; skipping\n"
             else:
                 logString = logString+"Extracting: "+extractPath+"\n"
                 params = {
                         '*obj': '"'+self.tarFilePath+'"',
-                        '*resource': '"' + CONN.default_resc + '"',
+                        '*resource': '"' + self.conn.default_resc + '"',
                         '*extract': '"'+extractPath+'"',
                         }
-                CONN.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
+                self.conn.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
                 logging.info("TAR EXTRACT SCHEDULED: ")
-                logging.info("iRODS user: " + CONN.get_username)
+                logging.info("iRODS user: " + self.conn.get_username)
                 logging.info("Rule file: extractOne")
                 logging.info("params: "+str(params))
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \

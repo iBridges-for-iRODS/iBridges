@@ -12,11 +12,8 @@ import irods.session
 from . import keywords as kw
 import utils
 
-context = utils.context.Context()
-IENV = context.irods_environment
 
-
-class Session(object):
+class Session(utils.context.ContextContainer):
     """Irods session operations """
     _session = None
 
@@ -33,6 +30,7 @@ class Session(object):
         file is expected in the standard location (~/.irods/.irodsA) or
         to be specified in the local environment with the
         IRODS_AUTHENTICATION_FILE variable.
+
         """
         self._password = password
 
@@ -50,7 +48,7 @@ class Session(object):
 
         """
         # FIXME move iBridges parameters to iBridges configuration
-        return IENV.get('davrods_server', None)
+        return self.ienv.get('davrods_server', None)
 
     @property
     def default_resc(self) -> str:
@@ -62,7 +60,7 @@ class Session(object):
             Resource name.
 
         """
-        return IENV.get('irods_default_resource', None)
+        return self.ienv.get('irods_default_resource', None)
 
     @property
     def host(self) -> str:
@@ -112,7 +110,7 @@ class Session(object):
         """
         return self._session.server_version
 
-    @property            
+    @property
     def zone(self) -> str:
         """Retrieve the zone name
 
@@ -178,11 +176,11 @@ class Session(object):
         """
         if self._session is None:
             options = {
-                'irods_env_file': context.irods_env_file,
-                'application_name': context.application_name,
+                'irods_env_file': self.context.irods_env_file,
+                'application_name': self.context.application_name,
             }
-            if IENV is not None:
-                options.update(IENV)
+            if self.ienv is not None:
+                options.update(self.ienv)
             # Compare given password with potentially cached password.
             given_pass = self.password
             del self.password

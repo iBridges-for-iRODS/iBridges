@@ -18,7 +18,7 @@ from . import Icommands
 from . import keywords as kw
 import utils
 
-context = utils.context.Context()
+CONTEXT = utils.context.Context()
 
 
 # TODO
@@ -64,8 +64,8 @@ class IrodsConnectorAnonymous:
                    "irods_port": 1247,
                    "irods_user_name": "anonymous",
                    "irods_zone_name": self.session.zone}
-            context.irods_environment.update(env)
-            context.save_irods_environment()
+            CONTEXT.irods_environment.update(env)
+            CONTEXT.save_irods_environment()
             logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
             pros = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             _, err_login = pros.communicate()

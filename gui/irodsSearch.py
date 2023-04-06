@@ -12,11 +12,8 @@ from PyQt6.uic import loadUi
 from gui.ui_files.searchDialog import Ui_searchDialog
 import utils
 
-context = utils.context.Context()
-CONN = context.irods_connector
 
-
-class irodsSearch(QDialog, Ui_searchDialog):
+class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
     """
 
     """
@@ -63,7 +60,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
         self.searchResultTable.setRowCount(0)
         # gather all input from input fields in dictionary 'criteria'
         keyVals = dict(zip([key.text() for key in self.keys], [val.text() for val in self.vals]))
-        
+
         criteria = {}
         if self.pathPattern.text():
             criteria['path'] = self.pathPattern.text()
@@ -76,11 +73,11 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 criteria[key] = ''
             if keyVals[key]:
                 criteria[key] = keyVals[key]
-        
+
         # get search results as [[collname, objname, checksum]...[]]
-        results = CONN.search(criteria)
-        
-        row = 0 
+        results = self.conn.search(criteria)
+
+        row = 0
         if len(results) == 0:
             self.searchResultTable.setRowCount(1)
             self.searchResultTable.setItem(row, 0, 
@@ -148,13 +145,13 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
                 try:
                     for p in irodsPaths:
-                        if CONN.collection_exists(p):
-                            item = CONN.get_collection(p)
-                            CONN.download_data(item, downloadDir, 0, force=True)
+                        if self.conn.collection_exists(p):
+                            item = self.conn.get_collection(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
-                        elif CONN.dataobject_exists(p):
-                            item = CONN.get_dataobject(p)
-                            CONN.download_data(item, downloadDir, 0, force=True)
+                        elif self.conn.dataobject_exists(p):
+                            item = self.conn.get_dataobject(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
                             self.errorLabel.setText(
@@ -163,5 +160,3 @@ class irodsSearch(QDialog, Ui_searchDialog):
                     logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons()
-
-

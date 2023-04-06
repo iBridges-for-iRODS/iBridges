@@ -12,9 +12,6 @@ import PyQt6.uic
 import gui
 import utils
 
-context = utils.context.Context()
-CONN = context.irods_connector
-
 REMOVE_LOCAL = 'ui_remLocalcopy'
 UPLOAD_HOSTS = [
     "scomp1461.wur.nl",
@@ -24,7 +21,8 @@ UPLOAD_MODE = 'ui_uplMode'
 
 
 class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
-                      gui.ui_files.tabUpDownload.Ui_tabUpDownload):
+                      gui.ui_files.tabUpDownload.Ui_tabUpDownload,
+                      utils.context.ContextContainer):
     """Window for transfers between the local file system and the iRODS
     system.
 
@@ -105,8 +103,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """Create resource drop-down menu.
 
         """
-        default_resc = CONN.default_resc
-        names, spaces = CONN.list_resources()
+        default_resc = self.conn.default_resc
+        names, spaces = self.conn.list_resources()
         resources = [
             f'{name} / {space}' for name, space in zip(names, spaces)]
         self.resourceBox.clear()
@@ -183,7 +181,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         if len(indexes):
             index = indexes[0]
             parent = self.irodsmodel.irods_path_from_tree_index(index)
-            if CONN.dataobject_exists(parent):
+            if self.conn.dataobject_exists(parent):
                 self.errorLabel.setText(
                     "No parent collection selected.")
             else:
@@ -207,12 +205,12 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
                     "ERROR Up/Download: Please select source and destination.")
             self.enable_buttons(True)
             return
-        if not CONN.collection_exists(irods_path):
+        if not self.conn.collection_exists(irods_path):
             self.errorLabel.setText(
                     "ERROR UPLOAD: iRODS destination is a file, must be a collection.")
             self.enable_buttons(True)
             return
-        dest_coll = CONN.get_collection(irods_path)
+        dest_coll = self.conn.get_collection(irods_path)
         self.upload_window = gui.dataTransfer.dataTransfer(
             True, local_path, dest_coll, irods_index,
             self.get_resource())
@@ -256,10 +254,10 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             self.enable_buttons(True)
             return
         # TODO check if querying for collection is faster
-        if CONN.dataobject_exists(irods_path):
-            irods_obj = CONN.get_dataobject(irods_path)
+        if self.conn.dataobject_exists(irods_path):
+            irods_obj = self.conn.get_dataobject(irods_path)
         else:
-            irods_obj = CONN.get_collection(irods_path)
+            irods_obj = self.conn.get_collection(irods_path)
         self.upload_window = gui.dataTransfer.dataTransfer(
             False, local_path, irods_obj)
         self.upload_window.finished.connect(self.transfer_complete)

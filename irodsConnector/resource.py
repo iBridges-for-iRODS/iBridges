@@ -10,9 +10,6 @@ from . import keywords as kw
 from . import session
 import utils
 
-context = utils.context.Context()
-IENV = context.irods_environment
-
 
 class FreeSpaceNotSet(Exception):
     """Custom Exception for when free_space iRODS parameter missing.
@@ -26,7 +23,7 @@ class NotEnoughFreeSpace(Exception):
     """
 
 
-class Resource(object):
+class Resource(utils.context.ContextContainer):
     """Irods Resource operations """
     _resources = None
 
@@ -63,14 +60,14 @@ class Resource(object):
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
-                name, parent, status, context_ = item.values()
+                name, parent, status, context = item.values()
                 free_space = 0
                 if parent is None:
                     free_space = self.get_free_space(name, multiplier=kw.MULTIPLIER)
                 metadata = {
                     'parent': parent,
                     'status': status,
-                    'context': context_,
+                    'context': context,
                     'free_space': free_space,
                 }
                 resc_list.append((name, metadata))
@@ -80,9 +77,9 @@ class Resource(object):
             # Check for inclusion of default resource.
             resc_names = []
             for name, metadata in self._resources.items():
-                context_ = metadata['context']
-                if context_ is not None:
-                    for kvp in context_.split(';'):
+                context = metadata['context']
+                if context is not None:
+                    for kvp in context.split(';'):
                         if 'write' in kvp:
                             _, val = kvp.split('=')
                             if float(val) == 0.0:
@@ -127,9 +124,9 @@ class Resource(object):
             # Add name to dictionary for convenience.
             metadata['name'] = name
             # Resource is writable?
-            _context = metadata['context']
-            if _context is not None:
-                for kvp in _context.split(';'):
+            context = metadata['context']
+            if context is not None:
+                for kvp in context.split(';'):
                     if 'write' in kvp:
                         _, val = kvp.split('=')
                         if float(val) == 0.0:
@@ -143,7 +140,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not IENV.get('force_unknown_free_space', False):
+        if not self.ienv.get('force_unknown_free_space', False):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)

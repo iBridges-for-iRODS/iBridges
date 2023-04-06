@@ -19,8 +19,6 @@ from . import tickets
 from . import users
 import utils
 
-context = utils.context.Context()
-
 
 class IrodsConnector(object):
     """Top-level connection to the Python iRODS client
@@ -102,13 +100,11 @@ class IrodsConnector(object):
     def session(self) -> session.Session:
         if self._session is None:
             self._session = session.Session(self._password)
-            # TODO make the session part of the context?
-            # context.session = self._session.session
         return self._session
 
     @session.deleter
     def session(self):
-        del self._session
+        # del self._session
         self._session = None
 
     @property
@@ -252,8 +248,12 @@ class IrodsConnector(object):
 
     # Session functionality
     #
+    def reset(self):
+        del self.session
+
     def cleanup(self):
-        self.session.session.cleanup()
+        if self._session:
+            self.session.session.cleanup()
 
     @property
     def davrods(self) -> str:

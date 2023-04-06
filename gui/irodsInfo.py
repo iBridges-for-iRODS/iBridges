@@ -10,11 +10,10 @@ import PyQt6.uic
 import gui
 import utils
 
-context = utils.context.Context()
-CONN = context.irods_connector
 
-
-class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
+class irodsInfo(PyQt6.QtWidgets.QWidget,
+                gui.ui_files.tabInfo.Ui_tabInfo,
+                utils.context.ContextContainer):
     """Set iRODS information in the GUI
 
     """
@@ -35,21 +34,21 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         self.rescTable.setRowCount(0)
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # irods Zone
-        self.zoneLabel.setText(CONN.zone)
+        self.zoneLabel.setText(self.conn.zone)
         # irods user
-        self.userLabel.setText(CONN.username)
+        self.userLabel.setText(self.conn.username)
         # irods user type and groups
-        user_type, user_groups = CONN.get_user_info()
+        user_type, user_groups = self.conn.get_user_info()
         self.typeLabel.setText(user_type)
         self.groupsLabel.setText('\n'.join(user_groups))
         # default resource
-        self.rescLabel.setText(CONN.default_resc)
+        self.rescLabel.setText(self.conn.default_resc)
         # irods server and version
-        self.serverLabel.setText(CONN.host)
+        self.serverLabel.setText(self.conn.host)
         self.versionLabel.setText(
-            '.'.join((str(num) for num in CONN.server_version)))
+            '.'.join((str(num) for num in self.conn.server_version)))
         # irods resources
-        resc_info = CONN.list_resources(['name', 'status', 'free_space'])
+        resc_info = self.conn.list_resources(['name', 'status', 'free_space'])
         self.rescTable.setRowCount(len(resc_info[0]))
         for row, (name, status, space) in enumerate(zip(*resc_info)):
             self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))

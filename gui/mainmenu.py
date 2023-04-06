@@ -11,11 +11,6 @@ import PyQt6.uic
 import gui
 import utils
 
-context = utils.context.Context()
-CONF = context.ibridges_configuration
-CONN = context.irods_connector
-IENV = context.irods_environment
-
 
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
@@ -31,7 +26,9 @@ class QPlainTextEditLogger(logging.Handler):
         pass
 
 
-class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow):
+class mainmenu(PyQt6.QtWidgets.QMainWindow,
+               gui.ui_files.MainMenu.Ui_MainWindow,
+               utils.context.ContextContainer):
     def __init__(self, widget):
         super().__init__()
         if getattr(sys, 'frozen', False):
@@ -43,7 +40,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
         # Menu actions
         self.actionExit.triggered.connect(self.programExit)
         self.actionCloseSession.triggered.connect(self.newSession)
-        if not IENV or not CONN:
+        if not self.ienv or not self.conn:
             self.actionSearch.setEnabled(False)
             # self.actionSaveConfig.setEnabled(False)
             self.ticketAccessTab = gui.irodsTicketLogin.irodsTicketLogin()
@@ -62,7 +59,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
                 'tabAmberWorkflow': self.setupTabAmberWorkflow,
                 'tabInfo': self.setupTabInfo,
             }
-            found = set(CONF.get('ui_tabs', []))
+            found = set(self.conf.get('ui_tabs', []))
             if not found:
                 found = {'tabBrowser', 'tabInfo'}
             else:
@@ -123,8 +120,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             # connector must be destroyed directly, not a reference to it.
-            if context.irods_connector:
-                del context.irods_connector
+            if self.context.irods_connector:
+                del self.context.irods_connector
             elif self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.closeSession()
             sys.exit()
@@ -138,8 +135,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
             PyQt6.QtWidgets.QMessageBox.StandardButton.Yes,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
-            if CONN:
-                CONN.cleanup()
+            if self.conn:
+                self.context.reset()
             elif self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.close_session()
             currentWidget = self.widget.currentWidget()
@@ -157,9 +154,9 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow, gui.ui_files.MainMenu.Ui_MainWindow)
     def saveConfig(self):
         print("TODO")
         # TODO is there any reason for this?
-        # context.save_ibridges_configuration()
-        # context.save_irods_environment()
-        # self.globalErrorLabel.setText(f'Environment saved to: {context.irods_env_file}')
+        # self.context.save_ibridges_configuration()
+        # self.context.save_irods_environment()
+        # self.globalErrorLabel.setText(f'Environment saved to: {self.context.irods_env_file}')
 
     def exportMeta(self):
         print("TODO: Metadata export")
