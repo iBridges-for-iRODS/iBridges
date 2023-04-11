@@ -89,5 +89,8 @@ class JsonConfig:
         file.
 
         """
+        config = {}
+        if self.config != {}:
+            config = self.config
         with open(self.filepath, 'w', encoding='utf-8') as confd:
-            json.dump(self.config, confd, indent=4, sort_keys=True)
+            json.dump(config, confd, indent=4, sort_keys=True)

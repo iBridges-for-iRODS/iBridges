@@ -107,7 +107,8 @@ class Context:
         """Connection manager deleter.
 
         """
-        del self._irods_connector
+        if self._irods_connector is not None:
+            del self._irods_connector
         self._irods_connector = None
 
     @property
