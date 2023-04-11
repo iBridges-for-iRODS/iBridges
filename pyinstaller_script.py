@@ -22,16 +22,8 @@ def run_cmd(command: str):
         Input shell command line.
 
     """
-    # POSIX
-    if utils.path.is_posix():
-        proc = subprocess.run(
-            command, stderr=subprocess.STDOUT, shell=True,
-            universal_newlines=True, executable='/bin/bash')
-    # Windows
-    else:
-        proc = subprocess.run(
-            command, stderr=subprocess.STDOUT, shell=True,
-            universal_newlines=True)
+    proc = subprocess.run(command, stderr=subprocess.STDOUT, shell=True,
+                          universal_newlines=True)
     # Print all errors
     if proc.stderr is not None:
         print(f'commandline error: {proc.stderr}')

@@ -9,24 +9,12 @@ import sys
 import irods.path
 
 
-def is_posix() -> bool:
-    """Determine POSIXicity.
-
-    Returns
-    -------
-    bool
-        Whether or not this is a POSIX operating system.
-    """
-    return sys.platform not in ['win32', 'cygwin']
-
-
 class PurePath(str):
     """A platform-dependent pure path without file system functionality
     based on the best of str and pathlib.
 
     """
     _path = None
-    _posix = None
 
     def __new__(cls, *args):
         """Instantiate a PurePath from whole paths or segments of paths,
@@ -38,10 +26,7 @@ class PurePath(str):
             Uninitialized instance.
 
         """
-        if is_posix() or cls._posix:
-            path = pathlib.PurePosixPath(*args)
-        else:
-            path = pathlib.PureWindowsPath(*args)
+        path = pathlib.PurePath(*args)
         return super().__new__(cls, path.__str__())
 
     def __init__(self, *args):
@@ -83,10 +68,7 @@ class PurePath(str):
 
         """
         if self._path is None:
-            if is_posix():
-                self._path = pathlib.PurePosixPath(*self.args)
-            else:
-                self._path = pathlib.PureWindowsPath(*self.args)
+            self._path = pathlib.PurePath(*self.args)
         return self._path
 
     def joinpath(self, *args):
@@ -213,7 +195,6 @@ class IrodsPath(PurePath, irods.path.iRODSPath):
             Uninitialized instance.
 
         """
-        cls._posix = True
         path = pathlib.PurePosixPath(*args)
         return super().__new__(cls, path.__str__())
 
@@ -248,10 +229,7 @@ class LocalPath(PurePath):
             Uninitialized instance.
 
         """
-        if is_posix():
-            path = pathlib.PosixPath(*args)
-        else:
-            path = pathlib.WindowsPath(*args)
+        path = pathlib.Path(*args)
         return super().__new__(cls, path.__str__())
 
     @property
@@ -265,10 +243,7 @@ class LocalPath(PurePath):
 
         """
         if self._path is None:
-            if is_posix():
-                self._path = pathlib.PosixPath(*self.args)
-            else:
-                self._path = pathlib.WindowsPath(*self.args)
+            self._path = pathlib.Path(*self.args)
         return self._path
 
     def absolute(self):

@@ -16,6 +16,17 @@ import irods.path
 from . import path
 
 
+def is_posix() -> bool:
+    """Determine POSIXicity.
+
+    Returns
+    -------
+    bool
+        Whether or not this is a POSIX operating system.
+    """
+    return sys.platform not in ['win32', 'cygwin']
+
+
 def ensure_dir(pathname: str) -> bool:
     """Ensure `pathname` exists as a directory.
 
@@ -158,7 +169,7 @@ def get_downloads_dir() -> path.LocalPath:
         Absolute path to 'Downloads' directory.
 
     """
-    if path.is_posix():
+    if is_posix():
         return path.LocalPath('~', 'Downloads').expanduser()
     else:
         import winreg
