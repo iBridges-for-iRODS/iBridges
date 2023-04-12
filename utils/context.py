@@ -9,7 +9,6 @@ from . import path
 IBRIDGES_DIR = '~/.ibridges'
 IRODS_DIR = '~/.irods'
 DEFAULT_IBRIDGES_CONF_FILE = f'{IBRIDGES_DIR}/ibridges_config.json'
-DEFAULT_IRODS_ENV_FILE = f'{IRODS_DIR}/irods_environment.json'
 
 
 class Context:
@@ -17,13 +16,13 @@ class Context:
     configurations and iBridges session instance.
 
     """
+    _ibridges_conf_file = None
     _ibridges_configuration = None
     _instance = None
     _irods_connector = None
+    _irods_env_file = None
     _irods_environment = None
     application_name = ''
-    ibridges_conf_file = ''
-    irods_env_file = ''
 
     def __new__(cls):
         """Give only a single new instance ever.
@@ -40,6 +39,34 @@ class Context:
 
     def __del__(self):
         del self.irods_connector
+
+    @property
+    def ibridges_conf_file(self) -> str:
+        """iBridges configuration filename.
+
+        Returns
+        -------
+        str
+            Name of configuration file
+
+        """
+        if self._ibridges_conf_file is not None:
+            return self._ibridges_conf_file
+        return ''
+
+    @ibridges_conf_file.setter
+    def ibridges_conf_file(self, filename: str):
+        """iBridges configuration filename setter.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the configuration file.
+
+        """
+        self._ibridges_conf_file = path.LocalPath(filename).expanduser()
+        if self._ibridges_configuration:
+            self._ibridges_configuration.filepath = self._ibridges_conf_file
 
     @property
     def ibridges_configuration(self) -> json_config.JsonConfig:
@@ -73,8 +100,6 @@ class Context:
             if len(missing) > 0:
                 print(f'Missing key(s) in iBridges configuration: {missing}')
                 print('Please fix and try again!')
-                logging.info(f'Missing key(s) in iBridges configuration: {missing}')
-                logging.info('Please fix and try again!')
             else:
                 self._ibridges_configuration = ibridges_configuration
         return self._ibridges_configuration
@@ -112,6 +137,34 @@ class Context:
         self._irods_connector = None
 
     @property
+    def irods_env_file(self) -> str:
+        """iRODS environment filename.
+
+        Returns
+        -------
+        str
+            Name of environment file
+
+        """
+        if self._irods_env_file is not None:
+            return self._irods_env_file
+        return ''
+
+    @irods_env_file.setter
+    def irods_env_file(self, filename: str):
+        """iRODS environment filename setter.
+
+        Parameters
+        ----------
+        filename : str
+            Name of the environment file.
+
+        """
+        self._irods_env_file = path.LocalPath(filename).expanduser()
+        if self._irods_environment:
+            self._irods_environment.filepath = self._irods_env_file
+
+    @property
     def irods_environment(self) -> json_config.JsonConfig:
         """iRODS environment dictionary loaded from the
         configuration file.
@@ -123,31 +176,29 @@ class Context:
 
         """
         if self._irods_environment is None:
-            if not self.irods_env_file:
-                self.irods_env_file = DEFAULT_IRODS_ENV_FILE
-            filepath = path.LocalPath(self.irods_env_file).expanduser()
-            # TODO add existence check, running "iinit" when missing?
-            irods_environment = json_config.JsonConfig(filepath)
-            # iRODS environment check.
-            env_dict = irods_environment.config or {}
-            missing = []
-            mandatory_keys = [
-                'irods_host',
-                'irods_user_name',
-                'irods_port',
-                'irods_zone_name',
-                'irods_default_resource',
-            ]
-            for key in mandatory_keys:
-                if key not in env_dict:
-                    missing.append(key)
-            if len(missing) > 0:
-                print(f'Missing key(s) in iRODS environment: {missing}')
-                print('Please fix and try again!')
-                logging.info(f'Missing key(s) in iRODS environment: {missing}')
-                logging.info('Please fix and try again!')
-            else:
-                self._irods_environment = irods_environment
+            if self.irods_env_file:
+                filepath = path.LocalPath(self.irods_env_file).expanduser()
+                # TODO add existence check, running "iinit" when missing?
+                irods_environment = json_config.JsonConfig(filepath)
+                # iRODS environment check.
+                env_dict = irods_environment.config
+                if env_dict != {}:
+                    missing = []
+                    mandatory_keys = [
+                        'irods_host',
+                        'irods_user_name',
+                        'irods_port',
+                        'irods_zone_name',
+                        'irods_default_resource',
+                    ]
+                    for key in mandatory_keys:
+                        if key not in env_dict:
+                            missing.append(key)
+                    if len(missing) > 0:
+                        print(f'Missing key(s) in iRODS environment: {missing}')
+                        print('Please fix and try again!')
+                    else:
+                        self._irods_environment = irods_environment
         return self._irods_environment
 
     def save_ibridges_configuration(self):
@@ -184,22 +235,39 @@ class ContextContainer:
     context = Context()
 
     @property
-    def conf(self):
+    def conf(self) -> dict:
         """iBridges configuration dictionary.
 
+        Returns
+        -------
+        dict
+            Configuration from JSON serialized string.
+
         """
-        return self.context.ibridges_configuration.config
+        if self.context.ibridges_configuration:
+            return self.context.ibridges_configuration.config
+        return {}
 
     @property
     def conn(self):
         """IrodsConnector instance.
 
+        Returns
+        -------
+        irodsConnector.manager.IrodsConnector
+            iRODS connection instance set into the context.
         """
         return self.context.irods_connector
 
     @property
-    def ienv(self):
+    def ienv(self) -> dict:
         """iRODS environment dictionary.
 
+        Returns
+        -------
+        dict
+            Environment from JSON serialized string.
         """
-        return self.context.irods_environment.config
+        if self.context.irods_environment:
+            return self.context.irods_environment.config
+        return {}

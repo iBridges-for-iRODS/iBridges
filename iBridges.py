@@ -126,16 +126,14 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """Check connectivity and log in to iRODS handling common errors.
 
         """
+        # Replacement connector (required for new sessions)
         if not self.context.irods_connector:
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        # Required for new sessions
-        if self.context.irods_environment.filepath != irods_env_file:
-            self.context.irods_environment.filepath = irods_env_file
         if not self.ienv:
             self.passError.clear()
-            self.envError.setText('ERROR: iRODS environment file not found.')
+            self.envError.setText('ERROR: iRODS environment missing or incomplete.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if not utils.utils.can_connect(self.ienv['irods_host']):
