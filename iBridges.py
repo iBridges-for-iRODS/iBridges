@@ -192,8 +192,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
 
 
 def closeClean():
+
     context = utils.context.Context()
-    context.irods_connector.cleanup()
+    if context.irods_connector:
+        context.irods_connector.cleanup()
 
 
 def main():
