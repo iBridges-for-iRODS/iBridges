@@ -9,6 +9,16 @@ from . import path
 IBRIDGES_DIR = '~/.ibridges'
 IRODS_DIR = '~/.irods'
 DEFAULT_IBRIDGES_CONF_FILE = f'{IBRIDGES_DIR}/ibridges_config.json'
+MANDATORY_IBRIDGES_KEYS = [
+    'force_unknown_free_space',
+    ]
+MANDATORY_IRODS_KEYS = [
+    'irods_host',
+    'irods_user_name',
+    'irods_port',
+    'irods_zone_name',
+    'irods_default_resource',
+    ]
 
 
 class Context:
@@ -87,21 +97,12 @@ class Context:
                 filepath.parent.mkdir()
             if not filepath.is_file():
                 filepath.write_text('{"force_unknown_free_space": false}')
-            ibridges_configuration = json_config.JsonConfig(filepath)
-            # iBridges configuration check.
-            conf_dict = ibridges_configuration.config
-            missing = []
-            mandatory_keys = [
-                'force_unknown_free_space',
-            ]
-            for key in mandatory_keys:
-                if key not in conf_dict:
-                    missing.append(key)
-            if len(missing) > 0:
-                print(f'Missing key(s) in iBridges configuration: {missing}')
-                print('Please fix and try again!')
-            else:
-                self._ibridges_configuration = ibridges_configuration
+            self._ibridges_configuration = json_config.JsonConfig(filepath)
+        # iBridges configuration check.
+        conf_dict = self._ibridges_configuration.config
+        if conf_dict:
+            is_complete(
+                conf_dict, MANDATORY_IBRIDGES_KEYS, 'iBridges configuration')
         return self._ibridges_configuration
 
     @property
@@ -179,27 +180,25 @@ class Context:
             if self.irods_env_file:
                 filepath = path.LocalPath(self.irods_env_file).expanduser()
                 # TODO add existence check, running "iinit" when missing?
-                irods_environment = json_config.JsonConfig(filepath)
-                # iRODS environment check.
-                env_dict = irods_environment.config
-                if env_dict != {}:
-                    missing = []
-                    mandatory_keys = [
-                        'irods_host',
-                        'irods_user_name',
-                        'irods_port',
-                        'irods_zone_name',
-                        'irods_default_resource',
-                    ]
-                    for key in mandatory_keys:
-                        if key not in env_dict:
-                            missing.append(key)
-                    if len(missing) > 0:
-                        print(f'Missing key(s) in iRODS environment: {missing}')
-                        print('Please fix and try again!')
-                    else:
-                        self._irods_environment = irods_environment
+                self._irods_environment = json_config.JsonConfig(filepath)
         return self._irods_environment
+
+    def ienv_is_complete(self) -> bool:
+        """Check if iRODS environment is complete.
+
+        Returns
+        -------
+        bool
+            Whether the environment is complete.
+
+        """
+        if self._irods_environment is not None:
+            env_dict = self._irods_environment.config
+            if env_dict:
+                return is_complete(
+                    env_dict, MANDATORY_IRODS_KEYS, 'iRODS environment')
+            return False
+        return False
 
     def save_ibridges_configuration(self):
         """Save iBridges configuration to disk.
@@ -226,6 +225,35 @@ class Context:
             self.irods_environment.reset()
             filepath = path.LocalPath(self.irods_env_file).expanduser()
             self.irods_environment.filepath = filepath
+
+
+def is_complete(conf_dict: dict, mandatory: list, conf_type: str) -> bool:
+    """Check if given iRODS environment has all mandatory keys.
+
+    Parameters
+    ----------
+    conf_dict : dict
+        Configuration to check.
+    mandatory : list
+        Values to check for.
+    conf_type : str
+        Type of configuration.
+
+    Returns
+    -------
+    bool
+        If the given configuration is complete.
+
+    """
+    missing = []
+    for key in mandatory:
+        if key not in conf_dict:
+            missing.append(key)
+    if len(missing) > 0:
+        print(f'Missing key(s) in {conf_type}: {missing}')
+        print('Please fix and try again!')
+        return False
+    return True
 
 
 class ContextContainer:

@@ -131,7 +131,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        if not self.ienv:
+        self.envError.setText('')
+        if not (self.ienv and self.context.ienv_is_complete()):
+            self.context.irods_environment.reset()
             self.passError.clear()
             self.envError.setText('ERROR: iRODS environment missing or incomplete.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))

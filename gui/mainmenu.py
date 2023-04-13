@@ -29,6 +29,8 @@ class QPlainTextEditLogger(logging.Handler):
 class mainmenu(PyQt6.QtWidgets.QMainWindow,
                gui.ui_files.MainMenu.Ui_MainWindow,
                utils.context.ContextContainer):
+    ticketAccessTab = None
+
     def __init__(self, widget):
         super().__init__()
         if getattr(sys, 'frozen', False):
@@ -122,7 +124,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             # connector must be destroyed directly, not a reference to it.
             if self.context.irods_connector:
                 del self.context.irods_connector
-            elif self.ticketAccessTab.conn:
+            elif self.ticketAccessTab and self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.closeSession()
             sys.exit()
         else:
@@ -137,7 +139,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             if self.conn:
                 self.context.reset()
-            elif self.ticketAccessTab.conn:
+            elif self.ticketAccessTab and self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.close_session()
             currentWidget = self.widget.currentWidget()
             self.widget.setCurrentIndex(self.widget.currentIndex()-1)
