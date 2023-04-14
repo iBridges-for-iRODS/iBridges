@@ -23,9 +23,10 @@ class NotEnoughFreeSpace(Exception):
     """
 
 
-class Resource(utils.context.ContextContainer):
+class Resource(object):
     """Irods Resource operations """
     _resources = None
+    context = utils.context.Context()
 
     def __init__(self, sess_man: session.Session):
         """ iRODS resource initialization
@@ -36,6 +37,19 @@ class Resource(utils.context.ContextContainer):
                 instance of the Session class
         """
         self.sess_man = sess_man
+
+    @property
+    def ienv(self) -> dict:
+        """iRODS environment dictionary.
+
+        Returns
+        -------
+        dict
+            Environment from JSON serialized string.
+        """
+        if self.context.irods_environment:
+            return self.context.irods_environment.config
+        return {}
 
     @property
     def resources(self) -> dict:

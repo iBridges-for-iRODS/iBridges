@@ -13,9 +13,10 @@ from . import keywords as kw
 import utils
 
 
-class Session(utils.context.ContextContainer):
+class Session(object):
     """Irods session operations """
     _session = None
+    context = utils.context.Context()
 
     def __init__(self, password=''):
         """ iRODS authentication with Python client.
@@ -73,6 +74,19 @@ class Session(utils.context.ContextContainer):
 
         """
         return self._session.host
+
+    @property
+    def ienv(self) -> dict:
+        """iRODS environment dictionary.
+
+        Returns
+        -------
+        dict
+            Environment from JSON serialized string.
+        """
+        if self.context.irods_environment:
+            return self.context.irods_environment.config
+        return {}
 
     @property
     def port(self) -> str:
@@ -284,7 +298,7 @@ class Session(utils.context.ContextContainer):
         authentication file in obfuscated form.
 
         """
-        conn = self._session.pool.get_connection()
+        connection = self._session.pool.get_connection()
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
@@ -293,4 +307,4 @@ class Session(utils.context.ContextContainer):
                     irods.password_obfuscation.encode(pam_passwords[0]))
         else:
             logging.info('WARNING -- unable to cache obfuscated password locally')
-        conn.release()
+        connection.release()
