@@ -280,7 +280,7 @@ class IrodsConnector(object):
         return self.session.port
 
     @property
-    def server_version(self) -> str:
+    def server_version(self) -> tuple:
         return self.session.server_version
 
     @property

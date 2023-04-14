@@ -39,6 +39,20 @@ class Session(object):
         del self.session
 
     @property
+    def conf(self) -> dict:
+        """iBridges configuration dictionary.
+
+        Returns
+        -------
+        dict
+            Configuration from JSON serialized string.
+
+        """
+        if self.context.ibridges_configuration:
+            return self.context.ibridges_configuration.config
+        return {}
+
+    @property
     def davrods(self) -> str:
         """DavRODS server URL.
 
@@ -48,8 +62,7 @@ class Session(object):
             URL of the configured DavRODS server.
 
         """
-        # FIXME move iBridges parameters to iBridges configuration
-        return self.ienv.get('davrods_server', None)
+        return self.conf.get('davrods_server', '')
 
     @property
     def default_resc(self) -> str:
@@ -61,7 +74,7 @@ class Session(object):
             Resource name.
 
         """
-        return self.ienv.get('irods_default_resource', None)
+        return self.ienv.get('irods_default_resource', '')
 
     @property
     def host(self) -> str:
@@ -73,7 +86,9 @@ class Session(object):
             Hostname.
 
         """
-        return self._session.host
+        if self.session:
+            return self.session.host
+        return ''
 
     @property
     def ienv(self) -> dict:
@@ -98,7 +113,9 @@ class Session(object):
             Port.
 
         """
-        return self._session.port
+        if self.session:
+            return str(self.session.port)
+        return ''
 
     @property
     def username(self) -> str:
@@ -110,19 +127,23 @@ class Session(object):
             Username.
 
         """
-        return self._session.username
+        if self.session:
+            return self.session.username
+        return ''
 
     @property
-    def server_version(self) -> str:
+    def server_version(self) -> tuple:
         """Retrieve version of the iRODS server
 
         Returns
         -------
-        str
-            Server version.
+        tuple
+            Server version: (major, minor, patch).
 
         """
-        return self._session.server_version
+        if self.session:
+            return self.session.server_version
+        return ()
 
     @property
     def zone(self) -> str:
@@ -134,7 +155,9 @@ class Session(object):
             Zone.
 
         """
-        return self._session.zone
+        if self.session:
+            return self.session.zone
+        return ''
 
     @property
     def password(self) -> str:
