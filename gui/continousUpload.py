@@ -42,7 +42,7 @@ class contUpload(Thread, utils.context.ContextContainer):
         self.destColl = destColl
         self.upload_mode = upload_mode
         self.r_local_copy = r_local_copy
-        self.force = self.ienv.get('force_unknown_free_space', False)
+        self.force = self.conf.get('force_unknown_free_space', False)
         Thread.__init__(self)
 
 

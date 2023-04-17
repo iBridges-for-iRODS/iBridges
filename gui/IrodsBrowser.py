@@ -48,7 +48,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabBrowser.ui", self)
-        self.force = self.ienv.get('force_unknown_free_space', False)
+        self.force = self.conf.get('force_unknown_free_space', False)
         self.viewTabs.setCurrentIndex(0)
         # Browser table
         self.collTable.setColumnWidth(0, 20)

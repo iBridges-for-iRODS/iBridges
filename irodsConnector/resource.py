@@ -39,6 +39,20 @@ class Resource(object):
         self.sess_man = sess_man
 
     @property
+    def conf(self) -> dict:
+        """iBridges configuration dictionary.
+
+        Returns
+        -------
+        dict
+            Configuration from JSON serialized string.
+
+        """
+        if self.context.ibridges_configuration:
+            return self.context.ibridges_configuration.config
+        return {}
+
+    @property
     def ienv(self) -> dict:
         """iRODS environment dictionary.
 
@@ -154,7 +168,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not self.ienv.get('force_unknown_free_space', False):
+        if not self.conf.get('force_unknown_free_space', False):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
