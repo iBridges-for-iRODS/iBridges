@@ -213,8 +213,7 @@ class Session(object):
         """
         if self._session is None:
             options = {
-                'irods_env_file': self.context.irods_env_file,
-                'application_name': self.context.application_name,
+                'irods_env_file': str(self.context.irods_env_file),
             }
             if self.ienv is not None:
                 options.update(self.ienv)
@@ -275,16 +274,17 @@ class Session(object):
             try:
                 print('AUTH FILE SESSION')
                 session = irods.session.iRODSSession(
-                    irods_env_file=options['irods_env_file'])
+                    irods_env_file=options.pop('irods_env_file'))
                 _ = session.server_version
                 return session
             except Exception as error:
                 print(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
                 raise error
         else:
+            password = options.pop('password')
             try:
                 print('FULL ENVIRONMENT SESSION')
-                session = irods.session.iRODSSession(**options)
+                session = irods.session.iRODSSession(password=password, **options)
                 _ = session.server_version
                 return session
             except irods.connection.PlainTextPAMPasswordError as ptppe:
@@ -305,7 +305,7 @@ class Session(object):
                     }
                     options.update(ssl_settings)
                     print('RETRY WITH DEFAULT SSL SETTINGS')
-                    session = irods.session.iRODSSession(**options)
+                    session = irods.session.iRODSSession(password=password, **options)
                     _ = session.server_version
                     return session
                 except Exception as error:
