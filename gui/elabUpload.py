@@ -241,7 +241,7 @@ class Worker(QObject, utils.context.ContextContainer):
     def run(self):
         try:
             if os.path.isfile(self.filePath):
-                # TODO should all the "force"es here be configurable?
+                # TODO shouldn't all the "force"es here be configurable?
                 self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 item = self.conn.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))

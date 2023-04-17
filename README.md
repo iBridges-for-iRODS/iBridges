@@ -45,41 +45,43 @@ python3.10 -m pip install -r requirements.txt
 
 ```json
 {
-    "irods_host": "server.fqdn.nl", 
-    "irods_port": 1247, 
-    "irods_user_name": "username", 
-    "irods_zone_name": "myZone", 
-    "irods_default_resource": "myResc" 
+    "irods_host": "server.fqdn.nl",
+    "irods_port": 1247,
+    "irods_user_name": "username",
+    "irods_zone_name": "myZone",
+    "irods_default_resource": "myResc"
 }
 ```
 
 ### iBridges config.json
 
-*iBridges* will create its own configuration file in `~/.ibridges/` containing the name of the last *iRODS* environment file used.  This `config.json` file can be updated to control other aspects of *iBridges*.  For example:
+If it does not exist, *iBridges* will create its own configuration file in `~/.ibridges/` containing the name of the last *iRODS* environment file used and other mandatory options.  This `ibridges_config.json` file can be updated to control other aspects of *iBridges*.  For example:
 
 ```json
 {
-    "last_ienv": "irods_environment.json", 
-    "davrods_server": "https://server.fqdn.nl", 
-    "ui_tabs": [ 
-        "tabUpDownload", 
-        "tabELNData", 
-        "tabDataBundle", 
-        "tabCreateTicket" 
-    ], 
-    "force_unknown_free_space": false 
+    "check_free_space": true,
+    "davrods_server": "https://server.fqdn.nl",
+    "force_transfers: false",
+    "last_ienv": "irods_environment.json",
+    "ui_tabs": [
+        "tabUpDownload",
+        "tabELNData",
+        "tabDataBundle",
+        "tabCreateTicket"
+    ]
 }
 ```
 Options:
+- `check_free_space`: check whether root resources' free space is annotated (mandtory)
 - `davrods_server`: for annotation of eLabJournal data
+- `force_transfers`: allows a transfer to overwrite existing files/data objects (mandatory)
 - `ui_tabs`: configure which tabs are shown (Browser and Info tabs always are)
   - `tabUpDownload`: a two-pane upload/download tab
   - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
   - `tabDataBundle`: (un)bundle datasets from/to four supported formats
   - `tabCreateTicket`: create iRODS tickets for anonymous access
-- `force_unknown_free_space`: ignore if resources' free space is unannotated
 
-The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
+The `check_free_space` option is *REQUIRED* to be set to `false` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  It also overrides file space protection.  The `force_transfers` option sets the `force` flag for up/downloads.
 
 The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directory/folder.
 

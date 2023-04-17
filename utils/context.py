@@ -1,8 +1,6 @@
 """iBridges context: configurations and common services.
 
 """
-import logging
-
 from . import json_config
 from . import path
 
@@ -10,7 +8,8 @@ IBRIDGES_DIR = '~/.ibridges'
 IRODS_DIR = '~/.irods'
 DEFAULT_IBRIDGES_CONF_FILE = f'{IBRIDGES_DIR}/ibridges_config.json'
 MANDATORY_IBRIDGES_KEYS = [
-    'force_unknown_free_space',
+    'check_free_space',
+    'force_transfers',
     ]
 MANDATORY_IRODS_KEYS = [
     'irods_host',
@@ -96,7 +95,8 @@ class Context:
             if not filepath.parent.is_dir():
                 filepath.parent.mkdir()
             if not filepath.is_file():
-                filepath.write_text('{"force_unknown_free_space": false}')
+                filepath.write_text(
+                    '{"check_free_space": true, "force_transfers": false}')
             self._ibridges_configuration = json_config.JsonConfig(filepath)
         # iBridges configuration check.
         conf_dict = self._ibridges_configuration.config

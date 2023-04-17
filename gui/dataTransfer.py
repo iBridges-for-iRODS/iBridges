@@ -49,7 +49,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
         self.diff = []
         self.updateFiles = []
         self.updateSize = 0
-        self.force = self.conf.get('force_unknown_free_space', False)
+        self.force = self.conf.get('force_transfers', False)
         self.statusLbl.setText("Loading")
         self.cancelBtn.clicked.connect(self.cancel)
         self.confirmBtn.clicked.connect(self.confirm)
@@ -306,7 +306,7 @@ class UpDownload(QObject, utils.context.ContextContainer):
         self.diff = diff
         self.addFiles = addFiles
         # TODO prefer setting here?
-        self.force = self.conf.get('force_unknown_free_space', force)
+        self.force = self.conf.get('force_transfers', force)
 
     def run(self):
         try:

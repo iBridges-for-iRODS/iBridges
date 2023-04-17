@@ -143,6 +143,7 @@ class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)
             if buttonReply == QMessageBox.StandardButton.Yes:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+                # TODO shouldn't all the "force"es here be configurable?
                 try:
                     for p in irodsPaths:
                         if self.conn.collection_exists(p):
