@@ -270,11 +270,12 @@ class Session(object):
             iRODS connection based on given environment and password.
 
         """
+        irods_env_file = options.pop('irods_env_file')
         if 'password' not in options:
             try:
                 print('AUTH FILE SESSION')
                 session = irods.session.iRODSSession(
-                    irods_env_file=options.pop('irods_env_file'))
+                    irods_env_file=irods_env_file)
                 _ = session.server_version
                 return session
             except Exception as error:
