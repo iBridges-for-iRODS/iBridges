@@ -217,30 +217,29 @@ class Session(object):
             }
             if self.ienv is not None:
                 options.update(self.ienv)
-            # Compare given password with potentially cached password.
             given_pass = self.password
             del self.password
+            # Accessing reset password property scrapes cached password.
             cached_pass = self.password
+            del self.password
             if given_pass != cached_pass:
                 options['password'] = given_pass
             self._session = self._get_irods_session(options)
-            try:
-                _ = self._session.server_version
+            # If session exists, it is validated.
+            if self._session:
                 self._write_pam_password()
-            except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
-                raise error
-            print('Welcome to iRODS:')
-            print(f'iRODS Zone: {self._session.zone}')
-            print(f'You are: {self._session.username}')
-            print(f'Default resource: {self.default_resc}')
-            print('You have access to: \n')
-            home_path = f'/{self._session.zone}/home'
-            if self._session.collections.exists(home_path):
-                colls = self._session.collections.get(home_path).subcollections
-                print('\n'.join([coll.path for coll in colls]))
-            logging.info(
-                'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
-                self._session.zone, self._session.host)
+                print('Welcome to iRODS:')
+                print(f'iRODS Zone: {self._session.zone}')
+                print(f'You are: {self._session.username}')
+                print(f'Default resource: {self.default_resc}')
+                print('You have access to: \n')
+                home_path = f'/{self._session.zone}/home'
+                if self._session.collections.exists(home_path):
+                    colls = self._session.collections.get(home_path).subcollections
+                    print('\n'.join([coll.path for coll in colls]))
+                logging.info(
+                    'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
+                    self._session.zone, self._session.host)
         return self._session
 
     @session.deleter

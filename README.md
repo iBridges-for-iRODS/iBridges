@@ -61,7 +61,7 @@ If it does not exist, *iBridges* will create its own configuration file in `~/.i
 {
     "check_free_space": true,
     "davrods_server": "https://server.fqdn.nl",
-    "force_transfers": false",
+    "force_transfers": false,
     "last_ienv": "irods_environment.json",
     "ui_tabs": [
         "tabUpDownload",
