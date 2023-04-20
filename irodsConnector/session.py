@@ -225,10 +225,8 @@ class Session(object):
                 options['password'] = given_pass
             self._session = self._get_irods_session(options)
             try:
-                # Check for good authentication and cache PAM password
-                if 'password' in options:
-                    _ = self._session.server_version
-                    self._write_pam_password()
+                _ = self._session.server_version
+                self._write_pam_password()
             except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
                 raise error
             print('Welcome to iRODS:')
