@@ -227,7 +227,8 @@ class Session(object):
             self._session = self._get_irods_session(options)
             # If session exists, it is validated.
             if self._session:
-                self._write_pam_password()
+                if given_pass != cached_pass:
+                    self._write_pam_password()
                 print('Welcome to iRODS:')
                 print(f'iRODS Zone: {self._session.zone}')
                 print(f'You are: {self._session.username}')
