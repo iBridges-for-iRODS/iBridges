@@ -152,7 +152,7 @@ def main() -> int:
         return 2
     # Step 3: Activate venv and run pyinstaller.
     try:
-        filenames = f'{iconpath.joinpath("irods-iBridgesGui.ico")} irods-iBridgesGui.py'
+        filenames = f'{iconpath.joinpath("iBridges.ico")} iBridges.py'
         run_cmd(f'{venv_activate} && pyinstaller --clean --noconfirm --icon {filenames}')
     except Exception as error:
         print(f'Error creating executable: {error}')
@@ -169,7 +169,7 @@ def main() -> int:
     if confirmation[0].upper().startswith('Y'):
         try:
             relpath.joinpath('build').rmdir(squash=True)
-            relpath.joinpath('irods-iBridgesGui.spec').unlink()
+            relpath.joinpath('iBridges.spec').unlink()
         except Exception as error:
             print(f'Error cleaning up: {error}')
             return 5
