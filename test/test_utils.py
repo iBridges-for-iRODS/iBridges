@@ -2,11 +2,10 @@
 
 """
 import json
-import os.path
+import os
 import pathlib
-# import pytest
 import sys
-sys.path.append('..')
+
 import utils
 
 
@@ -24,38 +23,33 @@ class TestUtils:
         sys.platform = orig_platform
 
     def test_pure_path(self):
-        is_posix = None
-        path = utils.utils.PurePath('.')
-        assert path._posix == is_posix
+        path = utils.path.PurePath('.')
         assert isinstance(path.path, pathlib.PurePath)
 
     def test_irods_path(self):
-        is_posix = True
-        path = utils.utils.IrodsPath('.')
-        assert path._posix == is_posix
+        path = utils.path.IrodsPath('.')
         assert isinstance(path.path, pathlib.PurePath)
         not_norm = '/zone/./home/./user/../user'
         is_norm = '/zone/home/user'
-        path = utils.utils.IrodsPath(not_norm)
-        norm_path = utils.utils.IrodsPath(is_norm)
+        path = utils.path.IrodsPath(not_norm)
+        norm_path = utils.path.IrodsPath(is_norm)
         assert path == norm_path
 
     def test_local_path(self):
-        is_posix = None
-        path = utils.utils.LocalPath('.')
-        assert path._posix == is_posix
+        path = utils.path.LocalPath('.')
         assert isinstance(path.path, pathlib.Path)
-        assert path.resolve() == path
 
     def test_json_config(self):
         filename = './config.json'
-        config = utils.utils.JsonConfig(filename)
-        config.config = {}
+        if os.path.exists(filename):
+            os.remove(filename)
+        config = utils.json_config.JsonConfig(filename)
+        test_config = {'test_key': 'test_val'}
+        config.config = test_config
+        config.save()
         assert os.path.exists(filename)
         with open(filename) as confd:
-            assert json.load(confd) == {}
-        del config.config
-        assert not os.path.exists(filename)
+            assert json.load(confd) == test_config
 
     def test_ensure_dir(self):
         dirname = 'ensure.dir'

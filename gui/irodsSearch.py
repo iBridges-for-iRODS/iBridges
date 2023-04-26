@@ -13,17 +13,16 @@ from gui.ui_files.searchDialog import Ui_searchDialog
 import utils
 
 
-class irodsSearch(QDialog, Ui_searchDialog):
+class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
     """
 
     """
 
-    def __init__(self, ic, collTable):
+    def __init__(self, collTable):
         """
 
         Parameters
         ----------
-        ic
         collTable
 
         """
@@ -32,7 +31,6 @@ class irodsSearch(QDialog, Ui_searchDialog):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/searchDialog.ui", self)
-        self.ic = ic
         self.collTable = collTable
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]
@@ -62,7 +60,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
         self.searchResultTable.setRowCount(0)
         # gather all input from input fields in dictionary 'criteria'
         keyVals = dict(zip([key.text() for key in self.keys], [val.text() for val in self.vals]))
-        
+
         criteria = {}
         if self.pathPattern.text():
             criteria['path'] = self.pathPattern.text()
@@ -75,11 +73,11 @@ class irodsSearch(QDialog, Ui_searchDialog):
                 criteria[key] = ''
             if keyVals[key]:
                 criteria[key] = keyVals[key]
-        
+
         # get search results as [[collname, objname, checksum]...[]]
-        results = self.ic.search(criteria)
-        
-        row = 0 
+        results = self.conn.search(criteria)
+
+        row = 0
         if len(results) == 0:
             self.searchResultTable.setRowCount(1)
             self.searchResultTable.setItem(row, 0, 
@@ -130,9 +128,9 @@ class irodsSearch(QDialog, Ui_searchDialog):
         # TODO check that this is correct
         irodsPaths = []
         for row in rows:
-            path0 = utils.utils.IrodsPath(
+            path0 = utils.path.IrodsPath(
                 self.searchResultTable.item(row, 0).text())
-            path1 = utils.utils.IrodsPath(
+            path1 = utils.path.IrodsPath(
                 self.searchResultTable.item(row, 1).text())
             if path1 == '':
                 irodsPaths.append(path0)
@@ -145,15 +143,16 @@ class irodsSearch(QDialog, Ui_searchDialog):
                                 'Download\n'+'\n'.join(irodsPaths)+'\nto\n'+downloadDir)
             if buttonReply == QMessageBox.StandardButton.Yes:
                 self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.WaitCursor))
+                # TODO shouldn't all the "force"es here be configurable?
                 try:
                     for p in irodsPaths:
-                        if self.ic.collection_exists(p):
-                            item = self.ic.get_collection(p)
-                            self.ic.download_data(item, downloadDir, 0, force=True)
+                        if self.conn.collection_exists(p):
+                            item = self.conn.get_collection(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
-                        elif self.ic.dataobject_exists(p):
-                            item = self.ic.get_dataobject(p)
-                            self.ic.download_data(item, downloadDir, 0, force=True)
+                        elif self.conn.dataobject_exists(p):
+                            item = self.conn.get_dataobject(p)
+                            self.conn.download_data(item, downloadDir, 0, force=True)
                             self.errorLabel.setText("Download complete")
                         else:
                             self.errorLabel.setText(
@@ -162,5 +161,3 @@ class irodsSearch(QDialog, Ui_searchDialog):
                     logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons()
-
-

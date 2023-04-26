@@ -1,11 +1,14 @@
 """ resource operations
 """
 import logging
+
 import irods.exception
 import irods.session
 import irods.resource
-import irodsConnector.keywords as kw
-from irodsConnector.session import Session
+
+from . import keywords as kw
+from . import session
+import utils
 
 
 class FreeSpaceNotSet(Exception):
@@ -23,17 +26,44 @@ class NotEnoughFreeSpace(Exception):
 class Resource(object):
     """Irods Resource operations """
     _resources = None
-    _ses_man = None
+    context = utils.context.Context()
 
-    def __init__(self, ses_man: Session):
+    def __init__(self, sess_man: session.Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            ses_man : irods session
+            sess_man : irods session
                 instance of the Session class
         """
-        self._ses_man = ses_man
+        self.sess_man = sess_man
+
+    @property
+    def conf(self) -> dict:
+        """iBridges configuration dictionary.
+
+        Returns
+        -------
+        dict
+            Configuration from JSON serialized string.
+
+        """
+        if self.context.ibridges_configuration:
+            return self.context.ibridges_configuration.config
+        return {}
+
+    @property
+    def ienv(self) -> dict:
+        """iRODS environment dictionary.
+
+        Returns
+        -------
+        dict
+            Environment from JSON serialized string.
+        """
+        if self.context.irods_environment:
+            return self.context.irods_environment.config
+        return {}
 
     @property
     def resources(self) -> dict:
@@ -54,7 +84,7 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = self._ses_man.session.query(
+            query = self.sess_man.session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
@@ -86,12 +116,16 @@ class Resource(object):
                 if status is not None:
                     if 'down' in status:
                         continue
-                if metadata['parent'] is None and metadata['free_space'] > 0:
+                resc_is_root = metadata['parent'] is None
+                has_free_space = True
+                if self.conf.get('check_free_space', True):
+                    has_free_space = metadata['free_space'] > 0
+                if resc_is_root and has_free_space:
                     resc_names.append(name)
-            if self._ses_man.default_resc not in resc_names:
+            if self.sess_man.default_resc not in resc_names:
                 print('    -=WARNING=-    '*4)
-                print(f'The default resource ({self._ses_man.default_resc}) not found in available resources!')
-                print('Check "irods_default_resource" and "force_unknown_free_space" settings.')
+                print(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
+                print('Check "irods_default_resource" and "check_free_space" settings.')
                 print('    -=WARNING=-    '*4)
         return self._resources
 
@@ -100,13 +134,11 @@ class Resource(object):
         system producing 2 lists by default, one with resource names and
         another the value of the free_space annotation.  The parent,
         status, and context values are also available.  When the
-        force_unknown_free_space option is set, it returns all root
-        resources. A value of 0 indicates no free space annotated.
+        check_free_space option is False, it returns all root
+        resources.  A value of 0 indicates no free space annotated.
 
         Parameters
         ----------
-        ienv: dict
-            iRODS environment dictionary
         attr_names : list
             Names of resource attributes to assemble.
 
@@ -140,7 +172,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        if not self._ses_man.ienv.get('force_unknown_free_space', False):
+        if self.conf.get('check_free_space', True):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
@@ -163,7 +195,7 @@ class Resource(object):
 
         """
         try:
-            return self._ses_man.session.resources.get(resc_name)
+            return self.sess_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
             print(f'Resource with name {resc_name} not found')
             raise rdne
@@ -231,7 +263,7 @@ class Resource(object):
 
         """
         try:
-            resc = self._ses_man.session.resources.get(resc_name)
+            resc = self.sess_man.session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             print(f'Resource with name {resc_name} not found')
             return -1

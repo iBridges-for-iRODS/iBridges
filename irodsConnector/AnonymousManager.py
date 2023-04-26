@@ -7,20 +7,25 @@ import uuid
 from base64 import b64decode
 from shutil import disk_usage
 from subprocess import Popen, PIPE
+
 import irods.collection
+import irods.data_object
 from irods.exception import CAT_SQL_ERR
 from irods.session import iRODSSession
 from irods.ticket import Ticket
-from utils.utils import ensure_dir, save_irods_env
-from irodsConnector.Icommands import IrodsConnectorIcommands
-import irodsConnector.keywords as kw
+
+from . import Icommands
+from . import keywords as kw
+import utils
+
+CONTEXT = utils.context.Context()
 
 
 # TODO
-# When the manager is done, a lot of functions can be rewriten and mapped in the same way.
-# The result is an manager class and an annonomous manager class
+# When the manager is done, a lot of functions can be rewritten and mapped in the same way.
+# The result is an manager class and an anonymous manager class
 class IrodsConnectorAnonymous:
-    """Anonomous irods user
+    """Anonymous irods user
 
     """
     def __init__(self, host, ticket, path):
@@ -28,7 +33,7 @@ class IrodsConnectorAnonymous:
 
         Parameters
         ----------
-            server: iRODS server
+            host: iRODS server
             ticket: string
             path: iRODS path the ticket grants access to
 
@@ -51,15 +56,16 @@ class IrodsConnectorAnonymous:
         self.token = ticket
         self.path = path
 
-        if IrodsConnectorIcommands.icommands():
-            ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
+        if Icommands.IrodsConnectorIcommands.icommands():
+            utils.utils.ensure_dir(os.path.expanduser('~'+os.sep+'.irods'))
             # move previous iRODS sessions to tmp file (envFile and .irodsA file)
             self._move_prev_session_configs(False)
             env = {"irods_host": self.session.host,
                    "irods_port": 1247,
                    "irods_user_name": "anonymous",
                    "irods_zone_name": self.session.zone}
-            save_irods_env(env)
+            CONTEXT.irods_environment.update(env)
+            CONTEXT.save_irods_environment()
             logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
             pros = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             _, err_login = pros.communicate()

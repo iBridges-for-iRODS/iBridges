@@ -1,25 +1,26 @@
 """ rule operations
 """
 import logging
+
 import irods.exception
 import irods.rule
-from irodsConnector.session import Session
+
+from . import session
 
 
 class Rules(object):
     """Irods Rule operations """
-    _ses_man = None
 
-    def __init__(self, ses_man: Session):
+    def __init__(self, sess_man: session.Session):
         """ iRODS data operations initialization
 
             Parameters
             ----------
-            ses_man : irods session
+            sess_man : irods session
                 instance of the Session class
 
         """
-        self._ses_man = ses_man
+        self.sess_man = sess_man
 
     def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         """Execute an iRODS rule.
@@ -48,7 +49,7 @@ class Rules(object):
         """
         try:
             rule = irods.rule.Rule(
-                self._ses_man.session, rule_file=rule_file, params=params, output=output,
+                self.sess_man.session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except irods.exception.NetworkException as netexc:

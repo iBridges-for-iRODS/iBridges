@@ -3,7 +3,6 @@ import irods.column as cm
 import irods.keywords as kw
 import irods.models as imodels
 
-
 # Keywords
 ALL_KW = kw.ALL_KW
 FORCE_FLAG_KW = kw.FORCE_FLAG_KW

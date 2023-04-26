@@ -1,75 +1,56 @@
 """ session operations
 """
-from json import load
-from os import environ
 import logging
+import os
 import ssl
+
+import irods.connection
 import irods.exception
 import irods.password_obfuscation
 import irods.session
-import irodsConnector.keywords as kw
-from utils import utils
+
+from . import keywords as kw
+import utils
 
 
 class Session(object):
     """Irods session operations """
-    _irods_env_file = ''
-    _ienv = {}
-    _password = ''
     _session = None
+    context = utils.context.Context()
 
-    def __init__(self, irods_env_file='', password=''):
+    def __init__(self, password=''):
         """ iRODS authentication with Python client.
 
         Parameters
         ----------
-        irods_env_file : str
-            JSON document with iRODS connection parameters.
         password : str
             Plain text password.
 
-        The 'ienv' and 'password' properties can autoload from their
-        respective caches, but can be overridden by the `ienv` and
-        `password` arguments, respectively.  The iRODS environment file
-        is expected in the standard location
-        (~/.irods/irods_environment.json) or to be specified in the
-        local environment with the IRODS_ENVIRONMENT_FILE variable, and
-        the iRODS authentication file is expected in the standard
-        location (~/.irods/.irodsA) or to be specified in the local
-        environment with the IRODS_AUTHENTICATION_FILE variable.
-        """
-        self._irods_env_file = irods_env_file
-        if password:
-            self._password = password
-
-    @property
-    def irods_env_file(self) -> str:
-        """iRODS environment filename
-
-        Returns
-        -------
-        str
-            the path to the iRODS environment file.
+        The 'password' property can autoload from its cache, but can be
+        overridden by `password` argument.  The iRODS authentication
+        file is expected in the standard location (~/.irods/.irodsA) or
+        to be specified in the local environment with the
+        IRODS_AUTHENTICATION_FILE variable.
 
         """
-        return self._irods_env_file
+        self._password = password
+
+    def __del__(self):
+        del self.session
 
     @property
-    def ienv(self) -> dict:
-        """iRODS environment dictionary.
+    def conf(self) -> dict:
+        """iBridges configuration dictionary.
 
         Returns
         -------
         dict
-            iRODS environment dictionary obtained from its JSON file.
+            Configuration from JSON serialized string.
 
         """
-        if not self._ienv:
-            irods_env_file = utils.LocalPath(self._irods_env_file)
-            if irods_env_file.is_file():
-                with open(irods_env_file, encoding='utf-8') as envfd:
-                    self._ienv = load(envfd)
-        return self._ienv
+        if self.context.ibridges_configuration:
+            return self.context.ibridges_configuration.config
+        return {}
 
     @property
     def davrods(self) -> str:
@@ -81,8 +62,7 @@ class Session(object):
             URL of the configured DavRODS server.
 
         """
-        # FIXME move iBridges parameters to iBridges configuration
-        return self._ienv.get('davrods_server', None)
+        return self.conf.get('davrods_server', '')
 
     @property
     def default_resc(self) -> str:
@@ -94,11 +74,11 @@ class Session(object):
             Resource name.
 
         """
-        return self._ienv.get('irods_default_resource', None)
+        return self.ienv.get('irods_default_resource', '')
 
     @property
     def host(self) -> str:
-        """Retreive hostname of the iRODS server
+        """Retrieve hostname of the iRODS server
 
         Returns
         -------
@@ -106,11 +86,26 @@ class Session(object):
             Hostname.
 
         """
-        return self._session.host
+        if self.session:
+            return self.session.host
+        return ''
+
+    @property
+    def ienv(self) -> dict:
+        """iRODS environment dictionary.
+
+        Returns
+        -------
+        dict
+            Environment from JSON serialized string.
+        """
+        if self.context.irods_environment:
+            return self.context.irods_environment.config
+        return {}
 
     @property
     def port(self) -> str:
-        """Retreive port of the iRODS server
+        """Retrieve port of the iRODS server
 
         Returns
         -------
@@ -118,11 +113,13 @@ class Session(object):
             Port.
 
         """
-        return self._session.port
+        if self.session:
+            return str(self.session.port)
+        return ''
 
     @property
     def username(self) -> str:
-        """Retreive username
+        """Retrieve username
 
         Returns
         -------
@@ -130,23 +127,27 @@ class Session(object):
             Username.
 
         """
-        return self._session.username
+        if self.session:
+            return self.session.username
+        return ''
 
     @property
-    def server_version(self) -> str:
-        """Retreive version of the iRODS server
+    def server_version(self) -> tuple:
+        """Retrieve version of the iRODS server
 
         Returns
         -------
-        str
-            Server version.
+        tuple
+            Server version: (major, minor, patch).
 
         """
-        return self._session.server_version
+        if self.session:
+            return self.session.server_version
+        return ()
 
-    @property            
+    @property
     def zone(self) -> str:
-        """Retreive the zone name
+        """Retrieve the zone name
 
         Returns
         -------
@@ -154,7 +155,9 @@ class Session(object):
             Zone.
 
         """
-        return self._session.zone
+        if self.session:
+            return self.session.zone
+        return ''
 
     @property
     def password(self) -> str:
@@ -168,10 +171,10 @@ class Session(object):
 
         """
         if not self._password:
-            irods_auth_file = environ.get(
+            irods_auth_file = os.environ.get(
                 'IRODS_AUTHENTICATION_FILE', None)
             if irods_auth_file is None:
-                irods_auth_file = utils.LocalPath(
+                irods_auth_file = utils.path.LocalPath(
                     '~/.irods/.irodsA').expanduser()
             if irods_auth_file.exists():
                 with open(irods_auth_file, encoding='utf-8') as authfd:
@@ -180,7 +183,7 @@ class Session(object):
         return self._password
 
     @password.setter
-    def password(self, password):
+    def password(self, password: str):
         """iRODS password setter method.
 
         Pararmeters
@@ -189,8 +192,7 @@ class Session(object):
             Unencrypted iRODS password.
 
         """
-        if password:
-            self._password = password
+        self._password = password
 
     @password.deleter
     def password(self):
@@ -201,28 +203,7 @@ class Session(object):
 
     @property
     def session(self) -> irods.session.iRODSSession:
-        """iRODS session.
-
-        Returns
-        -------
-        iRODSSession
-            iRODS connection based on given environment and password.
-
-        """
-        return self._session
-
-    def cleanup(self):
-        """ cleanup irods session.
-        """
-        return self._session.cleanup()
-
-    def connect(self, application_name: str) -> irods.session.iRODSSession:
         """iRODS session creation.
-
-        Pararmeters
-        -----------
-        application_name: str
-            Name of the python application
 
         Returns
         -------
@@ -232,38 +213,44 @@ class Session(object):
         """
         if self._session is None:
             options = {
-                'irods_env_file': self._irods_env_file,
-                'application_name': application_name,
+                'irods_env_file': str(self.context.irods_env_file),
             }
             if self.ienv is not None:
-                options.update(self.ienv.copy())
-            # Compare given password with potentially cached password.
+                options.update(self.ienv)
             given_pass = self.password
             del self.password
+            # Accessing reset password property scrapes cached password.
             cached_pass = self.password
+            del self.password
             if given_pass != cached_pass:
                 options['password'] = given_pass
             self._session = self._get_irods_session(options)
-            try:
-                # Check for good authentication and cache PAM password
-                if 'password' in options:
-                    _ = self._session.server_version
+            # If session exists, it is validated.
+            if self._session:
+                if given_pass != cached_pass:
                     self._write_pam_password()
-            except (irods.exception.CAT_INVALID_AUTHENTICATION, KeyError) as error:
-                raise error
-            print('Welcome to iRODS:')
-            print(f'iRODS Zone: {self._session.zone}')
-            print(f'You are: {self._session.username}')
-            print(f'Default resource: {self.default_resc}')
-            print('You have access to: \n')
-            home_path = f'/{self._session.zone}/home'
-            if self._session.collections.exists(home_path):
-                colls = self._session.collections.get(home_path).subcollections
-                print('\n'.join([coll.path for coll in colls]))
-            logging.info(
-                'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
-                self._session.zone, self._session.host)
-            return self._session
+                print('Welcome to iRODS:')
+                print(f'iRODS Zone: {self._session.zone}')
+                print(f'You are: {self._session.username}')
+                print(f'Default resource: {self.default_resc}')
+                print('You have access to: \n')
+                home_path = f'/{self._session.zone}/home'
+                if self._session.collections.exists(home_path):
+                    colls = self._session.collections.get(home_path).subcollections
+                    print('\n'.join([coll.path for coll in colls]))
+                logging.info(
+                    'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
+                    self._session.zone, self._session.host)
+        return self._session
+
+    @session.deleter
+    def session(self):
+        """Properly delete irods session.
+        """
+        if self._session is not None:
+            self._session.cleanup()
+            del self._session
+            self._session = None
 
     @staticmethod
     def _get_irods_session(options):
@@ -281,20 +268,22 @@ class Session(object):
             iRODS connection based on given environment and password.
 
         """
+        irods_env_file = options.pop('irods_env_file')
         if 'password' not in options:
             try:
                 print('AUTH FILE SESSION')
                 session = irods.session.iRODSSession(
-                    irods_env_file=options['irods_env_file'])
+                    irods_env_file=irods_env_file)
                 _ = session.server_version
                 return session
             except Exception as error:
                 print(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
                 raise error
         else:
+            password = options.pop('password')
             try:
                 print('FULL ENVIRONMENT SESSION')
-                session = irods.session.iRODSSession(**options)
+                session = irods.session.iRODSSession(password=password, **options)
                 _ = session.server_version
                 return session
             except irods.connection.PlainTextPAMPasswordError as ptppe:
@@ -315,7 +304,7 @@ class Session(object):
                     }
                     options.update(ssl_settings)
                     print('RETRY WITH DEFAULT SSL SETTINGS')
-                    session = irods.session.iRODSSession(**options)
+                    session = irods.session.iRODSSession(password=password, **options)
                     _ = session.server_version
                     return session
                 except Exception as error:
@@ -331,9 +320,13 @@ class Session(object):
         authentication file in obfuscated form.
 
         """
+        connection = self._session.pool.get_connection()
         pam_passwords = self._session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self._session.get_irods_password_file()
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
                     irods.password_obfuscation.encode(pam_passwords[0]))
+        else:
+            logging.info('WARNING -- unable to cache obfuscated password locally')
+        connection.release()

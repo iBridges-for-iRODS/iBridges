@@ -1,28 +1,29 @@
 """ ticket operations
 """
+import logging
 from random import choice
 from string import ascii_letters
 from subprocess import Popen, PIPE
-import logging
+
 import irods.ticket
-from irodsConnector.Icommands import IrodsConnectorIcommands
-from irodsConnector.session import Session
+
+from . import Icommands
+from . import session
 
 
 class Tickets(object):
     """Irods Ticket operations """
-    _ses_man = None
 
-    def __init__(self, ses_man: Session):
+    def __init__(self, sess_man: session.Session):
         """ iRODS data operations initialization
 
             Parameters
             ----------
-            ses_man : irods session
+            sess_man : irods session
                 instance of the Session class
 
         """
-        self._ses_man = ses_man
+        self.sess_man = sess_man
 
     def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
         """Create an iRODS ticket to allow read access to the object
@@ -43,7 +44,7 @@ class Tickets(object):
 
         """
         ticket_id = ''.join(choice(ascii_letters) for _ in range(20))
-        ticket = irods.ticket.Ticket(self._ses_man.session, ticket_id)
+        ticket = irods.ticket.Ticket(self.sess_man.session, ticket_id)
         ticket.issue('read', obj_path)
         logging.info('CREATE TICKET: %s: %s', ticket.ticket, obj_path)
         expiration_set = False
@@ -71,7 +72,7 @@ class Tickets(object):
 
         """
         # TODO improve error handling, if necessary
-        if not IrodsConnectorIcommands.icommands():
+        if not Icommands.IrodsConnectorIcommands.icommands():
             return ticket.modify('expire', expiry_string) == ticket
         else:
             command = f'iticket mod {ticket.ticket} expire {expiry_string}'

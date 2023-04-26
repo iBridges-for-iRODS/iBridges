@@ -2,7 +2,8 @@
 """
 import irods.exception
 import irods.meta
-import irodsConnector.keywords as kw
+
+from . import keywords as kw
 
 
 class Meta(object):
