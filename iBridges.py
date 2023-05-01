@@ -131,6 +131,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
+        print(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
         self.envError.setText('')
         if not (self.ienv and self.context.ienv_is_complete()):
             self.context.irods_environment.reset()

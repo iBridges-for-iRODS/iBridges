@@ -16,6 +16,7 @@ import utils
 class Session(object):
     """Irods session operations """
     _session = None
+    # Singleton instance initially configured in iBridges.py
     context = utils.context.Context()
 
     def __init__(self, password=''):
@@ -212,6 +213,14 @@ class Session(object):
 
         """
         if self._session is None:
+            if not self.context.irods_env_file:
+                if 'last_ienv' in self.conf:
+                    print(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
+                    irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
+                    self.context.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
+                else:
+                    print(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
+                    return
             options = {
                 'irods_env_file': str(self.context.irods_env_file),
             }
@@ -248,7 +257,11 @@ class Session(object):
         """Properly delete irods session.
         """
         if self._session is not None:
-            self._session.cleanup()
+            # In case the session is not really there.
+            try:
+                self._session.cleanup()
+            except NameError:
+                pass
             del self._session
             self._session = None
 
@@ -276,8 +289,11 @@ class Session(object):
                     irods_env_file=irods_env_file)
                 _ = session.server_version
                 return session
+            except TypeError as typeerr:
+                print(f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
+                raise typeerr
             except Exception as error:
-                print(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                print(f'{kw.RED}AUTH FILE LOGIN FAILED (unhandled): {error!r}{kw.DEFAULT}')
                 raise error
         else:
             password = options.pop('password')
@@ -330,3 +346,15 @@ class Session(object):
         else:
             logging.info('WARNING -- unable to cache obfuscated password locally')
         connection.release()
+
+    def has_session(self) -> bool:
+        """Check if an iRODS session has been assigned to its shadow
+        variable.
+
+        Returns
+        -------
+        bool
+            Has a session been set?
+
+        """
+        return self._session is not None

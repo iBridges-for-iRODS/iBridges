@@ -252,8 +252,12 @@ class IrodsConnector(object):
         del self.session
 
     def cleanup(self):
-        if self._session and self.session._session:
-            self.session.session.cleanup()
+        if self._session and self.session.has_session():
+            # In case the session is not really there.
+            try:
+                self.session.session.cleanup()
+            except NameError:
+                pass
 
     @property
     def davrods(self) -> str:
