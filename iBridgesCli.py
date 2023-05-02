@@ -284,7 +284,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
-            logging.warning("Uploading to %s", self.target_path)
+            logging.info("Uploading to %s", self.target_path)
         except (CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM):
             logging.error("Collection path invalid: %s", self.target_path)
             return False
