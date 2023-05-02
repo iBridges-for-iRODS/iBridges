@@ -347,6 +347,13 @@ class Session(object):
             logging.info('WARNING -- unable to cache obfuscated password locally')
         connection.release()
 
+    def connect(self):
+        """Manually establish an iRODS session.
+
+        """
+        if not self.has_irods_session():
+            _ = self.irods_session.server_version
+
     def has_irods_session(self) -> bool:
         """Check if an iRODS session has been assigned to its shadow
         variable.

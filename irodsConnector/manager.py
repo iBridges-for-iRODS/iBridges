@@ -251,7 +251,7 @@ class IrodsConnector(object):
         """Manually establish an iRODS session.
 
         """
-        if not self.session.has_session():
+        if not self.session.has_irods_session():
             self.session.connect()
 
     def reset(self):
