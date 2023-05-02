@@ -227,8 +227,14 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         while True:
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
-                irods_conn = IrodsConnector(irods_env, secret)
-                assert irods_conn.session, "No session"
+                irods_conn = IrodsConnector(secret)
+
+                # TODO: not happy with this, is there another way to set the irods_env_file?
+                irods_conn.session.context.irods_env_file = irods_env
+
+                # TODO: replace with proper has_session() function once it's there
+                assert irods_conn.session.session, "No session"
+
                 break
             except AssertionError as exception:
                 logging.error("Failed to connect (%s)", str(exception))
