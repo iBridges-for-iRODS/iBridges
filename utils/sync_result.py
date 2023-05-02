@@ -13,7 +13,7 @@ class SyncResult:
     target_path: str = None  # can be both a irods or (local) filesystem
     source_file_size: int = None  # bytes
 
-    def __init__(self, source, target, filesize):
+    def __init__(self, source: str, target: str, filesize: int) -> None:
         self.source_path = source
         self.target_path = target
         self.source_file_size = filesize

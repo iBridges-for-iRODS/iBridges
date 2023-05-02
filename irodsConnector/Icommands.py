@@ -38,7 +38,7 @@ class IrodsConnectorIcommands:
         # by setting the environment var IRODS_ENVIRONMENT_FILE
         # the var's original value is reset in the destructor
         self.prev_irods_environment_file = os.getenv(self.irods_environment_file_key)
-                
+
         if str(self._ses_man.context.irods_env_file) != self.prev_irods_environment_file:
             os.environ[self.irods_environment_file_key] = str(self._ses_man.context.irods_env_file)
 
@@ -97,7 +97,8 @@ class IrodsConnectorIcommands:
         files = list(set(lines) ^ set(header))
         return list(map(parse_line, files))
 
-    def _resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection, str]) -> Union[iRODSDataObject, iRODSCollection]:
+    def _resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection,
+                                              str]) -> Union[iRODSDataObject, iRODSCollection]:
         if isinstance(path, str):
             if self._ses_man.session.collections.exists(path):
                 return self._ses_man.session.collections.get(path)
