@@ -15,7 +15,7 @@ import sys
 import json
 import getpass
 from pathlib import Path
-from irods.exception import ResourceDoesNotExist, CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
+from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
