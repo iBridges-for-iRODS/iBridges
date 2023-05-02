@@ -324,7 +324,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         elif self.operation == 'upload':
 
             try:
-                _ = self.irods_conn.session.resources.get(self.irods_resc)
+                _ = self.irods_conn.resources.get(self.irods_resc)
             except ResourceDoesNotExist:
                 self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
 
