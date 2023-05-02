@@ -148,15 +148,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.conf['last_ienv'] = irods_env_file.name
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
+        self.conn.password = password
         try:
-            self.conn.password = password
-            # widget is a global variable
-            browser = gui.mainmenu.mainmenu(widget)
-            if len(widget) == 1:
-                widget.addWidget(browser)
-            self._reset_mouse_and_error_labels()
-            # self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-            widget.setCurrentIndex(widget.currentIndex()+1)
+            self.conn.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
                 irods.exception.CAT_INVALID_USER,
@@ -178,6 +172,12 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             # logging.info(repr(error))
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+        # widget is a global variable
+        browser = gui.mainmenu.mainmenu(widget)
+        if len(widget) == 1:
+            widget.addWidget(browser)
+        self._reset_mouse_and_error_labels()
+        widget.setCurrentIndex(widget.currentIndex()+1)
 
     def ticket_login(self):
         """Log in to iRODS using a ticket.

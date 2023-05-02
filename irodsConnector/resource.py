@@ -33,7 +33,7 @@ class Resource(object):
 
             Parameters
             ----------
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
         """
         self.sess_man = sess_man
@@ -84,7 +84,7 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = self.sess_man.session.query(
+            query = self.sess_man.irods_session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
@@ -195,7 +195,7 @@ class Resource(object):
 
         """
         try:
-            return self.sess_man.session.resources.get(resc_name)
+            return self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
             print(f'Resource with name {resc_name} not found')
             raise rdne
@@ -263,7 +263,7 @@ class Resource(object):
 
         """
         try:
-            resc = self.sess_man.session.resources.get(resc_name)
+            resc = self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             print(f'Resource with name {resc_name} not found')
             return -1

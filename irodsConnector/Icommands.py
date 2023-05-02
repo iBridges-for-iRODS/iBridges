@@ -22,9 +22,9 @@ class IrodsConnectorIcommands:
 
             Parameters
             ----------
-            resc_man : irods resource
+            resc_man : resource.Resource
                 Instance of the Reource class
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -76,14 +76,14 @@ class IrodsConnectorIcommands:
 
         if os.path.isfile(source):
             print('CREATE', destination.path + '/' + os.path.basename(source))
-            self.sess_man.session.collections.create(destination.path)
+            self.sess_man.irods_session.collections.create(destination.path)
             if res_name:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + res_name
             else:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path
         elif os.path.isdir(source):
-            self.sess_man.session.collections.create(destination.path + '/' + os.path.basename(source))
-            sub_coll = self.sess_man.session.collections.get(destination.path + '/' + os.path.basename(source))
+            self.sess_man.irods_session.collections.create(destination.path + '/' + os.path.basename(source))
+            sub_coll = self.sess_man.irods_session.collections.get(destination.path + '/' + os.path.basename(source))
             if res_name:
                 cmd = 'irsync -aKr ' + source + ' i:' + sub_coll.path + ' -R ' + res_name
             else:
@@ -133,9 +133,9 @@ class IrodsConnectorIcommands:
                 logging.info('DOWNLOAD ERROR', exc_info=True)
                 raise error
 
-        if self.sess_man.session.data_objects.exists(source.path):
+        if self.sess_man.irods_session.data_objects.exists(source.path):
             cmd = 'irsync -K i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
-        elif self.sess_man.session.collections.exists(source.path):
+        elif self.sess_man.irods_session.collections.exists(source.path):
             cmd = 'irsync -Kr i:' + source.path + ' ' + destination + os.sep + os.path.basename(source.path)
         else:
             raise FileNotFoundError('IRODS download: not a valid source.')

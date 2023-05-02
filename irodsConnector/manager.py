@@ -17,7 +17,6 @@ from . import rules
 from . import session
 from . import tickets
 from . import users
-import utils
 
 
 class IrodsConnector(object):
@@ -248,16 +247,35 @@ class IrodsConnector(object):
 
     # Session functionality
     #
+    def connect(self):
+        """Manually establish an iRODS session.
+
+        """
+        if not self.session.has_session():
+            self.session.connect()
+
     def reset(self):
         del self.session
 
     def cleanup(self):
-        if self._session and self.session.has_session():
-            # In case the session is not really there.
+        if self.has_session() and self.session.has_irods_session():
+            # In case the iRODS session is not fully there.
             try:
-                self.session.session.cleanup()
+                self.session.irods_session.cleanup()
             except NameError:
                 pass
+
+    def has_session(self) -> bool:
+        """Check if an iBridges session has been assigned to its shadow
+        variable.
+
+        Returns
+        -------
+        bool
+            Has a session been set?
+
+        """
+        return self._session is not None
 
     @property
     def davrods(self) -> str:
@@ -273,10 +291,27 @@ class IrodsConnector(object):
 
     @property
     def password(self) -> str:
+        """Password scraped from iRODS obfuscated auth file or manually
+        set.
+
+        Returns
+        -------
+        str
+            Plain text password.
+
+        """
         return self.session.password
 
     @password.setter
     def password(self, password: str):
+        """Set the session password.
+
+        Parameters
+        ----------
+        password : str
+            Plain text password.
+
+        """
         self.session.password = password
 
     @property

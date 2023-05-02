@@ -9,13 +9,13 @@ import irods.exception
 import irods.password_obfuscation
 import irods.session
 
-from . import keywords as kw
 import utils
+from . import keywords as kw
 
 
 class Session(object):
     """Irods session operations """
-    _session = None
+    _irods_session = None
     # Singleton instance initially configured in iBridges.py
     context = utils.context.Context()
 
@@ -37,7 +37,7 @@ class Session(object):
         self._password = password
 
     def __del__(self):
-        del self.session
+        del self.irods_session
 
     @property
     def conf(self) -> dict:
@@ -87,8 +87,8 @@ class Session(object):
             Hostname.
 
         """
-        if self.session:
-            return self.session.host
+        if self.has_irods_session():
+            return self.irods_session.host
         return ''
 
     @property
@@ -114,8 +114,8 @@ class Session(object):
             Port.
 
         """
-        if self.session:
-            return str(self.session.port)
+        if self.has_irods_session():
+            return str(self.irods_session.port)
         return ''
 
     @property
@@ -128,8 +128,8 @@ class Session(object):
             Username.
 
         """
-        if self.session:
-            return self.session.username
+        if self.has_irods_session():
+            return self.irods_session.username
         return ''
 
     @property
@@ -142,8 +142,8 @@ class Session(object):
             Server version: (major, minor, patch).
 
         """
-        if self.session:
-            return self.session.server_version
+        if self.has_irods_session():
+            return self.irods_session.server_version
         return ()
 
     @property
@@ -156,8 +156,8 @@ class Session(object):
             Zone.
 
         """
-        if self.session:
-            return self.session.zone
+        if self.has_irods_session():
+            return self.irods_session.zone
         return ''
 
     @property
@@ -203,7 +203,7 @@ class Session(object):
         self._password = ''
 
     @property
-    def session(self) -> irods.session.iRODSSession:
+    def irods_session(self) -> irods.session.iRODSSession:
         """iRODS session creation.
 
         Returns
@@ -212,7 +212,7 @@ class Session(object):
             iRODS connection based on given environment and password.
 
         """
-        if self._session is None:
+        if self._irods_session is None:
             if not self.context.irods_env_file:
                 if 'last_ienv' in self.conf:
                     print(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
@@ -233,37 +233,37 @@ class Session(object):
             del self.password
             if given_pass != cached_pass:
                 options['password'] = given_pass
-            self._session = self._get_irods_session(options)
+            self._irods_session = self._get_irods_session(options)
             # If session exists, it is validated.
-            if self._session:
+            if self._irods_session:
                 if given_pass != cached_pass:
                     self._write_pam_password()
                 print('Welcome to iRODS:')
-                print(f'iRODS Zone: {self._session.zone}')
-                print(f'You are: {self._session.username}')
+                print(f'iRODS Zone: {self._irods_session.zone}')
+                print(f'You are: {self._irods_session.username}')
                 print(f'Default resource: {self.default_resc}')
                 print('You have access to: \n')
-                home_path = f'/{self._session.zone}/home'
-                if self._session.collections.exists(home_path):
-                    colls = self._session.collections.get(home_path).subcollections
+                home_path = f'/{self._irods_session.zone}/home'
+                if self._irods_session.collections.exists(home_path):
+                    colls = self._irods_session.collections.get(home_path).subcollections
                     print('\n'.join([coll.path for coll in colls]))
                 logging.info(
-                    'IRODS LOGIN SUCCESS: %s, %s, %s', self._session.username,
-                    self._session.zone, self._session.host)
-        return self._session
+                    'IRODS LOGIN SUCCESS: %s, %s, %s', self._irods_session.username,
+                    self._irods_session.zone, self._irods_session.host)
+        return self._irods_session
 
-    @session.deleter
-    def session(self):
-        """Properly delete irods session.
+    @irods_session.deleter
+    def irods_session(self):
+        """Properly delete iRODS session.
         """
-        if self._session is not None:
-            # In case the session is not really there.
+        if self._irods_session is not None:
+            # In case the iRODS session is not fully there.
             try:
-                self._session.cleanup()
+                self._irods_session.cleanup()
             except NameError:
                 pass
-            del self._session
-            self._session = None
+            del self._irods_session
+            self._irods_session = None
 
     @staticmethod
     def _get_irods_session(options):
@@ -336,10 +336,10 @@ class Session(object):
         authentication file in obfuscated form.
 
         """
-        connection = self._session.pool.get_connection()
-        pam_passwords = self._session.pam_pw_negotiated
+        connection = self._irods_session.pool.get_connection()
+        pam_passwords = self._irods_session.pam_pw_negotiated
         if len(pam_passwords):
-            irods_auth_file = self._session.get_irods_password_file()
+            irods_auth_file = self._irods_session.get_irods_password_file()
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
                     irods.password_obfuscation.encode(pam_passwords[0]))
@@ -347,7 +347,7 @@ class Session(object):
             logging.info('WARNING -- unable to cache obfuscated password locally')
         connection.release()
 
-    def has_session(self) -> bool:
+    def has_irods_session(self) -> bool:
         """Check if an iRODS session has been assigned to its shadow
         variable.
 
@@ -357,4 +357,4 @@ class Session(object):
             Has a session been set?
 
         """
-        return self._session is not None
+        return self._irods_session is not None

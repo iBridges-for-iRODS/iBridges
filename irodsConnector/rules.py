@@ -16,7 +16,7 @@ class Rules(object):
 
             Parameters
             ----------
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -49,7 +49,7 @@ class Rules(object):
         """
         try:
             rule = irods.rule.Rule(
-                self.sess_man.session, rule_file=rule_file, params=params, output=output,
+                self.sess_man.irods_session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except irods.exception.NetworkException as netexc:
