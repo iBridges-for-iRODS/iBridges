@@ -38,8 +38,9 @@ class IrodsConnectorIcommands:
         # by setting the environment var IRODS_ENVIRONMENT_FILE
         # the var's original value is reset in the destructor
         self.prev_irods_environment_file = os.getenv(self.irods_environment_file_key)
-        if self._ses_man.irods_env_file.as_posix() != self.prev_irods_environment_file:
-            os.environ[self.irods_environment_file_key] = self._ses_man.irods_env_file.as_posix()
+                
+        if str(self._ses_man.context.irods_env_file) != self.prev_irods_environment_file:
+            os.environ[self.irods_environment_file_key] = str(self._ses_man.context.irods_env_file)
 
     def __del__(self) -> None:
         """
@@ -51,7 +52,7 @@ class IrodsConnectorIcommands:
             os.environ[self.irods_environment_file_key] = self.prev_irods_environment_file
 
     @property
-    def icommands(self) -> bool:
+    def available(self) -> bool:
         """
         Availability of icommands.
         Starts with OS check as icommands available for Linux only.

@@ -160,7 +160,7 @@ class IrodsConnector(object):
         return self.data_op.get_irods_size(path_names)
 
     def has_icommands(self) -> bool:
-        return self.icommands.icommands()
+        return self.icommands.available
 
     def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
         if self.has_icommands():
