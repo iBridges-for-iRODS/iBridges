@@ -19,6 +19,7 @@ from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
+from utils.context import Context
 from utils.elab_plugin import ElabPlugin
 
 
@@ -229,8 +230,9 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             try:
                 irods_conn = IrodsConnector(secret)
 
-                # TODO: not happy with this, is there another way to set the irods_env_file?
-                irods_conn.session.context.irods_env_file = irods_env
+                # invoke Context singleton
+                context = Context()
+                context.irods_env_file = irods_env
 
                 # TODO: replace with proper has_session() function once it's there
                 assert irods_conn.session.session, "No session"
