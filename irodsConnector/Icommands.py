@@ -52,7 +52,7 @@ class IrodsConnectorIcommands:
             os.environ[self.irods_environment_file_key] = self.prev_irods_environment_file
 
     @property
-    def are_available(self) -> bool:
+    def has_icommands(self) -> bool:
         """
         Availability of icommands.
         Starts with OS check as icommands available for Linux only.
