@@ -103,7 +103,10 @@ class IrodsConnector(object):
 
     @session.deleter
     def session(self):
-        del self._session
+        try:
+            del self._session
+        except AttributeError:
+            pass
         self._session = None
 
     @property
@@ -228,10 +231,10 @@ class IrodsConnector(object):
     def get_free_space(self, resc_name: str, multiplier: int = 1) -> int:
         return self.resource.get_free_space(resc_name, multiplier)
 
-    def get_resource(self, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
         return self.resource.get_resource(resc_name)
 
-    def get_resource_children(self, resc: irods.resource.Resource) -> list:
+    def get_resource_children(self, resc: irods.resource.iRODSResource) -> list:
         return self.resource.get_resource_children(resc)
 
     def list_resources(self, attr_names: list = None) -> tuple:

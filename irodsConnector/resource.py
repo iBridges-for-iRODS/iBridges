@@ -177,7 +177,7 @@ class Resource(object):
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
-    def get_resource(self, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
         """Instantiate an iRODS resource.
 
         Prameters
