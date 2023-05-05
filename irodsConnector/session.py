@@ -39,6 +39,8 @@ class Session(object):
     def __del__(self):
         del self.irods_session
 
+    # Configuration properties
+    #
     @property
     def conf(self) -> dict:
         """iBridges configuration dictionary.
@@ -54,44 +56,6 @@ class Session(object):
         return {}
 
     @property
-    def davrods(self) -> str:
-        """DavRODS server URL.
-
-        Returns
-        -------
-        str
-            URL of the configured DavRODS server.
-
-        """
-        return self.conf.get('davrods_server', '')
-
-    @property
-    def default_resc(self) -> str:
-        """Default resource name from iRODS environment.
-
-        Returns
-        -------
-        str
-            Resource name.
-
-        """
-        return self.ienv.get('irods_default_resource', '')
-
-    @property
-    def host(self) -> str:
-        """Retrieve hostname of the iRODS server
-
-        Returns
-        -------
-        str
-            Hostname.
-
-        """
-        if self.has_irods_session():
-            return self.irods_session.host
-        return ''
-
-    @property
     def ienv(self) -> dict:
         """iRODS environment dictionary.
 
@@ -104,62 +68,8 @@ class Session(object):
             return self.context.irods_environment.config
         return {}
 
-    @property
-    def port(self) -> str:
-        """Retrieve port of the iRODS server
-
-        Returns
-        -------
-        str
-            Port.
-
-        """
-        if self.has_irods_session():
-            return str(self.irods_session.port)
-        return ''
-
-    @property
-    def username(self) -> str:
-        """Retrieve username
-
-        Returns
-        -------
-        str
-            Username.
-
-        """
-        if self.has_irods_session():
-            return self.irods_session.username
-        return ''
-
-    @property
-    def server_version(self) -> tuple:
-        """Retrieve version of the iRODS server
-
-        Returns
-        -------
-        tuple
-            Server version: (major, minor, patch).
-
-        """
-        if self.has_irods_session():
-            return self.irods_session.server_version
-        return ()
-
-    @property
-    def zone(self) -> str:
-        """Retrieve the zone name
-
-        Returns
-        -------
-        str
-            Zone.
-
-        """
-        if self.has_irods_session():
-            return self.irods_session.zone
-        return ''
-
+    # Authentication workflow properties
+    #
     @property
     def password(self) -> str:
         """iRODS password.
@@ -209,48 +119,11 @@ class Session(object):
         Returns
         -------
         iRODSSession
-            iRODS connection based on given environment and password.
+            iRODS connection based on the current environment and password.
 
         """
-        if self._irods_session is None:
-            if not self.context.irods_env_file:
-                if 'last_ienv' in self.conf:
-                    print(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
-                    irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
-                    self.context.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
-                else:
-                    print(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
-                    return
-            options = {
-                'irods_env_file': str(self.context.irods_env_file),
-            }
-            if self.ienv is not None:
-                options.update(self.ienv)
-            given_pass = self.password
-            del self.password
-            # Accessing reset password property scrapes cached password.
-            cached_pass = self.password
-            del self.password
-            if given_pass != cached_pass:
-                options['password'] = given_pass
-            self._irods_session = self._get_irods_session(options)
-            # If session exists, it is validated.
-            if self._irods_session:
-                if given_pass != cached_pass:
-                    self._write_pam_password()
-                print('Welcome to iRODS:')
-                print(f'iRODS Zone: {self._irods_session.zone}')
-                print(f'You are: {self._irods_session.username}')
-                print(f'Default resource: {self.default_resc}')
-                print('You have access to: \n')
-                home_path = f'/{self._irods_session.zone}/home'
-                if self._irods_session.collections.exists(home_path):
-                    colls = self._irods_session.collections.get(home_path).subcollections
-                    print('\n'.join([coll.path for coll in colls]))
-                logging.info(
-                    'IRODS LOGIN SUCCESS: %s, %s, %s', self._irods_session.username,
-                    self._irods_session.zone, self._irods_session.host)
-        return self._irods_session
+        if self.has_valid_irods_session():
+            return self._irods_session
 
     @irods_session.deleter
     def irods_session(self):
@@ -262,8 +135,78 @@ class Session(object):
                 self._irods_session.cleanup()
             except NameError:
                 pass
-            del self._irods_session
+            try:
+                del self._irods_session
+            except AttributeError:
+                pass
             self._irods_session = None
+
+    # Authentication workflow methods
+    #
+    def has_irods_session(self) -> bool:
+        """Check if an iRODS session has been assigned to its shadow
+        variable.
+
+        Returns
+        -------
+        bool
+            Has a session been set?
+
+        """
+        return isinstance(self._irods_session, irods.session.iRODSSession)
+
+    def has_valid_irods_session(self) -> bool:
+        """Check if the iRODS session is valid.
+
+        Returns
+        -------
+        bool
+            Is the session valid?
+
+        """
+        return self.has_irods_session() and self._irods_session.server_version != ()
+
+    def connect(self):
+        """Establish an iRODS session.
+
+        """
+        if not self.context.irods_env_file:
+            if 'last_ienv' in self.conf:
+                print(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
+                irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
+                self.context.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
+            else:
+                print(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
+                return
+        options = {
+            'irods_env_file': str(self.context.irods_env_file),
+        }
+        if self.ienv is not None:
+            options.update(self.ienv)
+        given_pass = self.password
+        del self.password
+        # Accessing reset password property scrapes cached password.
+        cached_pass = self.password
+        del self.password
+        if given_pass != cached_pass:
+            options['password'] = given_pass
+        self._irods_session = self._get_irods_session(options)
+        # If session exists, it is validated.
+        if self._irods_session:
+            if given_pass != cached_pass:
+                self._write_pam_password()
+            print('Welcome to iRODS:')
+            print(f'iRODS Zone: {self._irods_session.zone}')
+            print(f'You are: {self._irods_session.username}')
+            print(f'Default resource: {self.default_resc}')
+            print('You have access to: \n')
+            home_path = f'/{self._irods_session.zone}/home'
+            if self._irods_session.collections.exists(home_path):
+                colls = self._irods_session.collections.get(home_path).subcollections
+                print('\n'.join([coll.path for coll in colls]))
+            logging.info(
+                'IRODS LOGIN SUCCESS: %s, %s, %s', self._irods_session.username,
+                self._irods_session.zone, self._irods_session.host)
 
     @staticmethod
     def _get_irods_session(options):
@@ -347,21 +290,90 @@ class Session(object):
             logging.info('WARNING -- unable to cache obfuscated password locally')
         connection.release()
 
-    def connect(self):
-        """Manually establish an iRODS session.
-
-        """
-        if not self.has_irods_session():
-            _ = self.irods_session.server_version
-
-    def has_irods_session(self) -> bool:
-        """Check if an iRODS session has been assigned to its shadow
-        variable.
+    # Introspection properties
+    #
+    @property
+    def davrods(self) -> str:
+        """DavRODS server URL.
 
         Returns
         -------
-        bool
-            Has a session been set?
+        str
+            URL of the configured DavRODS server.
 
         """
-        return self._irods_session is not None
+        return self.conf.get('davrods_server', '')
+
+    @property
+    def default_resc(self) -> str:
+        """Default resource name from iRODS environment.
+
+        Returns
+        -------
+        str
+            Resource name.
+
+        """
+        return self.ienv.get('irods_default_resource', '')
+
+    @property
+    def host(self) -> str:
+        """Retrieve hostname of the iRODS server.
+
+        Returns
+        -------
+        str
+            Hostname.
+
+        """
+        return self.ienv.get('irods_host', '')
+
+    @property
+    def port(self) -> str:
+        """Retrieve port of the iRODS server.
+
+        Returns
+        -------
+        str
+            Port.
+
+        """
+        return str(self.ienv.get('irods_port', ''))
+
+    @property
+    def server_version(self) -> tuple:
+        """Retrieve version of the iRODS server
+
+        Returns
+        -------
+        tuple
+            Server version: (major, minor, patch).
+
+        """
+        if self.has_irods_session():
+            return self.irods_session.server_version
+        return ()
+
+    @property
+    def username(self) -> str:
+        """Retrieve username.
+
+        Returns
+        -------
+        str
+            Username.
+
+        """
+        return self.ienv.get('irods_user_name', '')
+
+    @property
+    def zone(self) -> str:
+        """Retrieve the zone name.
+
+        Returns
+        -------
+        str
+            Zone.
+
+        """
+        return self.ienv.get('irods_zone_name', '')
