@@ -10,6 +10,7 @@ DEFAULT_IBRIDGES_CONF_FILE = f'{IBRIDGES_DIR}/ibridges_config.json'
 MANDATORY_IBRIDGES_KEYS = [
     'check_free_space',
     'force_transfers',
+    'verbose',
     ]
 MANDATORY_IRODS_KEYS = [
     'irods_host',
@@ -96,7 +97,7 @@ class Context:
                 filepath.parent.mkdir()
             if not filepath.is_file():
                 filepath.write_text(
-                    '{"check_free_space": true, "force_transfers": false}')
+                    '{"check_free_space": true, "force_transfers": false, "verbose": "info"}')
             self._ibridges_configuration = json_config.JsonConfig(filepath)
         # iBridges configuration check.
         conf_dict = self._ibridges_configuration.config

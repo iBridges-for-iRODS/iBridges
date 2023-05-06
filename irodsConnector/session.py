@@ -172,11 +172,11 @@ class Session(object):
         """
         if not self.context.irods_env_file:
             if 'last_ienv' in self.conf:
-                print(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
+                logging.warning(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
                 irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
                 self.context.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
             else:
-                print(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
+                logging.error(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
                 return
         options = {
             'irods_env_file': str(self.context.irods_env_file),
@@ -195,18 +195,22 @@ class Session(object):
         if self._irods_session:
             if given_pass != cached_pass:
                 self._write_pam_password()
-            print('Welcome to iRODS:')
-            print(f'iRODS Zone: {self._irods_session.zone}')
-            print(f'You are: {self._irods_session.username}')
-            print(f'Default resource: {self.default_resc}')
-            print('You have access to: \n')
-            home_path = f'/{self._irods_session.zone}/home'
-            if self._irods_session.collections.exists(home_path):
-                colls = self._irods_session.collections.get(home_path).subcollections
-                print('\n'.join([coll.path for coll in colls]))
-            logging.info(
-                'IRODS LOGIN SUCCESS: %s, %s, %s', self._irods_session.username,
-                self._irods_session.zone, self._irods_session.host)
+            self._give_irods_greeting()
+
+    def _give_irods_greeting(self):
+        logging.info('Welcome to iRODS:')
+        logging.info(f'iRODS Zone: {self._irods_session.zone}')
+        logging.info(f'You are: {self._irods_session.username}')
+        logging.info(f'Default resource: {self.default_resc}')
+        logging.info('You have access to: \n')
+        home_path = f'/{self._irods_session.zone}/home'
+        if self._irods_session.collections.exists(home_path):
+            colls = self._irods_session.collections.get(home_path).subcollections
+            for coll in colls:
+                logging.info('\t%s', coll.path)
+        logging.info(
+            'IRODS LOGIN SUCCESS: %s:%s', self._irods_session.host,
+            self._irods_session.port)
 
     @staticmethod
     def _get_irods_session(options):
@@ -227,51 +231,26 @@ class Session(object):
         irods_env_file = options.pop('irods_env_file')
         if 'password' not in options:
             try:
-                print('AUTH FILE SESSION')
+                logging.info('AUTH FILE SESSION')
                 session = irods.session.iRODSSession(
                     irods_env_file=irods_env_file)
                 _ = session.server_version
                 return session
             except TypeError as typeerr:
-                print(f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
+                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
                 raise typeerr
             except Exception as error:
-                print(f'{kw.RED}AUTH FILE LOGIN FAILED (unhandled): {error!r}{kw.DEFAULT}')
+                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED (unhandled): {error!r}{kw.DEFAULT}')
                 raise error
         else:
             password = options.pop('password')
             try:
-                print('FULL ENVIRONMENT SESSION')
+                logging.info('FULL ENVIRONMENT SESSION')
                 session = irods.session.iRODSSession(password=password, **options)
                 _ = session.server_version
                 return session
-            except irods.connection.PlainTextPAMPasswordError as ptppe:
-                print(f'{kw.RED}SOMETHING WRONG WITH THE ENVIRONMENT JSON? {ptppe!r}{kw.DEFAULT}')
-                try:
-                    ssl_context = ssl.create_default_context(
-                        purpose=ssl.Purpose.SERVER_AUTH,
-                        cafile=None, capath=None, cadata=None)
-                    ssl_settings = {
-                        'client_server_negotiation':
-                            'request_server_negotiation',
-                        'client_server_policy': 'CS_NEG_REQUIRE',
-                        'encryption_algorithm': 'AES-256-CBC',
-                        'encryption_key_size': 32,
-                        'encryption_num_hash_rounds': 16,
-                        'encryption_salt_size': 8,
-                        'ssl_context': ssl_context,
-                    }
-                    options.update(ssl_settings)
-                    print('RETRY WITH DEFAULT SSL SETTINGS')
-                    session = irods.session.iRODSSession(password=password, **options)
-                    _ = session.server_version
-                    return session
-                except Exception as error:
-                    print(f'{kw.RED}RETRY FAILED: {error!r}{kw.DEFAULT}')
-                    raise error
             except Exception as autherror:
-                logging.info('AUTHENTICATION ERROR')
-                print(f'{kw.RED}AUTHENTICATION ERROR: {autherror!r}{kw.DEFAULT}')
+                logging.error(f'{kw.RED}AUTHENTICATION ERROR: {autherror!r}{kw.DEFAULT}')
                 raise autherror
 
     def _write_pam_password(self):

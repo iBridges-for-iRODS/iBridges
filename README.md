@@ -69,6 +69,7 @@ If it does not exist, *iBridges* will create its own configuration file in `~/.i
         "tabDataBundle",
         "tabCreateTicket"
     ]
+    "verbose": "info"
 }
 ```
 Options:
@@ -80,6 +81,7 @@ Options:
   - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
   - `tabDataBundle`: (un)bundle datasets from/to four supported formats
   - `tabCreateTicket`: create iRODS tickets for anonymous access
+  - `verbose`: verbosity level, one of debug, info, warn, error, or critical (mandatory)
 
 The `check_free_space` option is *REQUIRED* to be set to `false` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  It also overrides file space protection.  The `force_transfers` option sets the `force` flag for up/downloads.
 

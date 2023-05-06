@@ -57,10 +57,12 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.passwordField.setEchoMode(PyQt6.QtWidgets.QLineEdit.EchoMode.Password)
 
     def _init_logging(self):
-        """
+        """Setup Python logging.
 
         """
-        utils.utils.setup_logger(self.ibridges_path, self.context.application_name)
+        utils.utils.setup_logger(
+            self.ibridges_path, self.context.application_name,
+            utils.utils.LOG_LEVEL[self.conf['verbose']])
 
     def _init_envbox(self):
         """Populate environment drop-down.
@@ -131,7 +133,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        print(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
+        logging.info(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
         self.envError.setText('')
         if not (self.ienv and self.context.ienv_is_complete()):
             self.context.irods_environment.reset()
@@ -140,7 +142,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if not utils.utils.can_connect(self.ienv['irods_host']):
-            logging.info('iRODS login: No network connection to server')
+            logging.warning('iRODS login: No network connection to server')
             self.envError.setText('No network connection to server')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
@@ -169,7 +171,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         except Exception as unknown:
             message = f'Something went wrong: {unknown}'
             logging.exception(message)
-            # logging.info(repr(error))
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
         # widget is a global variable
