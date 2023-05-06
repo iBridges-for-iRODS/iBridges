@@ -59,7 +59,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
     def connectElab(self):
         self.errorLabel.clear()
         token = self.elnTokenInput.text()
-        print("ELAB INFO token: "+token)
+        logging.info("ELAB INFO token: "+token)
         # ELN can potentially be offline
         try:
             self.elab = elabConnector(token)
@@ -159,7 +159,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
             # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         try:
-            print("Group and Experiment: ", groupId, expId)
+            logging.info("Group and Experiment: ", groupId, expId)
             # preconfigure upload path prefix
             subcoll = 'ELN/'+groupId+'/'+expId
             # stop if no exp and group is given
@@ -168,7 +168,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
                 pass
             # get the url that will be uploaded as metadata to irods
             expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
-            print("ELN DATA UPLOAD experiment: \n"+expUrl)
+            logging.info("ELN DATA UPLOAD experiment: \n"+expUrl)
             # get upload total size to inform user
             size = utils.utils.get_local_size([path])
             # if user specifies a different path than standard home
@@ -236,7 +236,7 @@ class Worker(QObject, utils.context.ContextContainer):
         self.expUrl = expUrl
         self.elab = elab
         self.errorLabel = errorLabel
-        print("Start worker: ")
+        logging.debug("Start worker: ")
 
     def run(self):
         try:
@@ -258,8 +258,7 @@ class Worker(QObject, utils.context.ContextContainer):
             self.progress.emit(3)
             self.finished.emit()
         except Exception as error:
-            logging.info("ElabUpload data upload and annotation worker: "+repr(error))
-            print(repr(error))
+            logging.error("ElabUpload data upload and annotation worker: "+repr(error))
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,

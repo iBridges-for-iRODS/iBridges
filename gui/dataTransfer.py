@@ -78,7 +78,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
         self.show()
 
     def cancel(self):
-        print("Thread stopped")
+        logging.debug("Thread stopped")
         self.finished.emit(False, None)
         # if thread is still running
         try:
@@ -148,7 +148,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
         """
         # TODO fix handling of updateSize and addSize as ints
         self.updateSize = updateSize
-        print(int(addSize), int(updateSize))
+        logging.debug(int(addSize), int(updateSize))
         # checksumSizeStr = self.bytesToStr(updateSize)
         self.ChecksumSizeLbl.setText(utils.utils.bytes_to_str(int(updateSize)))
         self.diff = diff
@@ -186,7 +186,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
             self.statusLbl.setText("Update complete.")
         else:
             self.statusLbl.setText(statusmessage)
-            print(statusmessage)
+            logging.debug(statusmessage)
             self.confirmBtn.setText("Retry")
             self.confirmBtn.setEnabled(True)
             if "No size set on iRODS resource" in statusmessage:
@@ -263,8 +263,8 @@ class getDataState(QObject, utils.context.ContextContainer):
             fullOnlyFsPaths.extend(
                 [d for d in onlyFS if d.startswith('/') or ':' in d])
             addSize = utils.utils.get_local_size(fullOnlyFsPaths)
-            print(str(fsDiffFiles)+" "+str(updateSize))
-            print(str(onlyFS)+" "+str(addSize))
+            logging.debug(str(fsDiffFiles)+" "+str(updateSize))
+            logging.debug(str(onlyFS)+" "+str(addSize))
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]

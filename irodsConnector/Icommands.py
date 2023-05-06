@@ -75,7 +75,7 @@ class IrodsConnectorIcommands:
                 raise error
 
         if os.path.isfile(source):
-            print('CREATE', destination.path + '/' + os.path.basename(source))
+            logging.info('CREATE %s', destination.path + '/' + os.path.basename(source))
             self.sess_man.irods_session.collections.create(destination.path)
             if res_name:
                 cmd = 'irsync -aK ' + source + ' i:' + destination.path + ' -R ' + res_name

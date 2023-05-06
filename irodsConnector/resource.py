@@ -123,10 +123,10 @@ class Resource(object):
                 if resc_is_root and has_free_space:
                     resc_names.append(name)
             if self.sess_man.default_resc not in resc_names:
-                print('    -=WARNING=-    '*4)
-                print(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
-                print('Check "irods_default_resource" and "check_free_space" settings.')
-                print('    -=WARNING=-    '*4)
+                logging.warning('    -=WARNING=-    '*4)
+                logging.warning(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
+                logging.warning('Check "irods_default_resource" and "check_free_space" settings.')
+                logging.warning('    -=WARNING=-    '*4)
         return self._resources
 
     def list_resources(self, attr_names: list = None) -> tuple:
@@ -197,7 +197,7 @@ class Resource(object):
         try:
             return self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
-            print(f'Resource with name {resc_name} not found')
+            logging.warning(f'Resource with name {resc_name} not found')
             raise rdne
 
     def resource_space(self, resc_name: str) -> int:
@@ -265,7 +265,7 @@ class Resource(object):
         try:
             resc = self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
-            print(f'Resource with name {resc_name} not found')
+            logging.warning(f'Resource with name {resc_name} not found')
             return -1
         if resc.free_space is not None:
             return round(int(resc.free_space) * multiplier)

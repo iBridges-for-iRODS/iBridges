@@ -1,6 +1,7 @@
 """Continuous upload tools
 
 """
+import logging
 from queue import Queue
 from threading import Thread
 from os import path
@@ -58,7 +59,7 @@ class contUpload(Thread, utils.context.ContextContainer):
                         folder_wfiles = self.tosync_dictionary.pop(filepath)
                         self.conn.upload_data(filepath, self.destColl, None, None, force=self.force)
                     else:
-                        print("Somethings going wrong. data folder in {filepath} not tracked")
+                        logging.debug("Somethings going wrong. data folder in {filepath} not tracked")
                 else: # Add files with folder as key
                     pathparts =  filepath.rsplit(path.sep, 1)
                     if pathparts[1] == "Data":
@@ -67,9 +68,9 @@ class contUpload(Thread, utils.context.ContextContainer):
                         else:
                             self.tosync_dictionary[pathparts[0]] = [pathparts[1] + path.sep + filename]
                     else:
-                        print("TODO, this should not happen? {filepath}  {filename}")
+                        logging.debug("TODO, this should not happen? {filepath}  {filename}")
             elif self.upload_mode == "f500":
-                print("TODO figure out how to do the F500 upload")
+                logging.debug("TODO figure out how to do the F500 upload")
 
             else: # "all"
                 self.conn.upload_data(new_file, self.destColl, None, None, force=self.force)
