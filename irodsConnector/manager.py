@@ -63,7 +63,8 @@ class IrodsConnector(object):
     @property
     def icommands(self) -> Icommands.IrodsConnectorIcommands:
         if self._icommands is None:
-            self._icommands = Icommands.IrodsConnectorIcommands(self.resource, self.session)
+            # self._icommands = Icommands.IrodsConnectorIcommands(self.resource, self.session)
+            self._icommands = Icommands.IrodsConnectorIcommands()
         return self._icommands
 
     @property

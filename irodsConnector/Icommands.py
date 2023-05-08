@@ -5,51 +5,53 @@ import os
 import platform
 import shutil
 import subprocess
+import re
 from subprocess import Popen, PIPE
 from typing import Union, Tuple, List
 from pathlib import Path
 from irods.collection import iRODSCollection, iRODSDataObject
 from utils.sync_result import SyncResult
 import irodsConnector.keywords as kw
-from irodsConnector.resource import Resource
-from irodsConnector.session import Session
 
 
 class IrodsConnectorIcommands:
     """Connection to an iRODS server while using iCommands.
     """
 
-    base_command_irsync = 'irsync {flags} {source} {target} {arguments}'
+    icmd_irsync = 'irsync {flags} {source} {target} {arguments}'
+    icmd_free_space = 'iquest "SELECT RESC_FREE_SPACE where RESC_NAME = \'{resource}\'"'
+    icmd_imkdir = 'imkdir -p {collection}'
+    icmd_ils = 'ils {coll_or_object}'
     irods_environment_file_key = 'IRODS_ENVIRONMENT_FILE'
 
-    def __init__(self, res_man: Resource, ses_man: Session) -> None:
-        """ iRODS icommands initialization
-            Parameters
-            ----------
-            res_man : irods resource
-                Instance of the Resource class
-            ses_man : irods session
-                instance of the Session class
+    def __init__(self) -> None:
+        """ IrodsConnectorIcommands initialization
         """
-        self._res_man = res_man
-        self._ses_man = ses_man
+        if not self.has_icommands:
+            raise ValueError("icommands not available.")
 
-        # icommands can be made to use a different env file than the default
-        # by setting the environment var IRODS_ENVIRONMENT_FILE
-        # the var's original value is reset in the destructor
-        self.prev_irods_environment_file = os.getenv(self.irods_environment_file_key)
-
-        if str(self._ses_man.context.irods_env_file) != self.prev_irods_environment_file:
-            os.environ[self.irods_environment_file_key] = str(self._ses_man.context.irods_env_file)
+        self.prev_irods_environment_file = None
 
     def __del__(self) -> None:
         """
         Reset original value of IRODS_ENVIRONMENT_FILE
         """
-        if self.prev_irods_environment_file is None:
-            del os.environ[self.irods_environment_file_key]
-        else:
-            os.environ[self.irods_environment_file_key] = self.prev_irods_environment_file
+        if self.irods_environment_file_key in os.environ:
+            if self.prev_irods_environment_file is None:
+                del os.environ[self.irods_environment_file_key]
+            else:
+                os.environ[self.irods_environment_file_key] = self.prev_irods_environment_file
+
+    def set_irods_env_file(self, irods_env_file: Union[Path, str]):
+        # icommands can be made to use a different env file than the default
+        # by setting the environment var IRODS_ENVIRONMENT_FILE
+        # the var's original value is reset in the destructor
+        if isinstance(irods_env_file, Path):
+            irods_env_file = irods_env_file.as_posix()
+
+        if irods_env_file != os.getenv(self.irods_environment_file_key):
+            self.prev_irods_environment_file = os.getenv(self.irods_environment_file_key)
+            os.environ[self.irods_environment_file_key] = irods_env_file
 
     @property
     def has_icommands(self) -> bool:
@@ -78,7 +80,7 @@ class IrodsConnectorIcommands:
         return output.decode('utf-8'), error.decode('utf-8')
 
     @staticmethod
-    def _parse_output(output) -> List[Tuple[str, int]]:
+    def _parse_diff_output(output) -> List[Tuple[str, int]]:
         """
         Parses screen output of dry run irsync command
         Returns:
@@ -97,16 +99,56 @@ class IrodsConnectorIcommands:
         files = list(set(lines) ^ set(header))
         return list(map(parse_line, files))
 
-    def _resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection,
-                                              str]) -> Union[iRODSDataObject, iRODSCollection]:
-        if isinstance(path, str):
-            if self._ses_man.session.collections.exists(path):
-                return self._ses_man.session.collections.get(path)
-            if self._ses_man.session.data_objects.exists(path):
-                return self._ses_man.session.data_objects.get(path)
-            raise ValueError(f"iRODSCollection or iRODSDataObject '{path}' does not exist")
+    @staticmethod
+    def _extract_icommands_error(str):
+        return re.sub(r'^(.*)failed with error', '',
+                      list(filter(lambda x: 'failed with error' in x, str.splitlines()))[0]).strip()
 
-        return path
+    def resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection,
+                                             str]) -> Tuple[str, Union[iRODSDataObject, iRODSCollection]]:
+
+        if isinstance(path, iRODSDataObject):
+            return Path(path.path).as_posix(), iRODSDataObject
+        elif isinstance(path, iRODSCollection):
+            return Path(path.path).as_posix(), iRODSCollection
+
+        if isinstance(path, str):
+            path = Path(path)
+        else:
+            raise ValueError("Require string, iRODSDataObject, or iRODSCollection")
+        
+        parent = path.parent.absolute()
+
+        output, error = self._execute_command(self.icmd_ils.format(coll_or_object=parent.as_posix()))
+
+        if error:
+            raise ValueError(self._extract_icommands_error(error))
+
+        coll_flag = "C- "
+        out_lines = output.splitlines()[1:]
+        collections = [x.strip()[len(coll_flag):] for x in out_lines if x.strip()[:len(coll_flag)] == coll_flag]
+        objects = [x.strip() for x in out_lines if x.strip()[:len(coll_flag)] != coll_flag]
+
+        if path.as_posix() in collections:
+            return path.as_posix(), iRODSCollection(None)
+        if path.parts[-1:][0] in objects:
+            return path.as_posix(), iRODSDataObject(None)
+
+    def get_resource_free_space(self, res_name):
+        cmd = self.icmd_free_space.format(resource=res_name)
+        output, err = self._execute_command(cmd)
+        if err:
+            raise ValueError(err)
+
+        key = "RESC_FREE_SPACE ="
+        lines = list(filter(lambda a: key in a, output.splitlines(False)))
+
+        if len(lines) == 1:
+            bytes = lines[0].strip()[len(key):].strip()
+            if len(bytes) > 1:
+                return int(''.join(filter(str.isdigit, bytes)))
+
+        return -1
 
     def upload_data(self,                               # pylint: disable=too-many-arguments
                     source: Union[Path, str],
@@ -130,36 +172,48 @@ class IrodsConnectorIcommands:
         force: bool
             upload without checking the available space
         """
-
+        
         if not force:
             if buff < 0:
                 raise BufferError('icommands upload: Negative resource buffer.')
-            if int(size) > (int(self._res_man.resource_space(self._ses_man, res_name)) - buff):
+            
+            free_space = self.get_resource_free_space(res_name)
+            if (free_space > -1) and (int(size) > (free_space - buff)):
                 raise ValueError('icommands upload: Not enough space on resource.')
 
         if isinstance(source, Path):
             source = source.as_posix()
 
         if os.path.isfile(source):
-            self._ses_man.session.collections.create(destination.path)
+            cmd = self.icmd_imkdir.format(collection=destination.path)
+            _, err = self._execute_command(cmd)
+            if err:
+                raise ValueError(err)
+
             dest = destination.path
             flags = '-K'
+
         elif os.path.isdir(source):
-            self._ses_man.session.collections.create(f"{destination.path}/{os.path.basename(source)}")
-            dest = self._ses_man.session.collections.get(f"{destination.path}/{os.path.basename(source)}").path
+            dest = f"{destination.path}/{os.path.basename(source)}"
+            cmd = self.icmd_imkdir.format(collection=dest)
+            _, err = self._execute_command(cmd)
+            if err:
+                raise ValueError(err)
+
             flags = '-Kr'
         else:
             raise FileNotFoundError('icommands upload: not a valid source path')
 
-        cmd = self.base_command_irsync.format(flags=flags,
+        cmd = self.icmd_irsync.format(flags=flags,
                                               source=source,
                                               target=f"i:{dest}",
                                               arguments=f"-R {res_name}")
+
         _, err = self._execute_command(cmd)
         if err:
             raise ValueError(err)
 
-    def download_data(self,                                             # pylint: disable=too-many-arguments
+    def download_data(self,                             # pylint: disable=too-many-arguments
                       source: Union[iRODSDataObject, iRODSCollection],
                       destination: Union[Path, str],
                       size: int,
@@ -220,9 +274,9 @@ class IrodsConnectorIcommands:
         else:
             raise ValueError("Requires file or folder as source")
 
-        target = self._resolve_irods_path(target)
-        cmd = self.base_command_irsync.format(source=source,
-                                       target=f"i:{target.path}",
+        target, _ = self.resolve_irods_path(target)
+        cmd = self.icmd_irsync.format(source=source,
+                                       target=f"i:{target}",
                                        flags=flags,
                                        arguments=arguments if arguments else '')
         output, err = self._execute_command(cmd)
@@ -230,8 +284,8 @@ class IrodsConnectorIcommands:
             raise ValueError(err)
 
         out = []
-        for file in self._parse_output(output):
-            t_target = file[0].replace(f"{source.as_posix()}/", target.path)
+        for file in self._parse_diff_output(output):
+            t_target = file[0].replace(f"{source.as_posix()}/", target)
             out.append(SyncResult(source=file[0], target=t_target, filesize=file[1]))
 
         return out
@@ -245,13 +299,14 @@ class IrodsConnectorIcommands:
         Returns:
             List of SyncResult-objects, each containing remote and local path, and size.
         """
-        source = self._resolve_irods_path(source)
-        if isinstance(source, iRODSCollection):
+        source, source_type = self.resolve_irods_path(source)
+
+        if isinstance(source_type, iRODSCollection):
             flags = '-Klr'
-        elif isinstance(source, iRODSDataObject):
+        elif isinstance(source_type, iRODSDataObject):
             flags = '-Kl'
         else:
-            raise ValueError("Require iRODSCollection or iRODSDataObject as source")
+            raise ValueError(f"{source} is not a valid iRODSCollection or iRODSDataObject")
 
         if not isinstance(target, Path):
             target = Path(target)
@@ -259,7 +314,7 @@ class IrodsConnectorIcommands:
         if not target.exists():
             raise ValueError(f"Target {target.as_posix()} does not exist.")
 
-        cmd = self.base_command_irsync.format(source=f"i:{source.path}",
+        cmd = self.icmd_irsync.format(source=f"i:{source}",
                                       target=target.as_posix(),
                                       flags=flags,
                                       arguments=arguments if arguments else '')
@@ -268,7 +323,7 @@ class IrodsConnectorIcommands:
             raise ValueError(err)
 
         out = []
-        for file in self._parse_output(output):
+        for file in self._parse_diff_output(output):
             f_target = file[0].replace(str(source), f"{target.as_posix()}/")
             out.append(SyncResult(source=file[0], target=f_target, filesize=file[1]))
 
@@ -276,7 +331,7 @@ class IrodsConnectorIcommands:
 
     def get_diff_both(self,
                       local: Union[str, Path],
-                      remote: Union[iRODSDataObject, iRODSCollection],
+                      remote: Union[str, iRODSDataObject, iRODSCollection],
                       arguments: str = None) -> dict:
         """
         Wraps get_diff_upload and get_diff_download.

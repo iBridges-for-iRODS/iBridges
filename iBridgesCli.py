@@ -233,6 +233,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 context.irods_env_file = irods_env
 
                 irods_conn = IrodsConnector(secret)
+                irods_conn.icommands.set_irods_env_file(irods_env)
 
                 # TODO: replace with proper has_session() function once it's there
                 assert irods_conn.session.session, "No session"
