@@ -160,19 +160,23 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.envError.clear()
             self.passError.setText('ERROR: Wrong password.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         except irods.exception.CAT_PASSWORD_EXPIRED:
             self.envError.clear()
             self.passError.setText('ERROR: Cached password expired. Re-enter password.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         except irods.exception.NetworkException:
             self.passError.clear()
             self.envError.setText('iRODS server ERROR: iRODS server down.')
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         except Exception as unknown:
             message = f'Something went wrong: {unknown}'
             logging.exception(message)
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         # widget is a global variable
         browser = gui.mainmenu.mainmenu(widget)
         if len(widget) == 1:
