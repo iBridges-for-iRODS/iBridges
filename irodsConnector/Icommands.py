@@ -108,7 +108,7 @@ class IrodsConnectorIcommands:
                       list(filter(lambda x: 'failed with error' in x, string.splitlines()))[0]).strip()
 
     def resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection,
-                                             str]) -> Tuple[str, Union[iRODSDataObject, iRODSCollection]]:
+                                             str]) -> Union[None, Tuple[str, Union[iRODSDataObject, iRODSCollection]]]:
         """
         Consumes a string or iRods object or collection and returns the correct type and its path as a string
         """
