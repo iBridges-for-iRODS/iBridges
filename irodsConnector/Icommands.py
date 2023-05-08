@@ -43,6 +43,9 @@ class IrodsConnectorIcommands:
                 os.environ[self.irods_environment_file_key] = self.prev_irods_environment_file
 
     def set_irods_env_file(self, irods_env_file: Union[Path, str]):
+        """
+        Set specific iRods env file
+        """
         # icommands can be made to use a different env file than the default
         # by setting the environment var IRODS_ENVIRONMENT_FILE
         # the var's original value is reset in the destructor
@@ -100,23 +103,26 @@ class IrodsConnectorIcommands:
         return list(map(parse_line, files))
 
     @staticmethod
-    def _extract_icommands_error(str):
+    def _extract_icommands_error(string):
         return re.sub(r'^(.*)failed with error', '',
-                      list(filter(lambda x: 'failed with error' in x, str.splitlines()))[0]).strip()
+                      list(filter(lambda x: 'failed with error' in x, string.splitlines()))[0]).strip()
 
     def resolve_irods_path(self, path: Union[iRODSDataObject, iRODSCollection,
                                              str]) -> Tuple[str, Union[iRODSDataObject, iRODSCollection]]:
-
+        """
+        Consumes a string or iRods object or collection and returns the correct type and its path as a string
+        """
         if isinstance(path, iRODSDataObject):
             return Path(path.path).as_posix(), iRODSDataObject
-        elif isinstance(path, iRODSCollection):
+
+        if isinstance(path, iRODSCollection):
             return Path(path.path).as_posix(), iRODSCollection
 
         if isinstance(path, str):
             path = Path(path)
         else:
             raise ValueError("Require string, iRODSDataObject, or iRODSCollection")
-        
+
         parent = path.parent.absolute()
 
         output, error = self._execute_command(self.icmd_ils.format(coll_or_object=parent.as_posix()))
@@ -131,10 +137,16 @@ class IrodsConnectorIcommands:
 
         if path.as_posix() in collections:
             return path.as_posix(), iRODSCollection(None)
+
         if path.parts[-1:][0] in objects:
             return path.as_posix(), iRODSDataObject(None)
 
-    def get_resource_free_space(self, res_name):
+        return None
+
+    def get_resource_free_space(self, res_name: str):
+        """
+        Queries and returns the available free space on an iRods resource.
+        """
         cmd = self.icmd_free_space.format(resource=res_name)
         output, err = self._execute_command(cmd)
         if err:
@@ -144,9 +156,9 @@ class IrodsConnectorIcommands:
         lines = list(filter(lambda a: key in a, output.splitlines(False)))
 
         if len(lines) == 1:
-            bytes = lines[0].strip()[len(key):].strip()
-            if len(bytes) > 1:
-                return int(''.join(filter(str.isdigit, bytes)))
+            n_bytes = lines[0].strip()[len(key):].strip()
+            if len(n_bytes) > 1:
+                return int(''.join(filter(str.isdigit, n_bytes)))
 
         return -1
 
@@ -172,11 +184,11 @@ class IrodsConnectorIcommands:
         force: bool
             upload without checking the available space
         """
-        
+
         if not force:
             if buff < 0:
                 raise BufferError('icommands upload: Negative resource buffer.')
-            
+
             free_space = self.get_resource_free_space(res_name)
             if (free_space > -1) and (int(size) > (free_space - buff)):
                 raise ValueError('icommands upload: Not enough space on resource.')
