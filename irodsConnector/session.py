@@ -12,14 +12,12 @@ import utils
 from . import keywords as kw
 
 
-class Session(object):
-    """Irods session operations """
+class Session():
+    """Irods session authentication """
     _irods_session = None
-    ibridges_configuration = None
-    irods_env_file = ''
-    irods_environment = None
 
-    def __init__(self, irods_env_file, password=''):
+    def __init__(self, irods_env_file:str, irods_environment:dict, 
+                 ibridges_configuration: dict, password=''):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -35,7 +33,9 @@ class Session(object):
 
         """
         self._password = password
-        self.irods_envFile = irods_env_file
+        self.irods_env_file = irods_env_file
+        self.ibridges_configuration = ibridges_configuration
+        self.irods_environment = irods_environment
 
     def __del__(self):
         del self.irods_session
@@ -54,7 +54,7 @@ class Session(object):
         """
         logging.debug(f'getting: {self.ibridges_configuration=}')
         if self.ibridges_configuration:
-            return self.ibridges_configuration.config
+            return self.ibridges_configuration
         return {}
 
     @property
@@ -68,7 +68,7 @@ class Session(object):
         """
         logging.debug(f'getting: {self.irods_environment=}')
         if self.irods_environment:
-            return self.irods_environment.config
+            return self.irods_environment
         return {}
 
     # Authentication workflow properties
@@ -171,14 +171,6 @@ class Session(object):
 
         """
         logging.debug(f'{self.irods_env_file=}')
-        if not self.irods_env_file:
-            if 'last_ienv' in self.conf:
-                logging.warning(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
-                irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
-                self.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
-            else:
-                logging.error(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
-                return
         options = {
             'irods_env_file': str(self.irods_env_file),
         }
