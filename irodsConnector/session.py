@@ -19,7 +19,7 @@ class Session(object):
     irods_env_file = ''
     irods_environment = None
 
-    def __init__(self, password=''):
+    def __init__(self, irods_env_file, password=''):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -35,6 +35,7 @@ class Session(object):
 
         """
         self._password = password
+        self.irods_envFile = irods_env_file
 
     def __del__(self):
         del self.irods_session

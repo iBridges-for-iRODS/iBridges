@@ -18,7 +18,7 @@ from pathlib import Path
 from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
-from utils.utils import setup_logger, get_local_size
+from utils.utils import init_logger, get_local_size
 from utils.context import Context
 from utils.elab_plugin import ElabPlugin
 
@@ -112,7 +112,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         self.operation = operation
         self.plugins = self._cleanup_plugins(plugins)
-        setup_logger(logdir_path, "iBridgesCli")
+        init_logger(logdir_path, "iBridgesCli")
         self._run()
 
     @classmethod
@@ -231,13 +231,14 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             try:
                 # invoke Context singleton
                 context = Context()
+                _ = context.irods_environment
                 context.irods_env_file = irods_env
-
+                print(secret)
                 irods_conn = IrodsConnector(secret)
+                irods_conn.connect()
                 irods_conn.icommands.set_irods_env_file(irods_env)
 
-                # TODO: replace with proper has_session() function once it's there
-                assert irods_conn.session.session, "No session"
+                assert irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
             except AssertionError as exception:
