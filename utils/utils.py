@@ -5,6 +5,7 @@ import logging
 import os
 import socket
 import sys
+import datetime
 
 import irods.collection
 import irods.data_object
@@ -246,3 +247,57 @@ def bytes_to_str(value: int) -> str:
         return f'{value / 1e9:.3f} GB'
     else:
         return f'{value / 1e12:.3f} TB'
+
+def set_log_level(log_level: int):
+    """Set the log level excluding DEBUG-level entries from other
+    modules.
+
+    Parameters
+    ----------
+    log_level : int
+        Level to set the current logger.
+
+    """
+    logging.getLogger().setLevel(log_level)
+    if log_level == logging.DEBUG:
+        for logger in logging.Logger.manager.loggerDict.values():
+            if hasattr(logger, 'name') and logger.name != 'root':
+                logger.disabled = True
+
+
+def init_logger(app_dir: str, app_name: str):
+    """Initialize the application logging service.
+
+    """
+    LOG_LEVEL = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warn': logging.WARNING,
+        'error': logging.ERROR,
+        'critical': logging.CRITICAL,
+    }
+
+    logger = logging.getLogger()
+    logdir = path.LocalPath(app_dir).expanduser()
+    logfile = logdir.joinpath(f'{app_name}.log')
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
+    file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(log_formatter)
+    logger.addHandler(stream_handler)
+    # Indicate start of a new session
+    with open(logfile, 'a', encoding='utf-8') as logfd:
+        logfd.write('\n\n')
+        underscores = f'{"_" * 50}\n'
+        logfd.write(underscores * 2)
+        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
+        logfd.write(underscores * 2)
+    try:
+        verbose = context.ibridges_configuration.config.get('verbose', 'info')
+    except:
+        verbose = 'info'
+    set_log_level(LOG_LEVEL[verbose])
+
