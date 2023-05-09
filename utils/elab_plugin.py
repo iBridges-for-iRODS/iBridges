@@ -55,7 +55,7 @@ class ElabPlugin():
 
     def annotate(self, calling_class):
         """
-        Setup, called after upload to iRods.
+        Annotation, called after upload to iRods.
         """
 
         if not self.elab:

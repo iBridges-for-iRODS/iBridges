@@ -15,10 +15,11 @@ import sys
 import json
 import getpass
 from pathlib import Path
-from irods.exception import ResourceDoesNotExist, CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
+from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
 from utils.utils import setup_logger, get_local_size
+from utils.context import Context
 from utils.elab_plugin import ElabPlugin
 
 
@@ -187,7 +188,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                                 choices=['upload', 'download'],
                                 required=True)
         cls.parser.add_argument('--env', '-e', type=str,
-                                help=f'iRods environment file. (example: {default_irods_env})')
+                                help=f'iRods environment file. (default: {default_irods_env})',
+                                default=default_irods_env)
         cls.parser.add_argument('--irods_resc', '-r', type=str,
                                 help='iRods resource. If omitted default will be read from iRods env file.')
         cls.parser.add_argument('--logdir', type=str,
@@ -227,8 +229,16 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         while True:
             secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
             try:
-                irods_conn = IrodsConnector(irods_env, secret)
-                assert irods_conn.session, "No session"
+                # invoke Context singleton
+                context = Context()
+                context.irods_env_file = irods_env
+
+                irods_conn = IrodsConnector(secret)
+                irods_conn.icommands.set_irods_env_file(irods_env)
+
+                # TODO: replace with proper has_session() function once it's there
+                assert irods_conn.session.session, "No session"
+
                 break
             except AssertionError as exception:
                 logging.error("Failed to connect (%s)", str(exception))
@@ -278,7 +288,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
-            logging.warning("Uploading to %s", self.target_path)
+            logging.info("Uploading to %s", self.target_path)
         except (CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM):
             logging.error("Collection path invalid: %s", self.target_path)
             return False
@@ -317,9 +327,12 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         elif self.operation == 'upload':
 
-            try:
-                _ = self.irods_conn.session.resources.get(self.irods_resc)
-            except ResourceDoesNotExist:
+            # try:
+            #     _ = self.irods_conn.resources.get(self.irods_resc)
+            # except ResourceDoesNotExist:
+            #     self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
+
+            if self.irods_resc not in self.irods_conn.resources:
                 self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
 
             self.target_path = self.irods_path

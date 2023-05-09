@@ -158,7 +158,8 @@ class IrodsConnector(object):
     @property
     def icommands(self) -> Icommands.IrodsConnectorIcommands:
         if self._icommands is None:
-            self._icommands = Icommands.IrodsConnectorIcommands(self.resource, self.session)
+            # self._icommands = Icommands.IrodsConnectorIcommands(self.resource, self.session)
+            self._icommands = Icommands.IrodsConnectorIcommands()
         return self._icommands
 
     @property
@@ -260,7 +261,7 @@ class IrodsConnector(object):
         return self.data_op.get_irods_size(path_names)
 
     def has_icommands(self) -> bool:
-        return self.icommands.icommands()
+        return self.icommands.has_icommands
 
     def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
         if self.has_icommands():
