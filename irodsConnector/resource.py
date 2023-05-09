@@ -8,7 +8,6 @@ import irods.resource
 
 from . import keywords as kw
 from . import session
-import utils
 
 
 class FreeSpaceNotSet(Exception):
@@ -26,7 +25,8 @@ class NotEnoughFreeSpace(Exception):
 class Resource(object):
     """Irods Resource operations """
     _resources = None
-    context = utils.context.Context()
+    ibridges_configuration = None
+    irods_environment = None
 
     def __init__(self, sess_man: session.Session):
         """ iRODS resource initialization
@@ -38,6 +38,8 @@ class Resource(object):
         """
         self.sess_man = sess_man
 
+    # Configuration properties
+    #
     @property
     def conf(self) -> dict:
         """iBridges configuration dictionary.
@@ -48,8 +50,9 @@ class Resource(object):
             Configuration from JSON serialized string.
 
         """
-        if self.context.ibridges_configuration:
-            return self.context.ibridges_configuration.config
+        logging.debug(f'getting: {self.ibridges_configuration=}')
+        if self.ibridges_configuration:
+            return self.ibridges_configuration.config
         return {}
 
     @property
@@ -61,8 +64,9 @@ class Resource(object):
         dict
             Environment from JSON serialized string.
         """
-        if self.context.irods_environment:
-            return self.context.irods_environment.config
+        logging.debug(f'getting: {self.irods_environment=}')
+        if self.irods_environment:
+            return self.irods_environment.config
         return {}
 
     @property

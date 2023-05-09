@@ -2,7 +2,6 @@
 """
 import logging
 import os
-import ssl
 
 import irods.connection
 import irods.exception
@@ -16,8 +15,9 @@ from . import keywords as kw
 class Session(object):
     """Irods session operations """
     _irods_session = None
-    # Singleton instance initially configured in iBridges.py
-    context = utils.context.Context()
+    ibridges_configuration = None
+    irods_env_file = ''
+    irods_environment = None
 
     def __init__(self, password=''):
         """ iRODS authentication with Python client.
@@ -51,8 +51,9 @@ class Session(object):
             Configuration from JSON serialized string.
 
         """
-        if self.context.ibridges_configuration:
-            return self.context.ibridges_configuration.config
+        logging.debug(f'getting: {self.ibridges_configuration=}')
+        if self.ibridges_configuration:
+            return self.ibridges_configuration.config
         return {}
 
     @property
@@ -64,8 +65,9 @@ class Session(object):
         dict
             Environment from JSON serialized string.
         """
-        if self.context.irods_environment:
-            return self.context.irods_environment.config
+        logging.debug(f'getting: {self.irods_environment=}')
+        if self.irods_environment:
+            return self.irods_environment.config
         return {}
 
     # Authentication workflow properties
@@ -170,17 +172,19 @@ class Session(object):
         """Establish an iRODS session.
 
         """
-        if not self.context.irods_env_file:
+        logging.debug(f'{self.irods_env_file=}')
+        if not self.irods_env_file:
             if 'last_ienv' in self.conf:
                 logging.warning(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
                 irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
-                self.context.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
+                self.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
             else:
                 logging.error(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
                 return
         options = {
-            'irods_env_file': str(self.context.irods_env_file),
+            'irods_env_file': str(self.irods_env_file),
         }
+        logging.debug(f'{self.ienv=}')
         if self.ienv is not None:
             options.update(self.ienv)
         given_pass = self.password
@@ -237,10 +241,11 @@ class Session(object):
                 _ = session.server_version
                 return session
             except TypeError as typeerr:
-                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
+                logging.error(
+                    f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
                 raise typeerr
             except Exception as error:
-                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED (unhandled): {error!r}{kw.DEFAULT}')
+                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
                 raise error
         else:
             password = options.pop('password')
@@ -249,9 +254,9 @@ class Session(object):
                 session = irods.session.iRODSSession(password=password, **options)
                 _ = session.server_version
                 return session
-            except Exception as autherror:
-                logging.error(f'{kw.RED}AUTHENTICATION ERROR: {autherror!r}{kw.DEFAULT}')
-                raise autherror
+            except Exception as error:
+                logging.error(f'{kw.RED}FULL ENVIRONMENT LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                raise error
 
     def _write_pam_password(self):
         """Store the returned PAM/LDAP password in the iRODS

@@ -1,9 +1,7 @@
 """iBridges utility classes and functions.
 
 """
-import datetime
 import logging
-import logging.handlers
 import os
 import socket
 import sys
@@ -14,14 +12,6 @@ import irods.exception
 import irods.path
 
 from . import path
-
-LOG_LEVEL = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warn': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL,
-}
 
 
 def is_posix() -> bool:
@@ -236,37 +226,6 @@ def file_exists(pathname: str) -> bool:
 
     """
     return path.LocalPath(pathname).is_file()
-
-
-def setup_logger(logdir: str, appname: str, level: int = logging.INFO):
-    """Initialize the application logging service.
-
-    Parameters
-    ----------
-    logdir : str
-        Path to logging location.
-    appname : str
-        Base name for the log file.
-    level : int
-        Level of the logging.  Only this level and higher will be shown.
-
-    """
-    logdir = path.LocalPath(logdir).expanduser()
-    logfile = logdir.joinpath(f'{appname}.log')
-    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [
-        logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1),
-        logging.StreamHandler(sys.stdout),
-    ]
-    logging.basicConfig(
-        format=log_format, level=level, handlers=handlers)
-    # Indicate start of a new session
-    with open(logfile, 'a', encoding='utf-8') as logfd:
-        logfd.write('\n\n')
-        underscores = f'{"_" * 50}\n'
-        logfd.write(underscores * 2)
-        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
-        logfd.write(underscores * 2)
 
 
 def bytes_to_str(value: int) -> str:
