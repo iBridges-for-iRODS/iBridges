@@ -27,9 +27,6 @@ class IrodsConnectorIcommands:
     def __init__(self) -> None:
         """ IrodsConnectorIcommands initialization
         """
-        if not self.has_icommands:
-            raise ValueError("icommands not available.")
-
         self.prev_irods_environment_file = None
 
     def __del__(self) -> None:
