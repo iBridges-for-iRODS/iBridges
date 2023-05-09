@@ -196,22 +196,9 @@ class Session(object):
         if self._irods_session:
             if given_pass != cached_pass:
                 self._write_pam_password()
-            self._give_irods_greeting()
-
-    def _give_irods_greeting(self):
-        logging.info('Welcome to iRODS:')
-        logging.info(f'iRODS Zone: {self._irods_session.zone}')
-        logging.info(f'You are: {self._irods_session.username}')
-        logging.info(f'Default resource: {self.default_resc}')
-        logging.info('You have access to: \n')
-        home_path = f'/{self._irods_session.zone}/home'
-        if self._irods_session.collections.exists(home_path):
-            colls = self._irods_session.collections.get(home_path).subcollections
-            for coll in colls:
-                logging.info('\t%s', coll.path)
-        logging.info(
-            'IRODS LOGIN SUCCESS: %s:%s', self._irods_session.host,
-            self._irods_session.port)
+            logging.info(
+                'IRODS LOGIN SUCCESS: %s:%s', self._irods_session.host,
+                self._irods_session.port)
 
     @staticmethod
     def _get_irods_session(options):
