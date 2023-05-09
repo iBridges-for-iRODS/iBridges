@@ -1,5 +1,7 @@
 """ metadata operations
 """
+import logging
+
 import irods.exception
 import irods.meta
 
@@ -26,9 +28,9 @@ class Meta(object):
             try:
                 item.metadata.add(key.upper(), value, units)
             except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                print(kw.RED+"INFO ADD META: Metadata already present"+kw.DEFAULT)
+                logging.error(kw.RED+"INFO ADD META: Metadata already present"+kw.DEFAULT)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                print("ERROR UPDATE META: no permissions")
+                logging.error("UPDATE META: no permissions")
                 raise cnap
 
     def add_multiple(self, items: list, avus: list):
@@ -48,12 +50,12 @@ class Meta(object):
             try:
                 item.metadata.apply_atomic_operations(*list_of_tags)
             except irods.meta.BadAVUOperationValue:
-                print(f"{kw.RED}INFO ADD MULTIPLE META: bad metadata value{kw.DEFAULT}")
+                logging.error(f"{kw.RED}INFO ADD MULTIPLE META: bad metadata value{kw.DEFAULT}")
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                print("ERROR UPDATE META: no permissions")
+                logging.error("UPDATE META: no permissions")
                 raise cnap
             except Exception:
-                print(f"{kw.RED}INFO ADD MULTIPLE META: unexpected error{kw.DEFAULT}")
+                logging.error(f"{kw.RED}INFO ADD MULTIPLE META: unexpected error{kw.DEFAULT}")
 
     def update(self, items: list, key: str, value: str, units: str = None):
         """
@@ -83,7 +85,7 @@ class Meta(object):
                 else:
                     self.add(items, key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-            print(f"ERROR UPDATE META: no permissions {item.path}")
+            logging.error(f"UPDATE META: no permissions {item.path}")
             raise cnap
 
     def delete(self, items: list, key: str, value: str, units: str = None):
@@ -104,7 +106,7 @@ class Meta(object):
             try:
                 item.metadata.remove(key, value, units)
             except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
-                print(kw.RED+"INFO DELETE META: Metadata never existed"+kw.DEFAULT)
+                logging.error(kw.RED+"INFO DELETE META: Metadata never existed"+kw.DEFAULT)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                print("ERROR UPDATE META: no permissions "+item.path)
+                logging.error("UPDATE META: no permissions "+item.path)
                 raise cnap

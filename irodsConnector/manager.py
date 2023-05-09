@@ -1,11 +1,14 @@
 """ Irods connection factory
 
 """
+import logging
+
 import irods.collection
 import irods.data_object
 import irods.resource
 import irods.session
 
+from utils import json_config
 from . import dataOperations
 from . import Icommands
 from . import keywords as kw
@@ -17,7 +20,6 @@ from . import rules
 from . import session
 from . import tickets
 from . import users
-import utils
 
 
 class IrodsConnector(object):
@@ -34,6 +36,9 @@ class IrodsConnector(object):
     _session = None
     _tickets = None
     _users = None
+    _ibridges_configuration = None
+    _irods_env_file = ''
+    _irods_environment = None
 
     def __init__(self, password=''):
         """Initialize connection to iRODS functionality based on the
@@ -51,6 +56,96 @@ class IrodsConnector(object):
     def __del__(self):
         self.cleanup()
         del self.session
+
+    # Configuration properties
+    #
+    @property
+    def ibridges_configuration(self) -> json_config.JsonConfig:
+        """iBridges configuration.
+
+        Returns
+        -------
+        utils.json_config.JsonConfig or None
+            iBridges configuration.
+
+        """
+        logging.debug(f'getting: {self._ibridges_configuration=}')
+        return self._ibridges_configuration
+
+    @ibridges_configuration.setter
+    def ibridges_configuration(self, config: json_config.JsonConfig):
+        """iBridges configuration setter.
+
+        Parameters
+        ----------
+        config : utils.json_config.JsonConfig
+            iBridges configuration.
+
+        """
+        self._ibridges_configuration = config
+        logging.debug(f'setting: {self._ibridges_configuration=}')
+        if self.session:
+            self.session.ibridges_configuration = config
+        if self.resource:
+            self.resource.ibridges_configuration = config
+
+    @property
+    def irods_env_file(self) -> str:
+        """iRODS environment filename.
+
+        Returns
+        -------
+        str
+            Name of environment file
+
+        """
+        logging.debug(f'getting: {self._irods_env_file=}')
+        return self._irods_env_file
+
+    @irods_env_file.setter
+    def irods_env_file(self, filepath: str):
+        """iRODS environment filename setter.
+
+        Parameters
+        ----------
+        filepath : str
+            Name of the environment file.
+
+        """
+        self._irods_env_file = filepath
+        logging.debug(f'setting: {self._irods_env_file=}')
+        if self.session:
+            self.session.irods_env_file = filepath
+
+    @property
+    def irods_environment(self) -> json_config.JsonConfig:
+        """iRODS environment.
+
+        Returns
+        -------
+        utils.json_config.JsonConfig or None
+            iRODS environment.
+
+        """
+        logging.debug(f'getting: {self._irods_environment=}')
+        return self._irods_environment
+
+    @irods_environment.setter
+    def irods_environment(self, config: json_config.JsonConfig):
+        """iRODS environment setter.
+
+        Parameters
+        ----------
+        config : utils.json_config.JsonConfig
+            iRODS environment.
+
+        """
+        self._irods_environment = config
+        logging.debug(f'setting: {self._irods_environment=}')
+        if self.session:
+            self.session.irods_environment = config
+        if self.resource:
+            self.resource.irods_environment = config
 
     # Properties for all the classes themselves
     #
@@ -89,6 +184,8 @@ class IrodsConnector(object):
     def resource(self) -> resource.Resource:
         if self._resource is None:
             self._resource = resource.Resource(self.session)
+            self._resource.ibridges_configuration = self.ibridges_configuration
+            self._resource.irods_environment = self.irods_environment
         return self._resource
 
     @property
@@ -101,6 +198,9 @@ class IrodsConnector(object):
     def session(self) -> session.Session:
         if self._session is None:
             self._session = session.Session(self._password)
+            self._session.ibridges_configuration = self.ibridges_configuration
+            self._session.irods_env_file = self.irods_env_file
+            self._session.irods_environment = self.irods_environment
         return self._session
 
     @session.deleter
@@ -230,10 +330,10 @@ class IrodsConnector(object):
     def get_free_space(self, resc_name: str, multiplier: int = 1) -> int:
         return self.resource.get_free_space(resc_name, multiplier)
 
-    def get_resource(self, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
         return self.resource.get_resource(resc_name)
 
-    def get_resource_children(self, resc: irods.resource.Resource) -> list:
+    def get_resource_children(self, resc: irods.resource.iRODSResource) -> list:
         return self.resource.get_resource_children(resc)
 
     def list_resources(self, attr_names: list = None) -> tuple:
@@ -249,12 +349,35 @@ class IrodsConnector(object):
 
     # Session functionality
     #
+    def connect(self):
+        """Manually establish an iRODS session.
+
+        """
+        if not self.session.has_irods_session():
+            self.session.connect()
+
     def reset(self):
         del self.session
 
     def cleanup(self):
-        if self._session and self.session._session:
-            self.session.session.cleanup()
+        if self.has_session() and self.session.has_irods_session():
+            # In case the iRODS session is not fully there.
+            try:
+                self.session.irods_session.cleanup()
+            except NameError:
+                pass
+
+    def has_session(self) -> bool:
+        """Check if an iBridges session has been assigned to its shadow
+        variable.
+
+        Returns
+        -------
+        bool
+            Has a session been set?
+
+        """
+        return self._session is not None
 
     @property
     def davrods(self) -> str:
@@ -270,10 +393,27 @@ class IrodsConnector(object):
 
     @property
     def password(self) -> str:
+        """Password scraped from iRODS obfuscated auth file or manually
+        set.
+
+        Returns
+        -------
+        str
+            Plain text password.
+
+        """
         return self.session.password
 
     @password.setter
     def password(self, password: str):
+        """Set the session password.
+
+        Parameters
+        ----------
+        password : str
+            Plain text password.
+
+        """
         self.session.password = password
 
     @property

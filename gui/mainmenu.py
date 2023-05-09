@@ -154,11 +154,11 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
         search.exec()
 
     def saveConfig(self):
-        print("TODO")
+        logging.info("TODO: saving configuration")
         # TODO is there any reason for this?
         # self.context.save_ibridges_configuration()
         # self.context.save_irods_environment()
         # self.globalErrorLabel.setText(f'Environment saved to: {self.context.irods_env_file}')
 
     def exportMeta(self):
-        print("TODO: Metadata export")
+        logging.info("TODO: Metadata export")

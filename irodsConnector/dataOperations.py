@@ -24,9 +24,9 @@ class DataOperation(object):
 
             Parameters
             ----------
-            resc_man : irods resource
+            resc_man : resource.Resource
                 Instance of the Resource class
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -66,7 +66,7 @@ class DataOperation(object):
             Existence of the data object with `path`.
 
         """
-        return self.sess_man.session.data_objects.exists(path)
+        return self.sess_man.irods_session.data_objects.exists(path)
 
     def collection_exists(self, path: str) -> bool:
         """Check if an iRODS collection exists.
@@ -82,7 +82,7 @@ class DataOperation(object):
             Existance of the collection with `path`.
 
         """
-        return self.sess_man.session.collections.exists(path)
+        return self.sess_man.irods_session.collections.exists(path)
 
     @staticmethod
     def is_dataobject(obj) -> bool:
@@ -154,9 +154,9 @@ class DataOperation(object):
 
         """
         try:
-            if self.sess_man.session.data_objects.exists(data_object_name):
-                return self.sess_man.session.data_objects.get(data_object_name)
-            return self.sess_man.session.data_objects.create(data_object_name)
+            if self.sess_man.irods_session.data_objects.exists(data_object_name):
+                return self.sess_man.irods_session.data_objects.get(data_object_name)
+            return self.sess_man.irods_session.data_objects.create(data_object_name)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
             logging.info('ENSURE DATA OBJECT', exc_info=True)
             raise cnap
@@ -180,9 +180,9 @@ class DataOperation(object):
 
         """
         try:
-            if self.sess_man.session.collections.exists(coll_name):
-                return self.sess_man.session.collections.get(coll_name)
-            return self.sess_man.session.collections.create(coll_name)
+            if self.sess_man.irods_session.collections.exists(coll_name):
+                return self.sess_man.irods_session.collections.get(coll_name)
+            return self.sess_man.irods_session.collections.create(coll_name)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
             logging.info('ENSURE COLLECTION', exc_info=True)
             raise cnap
@@ -202,7 +202,7 @@ class DataOperation(object):
 
         """
         if self.dataobject_exists(path):
-            return self.sess_man.session.data_objects.get(path)
+            return self.sess_man.irods_session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
 
     def get_collection(self, path: str) -> irods.collection.iRODSCollection:
@@ -220,7 +220,7 @@ class DataOperation(object):
 
         """
         if self.collection_exists(path):
-            return self.sess_man.session.collections.get(path)
+            return self.sess_man.irods_session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
     def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
@@ -244,7 +244,7 @@ class DataOperation(object):
         }
         if resc_name not in ['', None]:
             options[kw.RESC_NAME_KW] = resc_name
-        self.sess_man.session.data_objects.put(local_path, irods_path, **options)
+        self.sess_man.irods_session.data_objects.put(local_path, irods_path, **options)
 
     def irods_get(self, irods_path: str, local_path: str, options: dict = None):
         """Download `irods_path` to `local_path` following iRODS `options`.
@@ -265,7 +265,7 @@ class DataOperation(object):
             kw.NUM_THREADS_KW: kw.NUM_THREADS,
             kw.VERIFY_CHKSUM_KW: '',
             })
-        self.sess_man.session.data_objects.get(irods_path, local_path, **options)
+        self.sess_man.irods_session.data_objects.get(irods_path, local_path, **options)
 
     def upload_data(self, source: str, destination: irods.collection.iRODSCollection,
                     res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
@@ -489,17 +489,17 @@ class DataOperation(object):
         """
         if os.path.isdir(fspath) and not os.path.isfile(fspath):
             raise IsADirectoryError("IRODS FS DIFF: file is a directory.")
-        if self.sess_man.session.collections.exists(objpath):
+        if self.sess_man.irods_session.collections.exists(objpath):
             raise IsADirectoryError("IRODS FS DIFF: object exists already as collection. "+objpath)
 
-        if not os.path.isfile(fspath) and self.sess_man.session.data_objects.exists(objpath):
+        if not os.path.isfile(fspath) and self.sess_man.irods_session.data_objects.exists(objpath):
             return [], [], [objpath], []
 
-        elif not self.sess_man.session.data_objects.exists(objpath) and os.path.isfile(fspath):
+        elif not self.sess_man.irods_session.data_objects.exists(objpath) and os.path.isfile(fspath):
             return [], [fspath], [], []
 
         # both, file and object exist
-        obj = self.sess_man.session.data_objects.get(objpath)
+        obj = self.sess_man.irods_session.data_objects.get(objpath)
         if scope == "size":
             objsize = obj.size
             fsize = os.path.getsize(fspath)
@@ -572,18 +572,18 @@ class DataOperation(object):
         for locpartialpath in set(list_dir).intersection(listcoll):
             ipartialpath = locpartialpath.replace(os.sep, "/")
             if scope == "size":
-                objsize = self.sess_man.session.data_objects.get(coll.path + '/' + ipartialpath).size
+                objsize = self.sess_man.irods_session.data_objects.get(coll.path + '/' + ipartialpath).size
                 fsize = os.path.getsize(os.path.join(dirpath, ipartialpath))
                 if objsize != fsize:
                     diff.append((coll.path + '/' + ipartialpath, os.path.join(dirpath, locpartialpath)))
                 else:
                     same.append((coll.path + '/' + ipartialpath, os.path.join(dirpath, locpartialpath)))
             elif scope == "checksum":
-                objcheck = self.sess_man.session.data_objects.get(coll.path + '/' + ipartialpath).checksum
+                objcheck = self.sess_man.irods_session.data_objects.get(coll.path + '/' + ipartialpath).checksum
                 if objcheck is None:
                     try:
-                        self.sess_man.session.data_objects.get(coll.path + '/' + ipartialpath).chksum()
-                        objcheck = self.sess_man.session.data_objects.get(
+                        self.sess_man.irods_session.data_objects.get(coll.path + '/' + ipartialpath).chksum()
+                        objcheck = self.sess_man.irods_session.data_objects.get(
                                     coll.path + '/' + ipartialpath).checksum
                     except Exception:
                         logging.info('No checksum for %s/%s', coll.path, ipartialpath)
@@ -628,19 +628,19 @@ class DataOperation(object):
             item to delete
         """
 
-        if self.sess_man.session.collections.exists(item.path):
+        if self.sess_man.irods_session.collections.exists(item.path):
             logging.info("IRODS DELETE: %s", item.path)
             try:
                 item.remove(recurse=True, force=True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                print("ERROR IRODS DELETE: no permissions")
+                logging.error("IRODS DELETE: no permissions")
                 raise cnap
-        elif self.sess_man.session.data_objects.exists(item.path):
+        elif self.sess_man.irods_session.data_objects.exists(item.path):
             logging.info("IRODS DELETE: %s", item.path)
             try:
                 item.unlink(force=True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                print("ERROR IRODS DELETE: no permissions "+item.path)
+                logging.error("IRODS DELETE: no permissions "+item.path)
                 raise cnap
 
     def get_irods_size(self, path_names: list) -> int:

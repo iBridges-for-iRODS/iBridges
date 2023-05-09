@@ -19,7 +19,7 @@ class Tickets(object):
 
             Parameters
             ----------
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -44,7 +44,7 @@ class Tickets(object):
 
         """
         ticket_id = ''.join(choice(ascii_letters) for _ in range(20))
-        ticket = irods.ticket.Ticket(self.sess_man.session, ticket_id)
+        ticket = irods.ticket.Ticket(self.sess_man.irods_session, ticket_id)
         ticket.issue('read', obj_path)
         logging.info('CREATE TICKET: %s: %s', ticket.ticket, obj_path)
         expiration_set = False

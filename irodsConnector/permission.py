@@ -19,9 +19,9 @@ class Permission(object):
 
             Parameters
             ----------
-            data_man: irods Datamanager
+            data_man: dataOperations.DataOperation
                 instance of the Dataoperation class
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -70,14 +70,14 @@ class Permission(object):
         """
         if isinstance(path, str) and path:
             try:
-                return self.sess_man.session.permissions.get(
-                    self.sess_man.session.collections.get(path))
+                return self.sess_man.irods_session.permissions.get(
+                    self.sess_man.irods_session.collections.get(path))
             except irods.exception.CollectionDoesNotExist:
-                return self.sess_man.session.permissions.get(
-                    self.sess_man.session.data_objects.get(path))
+                return self.sess_man.irods_session.permissions.get(
+                    self.sess_man.irods_session.data_objects.get(path))
         if dataOperations.DataOperation.is_dataobject_or_collection(obj):
-            return self.sess_man.session.permissions.get(obj)
-        print('WARNING -- `obj` must be or `path` must resolve into, a collection or data object')
+            return self.sess_man.irods_session.permissions.get(obj)
+        logging.debug('`obj` must be or `path` must resolve into, a collection or data object')
         return []
 
     def set_permissions(self, perm: str, path: str, user: str = '',
@@ -104,12 +104,12 @@ class Permission(object):
         try:
             if self.data_man.dataobject_exists(path) or \
                     self.data_man.collection_exists(path):
-                self.sess_man.session.permissions.set(acl, recursive=recursive, admin=admin)
+                self.sess_man.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as ciu:
-            print(f'{kw.RED}ACL ERROR: user unknown{kw.DEFAULT}')
+            logging.error(f'{kw.RED}ACL ERROR: user unknown{kw.DEFAULT}')
             raise ciu
         except irods.exception.CAT_INVALID_ARGUMENT as cia:
-            print(f'{kw.RED}ACL ERROR: permission {perm} or path {path} not known{kw.DEFAULT}')
+            logging.error(f'{kw.RED}ACL ERROR: permission {perm} or path {path} not known{kw.DEFAULT}')
             logging.info(
                 'ACL ERROR: permission %s or path %s not known',
                 perm, path, exc_info=True)

@@ -24,6 +24,7 @@ class IrodsConnectorIcommands:
     icmd_ils = 'ils {coll_or_object}'
     irods_environment_file_key = 'IRODS_ENVIRONMENT_FILE'
 
+
     def __init__(self) -> None:
         """ IrodsConnectorIcommands initialization
         """
@@ -210,6 +211,7 @@ class IrodsConnectorIcommands:
                 raise ValueError(err)
 
             flags = '-Kr'
+
         else:
             raise FileNotFoundError('icommands upload: not a valid source path')
 

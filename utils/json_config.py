@@ -22,6 +22,28 @@ class JsonConfig:
         self._config = {}
         self.filepath = filepath
 
+    def __bool__(self) -> bool:
+        """If 'config' dictionary is truthy.
+
+        Returns
+        -------
+        bool
+            If self.config is truthy.
+
+        """
+        return self._config != {}
+
+    def __repr__(self) -> str:
+        """Representation of this configuration.
+
+        Returns
+        -------
+        str
+            Representation.
+
+        """
+        return f'{self.__class__.__name__}("{self._config.__repr__()}")'
+
     @property
     def config(self) -> dict:
         """A persistent configuration dictionary.
@@ -76,6 +98,12 @@ class JsonConfig:
 
         """
         self._filepath = path.LocalPath(filepath)
+
+    def clear(self):
+        """Clear the configuration .
+
+        """
+        self._config.clear()
 
     def reset(self):
         """Reset current instance
