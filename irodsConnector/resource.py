@@ -8,7 +8,6 @@ import irods.resource
 
 from . import keywords as kw
 from . import session
-import utils
 
 
 class FreeSpaceNotSet(Exception):
@@ -26,18 +25,21 @@ class NotEnoughFreeSpace(Exception):
 class Resource(object):
     """Irods Resource operations """
     _resources = None
-    context = utils.context.Context()
+    ibridges_configuration = None
+    irods_environment = None
 
     def __init__(self, sess_man: session.Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
         """
         self.sess_man = sess_man
 
+    # Configuration properties
+    #
     @property
     def conf(self) -> dict:
         """iBridges configuration dictionary.
@@ -48,8 +50,9 @@ class Resource(object):
             Configuration from JSON serialized string.
 
         """
-        if self.context.ibridges_configuration:
-            return self.context.ibridges_configuration.config
+        logging.debug(f'getting: {self.ibridges_configuration=}')
+        if self.ibridges_configuration:
+            return self.ibridges_configuration.config
         return {}
 
     @property
@@ -61,8 +64,9 @@ class Resource(object):
         dict
             Environment from JSON serialized string.
         """
-        if self.context.irods_environment:
-            return self.context.irods_environment.config
+        logging.debug(f'getting: {self.irods_environment=}')
+        if self.irods_environment:
+            return self.irods_environment.config
         return {}
 
     @property
@@ -84,7 +88,7 @@ class Resource(object):
 
         """
         if self._resources is None:
-            query = self.sess_man.session.query(
+            query = self.sess_man.irods_session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
@@ -123,10 +127,10 @@ class Resource(object):
                 if resc_is_root and has_free_space:
                     resc_names.append(name)
             if self.sess_man.default_resc not in resc_names:
-                print('    -=WARNING=-    '*4)
-                print(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
-                print('Check "irods_default_resource" and "check_free_space" settings.')
-                print('    -=WARNING=-    '*4)
+                logging.warning('    -=WARNING=-    '*4)
+                logging.warning(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
+                logging.warning('Check "irods_default_resource" and "check_free_space" settings.')
+                logging.warning('    -=WARNING=-    '*4)
         return self._resources
 
     def list_resources(self, attr_names: list = None) -> tuple:
@@ -177,7 +181,7 @@ class Resource(object):
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
 
-    def get_resource(self, resc_name: str) -> irods.resource.Resource:
+    def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
         """Instantiate an iRODS resource.
 
         Prameters
@@ -195,9 +199,9 @@ class Resource(object):
 
         """
         try:
-            return self.sess_man.session.resources.get(resc_name)
+            return self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as rdne:
-            print(f'Resource with name {resc_name} not found')
+            logging.warning(f'Resource with name {resc_name} not found')
             raise rdne
 
     def resource_space(self, resc_name: str) -> int:
@@ -263,9 +267,9 @@ class Resource(object):
 
         """
         try:
-            resc = self.sess_man.session.resources.get(resc_name)
+            resc = self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
-            print(f'Resource with name {resc_name} not found')
+            logging.warning(f'Resource with name {resc_name} not found')
             return -1
         if resc.free_space is not None:
             return round(int(resc.free_space) * multiplier)

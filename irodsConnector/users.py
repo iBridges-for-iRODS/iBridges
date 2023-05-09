@@ -12,7 +12,7 @@ class Users(object):
 
             Parameters
             ----------
-            sess_man : irods session
+            sess_man : session.Session
                 instance of the Session class
 
         """
@@ -29,12 +29,12 @@ class Users(object):
             iRODS group names
 
         """
-        query = self.sess_man.session.query(kw.USER_TYPE).filter(kw.LIKE(
+        query = self.sess_man.irods_session.query(kw.USER_TYPE).filter(kw.LIKE(
             kw.USER_NAME, self.sess_man.username))
         user_type = [
             list(result.values())[0] for result in query.get_results()
         ][0]
-        query = self.sess_man.session.query(kw.USER_GROUP_NAME).filter(kw.LIKE(
+        query = self.sess_man.irods_session.query(kw.USER_GROUP_NAME).filter(kw.LIKE(
             kw.USER_NAME, self.sess_man.username))
         user_groups = [
             list(result.values())[0] for result in query.get_results()

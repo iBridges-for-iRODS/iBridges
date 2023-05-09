@@ -1,6 +1,7 @@
 """Manipulate paths as strings behaving like pathlib Paths.
 
 """
+import logging
 import os
 import pathlib
 import shutil
@@ -294,7 +295,7 @@ class LocalPath(PurePath):
                 type(self)(target).rmdir(squash=True)
                 shutil.copytree(self, target)
             else:
-                print(f'Cannot copy to {target}: {error}')
+                logging.warning(f'Cannot copy to {target}: {error}')
 
     @classmethod
     def cwd(cls):
@@ -482,7 +483,7 @@ class LocalPath(PurePath):
             if squash:
                 type(self)(target).rmdir(squash=True)
                 return type(self)(str(self.path.replace(target)))
-            print(f'Cannot replace {target}: {error}')
+            logging.warning(f'Cannot replace {target}: {error}')
             return self
 
     def resolve(self):
@@ -514,7 +515,7 @@ class LocalPath(PurePath):
             if squash:
                 shutil.rmtree(self)
             else:
-                print(f'Cannot rmdir {self}: {error}')
+                logging.warning(f'Cannot rmdir {self}: {error}')
 
     def stat(self) -> os.stat_result:
         """Run os.stat() on this path.

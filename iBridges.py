@@ -2,7 +2,9 @@
 """iBridges GUI startup script.
 
 """
+import datetime
 import logging
+import logging.handlers
 import os
 import setproctitle
 import sys
@@ -17,6 +19,17 @@ import gui
 import irodsConnector
 import utils
 
+# Global constants
+LOG_LEVEL = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warn': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL,
+}
+THIS_APPLICATION = 'iBridges'
+
+# Application globals
 app = PyQt6.QtWidgets.QApplication(sys.argv)
 widget = PyQt6.QtWidgets.QStackedWidget()
 
@@ -35,10 +48,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
 
     def __init__(self):
         super().__init__()
-        self.ibridges_path = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
         self.irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
         self._load_gui()
-        self._init_logging()
         self._init_envbox()
         self._init_password()
 
@@ -55,12 +66,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.connectButton.clicked.connect(self.login_function)
         self.ticketButton.clicked.connect(self.ticket_login)
         self.passwordField.setEchoMode(PyQt6.QtWidgets.QLineEdit.EchoMode.Password)
-
-    def _init_logging(self):
-        """
-
-        """
-        utils.utils.setup_logger(self.ibridges_path, self.context.application_name)
 
     def _init_envbox(self):
         """Populate environment drop-down.
@@ -128,55 +133,70 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """
         # Replacement connector (required for new sessions)
         if not self.context.irods_connector:
+            logging.debug('Setting new instance of the IrodsConnector')
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
+        logging.debug(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
         self.envError.setText('')
-        if not (self.ienv and self.context.ienv_is_complete()):
+        if not (self.context.irods_environment.config and self.context.ienv_is_complete()):
+            message = 'iRODS environment missing or incomplete.'
+            logging.error(message)
             self.context.irods_environment.reset()
             self.passError.clear()
-            self.envError.setText('ERROR: iRODS environment missing or incomplete.')
+            self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        if not utils.utils.can_connect(self.ienv['irods_host']):
-            logging.info('iRODS login: No network connection to server')
-            self.envError.setText('No network connection to server')
+        if not utils.utils.can_connect(self.ienv.get('irods_host', '')):
+            message = 'No network connection to server'
+            logging.warning(message)
+            self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         self.conf['last_ienv'] = irods_env_file.name
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
+        self.conn.password = password
+        logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
         try:
-            self.conn.password = password
-            # widget is a global variable
-            browser = gui.mainmenu.mainmenu(widget)
-            if len(widget) == 1:
-                widget.addWidget(browser)
-            self._reset_mouse_and_error_labels()
-            # self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-            widget.setCurrentIndex(widget.currentIndex()+1)
+            self.conn.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
                 irods.exception.CAT_INVALID_USER,
                 ConnectionRefusedError):
+            message = 'Wrong password!  Try again'
+            logging.error(message)
             self.envError.clear()
-            self.passError.setText('ERROR: Wrong password.')
+            self.passError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         except irods.exception.CAT_PASSWORD_EXPIRED:
+            message = 'Cached password expired!  Re-enter password'
+            logging.error(message)
             self.envError.clear()
-            self.passError.setText('ERROR: Cached password expired. Re-enter password.')
+            self.passError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
         except irods.exception.NetworkException:
+            message = 'iRODS server down!  Check and try again'
+            logging.error(message)
             self.passError.clear()
-            self.envError.setText('iRODS server ERROR: iRODS server down.')
-            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
-        except Exception as unknown:
-            message = f'Something went wrong: {unknown}'
-            logging.exception(message)
-            # logging.info(repr(error))
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
+        except Exception as unknown:
+            message = f'Something unexpected occurred: {unknown!r}'
+            logging.exception(message)
+            self.envError.setText(message)
+            self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            return
+        # widget is a global variable
+        browser = gui.mainmenu.mainmenu(widget)
+        if len(widget) == 1:
+            widget.addWidget(browser)
+        self._reset_mouse_and_error_labels()
+        widget.setCurrentIndex(widget.currentIndex()+1)
 
     def ticket_login(self):
         """Log in to iRODS using a ticket.
@@ -200,12 +220,60 @@ def closeClean():
         context.irods_connector.cleanup()
 
 
+def init_logger():
+    """Initialize the application logging service.
+
+    """
+    logger = logging.getLogger()
+    logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
+    logfile = logdir.joinpath(f'{THIS_APPLICATION}.log')
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
+    file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(log_formatter)
+    logger.addHandler(stream_handler)
+    # Indicate start of a new session
+    with open(logfile, 'a', encoding='utf-8') as logfd:
+        logfd.write('\n\n')
+        underscores = f'{"_" * 50}\n'
+        logfd.write(underscores * 2)
+        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
+        logfd.write(underscores * 2)
+
+
+def set_log_level(log_level: int):
+    """Set the log level excluding DEBUG-level entries from other
+    modules.
+
+    Parameters
+    ----------
+    log_level : int
+        Level to set the current logger.
+
+    """
+    logging.getLogger().setLevel(log_level)
+    if log_level == logging.DEBUG:
+        for logger in logging.Logger.manager.loggerDict.values():
+            if hasattr(logger, 'name') and logger.name != 'root':
+                logger.disabled = True
+
+
 def main():
     """Main function
 
     """
+    # Initialize logger first because Context may want to log as well.
+    init_logger()
+    # Singleton Context
     context = utils.context.Context()
-    context.application_name = 'iBridges'
+    context.application_name = THIS_APPLICATION
+    # Context is required to get the log_level from the configuration.
+    verbose = context.ibridges_configuration.config.get('verbose', 'info')
+    log_level = LOG_LEVEL.get(verbose, logging.INFO)
+    set_log_level(log_level)
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
     login_window = IrodsLoginWindow()

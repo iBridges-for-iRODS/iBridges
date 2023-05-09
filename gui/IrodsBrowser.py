@@ -271,7 +271,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
     def _get_object_path_name(self, row):
         """"""
         if self.collTable.item(row, 1).text().startswith("/"+self.conn.zone):
-            print(self.collTable.item(row, 1).text())
+            logging.debug(self.collTable.item(row, 1).text())
             sub_paths = self.collTable.item(row, 1).text().strip("/").split("/")
             obj_path = "/"+"/".join(sub_paths[:len(sub_paths)-1])
             obj_name = sub_paths[-1]
@@ -393,7 +393,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             self._fill_acls_tab(obj_path)
             self._fill_replicas_tab(obj_path)
         except Exception as e:
-            logging.info('ERROR in Browser',exc_info=True)
+            logging.error('Browser',exc_info=True)
             self.errorLabel.setText(repr(e))
 
     def loadSelection(self):
@@ -476,7 +476,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                 self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
-                print("ERROR upload :", fileSelect[0], "failed; \n\t", repr(error))
+                logging.error("Upload :", fileSelect[0], "failed; \n\t", repr(error))
                 self.errorLabel.setText(repr(error))
 
     def fileDownload(self):
@@ -505,7 +505,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                 self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
-                print("ERROR download :", parent+'/'+objName, "failed; \n\t", repr(error))
+                logging.error("Download :", parent+'/'+objName, "failed; \n\t", repr(error))
                 self.errorLabel.setText(repr(error))
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)
