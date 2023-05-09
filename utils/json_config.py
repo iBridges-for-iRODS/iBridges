@@ -57,7 +57,8 @@ class JsonConfig:
             exists.  The empty persistent dictionary otherwise.
 
         """
-        if self._config == {}:
+        if self._config == {} or self.reload:
+            self.reload = False
             if self.filepath.is_file():
                 with open(self.filepath, 'r', encoding='utf-8') as confd:
                     self._config.update(json.load(confd))
@@ -98,6 +99,7 @@ class JsonConfig:
 
         """
         self._filepath = path.LocalPath(filepath)
+        self.reload = True
 
     def clear(self):
         """Clear the configuration .
