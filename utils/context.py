@@ -143,10 +143,7 @@ class Context:
 
         """
         if self._irods_connector is not None:
-            try:
-                del self._irods_connector
-            except AttributeError:
-                pass
+            del self._irods_connector
         self._irods_connector = None
 
     @property

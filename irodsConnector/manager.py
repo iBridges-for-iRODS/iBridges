@@ -204,10 +204,7 @@ class IrodsConnector(object):
 
     @session.deleter
     def session(self):
-        try:
-            del self._session
-        except AttributeError:
-            pass
+        del self._session
         self._session = None
 
     @property

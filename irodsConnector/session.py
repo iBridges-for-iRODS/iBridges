@@ -137,10 +137,7 @@ class Session(object):
                 self._irods_session.cleanup()
             except NameError:
                 pass
-            try:
-                del self._irods_session
-            except AttributeError:
-                pass
+            del self._irods_session
             self._irods_session = None
 
     # Authentication workflow methods
