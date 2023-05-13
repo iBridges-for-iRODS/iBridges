@@ -52,7 +52,7 @@ class Meta(object):
             except irods.meta.BadAVUOperationValue:
                 logging.error('%sADD MULTIPLE META: bad metadata value%s', kw.RED, kw.DEFAULT)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                logging.error("UPDATE META: no permissions")
+                logging.error('UPDATE META: no permissions')
                 raise cnap
             except Exception:
                 logging.error('%sADD MULTIPLE META: unexpected error%s', kw.RED, kw.DEFAULT)

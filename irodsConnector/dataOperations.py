@@ -321,7 +321,7 @@ class DataOperation(object):
         if not force:
             space = self.resc_man.resource_space(res_name)
             if size > (space - buff):
-                logging.info(
+                logging.error(
                     'ERROR iRODS upload: Not enough free space on resource.',
                     exc_info=True)
                 raise resource.NotEnoughFreeSpace(
@@ -356,7 +356,7 @@ class DataOperation(object):
                     logging.info('CREATE %s', irods_path)
                     self.irods_put(local_path, irods_path, res_name)
         except Exception as error:
-            logging.info('UPLOAD ERROR', exc_info=True)
+            logging.error('UPLOAD ERROR', exc_info=True)
             raise error
 
     def download_data(self, source: (irods.collection.iRODSCollection, irods.data_object.iRODSDataObject),
@@ -396,13 +396,13 @@ class DataOperation(object):
             )
         destination = utils.path.LocalPath(destination)
         if not destination.is_dir():
-            logging.info(
+            logging.error(
                 'DOWNLOAD ERROR: destination path does not exist or is not directory',
                 exc_info=True)
             raise FileNotFoundError(
                 'ERROR iRODS download: destination path does not exist or is not directory')
         if not os.access(destination, os.W_OK):
-            logging.info(
+            logging.error(
                 'DOWNLOAD ERROR: No rights to write to destination.',
                 exc_info=True)
             raise PermissionError(
@@ -425,7 +425,7 @@ class DataOperation(object):
         if not force:
             space = disk_usage(destination).free
             if size > (space - buff):
-                logging.info(
+                logging.error(
                     'ERROR iRODS download: Not enough space on local disk.',
                     exc_info=True)
                 raise resource.NotEnoughFreeSpace(
@@ -460,11 +460,10 @@ class DataOperation(object):
                     if not local_path.parent.is_dir():
                         local_path.parent.mkdir(parents=True, exist_ok=True)
                     logging.info(
-                        'INFO: Downloading %s to %s', irods_path,
-                        local_path)
+                        'Downloading %s to %s', irods_path, local_path)
                     self.irods_get(irods_path, local_path, options=options)
         except Exception as error:
-            logging.info('DOWNLOAD ERROR', exc_info=True)
+            logging.error('DOWNLOAD ERROR', exc_info=True)
             raise error
 
     def diff_obj_file(self, objpath: str, fspath: str,
