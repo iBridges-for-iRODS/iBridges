@@ -106,11 +106,10 @@ class Permission(object):
                     self.data_man.collection_exists(path):
                 self.sess_man.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as ciu:
-            logging.error(f'{kw.RED}ACL ERROR: user unknown{kw.DEFAULT}')
+            logging.error('%sACL: user unknown%s', kw.RED, kw.DEFAULT)
             raise ciu
         except irods.exception.CAT_INVALID_ARGUMENT as cia:
-            logging.error(f'{kw.RED}ACL ERROR: permission {perm} or path {path} not known{kw.DEFAULT}')
-            logging.info(
-                'ACL ERROR: permission %s or path %s not known',
-                perm, path, exc_info=True)
+            logging.error(
+                '%sACL: permission %s or path %s not known%s', kw.RED,
+                perm, path, kw.DEFAULT, exc_info=True)
             raise cia

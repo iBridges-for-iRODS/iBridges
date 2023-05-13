@@ -139,13 +139,12 @@ class irodsIndexPopup(QDialog, Ui_irodsIndexPopup, utils.context.ContextContaine
                         '*extract': '"'+extractPath+'"',
                         }
                 self.conn.execute_rule(io.stringIO(EXTRACT_ONE_RULE), params)
-                logging.info("TAR EXTRACT SCHEDULED: ")
-                logging.info("iRODS user: " + self.conn.get_username)
-                logging.info("Rule file: extractOne")
-                logging.info("params: "+str(params))
+                logging.info('TAR EXTRACT SCHEDULED: ')
+                logging.info('iRODS user: %s', self.conn.get_username)
+                logging.info('Rule file: extractOne')
+                logging.info('params: %s', params)
                 logString = logString+"\tScheduled for Extraction: Check in browser tab: " + \
                                       extractParent+"\n"
-
         self.enableButtons(True)
         self.errorLabel.setText(logString)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))

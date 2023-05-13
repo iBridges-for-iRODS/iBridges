@@ -34,8 +34,9 @@ class ElabPlugin():
             try:
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
             except ValueError as exception:
-                logging.error("ELN groupID %s or experimentID %s not set or invalid. (%s)",
-                              config['group'], config['experiment'], str(exception))
+                logging.error(
+                    'ELN groupID %s or experimentID %s not set or invalid. (%r)',
+                    config['group'], config['experiment'], exception)
                 self.elab.showGroups()
                 self.elab.updateMetadataUrlInteractive(group=True)
         else:
@@ -47,8 +48,8 @@ class ElabPlugin():
         else:
             self.title = config['title']
 
-        logging.info("Link Data to experiment: %s", self.elab.metadataUrl)
-        logging.info("with title: %s", self.title)
+        logging.info('Link Data to experiment: %s', self.elab.metadataUrl)
+        logging.info('with title: %s', self.title)
 
         calling_class.target_path = f"{calling_class.irods_path}/{self.elab.__name__}/" + \
                                     f"{str(self.elab.group.index[0])}/{str(self.elab.experiment.id())}"
@@ -62,7 +63,7 @@ class ElabPlugin():
             return
 
         if not calling_class.upload_finished:
-            logging.warning("Upload unsuccesful, aborting eLab annotation")
+            logging.warning('Upload unsuccesful, aborting eLab annotation')
             return
 
         irods_conn = calling_class.irods_conn
@@ -70,7 +71,9 @@ class ElabPlugin():
         try:
             coll = irods_conn.get_collection(calling_class.target_path)
         except CollectionDoesNotExist as exception:
-            logging.error("Could not get collection: %s (%s)", calling_class.target_path, str(exception))
+            logging.error(
+                'Could not get collection: %s (%r)',
+                calling_class.target_path, exception)
             return
 
         annotation = {
@@ -93,7 +96,7 @@ class ElabPlugin():
         try:
             self.elab.addMetadata(url=url, meta=annotation, title=self.title)
         except ValueError as exception:
-            logging.error("Could not add eLab-metadata: %s", str(exception))
+            logging.error('Could not add eLab-metadata: %r', exception)
 
         try:
             if os.path.isfile(calling_class.local_path):
@@ -108,4 +111,4 @@ class ElabPlugin():
 
                 irods_conn.add_metadata(items, 'ELN', self.elab.metadataUrl)
         except CAT_NO_ACCESS_PERMISSION as exception:
-            logging.error("Could not add iRods-metadata: %s", str(exception))
+            logging.error('Could not add iRODS-metadata: %r', exception)

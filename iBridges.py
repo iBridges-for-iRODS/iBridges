@@ -137,7 +137,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        logging.debug(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
+        logging.debug('IRODS ENVIRONMENT FILE SET: %s', irods_env_file.name)
         self.envError.setText('')
         if not (self.context.irods_environment.config and self.context.ienv_is_complete()):
             message = 'iRODS environment missing or incomplete.'
@@ -158,7 +158,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
         self.conn.password = password
-        logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
+        logging.debug('IRODS PASSWORD SET')
         try:
             self.conn.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
@@ -186,9 +186,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except Exception as unknown:
-            message = f'Something unexpected occurred: {unknown!r}'
-            logging.exception(message)
-            self.envError.setText(message)
+            message = 'Something unexpected occurred: %r'
+            logging.exception(message, unknown)
+            self.envError.setText(message % unknown)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         # widget is a global variable
@@ -232,6 +232,8 @@ def init_logger():
     file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s - %(message)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)

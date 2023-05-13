@@ -444,7 +444,7 @@ class DataOperation(object):
             # Collection
             # TODO add support for "downloading" empty collections?
             else:
-                logging.info("IRODS DOWNLOAD started:")
+                logging.info('IRODS DOWNLOAD started:')
                 for irods_path, local_path in diff:
                     # Download data objects to distinct files.
                     logging.info(
@@ -629,18 +629,18 @@ class DataOperation(object):
         """
 
         if self.sess_man.irods_session.collections.exists(item.path):
-            logging.info("IRODS DELETE: %s", item.path)
+            logging.info('IRODS DELETE: %s', item.path)
             try:
                 item.remove(recurse=True, force=True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                logging.error("IRODS DELETE: no permissions")
+                logging.error('IRODS DELETE: no permissions %s', item.path)
                 raise cnap
         elif self.sess_man.irods_session.data_objects.exists(item.path):
-            logging.info("IRODS DELETE: %s", item.path)
+            logging.info('IRODS DELETE: %s', item.path)
             try:
                 item.unlink(force=True)
             except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                logging.error("IRODS DELETE: no permissions "+item.path)
+                logging.error('IRODS DELETE: no permissions %s', item.path)
                 raise cnap
 
     def get_irods_size(self, path_names: list) -> int:

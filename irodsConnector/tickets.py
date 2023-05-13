@@ -52,7 +52,7 @@ class Tickets(object):
             try:
                 expiration_set = self._modify_ticket(ticket, expiry_string)
             except Exception as error:
-                logging.info('Could not set expiration date: %s', str(error))
+                logging.info('Could not set expiration date: %s', error)
         return ticket.ticket, expiration_set
 
     def _modify_ticket(self, ticket: irods.ticket.Ticket, expiry_string: str) -> bool:

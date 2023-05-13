@@ -52,7 +52,7 @@ class Session(object):
             Configuration from JSON serialized string.
 
         """
-        logging.debug(f'getting: {self.ibridges_configuration=}')
+        logging.debug('getting: self.ibridges_configuration')
         if self.ibridges_configuration:
             return self.ibridges_configuration.config
         return {}
@@ -66,7 +66,7 @@ class Session(object):
         dict
             Environment from JSON serialized string.
         """
-        logging.debug(f'getting: {self.irods_environment=}')
+        logging.debug('getting: self.irods_environment')
         if self.irods_environment:
             return self.irods_environment.config
         return {}
@@ -170,19 +170,21 @@ class Session(object):
         """Establish an iRODS session.
 
         """
-        logging.debug(f'{self.irods_env_file=}')
         if not self.irods_env_file:
             if 'last_ienv' in self.conf:
-                logging.warning(f'{kw.YEL}"irods_env_file" not set.  Using "last_ienv" value.{kw.DEFAULT}')
+                logging.warning(
+                    '%s"irods_env_file" not set.  Using "last_ienv" value.%s',
+                    kw.YEL, kw.DEFAULT)
                 irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
                 self.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
             else:
-                logging.error(f'{kw.RED}No iRODS session: "irods_env_file" not set!{kw.DEFAULT}')
+                logging.error(
+                    '%sNo iRODS session: "irods_env_file" not set!%s',
+                    kw.RED, kw.DEFAULT)
                 return
         options = {
             'irods_env_file': str(self.irods_env_file),
         }
-        logging.debug(f'{self.ienv=}')
         if self.ienv is not None:
             options.update(self.ienv)
         given_pass = self.password
@@ -226,11 +228,15 @@ class Session(object):
                 _ = session.server_version
                 return session
             except TypeError as typeerr:
+                logging.error('%sAUTH FILE LOGIN FAILED%s', kw.RED, kw.DEFAULT)
                 logging.error(
-                    f'{kw.RED}AUTH FILE LOGIN FAILED: Have you set the iRODS environment file correctly?{kw.DEFAULT}')
+                    '%sHave you set the iRODS environment file correctly?%s',
+                    kw.RED, kw.DEFAULT)
                 raise typeerr
             except Exception as error:
-                logging.error(f'{kw.RED}AUTH FILE LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                logging.error(
+                    '%sAUTH FILE LOGIN FAILED: %r%s', kw.RED, error,
+                    kw.DEFAULT)
                 raise error
         else:
             password = options.pop('password')
@@ -240,7 +246,9 @@ class Session(object):
                 _ = session.server_version
                 return session
             except Exception as error:
-                logging.error(f'{kw.RED}FULL ENVIRONMENT LOGIN FAILED: {error!r}{kw.DEFAULT}')
+                logging.error(
+                    '%sFULL ENVIRONMENT LOGIN FAILED: %r%s', kw.RED,
+                    error, kw.DEFAULT)
                 raise error
 
     def _write_pam_password(self):

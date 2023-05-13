@@ -88,7 +88,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
             self.previewButton.setEnabled(True)
 
         except Exception as error:
-            logging.info("amberWorkflow: "+repr(error))
+            logging.error('amberWorkflow: %r', error)
             self.jobSubmitLabel.setText(
                 "AMBER ERROR: "+repr(error))
 

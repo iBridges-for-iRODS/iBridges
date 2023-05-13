@@ -352,7 +352,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                 self.collTable.setRowCount(0)
                 self.errorLabel.setText("Collection does not exist.")
         except irods.exception.NetworkException:
-            logging.exception("Something went wrong")
+            logging.exception('Something went wrong')
             self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
 
@@ -393,7 +393,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             self._fill_acls_tab(obj_path)
             self._fill_replicas_tab(obj_path)
         except Exception as e:
-            logging.error('Browser',exc_info=True)
+            logging.error('Browser', exc_info=True)
             self.errorLabel.setText(repr(e))
 
     def loadSelection(self):
@@ -476,7 +476,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                 self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
-                logging.error("Upload :", fileSelect[0], "failed; \n\t", repr(error))
+                logging.error('Upload failed %s: %r', fileSelect[0], error)
                 self.errorLabel.setText(repr(error))
 
     def fileDownload(self):
@@ -505,7 +505,7 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                 self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
             except Exception as error:
-                logging.error("Download :", parent+'/'+objName, "failed; \n\t", repr(error))
+                logging.error('Download failed %s/%s: %r', parent, objName, error)
                 self.errorLabel.setText(repr(error))
 
     # @PyQt6.QtCore.pyqtSlot(PyQt6.QtCore.QModelIndex)

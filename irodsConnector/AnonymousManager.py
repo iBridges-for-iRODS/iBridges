@@ -66,7 +66,7 @@ class IrodsConnectorAnonymous:
                    "irods_zone_name": self.session.zone}
             CONTEXT.irods_environment.update(env)
             CONTEXT.save_irods_environment()
-            logging.info('Anonymous Login: '+self.session.host+', '+self.session.zone)
+            logging.info('Anonymous Login: %s, %s', self.session.host, self.session.zone)
             pros = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             _, err_login = pros.communicate()
             if err_login != b'':
@@ -149,10 +149,11 @@ class IrodsConnectorAnonymous:
         else:
             raise FileNotFoundError("IRODS download: not a valid source.")
 
-        logging.info("IRODS DOWNLOAD: %s", cmd)
+        logging.info('IRODS DOWNLOAD: %s', cmd)
         pros = Popen([cmd], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
         out, err = pros.communicate()
-        logging.info('IRODS DOWNLOAD INFO: out: %s\nerr: %s', str(out), str(err))
+        logging.info('IRODS DOWNLOAD INFO: out: %s', out)
+        logging.info('IRODS DOWNLOAD INFO: err: %s', err)
 
     def download(self, source, destination, diffs):
         '''Download object or collection.
@@ -171,19 +172,19 @@ class IrodsConnectorAnonymous:
         (difs, _, onlyirods, _) = diffs
         if isinstance(source, irods.data_object.iRODSDataObject) and len(difs+onlyirods) > 0:
             try:
-                logging.info("IRODS DOWNLOADING object: %s to %s", source.path, destination)
+                logging.info('IRODS DOWNLOADING object: %s to %s', source.path, destination)
                 self.__get(source, os.path.join(destination, source.name))
                 return
             except Exception:
-                logging.info("DOWNLOAD ERROR: %s --> %s", source.path, destination, exc_info=True)
+                logging.info('DOWNLOAD ERROR: %s --> %s', source.path, destination, exc_info=True)
                 raise
 
         try:  # collections/folders
             subdir = os.path.join(destination, source.name)
-            logging.info("IRODS DOWNLOAD started:")
+            logging.info('IRODS DOWNLOAD started:')
             for diff in difs:
                 # upload files to distinct data objects
-                logging.info("REPLACE: %s with %s", diff[1], diff[0])
+                logging.info('REPLACE: %s with %s', diff[1], diff[0])
                 _subcoll = self.session.collections.get(os.path.dirname(diff[0]))
                 obj = [o for o in _subcoll.data_objects if o.path == diff[0]][0]
                 self.__get(obj, diff[1])
@@ -196,7 +197,7 @@ class IrodsConnectorAnonymous:
                 dest_path = os.path.join(subdir, loc_o)
                 if not os.path.isdir(os.path.dirname(dest_path)):
                     os.makedirs(os.path.dirname(dest_path))
-                logging.info('INFO: Downloading '+source_path+" to "+dest_path)
+                logging.info('INFO: Downloading %s to %s', source_path, dest_path)
                 _subcoll = self.session.collections.get(os.path.dirname(source_path))
                 obj = [o for o in _subcoll.data_objects if o.path == source_path][0]
                 self.__get(obj, dest_path)
@@ -227,7 +228,7 @@ class IrodsConnectorAnonymous:
             Output of diff functions.
 
         '''
-        logging.info('iRODS DOWNLOAD: %s --> %s', str(source), destination)
+        logging.info('iRODS DOWNLOAD: %s --> %s', source, destination)
         # options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
 
         if destination.endswith(os.sep):

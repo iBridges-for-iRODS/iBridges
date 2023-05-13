@@ -266,7 +266,7 @@ class IrodsConnectorIcommands:
     def get_diff_upload(self,
                         source: Union[str, Path],
                         target: Union[iRODSDataObject, iRODSCollection, str],
-                        arguments: str = None) -> list[SyncResult]:
+                        arguments: str = None) -> list:
         """
         Performs upload dry run, captures and parses output.
         Returns:
@@ -304,7 +304,7 @@ class IrodsConnectorIcommands:
     def get_diff_download(self,
                           source: Union[iRODSDataObject, iRODSCollection, str],
                           target: Union[str, Path],
-                          arguments: str = None) -> list[SyncResult]:
+                          arguments: str = None) -> list:
         """
         Performs download dry run, captures and parses output.
         Returns:
