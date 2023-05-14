@@ -22,7 +22,7 @@ from . import tickets
 from . import users
 
 
-class IrodsConnector(object):
+class IrodsConnector():
     """Top-level connection to the Python iRODS client
 
     """
@@ -109,7 +109,7 @@ class IrodsConnector(object):
 
         """
         self._irods_env_file = filepath
-        logging.debug(f'setting: {self._irods_env_file=}')
+        logging.info(f'setting: {self._irods_env_file=}')
 
     @property
     def irods_environment(self) -> json_config.JsonConfig:
@@ -135,7 +135,7 @@ class IrodsConnector(object):
 
         """
         self._irods_environment = config
-        logging.debug(f'setting: {self._irods_environment=}')
+        logging.info(f'setting: {self._irods_environment=}')
 
     # Properties for all the classes themselves
     #
@@ -341,6 +341,8 @@ class IrodsConnector(object):
         """Manually establish an iRODS session.
 
         """
+        self._session = session.Session(self.irods_env_file, self.irods_environment.config,
+                                        self.ibridges_configuration.config, self._password) 
         if not self.session.has_irods_session():
             self.session.connect()
 
