@@ -405,6 +405,7 @@ class IrodsConnector():
 
         """
         self.session.password = password
+        self._password = password
 
     @property
     def port(self) -> str:
