@@ -246,23 +246,6 @@ def init_logger():
         logfd.write(underscores * 2)
 
 
-def set_log_level(log_level: int):
-    """Set the log level excluding DEBUG-level entries from other
-    modules.
-
-    Parameters
-    ----------
-    log_level : int
-        Level to set the current logger.
-
-    """
-    logging.getLogger().setLevel(log_level)
-    if log_level == logging.DEBUG:
-        for logger in logging.Logger.manager.loggerDict.values():
-            if hasattr(logger, 'name') and logger.name != 'root':
-                logger.disabled = True
-
-
 def main():
     """Main function
 
@@ -275,7 +258,7 @@ def main():
     # Context is required to get the log_level from the configuration.
     verbose = context.ibridges_configuration.config.get('verbose', 'info')
     log_level = LOG_LEVEL.get(verbose, logging.INFO)
-    set_log_level(log_level)
+    utils.utils.set_log_level(log_level)
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
     login_window = IrodsLoginWindow()
