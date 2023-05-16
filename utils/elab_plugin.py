@@ -35,7 +35,7 @@ class ElabPlugin():
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
             except ValueError as exception:
                 logging.error(
-                    'ELN groupID %s or experimentID %s not set or invalid. (%r)',
+                    'ELN groupID %s or experimentID %s not set or invalid: %r',
                     config['group'], config['experiment'], exception)
                 self.elab.showGroups()
                 self.elab.updateMetadataUrlInteractive(group=True)
@@ -72,7 +72,7 @@ class ElabPlugin():
             coll = irods_conn.get_collection(calling_class.target_path)
         except CollectionDoesNotExist as exception:
             logging.error(
-                'Could not get collection: %s (%r)',
+                'Could not get collection %s: %r',
                 calling_class.target_path, exception)
             return
 
