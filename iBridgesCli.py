@@ -83,7 +83,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit(f"{config_file} misses iRODS section")
 
         # CLI parameters override config-file
-        self.irods_env = irods_env or self.get_config('iRODS', 'irodsenv') \
+        self.irods_env = self.get_config('iRODS', 'irodsenv') or irods_env \
             or self._clean_exit("need iRODS environment file", True)
         self.irods_path = irods_path or self.get_config('iRODS', 'irodscoll') \
             or self._clean_exit("need iRODS path", True)
