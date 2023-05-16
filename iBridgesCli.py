@@ -71,6 +71,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         self.config_file = None
         self.download_finished = None
         self.upload_finished = None
+        self.irods_conn = None
 
         # reading optional config file
         if config_file:
