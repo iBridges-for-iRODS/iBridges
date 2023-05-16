@@ -126,7 +126,7 @@ class Resource(object):
                     has_free_space = metadata['free_space'] > 0
                 if resc_is_root and has_free_space:
                     resc_names.append(name)
-            if self.sess_man.default_resc not in self._resources.keys():
+            if self.sess_man.default_resc not in resc_names:
                 logging.warning('    -=WARNING=-    '*4)
                 logging.warning(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
                 logging.warning('Check "irods_default_resource" and "check_free_space" settings.')
@@ -176,9 +176,7 @@ class Resource(object):
             if metadata['parent'] is None:
                 vals.append([metadata.get(attr) for attr in attr_names])
                 spaces.append(metadata['free_space'])
-        print(tuple(zip(*vals)) if vals else ([],) * len(attr_names))
-        if self.conf['check_free_space'] == True:
-            print("removing")
+        if self.conf.get('check_free_space', True):
             # Filter for free space annotated resources.
             vals = [val for val, space in zip(vals, spaces) if space != 0]
         return tuple(zip(*vals)) if vals else ([],) * len(attr_names)
