@@ -235,6 +235,9 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 context.irods_env_file = irods_env
                 print(secret)
                 irods_conn = IrodsConnector(secret)
+                irods_conn.ibridges_configuration = context.ibridges_configuration
+                irods_conn.irods_env_file = context.irods_env_file
+                irods_conn.irods_environment = context.irods_environment
                 irods_conn.connect()
                 irods_conn.icommands.set_irods_env_file(irods_env)
 
