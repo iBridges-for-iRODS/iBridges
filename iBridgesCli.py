@@ -73,6 +73,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         self.upload_finished = None
         self.irods_conn = None
 
+        default_irods_env = os.path.join(str(os.getenv('HOME')), '.irods', 'irods_environment.json')
+
         # reading optional config file
         if config_file:
             if not os.path.exists(config_file):
@@ -83,7 +85,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit(f"{config_file} misses iRODS section")
 
         # CLI parameters override config-file
-        self.irods_env = self.get_config('iRODS', 'irodsenv') or irods_env \
+        self.irods_env = irods_env or self.get_config('iRODS', 'irodsenv') \
+            or default_irods_env \
             or self._clean_exit("need iRODS environment file", True)
         self.irods_path = irods_path or self.get_config('iRODS', 'irodscoll') \
             or self._clean_exit("need iRODS path", True)
@@ -189,8 +192,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                                 choices=['upload', 'download'],
                                 required=True)
         cls.parser.add_argument('--env', '-e', type=str,
-                                help=f'iRods environment file. (default: {default_irods_env})',
-                                default=default_irods_env)
+                                help=f'iRods environment file. (default: {default_irods_env})')
         cls.parser.add_argument('--irods_resc', '-r', type=str,
                                 help='iRods resource. If omitted default will be read from iRods env file.')
         cls.parser.add_argument('--logdir', type=str,
