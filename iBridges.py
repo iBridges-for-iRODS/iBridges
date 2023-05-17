@@ -280,7 +280,7 @@ def main():
     set_log_level(log_level)
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
-    login_window = IrodsLoginWindow(context)
+    login_window = IrodsLoginWindow()
     login_window.this_application = context.application_name
     widget.addWidget(login_window)
     widget.show()
