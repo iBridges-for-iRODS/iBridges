@@ -58,7 +58,6 @@ class JsonConfig:
 
         """
         if self._config == {}:
-            self.reload = False
             if self.filepath.is_file():
                 with open(self.filepath, 'r', encoding='utf-8') as confd:
                     self._config.update(json.load(confd))
