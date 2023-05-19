@@ -12,7 +12,16 @@ import irods.data_object
 import irods.exception
 import irods.path
 
+from . import context
 from . import path
+
+LOG_LEVEL = {
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warn': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL,
+}
 
 
 def is_posix() -> bool:
@@ -248,9 +257,10 @@ def bytes_to_str(value: int) -> str:
     else:
         return f'{value / 1e12:.3f} TB'
 
-def set_log_level(log_level: int):
+def set_log_level(log_level: int = None):
     """Set the log level excluding DEBUG-level entries from other
-    modules.
+    modules.  If log_level not specified, attempt to access the verbose
+    setting from the configuration.
 
     Parameters
     ----------
@@ -258,6 +268,10 @@ def set_log_level(log_level: int):
         Level to set the current logger.
 
     """
+    if log_level is None:
+        cntxt = context.Context()
+        verbose = cntxt.ibridges_configuration.config.get('verbose', 'info')
+        log_level = LOG_LEVEL.get(verbose, logging.INFO)
     logging.getLogger().setLevel(log_level)
     if log_level == logging.DEBUG:
         for logger in logging.Logger.manager.loggerDict.values():
@@ -269,14 +283,6 @@ def init_logger(app_dir: str, app_name: str):
     """Initialize the application logging service.
 
     """
-    LOG_LEVEL = {
-        'debug': logging.DEBUG,
-        'info': logging.INFO,
-        'warn': logging.WARNING,
-        'error': logging.ERROR,
-        'critical': logging.CRITICAL,
-    }
-
     logger = logging.getLogger()
     logdir = path.LocalPath(app_dir).expanduser()
     logfile = logdir.joinpath(f'{app_name}.log')
@@ -285,6 +291,8 @@ def init_logger(app_dir: str, app_name: str):
     file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s - %(message)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)
@@ -295,9 +303,3 @@ def init_logger(app_dir: str, app_name: str):
         logfd.write(underscores * 2)
         logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
         logfd.write(underscores * 2)
-    try:
-        verbose = context.ibridges_configuration.config.get('verbose', 'info')
-    except:
-        verbose = 'info'
-    set_log_level(LOG_LEVEL[verbose])
-

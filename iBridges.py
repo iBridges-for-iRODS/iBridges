@@ -224,60 +224,19 @@ def closeClean():
         context.irods_connector.cleanup()
 
 
-def init_logger():
-    """Initialize the application logging service.
-
-    """
-    logger = logging.getLogger()
-    logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
-    logfile = logdir.joinpath(f'{THIS_APPLICATION}.log')
-    log_formatter = logging.Formatter(
-        '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
-    file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
-    file_handler.setFormatter(log_formatter)
-    logger.addHandler(file_handler)
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(log_formatter)
-    logger.addHandler(stream_handler)
-    # Indicate start of a new session
-    with open(logfile, 'a', encoding='utf-8') as logfd:
-        logfd.write('\n\n')
-        underscores = f'{"_" * 50}\n'
-        logfd.write(underscores * 2)
-        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
-        logfd.write(underscores * 2)
-
-
-def set_log_level(log_level: int):
-    """Set the log level excluding DEBUG-level entries from other
-    modules.
-
-    Parameters
-    ----------
-    log_level : int
-        Level to set the current logger.
-
-    """
-    logging.getLogger().setLevel(log_level)
-    if log_level == logging.DEBUG:
-        for logger in logging.Logger.manager.loggerDict.values():
-            if hasattr(logger, 'name') and logger.name != 'root':
-                logger.disabled = True
-
-
 def main():
     """Main function
 
     """
     # Initialize logger first because Context may want to log as well.
-    init_logger()
+    logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
+    utils.utils.init_logger(logdir, THIS_APPLICATION)
     # Singleton Context
     context = utils.context.Context()
     context.application_name = THIS_APPLICATION
     # Context is required to get the log_level from the configuration.
-    verbose = context.ibridges_configuration.config.get('verbose', 'info')
-    log_level = LOG_LEVEL.get(verbose, logging.INFO)
-    set_log_level(log_level)
+    # Here, it is taken from the configuration if not specified.
+    utils.utils.set_log_level()
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
     login_window = IrodsLoginWindow()

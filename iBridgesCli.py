@@ -18,7 +18,7 @@ from pathlib import Path
 from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
-from utils.utils import init_logger, get_local_size
+from utils.utils import get_local_size, init_logger, set_log_level
 from utils.context import Context
 from utils.elab_plugin import ElabPlugin
 
@@ -117,6 +117,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         self.operation = operation
         self.plugins = self._cleanup_plugins(plugins)
         init_logger(logdir_path, "iBridgesCli")
+        set_log_level()
         self._run()
 
     @classmethod
