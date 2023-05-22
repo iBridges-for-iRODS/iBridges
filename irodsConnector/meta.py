@@ -29,9 +29,9 @@ class Meta(object):
                 item.metadata.add(key.upper(), value, units)
             except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 logging.error('%sADD META: Metadata already present%s', kw.RED, kw.DEFAULT)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions')
-                raise cnap
+                raise error
 
     def add_multiple(self, items: list, avus: list):
         """
@@ -51,9 +51,9 @@ class Meta(object):
                 item.metadata.apply_atomic_operations(*list_of_tags)
             except irods.meta.BadAVUOperationValue:
                 logging.error('%sADD MULTIPLE META: bad metadata value%s', kw.RED, kw.DEFAULT)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions')
-                raise cnap
+                raise error
             except Exception:
                 logging.error('%sADD MULTIPLE META: unexpected error%s', kw.RED, kw.DEFAULT)
 
@@ -84,9 +84,9 @@ class Meta(object):
 
                 else:
                     self.add(items, key, value, units)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             logging.error('UPDATE META: no permissions %s', item.path)
-            raise cnap
+            raise error
 
     def delete(self, items: list, key: str, value: str, units: str = None):
         """
@@ -107,6 +107,6 @@ class Meta(object):
                 item.metadata.remove(key, value, units)
             except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
                 logging.error('%sDELETE META: Metadata never existed%s', kw.RED, kw.DEFAULT)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions %s', item.path)
-                raise cnap
+                raise error

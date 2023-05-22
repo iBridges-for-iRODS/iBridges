@@ -203,9 +203,9 @@ class Resource(object):
         """
         try:
             return self.sess_man.irods_session.resources.get(resc_name)
-        except irods.exception.ResourceDoesNotExist as rdne:
+        except irods.exception.ResourceDoesNotExist as error:
             logging.warning('Resource with name %s not found', resc_name)
-            raise rdne
+            raise error
 
     def resource_space(self, resc_name: str) -> int:
         """Find the available space left on a resource in bytes.

@@ -185,10 +185,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        except Exception as unknown:
+        except Exception as error:
             message = 'Something unexpected occurred: %r'
-            logging.exception(message, unknown)
-            self.envError.setText(message % unknown)
+            logging.exception(message, error)
+            self.envError.setText(message % error)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         # widget is a global variable

@@ -33,10 +33,10 @@ class ElabPlugin():
                 and len(config['group']) > 0 and len(config['experiment']) > 0:
             try:
                 self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
-            except ValueError as exception:
+            except ValueError as error:
                 logging.error(
                     'ELN groupID %s or experimentID %s not set or invalid: %r',
-                    config['group'], config['experiment'], exception)
+                    config['group'], config['experiment'], error)
                 self.elab.showGroups()
                 self.elab.updateMetadataUrlInteractive(group=True)
         else:
@@ -70,10 +70,10 @@ class ElabPlugin():
 
         try:
             coll = irods_conn.get_collection(calling_class.target_path)
-        except CollectionDoesNotExist as exception:
+        except CollectionDoesNotExist as error:
             logging.error(
                 'Could not get collection %s: %r',
-                calling_class.target_path, exception)
+                calling_class.target_path, error)
             return
 
         annotation = {
@@ -95,8 +95,8 @@ class ElabPlugin():
 
         try:
             self.elab.addMetadata(url=url, meta=annotation, title=self.title)
-        except ValueError as exception:
-            logging.error('Could not add eLab-metadata: %r', exception)
+        except ValueError as error:
+            logging.error('Could not add eLab-metadata: %r', error)
 
         try:
             if os.path.isfile(calling_class.local_path):
@@ -110,5 +110,5 @@ class ElabPlugin():
                     items.extend(objs)
 
                 irods_conn.add_metadata(items, 'ELN', self.elab.metadataUrl)
-        except CAT_NO_ACCESS_PERMISSION as exception:
-            logging.error('Could not add iRODS-metadata: %r', exception)
+        except CAT_NO_ACCESS_PERMISSION as error:
+            logging.error('Could not add iRODS-metadata: %r', error)

@@ -227,12 +227,12 @@ class Session(object):
                     irods_env_file=irods_env_file)
                 _ = session.server_version
                 return session
-            except TypeError as typeerr:
+            except TypeError as error:
                 logging.error('%sAUTH FILE LOGIN FAILED%s', kw.RED, kw.DEFAULT)
                 logging.error(
                     '%sHave you set the iRODS environment file correctly?%s',
                     kw.RED, kw.DEFAULT)
-                raise typeerr
+                raise error
             except Exception as error:
                 logging.error(
                     '%sAUTH FILE LOGIN FAILED: %r%s', kw.RED, error,

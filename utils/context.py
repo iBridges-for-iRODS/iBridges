@@ -261,8 +261,8 @@ def is_complete(conf_dict: dict, mandatory: list, conf_type: str) -> bool:
         if key not in conf_dict:
             missing.append(key)
     if len(missing) > 0:
-        print(f'Missing key(s) in {conf_type}: {missing}')
-        print('Please fix and try again!')
+        logging.warning('Missing key(s) in %s: %s', conf_type, missing)
+        logging.warning('Please fix and try again!')
         return False
     return True
 

@@ -351,8 +351,8 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             else:
                 self.collTable.setRowCount(0)
                 self.errorLabel.setText("Collection does not exist.")
-        except irods.exception.NetworkException:
-            logging.exception('Something went wrong')
+        except irods.exception.NetworkException as error:
+            logging.error('Something went wrong: %r', error)
             self.errorLabel.setText(
                     "iRODS NETWORK ERROR: No Connection, please check network")
 
@@ -392,9 +392,9 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             self._fill_metadata_tab(obj_path)
             self._fill_acls_tab(obj_path)
             self._fill_replicas_tab(obj_path)
-        except Exception as e:
+        except Exception as error:
             logging.error('Browser', exc_info=True)
-            self.errorLabel.setText(repr(e))
+            self.errorLabel.setText(repr(error))
 
     def loadSelection(self):
         # loads selection from main table into delete tab

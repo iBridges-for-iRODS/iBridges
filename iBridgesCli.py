@@ -241,8 +241,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 assert irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
-            except AssertionError as exception:
-                logging.error('Failed to connect (%r)', exception)
+            except AssertionError as error:
+                logging.error('Failed to connect: %r', error)
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False

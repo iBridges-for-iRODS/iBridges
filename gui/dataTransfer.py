@@ -251,8 +251,8 @@ class getDataState(QObject, utils.context.ContextContainer):
                     (diff, onlyFS, onlyIrods, same) = self.conn.diff_obj_file(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
-        except:
-            logging.exception('dataTransfer.py: Error in getDataState')
+        except Exception as error:
+            logging.error('Exception in getDataState: %r', error)
 
         # Get size
         if self.upload:

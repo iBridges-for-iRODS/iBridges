@@ -293,8 +293,8 @@ class IrodsConnectorAnonymous:
             self.session.data_objects.get(obj.path, local_path=filename, **options)
         except CAT_SQL_ERR:
             pass
-        except Exception as exp:
-            raise exp
+        except Exception as error:
+            raise error
 
     def diffs_obj_file(self, objpath: str, dirpath: str, scope: str = "size") -> tuple:
         """

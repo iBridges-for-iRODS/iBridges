@@ -110,8 +110,8 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
                                               self.glossaryBox.currentText().split(" / ")[1])
                 self.jobSubmitLabel.setText(
                         info["jobStatus"]["jobId"]+" / "+info["jobStatus"]["filename"]+" / "+info["jobStatus"]["status"])
-            except Exception as e:
-                self.jobSubmitLabel.setText("AMBER ERROR: "+repr(e))
+            except Exception as error:
+                self.jobSubmitLabel.setText(f'AMBER ERROR: {error!r}')
         else:
             self.jobSubmitLabel.setText("AMBER ERROR: Not a valid file.")
 
@@ -147,7 +147,7 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
                     self.importLabel.setText("AMBER ERROR: Job not finished yet.")
             else:
                 self.importLabel.setText("IRODS ERROR: Not a collection.")
-        except Exception as e:
+        except Exception:
             self.importLabel.setText(f"ERROR: Choose destination.")
 
     def getPathsFromTrees(self, treeView, local):
