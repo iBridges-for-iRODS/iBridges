@@ -264,16 +264,10 @@ class IrodsConnector(object):
         return self.data_op.get_irods_size(path_names)
 
     def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
-        if self.use_icommands:
-            return self.icommands.irods_put(local_path, irods_path, res_name)
-        else:
-            return self.data_op.irods_put(local_path, irods_path, res_name)
+        return self.data_op.irods_put(local_path, irods_path, res_name)
 
     def irods_get(self, irods_path: str, local_path: str, options: dict = None):
-        if self.use_icommands:
-            return self.icommands.irods_get(irods_path, local_path)
-        else:
-            return self.data_op.irods_get(irods_path, local_path, options)
+        return self.data_op.irods_get(irods_path, local_path, options)
 
     def is_collection(self, obj) -> bool:
         return self.data_op.is_collection(obj)
@@ -282,12 +276,14 @@ class IrodsConnector(object):
         return self.data_op.is_dataobject(obj)
 
     def upload_data(self, source: str, destination: irods.collection.iRODSCollection,
-                    res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
+                    res_name: str, size: int, buff: int = kw.BUFF_SIZE,
+                    force: bool = False, diffs: tuple = None):
         if self.use_icommands:
-            return self.icommands.upload_data(source, destination,
-                                               res_name, size, buff, force)
+            return self.icommands.upload_data(
+                source, destination, res_name, size, buff, force)
         else:
-            return self.data_op.upload_data(source, destination, res_name, size, buff, force, diffs)
+            return self.data_op.upload_data(
+                source, destination, res_name, size, buff, force, diffs)
 
     # Metadata functionality
     #
