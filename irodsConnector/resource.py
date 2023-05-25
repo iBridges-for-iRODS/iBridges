@@ -226,17 +226,13 @@ class Resource(object):
         """
         space = self.resources[resc_name]['free_space']
         if space == -1:
-            logging.error(
-                'RESOURCE ERROR: Resource %s does not exist (typo?).',
-                resc_name, exc_info=True)
-            raise irods.exception.ResourceDoesNotExist(
-                f'RESOURCE ERROR: Resource {resc_name} does not exist (typo?).')
+            message = 'RESOURCE ERROR: Resource %s does not exist (typo?).'
+            logging.error(message, resc_name, exc_info=True)
+            raise irods.exception.ResourceDoesNotExist(message % resc_name)
         if space == 0:
-            logging.error(
-                'RESOURCE ERROR: Resource "free_space" is not set for %s.',
-                resc_name, exc_info=True)
-            raise FreeSpaceNotSet(
-                f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
+            message = 'RESOURCE ERROR: Resource "free_space" is not set for %s.'
+            logging.error(message, resc_name, exc_info=True)
+            raise FreeSpaceNotSet(message % resc_name)
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / kw.MULTIPLIER)
 

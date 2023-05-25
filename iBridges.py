@@ -20,6 +20,9 @@ import irodsConnector
 import utils
 
 # Global constants
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YELLOW = '\x1b[1;33m'
 LOG_LEVEL = {
     'debug': logging.DEBUG,
     'info': logging.INFO,
@@ -142,9 +145,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         if not (self.context.irods_environment.config and self.context.ienv_is_complete()):
             message = 'iRODS environment missing or incomplete.'
             logging.error(message)
+            self.envError.setText(message)
             self.context.irods_environment.reset()
             self.passError.clear()
-            self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if not utils.utils.can_connect(self.ienv.get('irods_host', '')):
@@ -167,27 +170,28 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
                 ConnectionRefusedError):
             message = 'Wrong password!  Try again'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.CAT_PASSWORD_EXPIRED:
             message = 'Cached password expired!  Re-enter password'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.NetworkException:
             message = 'iRODS server down!  Check and try again'
             logging.error(message)
-            self.passError.clear()
             self.envError.setText(message)
+            self.passError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except Exception as error:
             message = 'Something unexpected occurred: %r'
-            logging.exception(message, error)
+            # logging.error(utils.utils.err_msg(message), error)
+            logging.error(message, error)
             self.envError.setText(message % error)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
@@ -224,6 +228,22 @@ def init_logger():
     """Initialize the application logging service.
 
     """
+    old_factory = logging.getLogRecordFactory()
+
+    def new_factory(*args, **kwargs) -> logging.LogRecord:
+        """Custom record factory"""
+        record = old_factory(*args, **kwargs)
+        record.prefix = ''
+        record.postfix = ''
+        if record.levelname == 'WARNING':
+            record.prefix = YELLOW
+            record.postfix = DEFAULT
+        if record.levelname == 'ERROR':
+            record.prefix = RED
+            record.postfix = DEFAULT
+        return record
+
+    logging.setLogRecordFactory(new_factory)
     logger = logging.getLogger()
     logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
     logfile = logdir.joinpath(f'{THIS_APPLICATION}.log')
@@ -233,7 +253,7 @@ def init_logger():
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
     log_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s - %(message)s')
+        '[%(asctime)s] %(levelname)s - %(prefix)s%(message)s%(postfix)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)

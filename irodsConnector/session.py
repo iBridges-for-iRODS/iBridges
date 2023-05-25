@@ -9,7 +9,6 @@ import irods.password_obfuscation
 import irods.session
 
 import utils
-from . import keywords as kw
 
 
 class Session(object):
@@ -172,15 +171,11 @@ class Session(object):
         """
         if not self.irods_env_file:
             if 'last_ienv' in self.conf:
-                logging.warning(
-                    '%s"irods_env_file" not set.  Using "last_ienv" value.%s',
-                    kw.YEL, kw.DEFAULT)
+                logging.warning('"irods_env_file" not set.  Using "last_ienv" value.')
                 irods_path = utils.path.LocalPath(utils.context.IRODS_DIR).expanduser()
                 self.irods_env_file = irods_path.joinpath(self.conf['last_ienv'])
             else:
-                logging.error(
-                    '%sNo iRODS session: "irods_env_file" not set!%s',
-                    kw.RED, kw.DEFAULT)
+                logging.error('No iRODS session: "irods_env_file" not set!')
                 return
         options = {
             'irods_env_file': str(self.irods_env_file),
@@ -228,15 +223,11 @@ class Session(object):
                 _ = session.server_version
                 return session
             except TypeError as error:
-                logging.error('%sAUTH FILE LOGIN FAILED%s', kw.RED, kw.DEFAULT)
-                logging.error(
-                    '%sHave you set the iRODS environment file correctly?%s',
-                    kw.RED, kw.DEFAULT)
+                logging.error('AUTH FILE LOGIN FAILED')
+                logging.error('Have you set the iRODS environment file correctly?')
                 raise error
             except Exception as error:
-                logging.error(
-                    '%sAUTH FILE LOGIN FAILED: %r%s', kw.RED, error,
-                    kw.DEFAULT)
+                logging.error('AUTH FILE LOGIN FAILED: %r', error)
                 raise error
         else:
             password = options.pop('password')
@@ -246,9 +237,7 @@ class Session(object):
                 _ = session.server_version
                 return session
             except Exception as error:
-                logging.error(
-                    '%sFULL ENVIRONMENT LOGIN FAILED: %r%s', kw.RED,
-                    error, kw.DEFAULT)
+                logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', error)
                 raise error
 
     def _write_pam_password(self):

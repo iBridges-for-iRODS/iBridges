@@ -5,8 +5,6 @@ import logging
 import irods.exception
 import irods.meta
 
-from . import keywords as kw
-
 
 class Meta(object):
     """Irods metadata operations """
@@ -28,7 +26,7 @@ class Meta(object):
             try:
                 item.metadata.add(key.upper(), value, units)
             except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                logging.error('%sADD META: Metadata already present%s', kw.RED, kw.DEFAULT)
+                logging.error('ADD META: Metadata already present')
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions')
                 raise error
@@ -50,12 +48,12 @@ class Meta(object):
             try:
                 item.metadata.apply_atomic_operations(*list_of_tags)
             except irods.meta.BadAVUOperationValue:
-                logging.error('%sADD MULTIPLE META: bad metadata value%s', kw.RED, kw.DEFAULT)
+                logging.error('ADD MULTIPLE META: bad metadata value')
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions')
                 raise error
             except Exception:
-                logging.error('%sADD MULTIPLE META: unexpected error%s', kw.RED, kw.DEFAULT)
+                logging.error('ADD MULTIPLE META: unexpected error')
 
     def update(self, items: list, key: str, value: str, units: str = None):
         """
@@ -106,7 +104,7 @@ class Meta(object):
             try:
                 item.metadata.remove(key, value, units)
             except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
-                logging.error('%sDELETE META: Metadata never existed%s', kw.RED, kw.DEFAULT)
+                logging.error('DELETE META: Metadata never existed')
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions %s', item.path)
                 raise error

@@ -70,7 +70,7 @@ class IrodsConnectorAnonymous:
             pros = Popen(['iinit'], stdout=PIPE, stdin=PIPE, stderr=PIPE, shell=True)
             _, err_login = pros.communicate()
             if err_login != b'':
-                logging.error('AUTHENTICATION ERROR: Anonymous login failed.')
+                logging.error('AUTHENTICATION: Anonymous login failed.')
                 self.icommands = False
 
     def close_session(self):
@@ -176,7 +176,9 @@ class IrodsConnectorAnonymous:
                 self.__get(source, os.path.join(destination, source.name))
                 return
             except Exception:
-                logging.error('DOWNLOAD ERROR: %s --> %s', source.path, destination, exc_info=True)
+                logging.error(
+                    'IRODS DOWNLOAD: %s --> %s', source.path, destination,
+                    exc_info=True)
                 raise
 
         try:  # collections/folders
@@ -184,7 +186,7 @@ class IrodsConnectorAnonymous:
             logging.info('IRODS DOWNLOAD started:')
             for diff in difs:
                 # upload files to distinct data objects
-                logging.info('REPLACE: %s with %s', diff[1], diff[0])
+                logging.info('IRODS REPLACE: %s with %s', diff[1], diff[0])
                 _subcoll = self.session.collections.get(os.path.dirname(diff[0]))
                 obj = [o for o in _subcoll.data_objects if o.path == diff[0]][0]
                 self.__get(obj, diff[1])
@@ -197,13 +199,13 @@ class IrodsConnectorAnonymous:
                 dest_path = os.path.join(subdir, loc_o)
                 if not os.path.isdir(os.path.dirname(dest_path)):
                     os.makedirs(os.path.dirname(dest_path))
-                logging.info('INFO: Downloading %s to %s', source_path, dest_path)
+                logging.info('IRODS DOWNLOADING %s to %s', source_path, dest_path)
                 _subcoll = self.session.collections.get(os.path.dirname(source_path))
                 obj = [o for o in _subcoll.data_objects if o.path == source_path][0]
                 self.__get(obj, dest_path)
                 # self.session.data_objects.get(source_path, local_path=dest_path, **options)
-        except Exception:
-            logging.error('DOWNLOAD ERROR', exc_info=True)
+        except Exception as error:
+            logging.error('IRODS DOWNLOAD: %r', error)
             raise
 
     def download_data(self, source: None, destination: str, size: int, buff: int = kw.BUFF_SIZE,
@@ -228,18 +230,19 @@ class IrodsConnectorAnonymous:
             Output of diff functions.
 
         '''
-        logging.info('iRODS DOWNLOAD: %s --> %s', source, destination)
+        logging.info('IRODS DOWNLOAD: %s --> %s', source, destination)
         # options = {kw.FORCE_FLAG_KW: '', kw.REG_CHKSUM_KW: ''}
 
         if destination.endswith(os.sep):
             destination = destination[:len(destination)-1]
         if not os.path.isdir(destination):
-            logging.error('DOWNLOAD ERROR: destination path does not exist or is not directory', exc_info=True)
-            raise FileNotFoundError(
-                "ERROR iRODS download: destination path does not exist or is not directory")
+            message = 'IRODS DOWNLOAD: destination path does not exist or is not directory'
+            logging.error(utils.utils.err_msg(message))
+            raise FileNotFoundError(message)
         if not os.access(destination, os.W_OK):
-            logging.error('DOWNLOAD ERROR: No rights to write to destination.', exc_info=True)
-            raise PermissionError("ERROR iRODS download: No rights to write to destination.")
+            message = 'IRODS DOWNLOAD: No rights to write to destination.'
+            logging.error(message, exc_info=True)
+            raise PermissionError(message)
 
         if diffs is None:  # Only download if not present or diffserence in files
             if self.session.collections.exists(source.path):
@@ -256,19 +259,21 @@ class IrodsConnectorAnonymous:
                                                              os.path.basename(source.path)),
                                                 scope="checksum")
             else:
-                raise FileNotFoundError("ERROR iRODS upload: not a valid source path")
+                raise FileNotFoundError("IRODS DOWNLOAD: not a valid source path")
 
         if not force:  # Check space on destination
             try:
                 space = disk_usage(destination).free
                 if int(size) > (int(space)-buff):
-                    logging.error('DOWNLOAD ERROR: Not enough space on disk.', exc_info=True)
-                    raise ValueError('ERROR iRODS download: Not enough space on disk.')
+                    message = 'IRODS DOWNLOAD: Not enough space on disk.'
+                    logging.error(message, exc_info=True)
+                    raise ValueError(message)
                 if buff < 0:
-                    logging.error('DOWNLOAD ERROR: Negative disk buffer.', exc_info=True)
-                    raise BufferError('ERROR iRODS download: Negative disk buffer.')
+                    message = 'IRODS DOWNLOAD: Negative disk buffer.'
+                    logging.error(message, exc_info=True)
+                    raise BufferError(message)
             except Exception as error:
-                logging.error('DOWNLOAD ERROR', exc_info=True)
+                logging.error('IRODS DOWNLOAD: %r', error)
                 raise error
 
         if self.icommands:
