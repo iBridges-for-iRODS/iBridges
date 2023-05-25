@@ -43,7 +43,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
     """Definition and initialization of the iRODS login window.
 
     """
-    icommands = False
+    use_icommands = None
     this_application = ''
 
     def __init__(self):
@@ -110,20 +110,21 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """
         if self.standardButton.isChecked():
             self._init_envbox()
-            self.icommands = False
+            self.use_icommands = False
 
     def setup_icommands(self):
         """Check the state of the radio button for using iCommands.
-        This includes a check for the existance of the iCommands on the
+        This includes a check for the existence of the iCommands on the
         current system.
 
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if self.conn.icommands:
-                self.icommands = True
+            if self.conn.icommands.has_icommands:
+                self.use_icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
+                self.use_icommands = False
                 self.icommandsError.setText('ERROR: no iCommands found')
                 self.standardButton.setChecked(True)
 
@@ -154,6 +155,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
+        self.conn.use_icommands = self.use_icommands
         self.conf['last_ienv'] = irods_env_file.name
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()

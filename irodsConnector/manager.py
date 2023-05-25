@@ -39,6 +39,7 @@ class IrodsConnector(object):
     _ibridges_configuration = None
     _irods_env_file = ''
     _irods_environment = None
+    use_icommands = None
 
     def __init__(self, password=''):
         """Initialize connection to iRODS functionality based on the
@@ -158,7 +159,6 @@ class IrodsConnector(object):
     @property
     def icommands(self) -> Icommands.IrodsConnectorIcommands:
         if self._icommands is None:
-            # self._icommands = Icommands.IrodsConnectorIcommands(self.resource, self.session)
             self._icommands = Icommands.IrodsConnectorIcommands()
         return self._icommands
 
@@ -238,9 +238,12 @@ class IrodsConnector(object):
                            dirpath: str, scope: str = "size") -> tuple:
         return self.data_op.diff_irods_localfs(coll, dirpath, scope)
 
-    def download_data(self, source: None, destination: str,
-                      size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
-        if self.has_icommands():
+    def download_data(self,
+                      source: (irods.collection.iRODSCollection,
+                               irods.data_object.iRODSDataObject),
+                      destination: str, size: int, buff: int = kw.BUFF_SIZE,
+                      force: bool = False, diffs: tuple = None):
+        if self.use_icommands:
             return self.icommands.download_data(source, destination, size, buff, force)
         else:
             return self.data_op.download_data(source, destination, size, buff, force, diffs)
@@ -260,17 +263,14 @@ class IrodsConnector(object):
     def get_irods_size(self, path_names: list) -> int:
         return self.data_op.get_irods_size(path_names)
 
-    def has_icommands(self) -> bool:
-        return self.icommands.has_icommands
-
     def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
-        if self.has_icommands():
+        if self.use_icommands:
             return self.icommands.irods_put(local_path, irods_path, res_name)
         else:
             return self.data_op.irods_put(local_path, irods_path, res_name)
 
     def irods_get(self, irods_path: str, local_path: str, options: dict = None):
-        if self.has_icommands():
+        if self.use_icommands:
             return self.icommands.irods_get(irods_path, local_path)
         else:
             return self.data_op.irods_get(irods_path, local_path, options)
@@ -283,7 +283,7 @@ class IrodsConnector(object):
 
     def upload_data(self, source: str, destination: irods.collection.iRODSCollection,
                     res_name: str, size: int, buff: int = kw.BUFF_SIZE, force: bool = False, diffs: tuple = None):
-        if self.has_icommands():
+        if self.use_icommands:
             return self.icommands.upload_data(source, destination,
                                                res_name, size, buff, force)
         else:
