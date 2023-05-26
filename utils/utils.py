@@ -261,8 +261,10 @@ def set_log_level(log_level: int):
     logging.getLogger().setLevel(log_level)
     if log_level == logging.DEBUG:
         for logger in logging.Logger.manager.loggerDict.values():
-            if hasattr(logger, 'name') and logger.name != 'root':
-                logger.disabled = True
+            if hasattr(logger, 'name'):
+                if logger.name != 'root' and not logger.name.startswith('irods'):
+                    logger.debug('Disabling logger: %s', logger.name)
+                    logger.disabled = True
 
 
 def init_logger(app_dir: str, app_name: str):
