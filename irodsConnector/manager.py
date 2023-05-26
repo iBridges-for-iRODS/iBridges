@@ -165,7 +165,7 @@ class IrodsConnector(object):
     @property
     def meta(self) -> meta.Meta:
         if self._meta is None:
-            meta.Meta()
+            self._meta = meta.Meta()
         return self._meta
 
     @property
