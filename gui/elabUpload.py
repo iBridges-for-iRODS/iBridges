@@ -59,7 +59,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
     def connectElab(self):
         self.errorLabel.clear()
         token = self.elnTokenInput.text()
-        logging.info("ELAB INFO token: "+token)
+        logging.info('ELAB INFO token: %s', token)
         # ELN can potentially be offline
         try:
             self.elab = elabConnector(token)
@@ -71,7 +71,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
             self.elnGroupTable.resizeColumnsToContents()
             # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         except Exception as error:
-            logging.info("elabUpload: "+repr(error))
+            logging.error('elabUpload: %r', error)
             self.errorLabel.setText(
                 "ELN ERROR: "+repr(error)+"\n Your permissions for your current active group might be blocked.")
             # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
@@ -108,7 +108,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
                     self.elnExperimentTable.setItem(row, 1, QTableWidgetItem(exp[1]))
                     self.elnExperimentTable.setItem(row, 2, QTableWidgetItem(exp[2]))
             except Exception as error:
-                logging.info("ElabUpload groupId "+str(groupId)+": "+repr(error))
+                logging.error('ElabUpload groupId %s: %r', groupId, error)
                 self.errorLabel.setText(
                     "ELN ERROR: "+repr(error)+"\n You might not have permissions for that group.")
                 # self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
@@ -159,7 +159,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
             # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
             return
         try:
-            logging.info("Group and Experiment: ", groupId, expId)
+            logging.info('Group and Experiment: %s %s', groupId, expId)
             # preconfigure upload path prefix
             subcoll = 'ELN/'+groupId+'/'+expId
             # stop if no exp and group is given
@@ -168,7 +168,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
                 pass
             # get the url that will be uploaded as metadata to irods
             expUrl = self.elab.updateMetadataUrl(**{'group': int(groupId), 'experiment': int(expId)})
-            logging.info("ELN DATA UPLOAD experiment: \n"+expUrl)
+            logging.info('ELN DATA UPLOAD experiment: %s', expUrl)
             # get upload total size to inform user
             size = utils.utils.get_local_size([path])
             # if user specifies a different path than standard home
@@ -200,7 +200,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
             # else:
             #     self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         except Exception as error:
-            logging.info("ElabUpload UploadData: "+repr(error))
+            logging.error('ElabUpload UploadData: %r', error)
             self.errorLabel.setText(repr(error))
             self.elnUploadButton.setEnabled(True)
             # self.elnUploadButton.setCursor(
@@ -258,7 +258,7 @@ class Worker(QObject, utils.context.ContextContainer):
             self.progress.emit(3)
             self.finished.emit()
         except Exception as error:
-            logging.error("ElabUpload data upload and annotation worker: "+repr(error))
+            logging.error('ElabUpload data upload and annotation worker: %r', error)
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,

@@ -295,7 +295,7 @@ class LocalPath(PurePath):
                 type(self)(target).rmdir(squash=True)
                 shutil.copytree(self, target)
             else:
-                logging.warning(f'Cannot copy to {target}: {error}')
+                logging.warning('Cannot copy to %s: %r', target, error)
 
     @classmethod
     def cwd(cls):
@@ -483,7 +483,7 @@ class LocalPath(PurePath):
             if squash:
                 type(self)(target).rmdir(squash=True)
                 return type(self)(str(self.path.replace(target)))
-            logging.warning(f'Cannot replace {target}: {error}')
+            logging.warning('Cannot replace %s: %r', target, error)
             return self
 
     def resolve(self):
@@ -515,7 +515,7 @@ class LocalPath(PurePath):
             if squash:
                 shutil.rmtree(self)
             else:
-                logging.warning(f'Cannot rmdir {self}: {error}')
+                logging.warning('Cannot rmdir %s: %r', self, error)
 
     def stat(self) -> os.stat_result:
         """Run os.stat() on this path.

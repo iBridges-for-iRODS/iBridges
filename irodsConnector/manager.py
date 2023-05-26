@@ -69,7 +69,7 @@ class IrodsConnector(object):
             iBridges configuration.
 
         """
-        logging.debug(f'getting: {self._ibridges_configuration=}')
+        logging.debug('getting: self._ibridges_configuration')
         return self._ibridges_configuration
 
     @ibridges_configuration.setter
@@ -83,7 +83,7 @@ class IrodsConnector(object):
 
         """
         self._ibridges_configuration = config
-        logging.debug(f'setting: {self._ibridges_configuration=}')
+        logging.debug('setting: self._ibridges_configuration')
         if self.session:
             self.session.ibridges_configuration = config
         if self.resource:
@@ -99,7 +99,7 @@ class IrodsConnector(object):
             Name of environment file
 
         """
-        logging.debug(f'getting: {self._irods_env_file=}')
+        logging.debug('getting: self._irods_env_file')
         return self._irods_env_file
 
     @irods_env_file.setter
@@ -113,7 +113,7 @@ class IrodsConnector(object):
 
         """
         self._irods_env_file = filepath
-        logging.debug(f'setting: {self._irods_env_file=}')
+        logging.debug('setting: self._irods_env_file')
         if self.session:
             self.session.irods_env_file = filepath
 
@@ -127,7 +127,7 @@ class IrodsConnector(object):
             iRODS environment.
 
         """
-        logging.debug(f'getting: {self._irods_environment=}')
+        logging.debug('getting: self._irods_environment')
         return self._irods_environment
 
     @irods_environment.setter
@@ -141,7 +141,7 @@ class IrodsConnector(object):
 
         """
         self._irods_environment = config
-        logging.debug(f'setting: {self._irods_environment=}')
+        logging.debug('setting: self._irods_environment')
         if self.session:
             self.session.irods_environment = config
         if self.resource:
