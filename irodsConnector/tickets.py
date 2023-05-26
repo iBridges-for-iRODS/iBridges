@@ -51,5 +51,5 @@ class Tickets(object):
             try:
                 expiration_set = ticket.modify('expire', expiry_string) == ticket
             except Exception as error:
-                logging.info('Could not set expiration date: %s', str(error))
+                logging.error('Could not set expiration date: %r', error)
         return ticket.ticket, expiration_set

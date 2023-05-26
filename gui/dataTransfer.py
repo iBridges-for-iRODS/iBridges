@@ -78,7 +78,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
         self.show()
 
     def cancel(self):
-        logging.debug("Thread stopped")
+        logging.debug('Thread stopped')
         self.finished.emit(False, None)
         # if thread is still running
         try:
@@ -148,7 +148,7 @@ class dataTransfer(QDialog, Ui_dataTransferState, utils.context.ContextContainer
         """
         # TODO fix handling of updateSize and addSize as ints
         self.updateSize = updateSize
-        logging.debug(int(addSize), int(updateSize))
+        logging.debug('%s %s', addSize, updateSize)
         # checksumSizeStr = self.bytesToStr(updateSize)
         self.ChecksumSizeLbl.setText(utils.utils.bytes_to_str(int(updateSize)))
         self.diff = diff
@@ -251,8 +251,8 @@ class getDataState(QObject, utils.context.ContextContainer):
                     (diff, onlyFS, onlyIrods, same) = self.conn.diff_obj_file(
                                                    self.coll.path, newPath, scope="checksum")
                 self.updLabels.emit(len(onlyIrods), len(diff))
-        except:
-            logging.exception("dataTransfer.py: Error in getDataState")
+        except Exception as error:
+            logging.error('Exception in getDataState: %r', error)
 
         # Get size
         if self.upload:
@@ -263,8 +263,8 @@ class getDataState(QObject, utils.context.ContextContainer):
             fullOnlyFsPaths.extend(
                 [d for d in onlyFS if d.startswith('/') or ':' in d])
             addSize = utils.utils.get_local_size(fullOnlyFsPaths)
-            logging.debug(str(fsDiffFiles)+" "+str(updateSize))
-            logging.debug(str(onlyFS)+" "+str(addSize))
+            logging.debug('%s %s', fsDiffFiles, updateSize)
+            logging.debug('%s %s', onlyFS, addSize)
             self.finished.emit(onlyFS, diff, str(addSize), str(updateSize))
         else:
             irodsDiffFiles = [d[0] for d in diff]
@@ -319,11 +319,11 @@ class UpDownload(QObject, utils.context.ContextContainer):
                 self.finished.emit(True, "Upload finished")
             else:
                 diffs = (self.diff, [], self.addFiles, [])
-                logging.info("UpDownload Diff: "+str(diffs))
+                logging.info('UpDownload Diff: %s', diffs)
                 self.conn.download_data(
                     self.Coll, self.localFS, int(self.totalSize),
                     buff=1024**3, force=False, diffs=diffs)
                 self.finished.emit(True, "Download finished")
         except Exception as error:
-            logging.info(repr(error))
+            logging.error('%r', error)
             self.finished.emit(False, str(error))

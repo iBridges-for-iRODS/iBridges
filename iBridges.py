@@ -20,6 +20,9 @@ import irodsConnector
 import utils
 
 # Global constants
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YELLOW = '\x1b[1;33m'
 LOG_LEVEL = {
     'debug': logging.DEBUG,
     'info': logging.INFO,
@@ -138,14 +141,14 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        logging.debug(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
+        logging.debug('IRODS ENVIRONMENT FILE SET: %s', irods_env_file.name)
         self.envError.setText('')
         if not (self.context.irods_environment.config and self.context.ienv_is_complete()):
             message = 'iRODS environment missing or incomplete.'
             logging.error(message)
+            self.envError.setText(message)
             self.context.irods_environment.reset()
             self.passError.clear()
-            self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if not utils.utils.can_connect(self.ienv.get('irods_host', '')):
@@ -160,7 +163,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
         self.conn.password = password
-        logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
+        logging.debug('IRODS PASSWORD SET')
         try:
             self.conn.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
@@ -169,28 +172,29 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
                 ConnectionRefusedError):
             message = 'Wrong password!  Try again'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.CAT_PASSWORD_EXPIRED:
             message = 'Cached password expired!  Re-enter password'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.NetworkException:
             message = 'iRODS server down!  Check and try again'
             logging.error(message)
-            self.passError.clear()
             self.envError.setText(message)
+            self.passError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        except Exception as unknown:
-            message = f'Something unexpected occurred: {unknown!r}'
-            logging.exception(message)
-            self.envError.setText(message)
+        except Exception as error:
+            message = 'Something unexpected occurred: %r'
+            # logging.error(utils.utils.err_msg(message), error)
+            logging.error(message, error)
+            self.envError.setText(message % error)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         # widget is a global variable
@@ -226,6 +230,22 @@ def init_logger():
     """Initialize the application logging service.
 
     """
+    old_factory = logging.getLogRecordFactory()
+
+    def new_factory(*args, **kwargs) -> logging.LogRecord:
+        """Custom record factory"""
+        record = old_factory(*args, **kwargs)
+        record.prefix = ''
+        record.postfix = ''
+        if record.levelname == 'WARNING':
+            record.prefix = YELLOW
+            record.postfix = DEFAULT
+        if record.levelname == 'ERROR':
+            record.prefix = RED
+            record.postfix = DEFAULT
+        return record
+
+    logging.setLogRecordFactory(new_factory)
     logger = logging.getLogger()
     logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
     logfile = logdir.joinpath(f'{THIS_APPLICATION}.log')
@@ -234,6 +254,8 @@ def init_logger():
     file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s - %(prefix)s%(message)s%(postfix)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)
@@ -244,23 +266,6 @@ def init_logger():
         logfd.write(underscores * 2)
         logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
         logfd.write(underscores * 2)
-
-
-def set_log_level(log_level: int):
-    """Set the log level excluding DEBUG-level entries from other
-    modules.
-
-    Parameters
-    ----------
-    log_level : int
-        Level to set the current logger.
-
-    """
-    logging.getLogger().setLevel(log_level)
-    if log_level == logging.DEBUG:
-        for logger in logging.Logger.manager.loggerDict.values():
-            if hasattr(logger, 'name') and logger.name != 'root':
-                logger.disabled = True
 
 
 def main():
@@ -275,7 +280,7 @@ def main():
     # Context is required to get the log_level from the configuration.
     verbose = context.ibridges_configuration.config.get('verbose', 'info')
     log_level = LOG_LEVEL.get(verbose, logging.INFO)
-    set_log_level(log_level)
+    utils.utils.set_log_level(log_level)
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
     login_window = IrodsLoginWindow()

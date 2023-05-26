@@ -157,9 +157,9 @@ class DataOperation(object):
             if self.sess_man.irods_session.data_objects.exists(data_object_name):
                 return self.sess_man.irods_session.data_objects.get(data_object_name)
             return self.sess_man.irods_session.data_objects.create(data_object_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             logging.info('ENSURE DATA OBJECT', exc_info=True)
-            raise cnap
+            raise error
 
     def ensure_coll(self, coll_name: str) -> irods.collection.iRODSCollection:
         """Optimally create a collection with `coll_name` if one does
@@ -183,9 +183,9 @@ class DataOperation(object):
             if self.sess_man.irods_session.collections.exists(coll_name):
                 return self.sess_man.irods_session.collections.get(coll_name)
             return self.sess_man.irods_session.collections.create(coll_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             logging.info('ENSURE COLLECTION', exc_info=True)
-            raise cnap
+            raise error
 
     def get_dataobject(self, path: str) -> irods.data_object.iRODSDataObject:
         """Instantiate an iRODS data object.
@@ -307,7 +307,7 @@ class DataOperation(object):
                 raise irods.exception.CollectionDoesNotExist(destination)
         else:
             raise FileNotFoundError(
-                'ERROR iRODS upload: not a valid source path')
+                'IRODS UPLOAD: not a valid source path')
         if res_name in [None, '']:
             res_name = self.sess_man.default_resc
         if diffs is None:
@@ -321,11 +321,9 @@ class DataOperation(object):
         if not force:
             space = self.resc_man.resource_space(res_name)
             if size > (space - buff):
-                logging.info(
-                    'ERROR iRODS upload: Not enough free space on resource.',
-                    exc_info=True)
-                raise resource.NotEnoughFreeSpace(
-                    'ERROR iRODS upload: Not enough free space on resource.')
+                message = 'IRODS UPLOAD: Not enough free space on resource.'
+                logging.error(message)
+                raise resource.NotEnoughFreeSpace(message)
         try:
             # Data object
             if source.is_file() and len(diff + only_fs) > 0:
@@ -339,7 +337,7 @@ class DataOperation(object):
                     # Upload files to distinct data objects.
                     _ = self.ensure_coll(self.irods_dirname(irods_path))
                     logging.info(
-                        'REPLACE: %s with %s', irods_path, local_path)
+                        'IRODS REPLACE: %s with %s', irods_path, local_path)
                     self.irods_put(local_path, irods_path, res_name)
                 # Variable `only_fs` can contain files and folders.
                 for rel_path in only_fs:
@@ -351,12 +349,12 @@ class DataOperation(object):
                     else:
                         new_path = cmp_path
                     _ = self.ensure_coll(new_path)
-                    logging.info('UPLOAD: %s to %s', local_path, new_path)
+                    logging.info('IRODS UPLOAD: %s to %s', local_path, new_path)
                     irods_path = new_path.joinpath(rel_path.name)
-                    logging.info('CREATE %s', irods_path)
+                    logging.info('IRODS CREATE %s', irods_path)
                     self.irods_put(local_path, irods_path, res_name)
         except Exception as error:
-            logging.info('UPLOAD ERROR', exc_info=True)
+            logging.error('IRODS UPLOAD: %r', error)
             raise error
 
     def download_data(self, source: (irods.collection.iRODSCollection, irods.data_object.iRODSDataObject),
@@ -387,26 +385,21 @@ class DataOperation(object):
             Output of diff functions.
 
         """
-        logging.info('iRODS DOWNLOAD: %s-->%s', source.path, destination)
+        logging.info('IRODS DOWNLOAD: %s-->%s', source.path, destination)
         if self.is_dataobject_or_collection(source):
             source_path = utils.path.IrodsPath(source.path)
         else:
             raise FileNotFoundError(
-                'ERROR iRODS download: not a valid source path'
-            )
+                'IRODS DOWNLOAD: not a valid source path')
         destination = utils.path.LocalPath(destination)
         if not destination.is_dir():
-            logging.info(
-                'DOWNLOAD ERROR: destination path does not exist or is not directory',
-                exc_info=True)
-            raise FileNotFoundError(
-                'ERROR iRODS download: destination path does not exist or is not directory')
+            message = 'IRODS DOWNLOAD: destination path does not exist or is not directory'
+            logging.error(message)
+            raise FileNotFoundError(message)
         if not os.access(destination, os.W_OK):
-            logging.info(
-                'DOWNLOAD ERROR: No rights to write to destination.',
-                exc_info=True)
-            raise PermissionError(
-                'ERROR iRODS download: No rights to write to destination.')
+            message = 'IRODS DOWNLOAD: no rights to write to destination.'
+            logging.error(message)
+            raise PermissionError(message)
         cmp_path = destination.joinpath(source_path.name)
         # TODO perhaps treat this path as part of the diff
         if self.is_collection(source) and not cmp_path.is_dir():
@@ -425,11 +418,9 @@ class DataOperation(object):
         if not force:
             space = disk_usage(destination).free
             if size > (space - buff):
-                logging.info(
-                    'ERROR iRODS download: Not enough space on local disk.',
-                    exc_info=True)
-                raise resource.NotEnoughFreeSpace(
-                    'ERROR iRODS download: Not enough space on local disk.')
+                message = 'IRODS DOWNLOAD: Not enough space on local disk.'
+                logging.error(message)
+                raise resource.NotEnoughFreeSpace(message)
         # NOT the same force flag.  This overwrites the local file by default.
         # TODO should there be an option/switch for this 'clobber'ing?
         options = {kw.FORCE_FLAG_KW: ''}
@@ -444,11 +435,11 @@ class DataOperation(object):
             # Collection
             # TODO add support for "downloading" empty collections?
             else:
-                logging.info("IRODS DOWNLOAD started:")
+                logging.info('IRODS DOWNLOAD started:')
                 for irods_path, local_path in diff:
                     # Download data objects to distinct files.
                     logging.info(
-                        'REPLACE: %s with %s', local_path, irods_path)
+                        'IRODS REPLACE: %s with %s', local_path, irods_path)
                     self.irods_get(irods_path, local_path, options=options)
                 # Variable `only_irods` can contain data objects and
                 # collections.
@@ -460,11 +451,10 @@ class DataOperation(object):
                     if not local_path.parent.is_dir():
                         local_path.parent.mkdir(parents=True, exist_ok=True)
                     logging.info(
-                        'INFO: Downloading %s to %s', irods_path,
-                        local_path)
+                        'IRODS DOWNLOADING %s to %s', irods_path, local_path)
                     self.irods_get(irods_path, local_path, options=options)
         except Exception as error:
-            logging.info('DOWNLOAD ERROR', exc_info=True)
+            logging.error('IRODS DOWNLOAD: %r', error)
             raise error
 
     def diff_obj_file(self, objpath: str, fspath: str,
@@ -629,19 +619,19 @@ class DataOperation(object):
         """
 
         if self.sess_man.irods_session.collections.exists(item.path):
-            logging.info("IRODS DELETE: %s", item.path)
+            logging.info('IRODS DELETE: %s', item.path)
             try:
                 item.remove(recurse=True, force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                logging.error("IRODS DELETE: no permissions")
-                raise cnap
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+                logging.error('IRODS DELETE: no permissions %s', item.path)
+                raise error
         elif self.sess_man.irods_session.data_objects.exists(item.path):
-            logging.info("IRODS DELETE: %s", item.path)
+            logging.info('IRODS DELETE: %s', item.path)
             try:
                 item.unlink(force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as cnap:
-                logging.error("IRODS DELETE: no permissions "+item.path)
-                raise cnap
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+                logging.error('IRODS DELETE: no permissions %s', item.path)
+                raise error
 
     def get_irods_size(self, path_names: list) -> int:
         """Collect the sizes of a set of iRODS data objects and/or

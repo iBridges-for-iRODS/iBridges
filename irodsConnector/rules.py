@@ -52,12 +52,12 @@ class Rules(object):
                 self.sess_man.irods_session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
-        except irods.exception.NetworkException as netexc:
+        except irods.exception.NetworkException as error:
             logging.info('Lost connection to iRODS server.')
-            return '', repr(netexc)
-        except irods.exception.SYS_HEADER_READ_LEN_ERR as shrle:
+            return '', repr(error)
+        except irods.exception.SYS_HEADER_READ_LEN_ERR as error:
             logging.info('iRODS server hiccuped.  Check the results and try again.')
-            return '', repr(shrle)
+            return '', repr(error)
         except Exception as error:
             logging.info('RULE EXECUTION ERROR', exc_info=True)
             return '', repr(error)
