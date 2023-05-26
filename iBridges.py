@@ -24,6 +24,7 @@ DEFAULT = '\x1b[0m'
 RED = '\x1b[1;31m'
 YELLOW = '\x1b[1;33m'
 LOG_LEVEL = {
+    'fulldebug': logging.DEBUG - 5,
     'debug': logging.DEBUG,
     'info': logging.INFO,
     'warn': logging.WARNING,
@@ -235,6 +236,8 @@ def init_logger():
     def new_factory(*args, **kwargs) -> logging.LogRecord:
         """Custom record factory"""
         record = old_factory(*args, **kwargs)
+        # Limit the size of the log message to something sane.
+        record.msg = record.msg[:1024]
         record.prefix = ''
         record.postfix = ''
         if record.levelname == 'WARNING':
@@ -250,7 +253,7 @@ def init_logger():
     logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
     logfile = logdir.joinpath(f'{THIS_APPLICATION}.log')
     log_formatter = logging.Formatter(
-        '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
+        '[%(asctime)s] %(name)s {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
     file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)

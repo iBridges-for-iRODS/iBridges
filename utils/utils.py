@@ -272,6 +272,7 @@ def init_logger(app_dir: str, app_name: str):
 
     """
     LOG_LEVEL = {
+        'fulldebug': logging.DEBUG - 5,
         'debug': logging.DEBUG,
         'info': logging.INFO,
         'warn': logging.WARNING,
