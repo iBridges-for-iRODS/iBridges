@@ -18,13 +18,6 @@ import irodsConnector
 import utils
 
 # Global constants
-LOG_LEVEL = {
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warn': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL,
-}
 THIS_APPLICATION = 'iBridges'
 
 # Application globals
