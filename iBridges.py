@@ -121,7 +121,8 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if self.conn.icommands:
+            print(self.context.irods_connector.icommands)
+            if self.context.irods_connector.has_icommands():
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
@@ -160,10 +161,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         password = self.passwordField.text()
         self.context.irods_connector.password = password
         logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
+        self.context.irods_connector.irods_env_file = self.context.irods_env_file
+        self.context.irods_connector.irods_environment = self.context.irods_environment
+        self.context.irods_connector.ibridges_configuration = self.context.ibridges_configuration
         try:
-            self.context.irods_connector.irods_env_file = self.context.irods_env_file
-            self.context.irods_connector.irods_environment = self.context.irods_environment
-            self.context.irods_connector.ibridges_configuration = self.context.ibridges_configuration
             self.context.irods_connector.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
