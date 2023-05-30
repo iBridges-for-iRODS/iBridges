@@ -109,7 +109,7 @@ class IrodsConnector():
 
         """
         self._irods_env_file = filepath
-        logging.info(f'setting: {self._irods_env_file=}')
+        logging.debug(f'setting: {self._irods_env_file=}')
 
     @property
     def irods_environment(self) -> json_config.JsonConfig:
@@ -135,7 +135,7 @@ class IrodsConnector():
 
         """
         self._irods_environment = config
-        logging.info(f'setting: {self._irods_environment=}')
+        logging.debug(f'setting: {self._irods_environment=}')
 
     # Properties for all the classes themselves
     #
