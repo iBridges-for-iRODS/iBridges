@@ -50,7 +50,7 @@ class Resource(object):
             Configuration from JSON serialized string.
 
         """
-        logging.debug(f'getting: {self.ibridges_configuration=}')
+        logging.debug('getting: self.ibridges_configuration')
         if self.ibridges_configuration:
             return self.ibridges_configuration.config
         return {}
@@ -64,7 +64,7 @@ class Resource(object):
         dict
             Environment from JSON serialized string.
         """
-        logging.debug(f'getting: {self.irods_environment=}')
+        logging.debug('getting: self.irods_environment')
         if self.irods_environment:
             return self.irods_environment.config
         return {}
@@ -128,8 +128,11 @@ class Resource(object):
                     resc_names.append(name)
             if self.sess_man.default_resc not in resc_names:
                 logging.warning('    -=WARNING=-    '*4)
-                logging.warning(f'The default resource ({self.sess_man.default_resc}) not found in available resources!')
-                logging.warning('Check "irods_default_resource" and "check_free_space" settings.')
+                logging.warning(
+                    'The default resource (%s) not found in available resources!',
+                    self.sess_man.default_resc)
+                logging.warning(
+                    'Check "irods_default_resource" and "check_free_space" settings.')
                 logging.warning('    -=WARNING=-    '*4)
         return self._resources
 
@@ -200,9 +203,9 @@ class Resource(object):
         """
         try:
             return self.sess_man.irods_session.resources.get(resc_name)
-        except irods.exception.ResourceDoesNotExist as rdne:
-            logging.warning(f'Resource with name {resc_name} not found')
-            raise rdne
+        except irods.exception.ResourceDoesNotExist as error:
+            logging.warning('Resource with name %s not found', resc_name)
+            raise error
 
     def resource_space(self, resc_name: str) -> int:
         """Find the available space left on a resource in bytes.
@@ -223,17 +226,13 @@ class Resource(object):
         """
         space = self.resources[resc_name]['free_space']
         if space == -1:
-            logging.info(
-                'RESOURCE ERROR: Resource %s does not exist (typo?).',
-                resc_name, exc_info=True)
-            raise irods.exception.ResourceDoesNotExist(
-                f'RESOURCE ERROR: Resource {resc_name} does not exist (typo?).')
+            message = 'RESOURCE ERROR: Resource %s does not exist (typo?).'
+            logging.error(message, resc_name, exc_info=True)
+            raise irods.exception.ResourceDoesNotExist(message % resc_name)
         if space == 0:
-            logging.info(
-                'RESOURCE ERROR: Resource "free_space" is not set for %s.',
-                resc_name, exc_info=True)
-            raise FreeSpaceNotSet(
-                f'RESOURCE ERROR: Resource "free_space" is not set for {resc_name}.')
+            message = 'RESOURCE ERROR: Resource "free_space" is not set for %s.'
+            logging.error(message, resc_name, exc_info=True)
+            raise FreeSpaceNotSet(message % resc_name)
         # For convenience, free_space is stored multiplied by MULTIPLIER.
         return int(space / kw.MULTIPLIER)
 
@@ -269,7 +268,7 @@ class Resource(object):
         try:
             resc = self.sess_man.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
-            logging.warning(f'Resource with name {resc_name} not found')
+            logging.warning('Resource with name %s not found', resc_name)
             return -1
         if resc.free_space is not None:
             return round(int(resc.free_space) * multiplier)

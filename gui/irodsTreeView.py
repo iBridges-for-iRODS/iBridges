@@ -52,7 +52,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel,
         try:
             self.user_groups = self.conn.get_user_info()[1]
         except irods.exception.NetworkException:
-            logging.info('iRODS FILE TREE ERROR: user info', exc_info=True)
+            logging.error('iRODS FILE TREE ERROR: user info', exc_info=True)
         self.zone_path = f'/{self.conn.zone}'
         self.base_path = f'/{self.conn.zone}/home'
         # Empty tree

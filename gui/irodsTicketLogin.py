@@ -70,9 +70,9 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             self.coll = self.conn.get_data()
             self.loadTable()
             self.enableButtons(True)
-        except Exception as e:
+        except Exception as error:
             self.infoLabel.setText(
-                "LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
+                f'LOGIN ERROR: Check ticket and iRODS path.\n{error!r}')
 
     def enableButtons(self, enable):
         self.connectButton.setEnabled(enable)
@@ -141,8 +141,8 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         try:
             self.__fillPreview(value, path)
             self.__fillMetadata(value, path)
-        except Exception as e:
-            self.infoLabel.setText(repr(e))
+        except Exception as error:
+            self.infoLabel.setText(repr(error))
             raise
 
     def __fillPreview(self, value, path):
@@ -168,9 +168,9 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
                             out.append(readObj.read(50))
                     previewString = ''.join([line.decode('utf-8') for line in out])
                     self.previewBrowser.append(previewString)
-                except Exception as e:
+                except Exception as error:
                     self.previewBrowser.append(obj.path)
-                    self.previewBrowser.append(repr(e))
+                    self.previewBrowser.append(repr(error))
                     self.previewBrowser.append("Storage resource might be down.")
             else:
                 self.previewBrowser.append("No preview for "+obj.path)
