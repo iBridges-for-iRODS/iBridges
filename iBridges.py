@@ -2,9 +2,7 @@
 """iBridges GUI startup script.
 
 """
-import datetime
 import logging
-import logging.handlers
 import os
 import setproctitle
 import sys
@@ -121,7 +119,10 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if self.conn.icommands:
+            logging.debug(
+                'self.context.irods_connector.icommands=%s',
+                self.context.irods_connector.icommands)
+            if self.context.irods_connector.has_icommands():
                 self.icommands = True
                 # TODO support arbitrary iRODS environment file for iCommands
             else:
@@ -138,14 +139,14 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.context.irods_connector = irodsConnector.manager.IrodsConnector()
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
-        logging.debug(f'IRODS ENVIRONMENT FILE SET: {irods_env_file.name}')
+        logging.debug('IRODS ENVIRONMENT FILE SET: %s', irods_env_file.name)
         self.envError.setText('')
         if not (self.context.irods_environment.config and self.context.ienv_is_complete()):
             message = 'iRODS environment missing or incomplete.'
             logging.error(message)
+            self.envError.setText(message)
             self.context.irods_environment.reset()
             self.passError.clear()
-            self.envError.setText(message)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         if not utils.utils.can_connect(self.context.irods_environment.config.get('irods_host', '')):
@@ -158,12 +159,14 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         self.context.ibridges_configuration.config['last_ienv'] = irods_env_file.name
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
+
         self.context.irods_connector.password = password
         logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
+        self.context.irods_connector.irods_env_file = self.context.irods_env_file
+        self.context.irods_connector.irods_environment = self.context.irods_environment
+        self.context.irods_connector.ibridges_configuration = self.context.ibridges_configuration
+
         try:
-            self.context.irods_connector.irods_env_file = self.context.irods_env_file
-            self.context.irods_connector.irods_environment = self.context.irods_environment
-            self.context.irods_connector.ibridges_configuration = self.context.ibridges_configuration
             self.context.irods_connector.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
                 irods.exception.PAM_AUTH_PASSWORD_FAILED,
@@ -171,28 +174,28 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
                 ConnectionRefusedError):
             message = 'Wrong password!  Try again'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.CAT_PASSWORD_EXPIRED:
             message = 'Cached password expired!  Re-enter password'
             logging.error(message)
-            self.envError.clear()
             self.passError.setText(message)
+            self.envError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         except irods.exception.NetworkException:
             message = 'iRODS server down!  Check and try again'
             logging.error(message)
-            self.passError.clear()
             self.envError.setText(message)
+            self.passError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        except Exception as unknown:
-            message = f'Something unexpected occurred: {unknown!r}'
-            logging.exception(message)
-            self.envError.setText(message)
+        except Exception as error:
+            message = 'Something unexpected occurred: %r'
+            logging.error(message, error)
+            self.envError.setText(message % error)
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         # widget is a global variable
@@ -229,8 +232,7 @@ def main():
 
     """
     # Initialize logger first because Context may want to log as well.
-    logdir = utils.path.LocalPath(utils.context.IBRIDGES_DIR).expanduser()
-    utils.utils.init_logger(logdir, THIS_APPLICATION)
+    utils.utils.init_logger(THIS_APPLICATION)
     # Singleton Context
     context = utils.context.Context()
     context.application_name = THIS_APPLICATION

@@ -2,6 +2,7 @@
 
 """
 import logging
+import logging.handlers
 import os
 import socket
 import sys
@@ -15,6 +16,9 @@ import irods.path
 from . import context
 from . import path
 
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YELLOW = '\x1b[1;33m'
 LOG_LEVEL = {
     'debug': logging.DEBUG,
     'info': logging.INFO,
@@ -53,7 +57,7 @@ def ensure_dir(pathname: str) -> bool:
     try:
         dirpath.mkdir(parents=True, exist_ok=True)
     except (PermissionError, OSError) as error:
-        logging.info(f'Error ensuring directory: {error}')
+        logging.info('Error ensuring directory: %r', error)
     return dirpath.is_dir()
 
 
@@ -257,6 +261,7 @@ def bytes_to_str(value: int) -> str:
     else:
         return f'{value / 1e12:.3f} TB'
 
+
 def set_log_level(log_level: int = None):
     """Set the log level excluding DEBUG-level entries from other
     modules.  If log_level not specified, attempt to access the verbose
@@ -279,12 +284,33 @@ def set_log_level(log_level: int = None):
                 logger.disabled = True
 
 
-def init_logger(app_dir: str, app_name: str):
+def init_logger(app_name: str):
     """Initialize the application logging service.
 
+    Parameters
+    ----------
+    app_name : str
+        Application name as base name of the log file.
+
     """
+    old_factory = logging.getLogRecordFactory()
+
+    def new_factory(*args, **kwargs) -> logging.LogRecord:
+        """Custom record factory"""
+        record = old_factory(*args, **kwargs)
+        record.prefix = ''
+        record.postfix = ''
+        if record.levelname == 'WARNING':
+            record.prefix = YELLOW
+            record.postfix = DEFAULT
+        if record.levelname == 'ERROR':
+            record.prefix = RED
+            record.postfix = DEFAULT
+        return record
+
+    logging.setLogRecordFactory(new_factory)
     logger = logging.getLogger()
-    logdir = path.LocalPath(app_dir).expanduser()
+    logdir = path.LocalPath(context.IBRIDGES_DIR).expanduser()
     logfile = logdir.joinpath(f'{app_name}.log')
     log_formatter = logging.Formatter(
         '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
@@ -292,7 +318,7 @@ def init_logger(app_dir: str, app_name: str):
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)
     log_formatter = logging.Formatter(
-        '[%(asctime)s] %(levelname)s - %(message)s')
+        '[%(asctime)s] %(levelname)s - %(prefix)s%(message)s%(postfix)s')
     stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setFormatter(log_formatter)
     logger.addHandler(stream_handler)

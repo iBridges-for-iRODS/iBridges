@@ -157,7 +157,7 @@ class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
                         else:
                             self.errorLabel.setText(
                                 "SEARCH widget ERROR: "+p+" not an irods item.")
-                except Exception as e:
-                    logging.info("IRODS SEARCH ERROR: "+repr(e), exc_info=True)
+                except Exception as error:
+                    logging.error('IRODS SEARCH ERROR: %r', error, exc_info=True)
         self.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.enableButtons()

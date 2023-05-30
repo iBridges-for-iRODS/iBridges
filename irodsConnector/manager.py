@@ -69,7 +69,7 @@ class IrodsConnector():
             iBridges configuration.
 
         """
-        logging.debug(f'getting: {self._ibridges_configuration=}')
+        logging.debug('getting: self._ibridges_configuration')
         return self._ibridges_configuration
 
     @ibridges_configuration.setter
@@ -83,6 +83,7 @@ class IrodsConnector():
 
         """
         self._ibridges_configuration = config
+
         logging.debug(f'setting: {self._ibridges_configuration=}')
 
     @property
@@ -95,7 +96,7 @@ class IrodsConnector():
             Name of environment file
 
         """
-        logging.debug(f'getting: {self._irods_env_file=}')
+        logging.debug('getting: self._irods_env_file')
         return self._irods_env_file
 
     @irods_env_file.setter
@@ -109,7 +110,8 @@ class IrodsConnector():
 
         """
         self._irods_env_file = filepath
-        logging.info(f'setting: {self._irods_env_file=}')
+
+        logging.debug(f'setting: {self._irods_env_file=}')
 
     @property
     def irods_environment(self) -> json_config.JsonConfig:
@@ -121,7 +123,7 @@ class IrodsConnector():
             iRODS environment.
 
         """
-        logging.debug(f'getting: {self._irods_environment=}')
+        logging.debug('getting: self._irods_environment')
         return self._irods_environment
 
     @irods_environment.setter
@@ -135,7 +137,9 @@ class IrodsConnector():
 
         """
         self._irods_environment = config
-        logging.info(f'setting: {self._irods_environment=}')
+
+        logging.debug(f'setting: {self._irods_environment=}')
+
 
     # Properties for all the classes themselves
     #

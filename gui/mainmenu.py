@@ -14,7 +14,7 @@ import utils
 
 class QPlainTextEditLogger(logging.Handler):
     def __init__(self, widget):
-        super(QPlainTextEditLogger, self).__init__()
+        super().__init__()
         self.widget = widget
         self.widget.setReadOnly(True)
 
@@ -73,13 +73,13 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             for uitab in expected:
                 if uitab in found:
                     ui_tabs_lookup[uitab]()
-                    logging.debug(f'Setup the {uitab} tab')
+                    logging.debug('Setup the %s tab', uitab)
             for uitab in found:
                 if uitab not in expected:
                     logging.error(
-                        f'Unknown tab "{uitab}" defined in iBridges config file')
+                        'Unknown tab "%s" defined in iBridges config file', uitab)
                     logging.info(
-                        f'Only {", ".join(expected)} tabs supported')
+                        'Only %s tabs supported', ", ".join(expected))
         self.tabWidget.setCurrentIndex(0)
 
     def setupTabAmberWorkflow(self):
@@ -154,11 +154,11 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
         search.exec()
 
     def saveConfig(self):
-        logging.info("TODO: saving configuration")
+        logging.info('TODO: saving configuration')
         # TODO is there any reason for this?
         # self.context.save_ibridges_configuration()
         # self.context.save_irods_environment()
         # self.globalErrorLabel.setText(f'Environment saved to: {self.context.irods_env_file}')
 
     def exportMeta(self):
-        logging.info("TODO: Metadata export")
+        logging.info('TODO: Metadata export')
