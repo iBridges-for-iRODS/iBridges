@@ -31,6 +31,7 @@ LOG_LEVEL = {
     'error': logging.ERROR,
     'critical': logging.CRITICAL,
 }
+MAX_MSG_LEN = 1024
 THIS_APPLICATION = 'iBridges'
 
 # Application globals
@@ -237,7 +238,7 @@ def init_logger():
         """Custom record factory"""
         record = old_factory(*args, **kwargs)
         # Limit the size of the log message to something sane.
-        record.msg = record.msg[:1024]
+        record.msg = record.msg[:MAX_MSG_LEN]
         record.prefix = ''
         record.postfix = ''
         if record.levelname == 'WARNING':
