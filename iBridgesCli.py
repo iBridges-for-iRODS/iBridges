@@ -243,12 +243,11 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 assert irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
-            except AssertionError as exception:
-                logging.error("Failed to connect (%s)", str(exception))
+            except AssertionError as error:
+                logging.error('Failed to connect: %r', error)
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
-
         return irods_conn
 
     @plugin_hook
@@ -265,7 +264,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         elif self.irods_conn.dataobject_exists(self.irods_path):
             item = self.irods_conn.get_dataobject(self.irods_path)
         else:
-            logging.error("iRODS path %s does not exist", self.irods_path)
+            logging.error('iRODS path %s does not exist', self.irods_path)
             return False
 
         # get its size to check if there's enough space
@@ -291,9 +290,9 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         # check if intended upload target exists
         try:
             self.irods_conn.ensure_coll(self.target_path)
-            logging.info("Uploading to %s", self.target_path)
+            logging.info('Uploading to %s', self.target_path)
         except (CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM):
-            logging.error("Collection path invalid: %s", self.target_path)
+            logging.error('Collection path invalid: %s', self.target_path)
             return False
 
         # check if there's enough space left on the resource
@@ -344,7 +343,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 self._clean_exit()
 
         else:
-            logging.error("Unknown operation: %s", {self.operation})
+            logging.error('Unknown operation: %s', self.operation)
 
         self._clean_exit(message="Done", exit_code=0)
 
