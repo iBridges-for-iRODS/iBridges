@@ -90,7 +90,7 @@ class Context:
             Configuration instance.
 
         """
-        if self._ibridges_configuration is None or self._ibridges_configuration.config is {}:
+        if self._ibridges_configuration is None:
             if not self.ibridges_conf_file:
                 self.ibridges_conf_file = DEFAULT_IBRIDGES_CONF_FILE
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
@@ -99,6 +99,9 @@ class Context:
             if not filepath.is_file():
                 filepath.write_text(json.dumps(IBRIDGES_TEMPLATE))
             self._ibridges_configuration = json_config.JsonConfig(filepath)
+        elif self.ibridges_conf_file != self._ibridges_configuration.filepath:
+            self._ibridges_configuration.reset()
+            self._ibridges_configuration.filepath = self.ibridges_conf_file
         # iBridges configuration check/default entry update.  Do not overwrite!
         conf_dict = self._ibridges_configuration.config
         for key, val in IBRIDGES_TEMPLATE.items():
@@ -185,9 +188,11 @@ class Context:
             Configuration instance.
 
         """
-        if self._irods_environment is None or self._irods_environment.config is {}:
+        if self._irods_environment is None:
             self._irods_environment = json_config.JsonConfig(self.irods_env_file)
-
+        elif self.irods_env_file != self._irods_environment.filepath:
+            self._irods_environment.reset()
+            self._irods_environment.filepath = self.irods_env_file
         return self._irods_environment
 
     def ienv_is_complete(self) -> bool:
