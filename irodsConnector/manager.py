@@ -22,7 +22,7 @@ from . import tickets
 from . import users
 
 
-class IrodsConnector(object):
+class IrodsConnector():
     """Top-level connection to the Python iRODS client
 
     """
@@ -83,11 +83,8 @@ class IrodsConnector(object):
 
         """
         self._ibridges_configuration = config
-        logging.debug('setting: self._ibridges_configuration')
-        if self.session:
-            self.session.ibridges_configuration = config
-        if self.resource:
-            self.resource.ibridges_configuration = config
+
+        logging.debug(f'setting: {self._ibridges_configuration=}')
 
     @property
     def irods_env_file(self) -> str:
@@ -113,9 +110,8 @@ class IrodsConnector(object):
 
         """
         self._irods_env_file = filepath
-        logging.debug('setting: self._irods_env_file')
-        if self.session:
-            self.session.irods_env_file = filepath
+
+        logging.debug(f'setting: {self._irods_env_file=}')
 
     @property
     def irods_environment(self) -> json_config.JsonConfig:
@@ -141,11 +137,9 @@ class IrodsConnector(object):
 
         """
         self._irods_environment = config
-        logging.debug('setting: self._irods_environment')
-        if self.session:
-            self.session.irods_environment = config
-        if self.resource:
-            self.resource.irods_environment = config
+
+        logging.debug(f'setting: {self._irods_environment=}')
+
 
     # Properties for all the classes themselves
     #
@@ -197,10 +191,8 @@ class IrodsConnector(object):
     @property
     def session(self) -> session.Session:
         if self._session is None:
-            self._session = session.Session(self._password)
-            self._session.ibridges_configuration = self.ibridges_configuration
-            self._session.irods_env_file = self.irods_env_file
-            self._session.irods_environment = self.irods_environment
+            self._session = session.Session(self.irods_env_file, self.irods_environment.config,
+                                            self.ibridges_configuration.config, self._password)
         return self._session
 
     @session.deleter
@@ -353,6 +345,8 @@ class IrodsConnector(object):
         """Manually establish an iRODS session.
 
         """
+        self._session = session.Session(self.irods_env_file, self.irods_environment.config,
+                                        self.ibridges_configuration.config, self._password) 
         if not self.session.has_irods_session():
             self.session.connect()
 
@@ -415,6 +409,7 @@ class IrodsConnector(object):
 
         """
         self.session.password = password
+        self._password = password
 
     @property
     def port(self) -> str:
