@@ -64,7 +64,6 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                  logdir: str,
                  plugins: list[dict] = None) -> None:
 
-        #self.context = utils.context.Context()
         self.irods_env = None
         self.irods_path = None
         self.irods_resc = None
@@ -128,28 +127,6 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         return [x for x in plugins if len(x['actions']) > 0]
 
-    def get_config(self, section: str, option: str = None):
-        """
-        Reads config file.
-        """
-        if not self.config_file:
-            return False
-
-        config = configparser.ConfigParser()
-        with open(self.config_file, encoding='utf-8') as file:
-            config.read_file(file)
-
-            if section not in config.sections():
-                return False
-
-            if not option:
-                return dict(config.items(section))
-
-            if option in [x[0] for x in config.items(section)]:
-                return config.get(section, option)
-
-        return False
-
     @classmethod
     def from_arguments(cls, **kwargs):
         """
@@ -204,24 +181,24 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             self.irods_conn.cleanup()
         sys.exit(exit_code)
 
-    def connect_irods(cls, irods_env):
+    def connect_irods(cls):
         """
         Connect to iRods instance after interactivelty asking for password.
         """
         attempts = 0
         while True:
-            secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
+            secret = getpass.getpass(f'Password for {cls.context.irods_env_file} (leave empty to use cached): ')
             try:
                 # invoke Context singleton
-                context = utils.context.Context()
-                if not (context.ienv_is_complete()):
+                #context = utils.context.Context()
+                if not (cls.context.ienv_is_complete()):
                     self._clean_exit("iRODS environment file incomplete", True)
                 irods_conn = IrodsConnector(secret)
-                irods_conn.ibridges_configuration = context.ibridges_configuration
-                irods_conn.irods_env_file = context.irods_env_file
-                irods_conn.irods_environment = context.irods_environment
+                irods_conn.ibridges_configuration = cls.context.ibridges_configuration
+                irods_conn.irods_env_file = cls.context.irods_env_file
+                irods_conn.irods_environment = cls.context.irods_environment
                 irods_conn.connect()
-                irods_conn.icommands.set_irods_env_file(irods_env)
+                irods_conn.icommands.set_irods_env_file(cls.context.irods_env_file)
 
                 assert irods_conn.session.has_valid_irods_session(), "No session"
 
@@ -300,7 +277,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         return True
 
     def _run(self):
-        self.irods_conn = self.connect_irods(irods_env=self.irods_env)
+        self.irods_conn = self.connect_irods()
 
         if not self.irods_conn:
             self._clean_exit("Connection failed")
