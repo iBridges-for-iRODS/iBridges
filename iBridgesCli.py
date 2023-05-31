@@ -18,8 +18,7 @@ from pathlib import Path
 from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
 import irodsConnector.keywords as kw
 from irodsConnector.manager import IrodsConnector
-from utils.utils import init_logger, get_local_size
-from utils.context import Context
+import utils
 from utils.elab_plugin import ElabPlugin
 
 
@@ -54,8 +53,9 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
     Class for up- and downloading to YODA/iRODS via the command line.
     Includes option for writing metadata to Elab Journal.
     """
+    context = utils.context.Context()
+
     def __init__(self,                      # pylint: disable=too-many-arguments
-                 config_file: str,
                  local_path: str,
                  irods_path: str,
                  irods_env: str,
@@ -71,48 +71,39 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         self.config_file = None
         self.download_finished = None
         self.upload_finished = None
+        self.irods_conn = None
+        
+        default_irods_env = utils.path.LocalPath('~/.irods', 'irods_environment.json').expanduser()
+        logdir_path = utils.path.LocalPath(logdir)
 
-        # reading optional config file
-        if config_file:
-            if not os.path.exists(config_file):
-                self._clean_exit(f"{config_file} does not exist")
-
-            self.config_file = os.path.expanduser(config_file)
-            if not self.get_config('iRODS'):
-                self._clean_exit(f"{config_file} misses iRODS section")
-
-        # CLI parameters override config-file
-        self.irods_env = irods_env or self.get_config('iRODS', 'irodsenv') \
+        # CLI parameters override ibridges_config.json
+        irods_env_file = irods_env \
+            or utils.path.LocalPath('~/.irods',
+                                    self.context.ibridges_configuration.config.get('last_ienv', '')) \
+            or default_irods_env \
             or self._clean_exit("need iRODS environment file", True)
-        self.irods_path = irods_path or self.get_config('iRODS', 'irodscoll') \
-            or self._clean_exit("need iRODS path", True)
-        self.local_path = local_path or self.get_config('LOCAL', 'path') \
-            or self._clean_exit("need local path", True)
+        self.context.irods_environment.reset()
+        self.context.irods_env_file = irods_env_file
+        self.irods_path = irods_path or self._clean_exit("need iRODS path", True)
+        self.local_path = local_path or self._clean_exit("need local path", True)
 
-        self.irods_env = Path(os.path.expanduser(self.irods_env))
         self.local_path = Path(os.path.expanduser(self.local_path))
         self.irods_path = self.irods_path.rstrip("/")
-        logdir_path = Path(logdir)
 
         # checking if paths actually exist
-        for path in [self.irods_env, self.local_path, logdir_path]:
+        for path in [self.context.irods_env_file, self.local_path, logdir_path]:
             if not path.exists():
                 self._clean_exit(f"{path} does not exist")
 
         # reading default irods_resc from env file if not specified otherwise
-        self.irods_resc = irods_resc or self.get_config('iRODS', 'irodsresc') or None
-        if not self.irods_resc:
-            with open(self.irods_env, 'r', encoding='utf-8') as file:
-                cfg = json.load(file)
-                if 'default_resource_name' in cfg:
-                    self.irods_resc = cfg['default_resource_name']
-
-        if not self.irods_resc:
-            self._clean_exit("need an iRODS resource", True)
+        self.irods_resc = irods_resc \
+                or self.context.irods_environment.config.get('irods_default_resource', '') \
+                or self._clean_exit("need an iRODS resource", True)
 
         self.operation = operation
         self.plugins = self._cleanup_plugins(plugins)
-        init_logger(logdir_path, "iBridgesCli")
+        utils.utils.init_logger("iBridgesCli")
+        utils.utils.set_log_level()
         self._run()
 
     @classmethod
@@ -137,28 +128,6 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         return [x for x in plugins if len(x['actions']) > 0]
 
-    def get_config(self, section: str, option: str = None):
-        """
-        Reads config file.
-        """
-        if not self.config_file:
-            return False
-
-        config = configparser.ConfigParser()
-        with open(self.config_file, encoding='utf-8') as file:
-            config.read_file(file)
-
-            if section not in config.sections():
-                return False
-
-            if not option:
-                return dict(config.items(section))
-
-            if option in [x[0] for x in config.items(section)]:
-                return config.get(section, option)
-
-        return False
-
     @classmethod
     def from_arguments(cls, **kwargs):
         """
@@ -170,13 +139,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             description="",
             epilog=""
             )
+        default_logdir = utils.path.LocalPath('~/.ibridges').expanduser()
 
-        default_logdir = os.path.join(str(os.getenv('HOME')), '.irods')
-        default_irods_env = os.path.join(str(os.getenv('HOME')), '.irods', 'irods_environment.json')
-
-        cls.parser.add_argument('--config', '-c',
-                                type=str,
-                                help='Config file')
         cls.parser.add_argument('--local_path', '-l',
                                 help='Local path to download to, or upload from',
                                 type=str)
@@ -188,8 +152,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                                 choices=['upload', 'download'],
                                 required=True)
         cls.parser.add_argument('--env', '-e', type=str,
-                                help=f'iRods environment file. (default: {default_irods_env})',
-                                default=default_irods_env)
+                                help=f'Path to iRods environment file (irods_environment.json).')
         cls.parser.add_argument('--irods_resc', '-r', type=str,
                                 help='iRods resource. If omitted default will be read from iRods env file.')
         cls.parser.add_argument('--logdir', type=str,
@@ -198,8 +161,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         args = cls.parser.parse_args()
 
-        return cls(config_file=args.config,
-                   irods_env=args.env,
+        return cls(irods_env=args.env,
                    irods_resc=args.irods_resc,
                    local_path=args.local_path,
                    irods_path=args.irods_path,
@@ -220,25 +182,25 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             self.irods_conn.cleanup()
         sys.exit(exit_code)
 
-    @classmethod
-    def connect_irods(cls, irods_env):
+    def connect_irods(self):
         """
         Connect to iRods instance after interactivelty asking for password.
         """
         attempts = 0
         while True:
-            secret = getpass.getpass(f'Password for {irods_env} (leave empty to use cached): ')
+            secret = getpass.getpass(
+                    f'Password for {self.context.irods_env_file} (leave empty to use cached): ')
             try:
-                # invoke Context singleton
-                context = Context()
-                _ = context.irods_environment
-                context.irods_env_file = irods_env
-                print(secret)
-                irods_conn = IrodsConnector(secret)
-                irods_conn.connect()
-                irods_conn.icommands.set_irods_env_file(irods_env)
+                if not (self.context.ienv_is_complete()):
+                    self._clean_exit("iRODS environment file incomplete", True)
+                self.irods_conn = IrodsConnector(secret)
+                self.irods_conn.ibridges_configuration = self.context.ibridges_configuration
+                self.irods_conn.irods_env_file = self.context.irods_env_file
+                self.irods_conn.irods_environment = self.context.irods_environment
+                self.irods_conn.connect()
+                self.irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
 
-                assert irods_conn.session.has_valid_irods_session(), "No session"
+                assert self.irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
             except AssertionError as error:
@@ -246,7 +208,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
-        return irods_conn
+        return
 
     @plugin_hook
     def download(self):
@@ -294,12 +256,11 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             return False
 
         # check if there's enough space left on the resource
-        upload_size = get_local_size([self.local_path])
+        upload_size = utils.utils.get_local_size([self.local_path])
 
-        # TODO: does irods_conn.get_free_space() work yet?
-        # free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
-        free_space = None
-        if free_space is not None and free_space-1000**3 < upload_size:
+        free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
+        if free_space-1000**3 < upload_size and \
+                not self.context.ibridges_configuration.config.get('force_transfers', False):
             logging.error('Not enough space left on iRODS resource to upload.')
             return False
 
@@ -315,7 +276,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         return True
 
     def _run(self):
-        self.irods_conn = self.connect_irods(irods_env=self.irods_env)
+        self.connect_irods()
 
         if not self.irods_conn:
             self._clean_exit("Connection failed")
