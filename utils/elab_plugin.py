@@ -21,32 +21,35 @@ class ElabPlugin():
         """
         Setup, called before upload to iRods.
         """
-        config = calling_class.get_config('ELN')
-
-        if not config:
-            logging.info('Skipping ELN (no config)')
+        token = calling_class.context.ibridges_configuration.config.get('eln_token', '')
+        #self.group = calling_class.context.ibridges_configuration.config.get('eln_group', '')
+        #self.experiment = calling_class.context.ibridges_configuration.config.get('eln_experiment', '')
+        #self.title = calling_class.context.ibridges_configuration.config.get('eln_title', '')
+        
+        in_var = input('Link data to ElabJournal experiment (Y/N, default N): ').strip().lower()
+        if in_var in ['', 'n', 'no']:
+            logging.info('Skipping ELN')
             return
 
-        self.elab = elabConnector(config['token'])
+        if not token:
+            logging.info('Skipping ELN (no API token found)')
+            return
 
-        if 'group' in config and 'experiment' in config \
-                and len(config['group']) > 0 and len(config['experiment']) > 0:
-            try:
-                self.elab.updateMetadataUrl(group=config['group'], experiment=config['experiment'])
-            except ValueError as error:
-                logging.error(
-                    'ELN groupID %s or experimentID %s not set or invalid: %r',
-                    config['group'], config['experiment'], error)
-                self.elab.showGroups()
-                self.elab.updateMetadataUrlInteractive(group=True)
-        else:
+        self.elab = elabConnector(token)
+        print(f'INFO: Default experiment is: {self.elab.experiment.name()}')
+        print(f'INFO: Data will be linked to: {self.elab.metadataUrl}')
+        in_var = input('Choose another group or experiment? (Y/N): ').strip().lower()
+
+        if in_var in ['y', 'yes']:
             self.elab.showGroups()
             self.elab.updateMetadataUrlInteractive(group=True)
-
-        if 'title' not in config or len(config['title']) == 0:
-            self.title = input('ELN paragraph title: ')
-        else:
-            self.title = config['title']
+        
+        if not self.title:
+            title = input('ELN paragraph title (default "iRODS data"): ')
+            if title:
+                self.title = title
+            else:
+                self.title = "iRODS data"
 
         logging.info('Link Data to experiment: %s', self.elab.metadataUrl)
         logging.info('with title: %s', self.title)

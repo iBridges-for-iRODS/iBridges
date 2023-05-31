@@ -22,12 +22,10 @@ class elabConnector():
 
         self.userId = self.elab.user().id()
         self.baseUrl = f'https://{token.split(";")[0]}'
-        print(f'INFO: Default Experiment: {self.experiment.name()}')
         exp_id = self.experiment.id()
         self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         self.__name__ = 'ELN'
         self.group = None
-        print(f'INFO: Data will be linked to: {self.metadataUrl}')
 
     def showGroups(self, get=False):
         groups_frame = self.elab.groups().all(['name', 'description'])
@@ -42,7 +40,7 @@ class elabConnector():
     def _choose_group(self):
         success = False
         while not success:
-            in_var = input('Choose Elab groupId:')
+            in_var = input('Choose Elab groupId: ')
             try:
                 group_id = int(in_var)
                 if group_id in self.elab.groups().all().index:
@@ -108,7 +106,7 @@ class elabConnector():
         success = False
         while not success:
             try:
-                exp_id = int(input('Choose an experimentId:'))
+                exp_id = int(input('Choose an experimentId: '))
                 assert exp_id in self.elab.experiments().all().index
                 success = True
                 self._switch_group(current_group)
