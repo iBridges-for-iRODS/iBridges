@@ -102,7 +102,8 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
 
         self.operation = operation
         self.plugins = self._cleanup_plugins(plugins)
-        utils.utils.init_logger(logdir, "iBridgesCli")
+        utils.utils.init_logger("iBridgesCli")
+        utils.utils.set_log_level()
         self._run()
 
     @classmethod
