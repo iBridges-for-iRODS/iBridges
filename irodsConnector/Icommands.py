@@ -24,7 +24,6 @@ class IrodsConnectorIcommands:
     icmd_ils = 'ils {coll_or_object}'
     irods_environment_file_key = 'IRODS_ENVIRONMENT_FILE'
 
-
     def __init__(self) -> None:
         """ IrodsConnectorIcommands initialization
         """
@@ -62,8 +61,11 @@ class IrodsConnectorIcommands:
         Returns:
             bool
         """
-        return 'linux' in platform.platform().lower() and \
-            len(subprocess.check_output(['which', 'iinit']))>0
+        is_linux = 'linux' in platform.platform().lower()
+        if is_linux:
+            # Do not use check_output().  It raises an exception.
+            return subprocess.call(['which', 'iinit']) == 0
+        return False
 
     @staticmethod
     def _execute_command(cmd: str) -> Tuple[str, str]:

@@ -278,7 +278,7 @@ class Resource(object):
             if child.free_space is not None))
         return round(free_space * multiplier)
 
-    def get_resource_children(self, resc: irods.resource.Resource) -> list:
+    def get_resource_children(self, resc: irods.resource.iRODSResource) -> list:
         """Get all the children for the resource `resc`.
 
         Parameters

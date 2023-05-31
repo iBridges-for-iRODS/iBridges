@@ -20,12 +20,14 @@ DEFAULT = '\x1b[0m'
 RED = '\x1b[1;31m'
 YELLOW = '\x1b[1;33m'
 LOG_LEVEL = {
+    'fulldebug': logging.DEBUG - 5,
     'debug': logging.DEBUG,
     'info': logging.INFO,
     'warn': logging.WARNING,
     'error': logging.ERROR,
     'critical': logging.CRITICAL,
 }
+MAX_MSG_LEN = 1024
 
 
 def is_posix() -> bool:
@@ -280,8 +282,10 @@ def set_log_level(log_level: int = None):
     logging.getLogger().setLevel(log_level)
     if log_level == logging.DEBUG:
         for logger in logging.Logger.manager.loggerDict.values():
-            if hasattr(logger, 'name') and logger.name != 'root':
-                logger.disabled = True
+            if hasattr(logger, 'name'):
+                if logger.name != 'root' and not logger.name.startswith('irods'):
+                    logger.debug('Disabling logger: %s', logger.name)
+                    logger.disabled = True
 
 
 def init_logger(app_name: str):
@@ -298,6 +302,8 @@ def init_logger(app_name: str):
     def new_factory(*args, **kwargs) -> logging.LogRecord:
         """Custom record factory"""
         record = old_factory(*args, **kwargs)
+        # Limit the size of the log message to something sane.
+        record.msg = record.msg[:MAX_MSG_LEN]
         record.prefix = ''
         record.postfix = ''
         if record.levelname == 'WARNING':
@@ -313,7 +319,7 @@ def init_logger(app_name: str):
     logdir = path.LocalPath(context.IBRIDGES_DIR).expanduser()
     logfile = logdir.joinpath(f'{app_name}.log')
     log_formatter = logging.Formatter(
-        '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
+        '[%(asctime)s] %(name)s {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
     file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
     file_handler.setFormatter(log_formatter)
     logger.addHandler(file_handler)

@@ -33,7 +33,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
     """Definition and initialization of the iRODS login window.
 
     """
-    icommands = False
+    use_icommands = None
     this_application = ''
     context = utils.context.Context()
 
@@ -102,25 +102,24 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """
         if self.standardButton.isChecked():
             self._init_envbox()
-            self.icommands = False
+            self.use_icommands = False
 
     def setup_icommands(self):
         """Check the state of the radio button for using iCommands.
-        This includes a check for the existance of the iCommands on the
+        This includes a check for the existence of the iCommands on the
         current system.
 
         """
+        # TODO support arbitrary iRODS environment file for iCommands
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            logging.debug(
-                'self.context.irods_connector.icommands=%s',
-                self.context.irods_connector.icommands)
-            if self.context.irods_connector.has_icommands():
-                self.icommands = True
-                # TODO support arbitrary iRODS environment file for iCommands
+            if self.context.irods_connector.icommands.has_icommands():
+                self.use_icommands = True
             else:
+                self.use_icommands = False
                 self.icommandsError.setText('ERROR: no iCommands found')
                 self.standardButton.setChecked(True)
+            logging.debug('self.use_icommands=%s', self.use_icommands)
 
     def login_function(self):
         """Check connectivity and log in to iRODS handling common errors.
@@ -149,16 +148,15 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
+        self.context.irods_connector.use_icommands = self.use_icommands
         self.context.ibridges_configuration.config['last_ienv'] = irods_env_file.name
         self.context.save_ibridges_configuration()
         password = self.passwordField.text()
-
         self.context.irods_connector.password = password
-        logging.debug(f'IRODS PASSWORD SET: {"*"*len(password)*2}')
+        logging.debug('IRODS PASSWORD SET')
         self.context.irods_connector.irods_env_file = self.context.irods_env_file
         self.context.irods_connector.irods_environment = self.context.irods_environment
         self.context.irods_connector.ibridges_configuration = self.context.ibridges_configuration
-
         try:
             self.context.irods_connector.connect()
         except (irods.exception.CAT_INVALID_AUTHENTICATION,
