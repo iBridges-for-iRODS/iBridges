@@ -181,24 +181,23 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             self.irods_conn.cleanup()
         sys.exit(exit_code)
 
-    def connect_irods(cls):
+    def connect_irods(self):
         """
         Connect to iRods instance after interactivelty asking for password.
         """
         attempts = 0
         while True:
-            secret = getpass.getpass(f'Password for {cls.context.irods_env_file} (leave empty to use cached): ')
+            secret = getpass.getpass(
+                    f'Password for {self.context.irods_env_file} (leave empty to use cached): ')
             try:
-                # invoke Context singleton
-                #context = utils.context.Context()
-                if not (cls.context.ienv_is_complete()):
+                if not (self.context.ienv_is_complete()):
                     self._clean_exit("iRODS environment file incomplete", True)
                 irods_conn = IrodsConnector(secret)
-                irods_conn.ibridges_configuration = cls.context.ibridges_configuration
-                irods_conn.irods_env_file = cls.context.irods_env_file
-                irods_conn.irods_environment = cls.context.irods_environment
+                irods_conn.ibridges_configuration = self.context.ibridges_configuration
+                irods_conn.irods_env_file = self.context.irods_env_file
+                irods_conn.irods_environment = self.context.irods_environment
                 irods_conn.connect()
-                irods_conn.icommands.set_irods_env_file(cls.context.irods_env_file)
+                irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
 
                 assert irods_conn.session.has_valid_irods_session(), "No session"
 
