@@ -192,14 +192,14 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
             try:
                 if not (self.context.ienv_is_complete()):
                     self._clean_exit("iRODS environment file incomplete", True)
-                irods_conn = IrodsConnector(secret)
-                irods_conn.ibridges_configuration = self.context.ibridges_configuration
-                irods_conn.irods_env_file = self.context.irods_env_file
-                irods_conn.irods_environment = self.context.irods_environment
-                irods_conn.connect()
-                irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
+                self.irods_conn = IrodsConnector(secret)
+                self.irods_conn.ibridges_configuration = self.context.ibridges_configuration
+                self.irods_conn.irods_env_file = self.context.irods_env_file
+                self.irods_conn.irods_environment = self.context.irods_environment
+                self.irods_conn.connect()
+                self.irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
 
-                assert irods_conn.session.has_valid_irods_session(), "No session"
+                assert self.irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
             except AssertionError as error:
@@ -207,7 +207,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 attempts += 1
                 if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
                     return False
-        return irods_conn
+        return
 
     @plugin_hook
     def download(self):
@@ -275,7 +275,7 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         return True
 
     def _run(self):
-        self.irods_conn = self.connect_irods()
+        self.connect_irods()
 
         if not self.irods_conn:
             self._clean_exit("Connection failed")

@@ -26,8 +26,8 @@ class ElabPlugin():
         #self.experiment = calling_class.context.ibridges_configuration.config.get('eln_experiment', '')
         #self.title = calling_class.context.ibridges_configuration.config.get('eln_title', '')
         
-        in_var = input('Link data to ElabJournal experiment (Y/N, default N): ')
-        if in_var in ['', 'N', 'n', 'No', 'no']:
+        in_var = input('Link data to ElabJournal experiment (Y/N, default N): ').strip().lower()
+        if in_var in ['', 'n', 'no']:
             logging.info('Skipping ELN')
             return
 
@@ -38,9 +38,9 @@ class ElabPlugin():
         self.elab = elabConnector(token)
         print(f'INFO: Default experiment is: {self.elab.experiment.name()}')
         print(f'INFO: Data will be linked to: {self.elab.metadataUrl}')
-        in_var = input('Choose another group or experiment? (Y/N): ')
+        in_var = input('Choose another group or experiment? (Y/N): ').strip().lower()
 
-        if in_var in ['Y', 'y', 'Yes', 'yes']:
+        if in_var in ['y', 'yes']:
             self.elab.showGroups()
             self.elab.updateMetadataUrlInteractive(group=True)
         
