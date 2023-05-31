@@ -257,10 +257,9 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         # check if there's enough space left on the resource
         upload_size = utils.utils.get_local_size([self.local_path])
 
-        # TODO: does irods_conn.get_free_space() work yet?
-        # free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
-        free_space = None
-        if free_space is not None and free_space-1000**3 < upload_size:
+        free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
+        if free_space-1000**3 < upload_size and \
+                not self.context.ibridges_configuration.config.get('force_transfers', False):
             logging.error('Not enough space left on iRODS resource to upload.')
             return False
 

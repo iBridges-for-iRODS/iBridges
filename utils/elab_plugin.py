@@ -22,9 +22,9 @@ class ElabPlugin():
         Setup, called before upload to iRods.
         """
         token = calling_class.context.ibridges_configuration.config.get('eln_token', '')
-        self.group = calling_class.context.ibridges_configuration.config.get('eln_group', '')
-        self.experiment = calling_class.context.ibridges_configuration.config.get('eln_experiment', '')
-        self.title = calling_class.context.ibridges_configuration.config.get('eln_title', '')
+        #self.group = calling_class.context.ibridges_configuration.config.get('eln_group', '')
+        #self.experiment = calling_class.context.ibridges_configuration.config.get('eln_experiment', '')
+        #self.title = calling_class.context.ibridges_configuration.config.get('eln_title', '')
         
         in_var = input('Link data to ElabJournal experiment (Y/N, default N): ')
         if in_var in ['', 'N', 'n', 'No', 'no']:
