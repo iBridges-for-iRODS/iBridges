@@ -63,7 +63,7 @@ QLabel#errorLabel{
      <item>
       <widget class="QLabel" name="label_12">
        <property name="text">
-        <string>ELN token (wur.elabjournal.com;12345)</string>
+        <string>ELN token (your.elabjournal.com;12345)</string>
        </property>
       </widget>
      </item>
