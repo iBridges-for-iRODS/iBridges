@@ -74,6 +74,13 @@ QLabel#errorLabel{
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QPushButton" name="elnConnectButton">
+       <property name="text">
+        <string>connect</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

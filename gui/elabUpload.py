@@ -42,8 +42,6 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
         self.localFsTable.setColumnHidden(1, True)
         self.localFsTable.setColumnHidden(2, True)
         self.localFsTable.setColumnHidden(3, True)
-        # TODO remove commented commands that are not required?
-        # self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         # TODO standardize tree initialization
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
@@ -51,11 +49,12 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
         self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
             self.context.irods_environment.config.get("irods_home", 
-                "/"+self.context.irods_connector.zone+"/home/"+self.context.irods_connector.username))
+                "/"+self.context.irods_connector.zone+"/home/"+self.context.irods_connector.username)) 
         # defining events and listeners
         self.elnTokenInput.setText(self.context.ibridges_configuration.config.get('eln_token', ''))
         self.elnTokenInput.setEchoMode(QLineEdit.EchoMode.Password)
         self.elnTokenInput.returnPressed.connect(self.connectElab)
+        self.elnConnectButton.clicked.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
         self.elnUploadButton.clicked.connect(self.upload_data)
