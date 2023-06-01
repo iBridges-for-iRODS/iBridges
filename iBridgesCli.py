@@ -198,8 +198,13 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
                 self.irods_conn.irods_env_file = self.context.irods_env_file
                 self.irods_conn.irods_environment = self.context.irods_environment
                 self.irods_conn.connect()
-                self.irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
-
+                
+                if self.irods_conn.icommands.has_icommands:
+                    in_var = input("Use icommands (Y/N, default Y): ").strip().lower()
+                    if in_var in ['', 'y', 'yes']:
+                        self.irods_conn.use_icommands = True
+                        self.irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
+                        
                 assert self.irods_conn.session.has_valid_irods_session(), "No session"
 
                 break
