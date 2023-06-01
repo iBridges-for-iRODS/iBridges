@@ -77,10 +77,11 @@ class IBridgesCli:                          # pylint: disable=too-many-instance-
         logdir_path = utils.path.LocalPath(logdir)
 
         # CLI parameters override ibridges_config.json
-        irods_env_file = irods_env \
-            or utils.path.LocalPath('~/.irods',
-                                    self.context.ibridges_configuration.config.get('last_ienv', '')) \
-            or default_irods_env \
+        last_env = None
+        if self.context.ibridges_configuration.config.get('last_ienv', ''):
+            last_env = utils.path.LocalPath(
+                    '~/.irods/'+self.context.ibridges_configuration.config.get('last_ienv', ''))
+        irods_env_file = irods_env or last_env or default_irods_env \
             or self._clean_exit("need iRODS environment file", True)
         self.context.irods_environment.reset()
         self.context.irods_env_file = irods_env_file
