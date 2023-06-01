@@ -140,7 +140,9 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
             self.passError.clear()
             self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             return
-        if not utils.utils.can_connect(self.context.irods_environment.config.get('irods_host', '')):
+        if not utils.utils.can_connect(
+                self.context.irods_environment.config.get('irods_host', ''),
+                self.context.irods_environment.config.get('irods_port', '')):
             message = 'No network connection to server'
             logging.warning(message)
             self.envError.setText(message)

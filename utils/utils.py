@@ -133,7 +133,7 @@ def get_coll_size(coll: irods.collection.iRODSCollection) -> int:
         sum(get_data_size(obj) for obj in objs) for _, _, objs in coll.walk())
 
 
-def can_connect(hostname: str) -> bool:
+def can_connect(hostname: str, port: int) -> bool:
     """Check connectivity to an iRODS server.
 
     Parameters
@@ -150,7 +150,7 @@ def can_connect(hostname: str) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
             sock.settimeout(10.0)
-            sock.connect((hostname, 1247))
+            sock.connect((hostname, port))
             return True
         except socket.error:
             return False
