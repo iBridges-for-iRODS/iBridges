@@ -113,7 +113,7 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         # TODO support arbitrary iRODS environment file for iCommands
         if self.selectIcommandsButton.isChecked():
             self.icommandsError.setText('')
-            if self.context.irods_connector.icommands.has_icommands():
+            if self.context.irods_connector.icommands.has_icommands:
                 self.use_icommands = True
             else:
                 self.use_icommands = False
