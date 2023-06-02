@@ -16,7 +16,7 @@ from gui.ui_files.tabELNData import Ui_tabELNData
 import utils
 
 
-class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
+class elabUpload(QWidget, Ui_tabELNData):
     """ELabJournal upload tab.
 
     """

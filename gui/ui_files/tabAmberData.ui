@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>640</width>
-    <height>532</height>
+    <width>803</width>
+    <height>651</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -52,6 +52,24 @@ color: rgb(217, 174, 23);
     </widget>
    </item>
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_6">
+     <item>
+      <widget class="QLineEdit" name="amberToken">
+       <property name="text">
+        <string/>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="amber_connect_button">
+       <property name="text">
+        <string>connect</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
     <spacer name="verticalSpacer_4">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -63,13 +81,6 @@ color: rgb(217, 174, 23);
       </size>
      </property>
     </spacer>
-   </item>
-   <item>
-    <widget class="QLineEdit" name="amberToken">
-     <property name="text">
-      <string>Replace with token</string>
-     </property>
-    </widget>
    </item>
    <item>
     <widget class="QLabel" name="irodsZoneLabel1">
