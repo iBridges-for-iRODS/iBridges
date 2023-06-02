@@ -7,8 +7,8 @@ import sys
 
 from utils.elabConnector import elabConnector
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtWidgets import QMessageBox, QTableWidgetItem, QWidget, QLineEdit
+from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.uic import loadUi
 from gui.ui_files.tabELNData import Ui_tabELNData
@@ -16,17 +16,19 @@ from gui.ui_files.tabELNData import Ui_tabELNData
 import utils
 
 
-class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
+class elabUpload(QWidget, Ui_tabELNData):
     """ELabJournal upload tab.
 
     """
     thread = None
     worker = None
+    context = utils.context.Context()
 
     def __init__(self):
         """
 
         """
+        self.error = False
         self.elab = None
         self.coll = None
         super().__init__()
@@ -40,18 +42,19 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
         self.localFsTable.setColumnHidden(1, True)
         self.localFsTable.setColumnHidden(2, True)
         self.localFsTable.setColumnHidden(3, True)
-        # TODO remove commented commands that are not required?
-        # self.localFsTable.header().setSectionResizeMode(QHeaderView.ResizeToContents)
         # TODO standardize tree initialization
         home_location = QtCore.QStandardPaths.standardLocations(
             QtCore.QStandardPaths.StandardLocation.HomeLocation)[0]
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
-                '/' + self.conn.zone + '/home/' + self.conn.username)
+            self.context.irods_environment.config.get("irods_home", 
+                "/"+self.context.irods_connector.zone+"/home/"+self.context.irods_connector.username)) 
         # defining events and listeners
-        self.elnTokenInput.setText(self.ienv.get('eln_token', ''))
+        self.elnTokenInput.setText(self.context.ibridges_configuration.config.get('eln_token', ''))
+        self.elnTokenInput.setEchoMode(QLineEdit.EchoMode.Password)
         self.elnTokenInput.returnPressed.connect(self.connectElab)
+        self.elnConnectButton.clicked.connect(self.connectElab)
         self.elnGroupTable.clicked.connect(self.loadExperiments)
         self.elnExperimentTable.clicked.connect(self.selectExperiment)
         self.elnUploadButton.clicked.connect(self.upload_data)
@@ -119,12 +122,16 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
     def reportProgress(self):
         self.errorLabel.setText("ELN UPLOAD STATUS: Uploading ...")
 
+    def reportError(self, error):
+        self.errorLabel.setText(error)
+        self.error = True
+
     def reportFinished(self):
-        # self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         self.elnUploadButton.setEnabled(True)
-        self.showPreview()
-        self.elnIrodsPath.setText(self.coll.path.split('/ELN')[0])
-        self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
+        if not self.error:
+            self.showPreview()
+            self.elnIrodsPath.setText(self.coll.path.split('/ELN')[0])
+            self.errorLabel.setText("ELN UPLOAD STATUS: Uploaded to "+self.coll.path)
         self.thread.quit()
 
     def showPreview(self):
@@ -173,7 +180,7 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
             size = utils.utils.get_local_size([path])
             # if user specifies a different path than standard home
             collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
-            self.coll = self.conn.ensure_coll(collPath)
+            self.coll = self.context.irods_connector.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
             buttonReply = QMessageBox.question(
                 self.elnUploadButton,
@@ -195,8 +202,13 @@ class elabUpload(QWidget, Ui_tabELNData, utils.context.ContextContainer):
                 self.worker.finished.connect(self.worker.deleteLater)
                 self.thread.finished.connect(self.thread.exit)
                 self.worker.progress.connect(self.reportProgress)
+                self.worker.error.connect(self.thread.quit)
+                self.worker.error.connect(self.worker.deleteLater)
+                self.worker.error.connect(self.thread.exit)
+                self.worker.error.connect(self.reportError)
                 self.thread.start()
                 self.thread.finished.connect(self.reportFinished)
+
             # else:
             #     self.elnUploadButton.setCursor(QtGui.QCursor(QtCore.Qt.CursorShape.ArrowCursor))
         except Exception as error:
@@ -212,7 +224,9 @@ class Worker(QObject, utils.context.ContextContainer):
 
     """
     finished = pyqtSignal()
-    progress = pyqtSignal(int)
+    progress = pyqtSignal()
+    error = pyqtSignal(str)
+    context = utils.context.Context()
 
     def __init__(self, elab, coll, size, filePath, expUrl,
                  elnPreviewBrowser, errorLabel):
@@ -236,34 +250,39 @@ class Worker(QObject, utils.context.ContextContainer):
         self.expUrl = expUrl
         self.elab = elab
         self.errorLabel = errorLabel
+        self.status = ""
         logging.debug("Start worker: ")
 
+    @pyqtSlot()
     def run(self):
         try:
             if os.path.isfile(self.filePath):
                 # TODO shouldn't all the "force"es here be configurable?
-                self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
-                item = self.conn.get_dataobject(
+                force = self.context.ibridges_configuration.config.get("force_transfers", False)
+                self.context.irods_connector.upload_data(self.filePath, self.coll, None, self.size, force=force)
+                item = self.context.irods_connector.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))
-                self.conn.add_metadata([item], 'ELN', self.expUrl)
+                self.context.irods_connector.add_metadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
-                upColl = self.conn.get_collection(
+                self.context.irods_connector.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                upColl = self.context.irods_connector.get_collection(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]
                 for c, _, objs in upColl.walk():
                     items.append(c)
                     items.extend(objs)
-                self.conn.add_metadata(items, 'ELN', self.expUrl)
-            self.progress.emit(3)
-            self.finished.emit()
+                self.context.irods_connector.add_metadata(items, 'ELN', self.expUrl)
+            self.progress.emit()
+            self.finish.emit()
         except Exception as error:
             logging.error('ElabUpload data upload and annotation worker: %r', error)
+            self.error.emit("ERROR: upload failed.")
+            return
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,
-            "iRODS server": self.conn.host,
-            "iRODS user": self.conn.username,
+            "iRODS server": self.context.irods_connector.host,
+            "iRODS user": self.context.irods_connector.username,
         }
         self.annotateElab(annotation)
 
@@ -277,27 +296,28 @@ class Worker(QObject, utils.context.ContextContainer):
         """
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
-        if self.conn.davrods and ("yoda" in self.conn.host or "uu.nl" in self.conn.host):
+        if self.context.irods_connector.davrods and \
+                ("yoda" in self.context.irods_connector.host or "uu.nl" in self.context.irods_connector.host):
             self.elab.addMetadata(
-                self.conn.davrods + '/' + self.coll.path.split('home/')[1].strip(),
+                self.context.irods_connector.davrods + '/' + self.coll.path.split('home/')[1].strip(),
                 meta=annotation,
                 title='Data in iRODS')
-        elif self.conn.davrods and "surfsara.nl" in self.conn.host:
+        elif self.context.irods_connector.davrods and "surfsara.nl" in self.context.irods_connector.host:
                 self.elab.add_metadata(
-                    self.conn.davrods + '/' + self.coll.path.split(
-                        self.conn.zone)[1].strip('/'),
+                    self.context.irods_connector.davrods + '/' + self.coll.path.split(
+                        self.context.irods_connector.zone)[1].strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
-        elif self.conn.davrods:
+        elif self.context.irods_connector.davrods:
             self.elab.add_metadata(
-                self.conn.davrods + '/' + self.coll.path.strip('/'),
+                self.context.irods_connector.davrods + '/' + self.coll.path.strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
         else:
-            host = self.conn.host
-            zone = self.conn.zone
-            name = self.conn.username
-            port = self.conn.port
+            host = self.context.irods_connector.host
+            zone = self.context.irods_connector.zone
+            name = self.context.irods_connector.username
+            port = self.context.irods_connector.port
             path = self.coll.path
             conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-            self.elab.add_metadata(conn, meta=annotation, title='Data in iRODS')
+            self.elab.add_metadata(self.context.irods_connector, meta=annotation, title='Data in iRODS')

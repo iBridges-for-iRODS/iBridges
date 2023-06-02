@@ -2,9 +2,11 @@
 """
 import logging
 import sys
+import os
+import io
 
 from PyQt6 import QtCore
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QLineEdit
 from PyQt6.QtGui import QFileSystemModel
 from PyQt6.uic import loadUi
 from gui.ui_files.tabAmberData import Ui_tabAmberData
@@ -13,7 +15,8 @@ from gui.irodsTreeView import IrodsModel
 import utils
 
 
-class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
+class amberWorkflow(QWidget, Ui_tabAmberData):
+    context = utils.context.Context()
     def __init__(self):
         """
 
@@ -27,11 +30,13 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
             loadUi("gui/ui_files/tabAmberData.ui", self)
 
         # Selecting and uploading local files and folders
-        self._initialize_local_model(self.irodsUploadTree)
+        self._initialize_irods_model(self.irodsUploadTree)
         self._initialize_irods_model(self.irodsDownloadTree)
 
-        self.amberToken.setText(self.ienv.get("amber_token", ''))
+        self.amberToken.setText(self.context.ibridges_configuration.config.get("amber_token", 'Enter token'))
+        self.amberToken.setEchoMode(QLineEdit.EchoMode.Password)
         self.amberToken.returnPressed.connect(self.connectAmber)
+        self.amber_connect_button.clicked.connect(self.connectAmber)
 
         self.refreshJobsButton.setEnabled(False)
         self.refreshJobsButton.clicked.connect(self.refreshJobs)
@@ -56,7 +61,8 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = '/'+self.conn.zone
+        irodsRootColl = self.context.irods_environment.config.get(
+                'irods_home', '/'+self.context.irods_connector.zone)
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -100,18 +106,32 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
 
     def submitData(self):
         self.jobSubmitLabel.clear()
-        (index, path) = self.getPathsFromTrees(self.irodsUploadTree, True)
-        if utils.utils.file_exists(path) and path.endswith("wav"):
+        self.jobSubmitLabel.setText('   ')
+        (index, path) = self.getPathsFromTrees(self.irodsUploadTree, False)
+        obj_path = utils.path.IrodsPath(path) 
+        if  self.context.irods_connector.dataobject_exists(path) and obj_path.suffix in ['.wav', '.mp3']:
+            obj = self.context.irods_connector.get_dataobject(obj_path)
+            tempFile = utils.path.LocalPath(self.context.ibridges_conf_file.parent,
+                                            obj.name)
+            glossary = None
+            if self.glossaryBox.currentText() != "None":
+                glossary = self.glossaryBox.currentText().split(" / ")[1]
+
             try:
-                if self.glossaryBox.currentText() == "None":
-                    info = self.ac.submit_job(path)
-                else:
-                    info = self.ac.submit_job(path, 
-                                              self.glossaryBox.currentText().split(" / ")[1])
+                obj = self.context.irods_connector.get_dataobject(path)
+                g = io.BytesIO(obj.open('r').read())
+                print(tempFile, glossary)
+                with open(tempFile, 'wb') as out:
+                    out.write(g.read())
+                info = self.ac.submit_job(tempFile, glossary_id=glossary)
                 self.jobSubmitLabel.setText(
-                        info["jobStatus"]["jobId"]+" / "+info["jobStatus"]["filename"]+" / "+info["jobStatus"]["status"])
+                        info["jobStatus"]["jobId"]+" / "+info["jobStatus"]["filename"]+ \
+                                " / "+info["jobStatus"]["status"])
             except Exception as error:
                 self.jobSubmitLabel.setText(f'AMBER ERROR: {error!r}')
+            finally:
+                if tempFile.exists():
+                    os.remove(tempFile)
         else:
             self.jobSubmitLabel.setText("AMBER ERROR: Not a valid file.")
 
@@ -132,16 +152,16 @@ class amberWorkflow(QWidget, Ui_tabAmberData, utils.context.ContextContainer):
         self.importLabel.clear()
         try:
             (index, path) = self.getPathsFromTrees(self.irodsDownloadTree, False)
-            if self.conn.collection_exists(path):
+            if self.context.irods_connector.collection_exists(path):
                 info = self.jobBox.currentText().split(' / ')
                 if info[1] == "DONE":
-                    obj = self.conn.ensure_data_object(path + '/' + info[0] + '_' + info[2] + '.txt')
+                    obj = self.context.irods_connector.ensure_data_object(path + '/' + info[0] + '_' + info[2] + '.txt')
                     self.importLabel.setText("IRODS INFO: writing to "+obj.path)
                     with obj.open('w') as obj_desc:
                         results = self.ac.get_results_txt(info[2])
                         obj_desc.write(results.encode())
-                    self.conn.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
-                    self.conn.add_metadata([obj], 'AmberscriptJob', info[2])
+                    self.context.irods_connector.add_metadata([obj], 'prov:softwareAgent', "Amberscript")
+                    self.context.irods_connector.add_metadata([obj], 'AmberscriptJob', info[2])
                     self.importLabel.setText("IRODS INFO: "+obj.path)
                 else:
                     self.importLabel.setText("AMBER ERROR: Job not finished yet.")
