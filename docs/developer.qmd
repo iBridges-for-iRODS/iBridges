@@ -226,14 +226,18 @@ class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
             PyQt6.uic.loadUi("gui/ui_files/ExampleTab.ui", self)
         self.error_label.setText("Whooohoo")
 
+        self.ienv_dict = self.context.irods_environment.config
         self._initialize_irods_model(self.irodsTreeView)
         self.irodsTreeView.clicked.connect(self.treeFunction)
 
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = self.context.irods_environment.config.get(
-                'irods_home', '/'+self.context.irods_connector.zone)
+        
+        home_coll_str = utils.path.IrodsPath(
+            '/', self.context.irods_connector.zone, 'home')
+        irods_root_coll = self.ienv_dict.get('irods_home', home_coll_str)
+        
         self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
@@ -262,6 +266,32 @@ class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
 
         return(index, path)
 ```
+:::
+
+
+
+::: {.callout-note collapse="true"}
+### 6. Path handling in iRODS
+
+iRODS paths of data objects and collections are given as strings:
+
+```py
+import utils
+import irodsConnector
+context = utils.context.Context()
+context.irods_env_file = utils.path.LocalPath("~/.irods/irods_environment.json").expanduser()
+context.irods_connector = irodsConnector.manager.IrodsConnector()
+context.irods_connector.irods_env_file = context.irods_env_file
+context.irods_connector.irods_environment = context.irods_environment
+context.irods_connector.password = "************"
+context.irods_connector.connect()
+coll = context.irods_connector.data_op.get_collection("/<zone>/home/<coll_name>")
+
+type(coll.path)
+str
+```
+The class `utils.path.IrodsPath` turns such a string into a pure POSIX path without file system functionality. We also offer the complementary functionality for local paths in `utils.path.LocalPath`.
+ 
 
 :::
 
