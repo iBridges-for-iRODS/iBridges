@@ -3,7 +3,7 @@
 <p align="center">
   <p align="center">
     <a href="https://chstaiger.github.io/iBridges-Gui/"><strong> Documentation »</strong></a> .
-    <a href="https://chstaiger.github.io/iBridges-Gui/issues">Report Bug or request feature</a>
+    <a href="https://github.com/chStaiger/iBridges-Gui/issues">Report Bug or request feature</a>
     .
   </p>
 </p>
@@ -48,6 +48,14 @@ If the icommands are installed, the users can choose them as backend for up and 
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 ./iBridges.py
 ```
+
+
+Please consult the documenation for more information about the configration 
+	
+
+<p align="center">
+    <a href="https://chstaiger.github.io/iBridges-Gui/docs/getting-started.html#configuration"><strong> iBridges Configuration »</strong></a> .
+    
 ## Contributing
 ### Code
 Instructions on how to extend the GUI or contribute to the code base can be found in the [documentation](https://chstaiger.github.io/iBridges-Gui/).
