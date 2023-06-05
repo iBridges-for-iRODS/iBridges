@@ -30,8 +30,8 @@ University of Groningen, Center for Information Technology, 2022
 
 ### Python
 
-- Python 3 (>= 3.10)
-  - Tested on versions up to 3.10 on multiple platforms
+- Python 3 (>= 3.9)
+  - Tested with python versions 3.9 and 3.10 on Windows, Ubuntu20.22 and MacOs
 - pip-22.2.2
 - Python packages (see install via `requirements.txt` below)
 
