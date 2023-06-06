@@ -13,18 +13,21 @@ The GUI can be extended by users to implement their own data workflows.
 - `tabBrowser`: (Default) a main table to browse through collections, metadata and ACL manipulation, data deletion and single file up and downloads,
 - `tabUpDownload`: a two-pane upload/download tab
 - `tabELNData`: Uploading data and linking it to an Electronical Labnotebook experiment
-- `tabDataBundle`: (un)bundle datasets from/to four supported formats (depending on extra iRODS microservices)
+- `tabAmberWorkflow`: Up ad downloading data to and from Amberscript from iRODS
+- `tabDataBundle`: (Experimental)(un)bundle datasets from/to four supported formats (depending on extra iRODS microservices)
 - `tabCreateTicket`: create iRODS tickets for anonymous access
--  'tabInfo': (Default) an overview over the iRODS server and client, groups and resources
+-  `tabInfo`: (Default) an overview over the iRODS server and client, groups and resources
 - The search functionality is available from the drop-down menu `Options` 
+- Login with ticket: (Experimental)
 
 ## Dependencies
-- Python3.10.2+
+- Python3.9+
 - QT v6+
 
 ## Authors
 Maintainer: Christine Staiger, Tim van Daalen
-Contributors:  John McFarland
+
+Contributors: John McFarland, Maarten Schermer, Simona Stoica, Jos Tersteeg
 
 ## License
 GPL v3

@@ -5,7 +5,7 @@ The iRODS GUI works with any iRODS instance. Here we show how to configure the a
 *Please note*, that some features (tab views in the GUI) depend on certain server settings. You will find those dependencies at the end of the document.
 
 ## System dependencies
-- Python: you will need Python 3.10 or higher
+- Python: you will need Python 3.9 or higher
 - pip: to install package dependencies you will need pip3, version 22.2.2 or higher
 
 ## Installation
@@ -14,12 +14,14 @@ The iRODS GUI works with any iRODS instance. Here we show how to configure the a
 ```sh
 git clone git@github.com:chStaiger/iBridges-Gui.git
 cd iBridges-Gui
-python3.10 -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 You can already start the application with
-```
-./iBridges.py
+```sh
+./iBridges.py 
+#or
+python iBridges.py
 ```
 Please see below how to configure the spftware to connect to your iRODS instance.
 :::
@@ -29,18 +31,21 @@ Please see below how to configure the spftware to connect to your iRODS instance
 ```sh
 unzip iBridges-Gui.zip
 cd iBridges-Gui
-python3.10 -m pip install -r requirements.txt
+install -r requirements.txt
 ```
 
 You can already start the application with
-```
-./iBridges.py
+```sh
+./iBridges.py 
+#or
+python iBridges.py
 ```
 Please see below how to configure the spftware to connect to your iRODS instance.
 :::
 
 ::: {.callout-note collapse="true"}
 ### Download and install binaries
+The installation of binaries or executables will follow soon.
 :::
 
 
@@ -66,40 +71,63 @@ Please see below how to configure the spftware to connect to your iRODS instance
 
 ### iBridges config.json
 
-*iBridges* will create its own configuration file in `~/.ibridges/` containing the name of the last *iRODS* environment file used.  This `config.json` file can be updated to control other aspects of *iBridges*.  For example:
+*iBridges* will create its own configuration file in `~/.ibridges/ibridges_config.json` containing the name of the last *iRODS* environment file used.  This `ibridges_config.json` file can be updated to control other aspects of *iBridges*.  For example:
 
 ```json
 {
     "last_ienv": "irods_environment.json",
     "davrods_server": "https://server.fqdn.nl",
+    "eln_token": "<api key>",
+    "amber_token": "<api key>"
     "ui_tabs": [
         "tabUpDownload",
         "tabELNData",
+        "tabAmberWorkflow"
         "tabDataBundle",
         "tabCreateTicket"
     ],
-    "force_unknown_free_space": false
+    "force_transfers": false,
+    "check_free_space": false
 }
 ```
 Options:
 
-- `davrods_server`: for annotation of eLabJournal data
+- `davrods_server`: the address of a [webdav server](https://github.com/UtrechtUniversity/davrods), used to create entries in [ElabJournal](https://www.elabnext.com/products/elabjournal/)
+- `eln_token`, `amber_token`: API keys for `tabELNData` or `tabAmberWorkflow` respectively
 - `ui_tabs`: configure which tabs are shown (Browser and Info tabs always are)
     - `tabUpDownload`: a two-pane upload/download tab
     - `tabELNData`: for the Electronic Lab Notebook, eLabJournal
+    - `tabAmberWorkflow`: up and download data to and from [Amberscript](https://www.amberscript.com/en/) directly from iRODS.
     - `tabDataBundle`: (un)bundle datasets from/to four supported formats
     - `tabCreateTicket`: create iRODS tickets for anonymous access
-- `force_unknown_free_space`: ignore if resources' free space is unannotated
+- `force_transfers`: always write data to iRODS
+- `check_free_space`: checks the metadata *free_space* of resources and only shows resources with a *free_space* larger than 0.
 
-The `force_unknown_free_space` option is *REQUIRED* to be set to `true` if your default resource does not yet have its free space annotated.  It makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
+The `check_free_space` and `force_transfers` options are *REQUIRED*. The default values are  
 
-The logs for both GUI and CLI clients can be found in the `~/.ibridges/` directory/folder.
+```py
+"check_free_space": true,
+"force_transfers": false
+```
+
+However, if the iRODS instance does not provide information about free space through the resources' metadata *free_space*, no resources will be shown and no uploads will be allowed.
+
+To enable and allow data transfers in case *free_space* is not set, set the options to:
+
+```py
+"check_free_space": false,
+"force_transfers": true
+```
+
+this setting makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
+
+The logs for both GUI and CLI clients can be found in the `~/.ibridges/iBridges.log`.
 
 ## Usage
 
 ```sh
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
-./iBridges.py
+python iBridges.py
 ```
 
 

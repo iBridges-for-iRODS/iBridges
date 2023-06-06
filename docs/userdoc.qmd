@@ -60,16 +60,52 @@ The `Select and Close` button will load the selected collections and objects int
 ## Additional features
 ::: {.callout-note collapse="true"}
 ## Elabjournal
+- Add `"tabELNData"` to the `"ui_tabs"` in *.ibridges/ibridges_config*
+- Store your ElabJournal API token in *.ibridges/ibridges_config* :
+	
+	```py
+	{
+	    "davrods_server": "<Fully qualified domain name>",
+    	"eln_token": "xx.elabjournal.com;*********",
+    	"force_transfers": false,
+    	"check_free_space": true,
+    	"ui_tabs":[
+    		"tabELNData"
+    	]
+    }
+	```
 :::
 
 ::: {.callout-note collapse="true"}
-## Overview tab
-### Resources
+## Amberscript
+- Add `tabAmberWorkflow` to the `"ui_tabs"` in *.ibridges/ibridges_config.json*
+- Store your Amberscript API token in *.ibridges/ibridges_config.json*
+	
+	```py
+	{
+    	"amber_token": "**************",
+    	"force_transfers": false,
+    	"check_free_space": true,
+    	"ui_tabs":[
+    		"tabAmberWorkflow"
+    	]
+    }
+	```
+
 :::
 
 ::: {.callout-note collapse="true"}
 ## Experimental tabs and fetaures
 ### Data bundeling
+Please contact us through a ticket to get more information on this feature.
+
 ### Ticket creation
+Tickets can be created in the tab *"Create access tokens"* (`tabTicketLogin` in *.ibridges/ibridges_config.json*).
+
+Currently, tickets can only be set to iRODS collections and in mode *read*. Tickets can be given an expiration date.
+
 ### Ticket Login
+Users can login with a ticket, the irods server and the collection name if the *anonymous user* is allowed on iRODS instance. 
+**Currently, this feature does not work if the iRODS instance is SSL enabled.**
+
 :::
