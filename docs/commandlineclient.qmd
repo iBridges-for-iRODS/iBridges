@@ -1,51 +1,54 @@
 # iBridges CLI
-The iBridges CLI is a commandline interface to up and download large amounts of data. It only updates data when necessary, i.e. if checksums of files differ.
+The iBridges CLI is a command line interface to up and download large amounts of data. It only updates data when necessary, i.e. if checksums of files differ.
 
 ## Configuration
 
-- Minimal configuration file for uploading data to iRODs:
+The client uses the same configuration files as the GUI, i.e. the *irods_environment.json* and the *ibridges_config.json*.
 
-```ini
-[iRODS]
-irodsenv = /<path to>/irods_environment.json
-irodscoll =
-irodsresc =
-webdav =
-```
+- Please create a directory `~/.irods` and place your `irods_environment.json` there:
+	- Linux: /home/\<username\>/.irods/irods_environment.json
+	- Mac: /Users/\<username\>/.irods/irods_environment.json
+	- Windows: C:\\\\....\\\<username\>\\.irods\\irods_environment.json	
 
-- Configuration file for downloading data from iRODS:
+- Please create a directory named `~/.ibridges`. You can start the client and let the configuration file `~/.ibridges/ibridges_config.json` be created.
 
-```ini
-[iRODS]
-irodsenv = /<path to>/irods_environment.json
-irodscoll =
-irodsresc =
-webdav =
+- If your iRODS instance does not provide information on available storage through the resource metadata *free_space*, please make sure to have the following setting in `~/.ibridges/ibridges_config.json`
+    
+    ```sh
+    "check_free_space": false,
+    "force_transfers": true,
+    ```
 
-[DOWNLOAD]
-path = /path/to/download/directory
-```
+## Commandline parameters
+- `--local_path LOCAL_PATH, -l LOCAL_PATH`: mandatory
+- ` --irods_path IRODS_PATH, -i IRODS_PATH`: mandatory
+- `--operation {upload,download}, -o {upload,download}`: mandatory, direction of data transfer
+- `--env ENV, -e ENV`: optional, path to *irods_environment.json*; default value is last irods environment file as mentioned in *~/.ibridges/ibridges_conf.json*, if that value is not set in the file it is the default *~/.irods/irods_environment.json*
+- `--irods_resc IRODS_RESC, -r IRODS_RESC`: optional, default should be set in *~/.irods/irods_environment.json* as `"irods_default_resource": "name of resource"`
+- `--logdir LOGDIR`: optional, default is *~/.ibridges* in your home directory
 
-- Configuration files for uploading data to iRODS and linking them to ElabJournal experiment:
-
-```ini
-  [iRODS]
-  irodsenv = /<path to>/irods_environment.json
-  irodscoll =
-  irodsresc = bigstore
-  webdav = http://scomp1486.wurnet.nl
-
-  [ELN]
-  token = wur.elabjournal.com;<some hash>
-  group =
-  experiment =
-  title =
-  ```
 
 ## Usage
 
 ```sh
 ./iBridgesCli.py -h
-./iBridgesCli -c </path/to/config> -d </path/to/folder/or/file/to/upload>
-./iBridgesCli.py -c </path/to/config> -i </zone/home/path/to/coll/or/obj>
+usage: python iBridgesCli.py [-h] [--local_path LOCAL_PATH]
+                             [--irods_path IRODS_PATH] --operation
+                             {upload,download} [--env ENV]
+                             [--irods_resc IRODS_RESC] [--logdir LOGDIR]
+
+options:
+  -h, --help            show this help message and exit
+  --local_path LOCAL_PATH, -l LOCAL_PATH
+                        Local path to download to, or upload from
+  --irods_path IRODS_PATH, -i IRODS_PATH
+                        iRods path to upload to, or download from
+  --operation {upload,download}, -o {upload,download}
+  --env ENV, -e ENV     Path to iRods environment file
+                        (irods_environment.json).
+  --irods_resc IRODS_RESC, -r IRODS_RESC
+                        iRods resource. If omitted default will be read from
+                        iRods env file.
+  --logdir LOGDIR       Directory for logfile. Default:
+                        /home/user/.ibridges
 ```
