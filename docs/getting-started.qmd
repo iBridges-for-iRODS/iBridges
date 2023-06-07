@@ -23,7 +23,7 @@ You can already start the application with
 #or
 python iBridges.py
 ```
-Please see below how to configure the spftware to connect to your iRODS instance.
+Please see below how to configure the software to connect to your iRODS instance.
 :::
 
 ::: {.callout-note collapse="true"}
@@ -40,7 +40,7 @@ You can already start the application with
 #or
 python iBridges.py
 ```
-Please see below how to configure the spftware to connect to your iRODS instance.
+Please see below how to configure the software to connect to your iRODS instance.
 :::
 
 ::: {.callout-note collapse="true"}
