@@ -5,20 +5,27 @@ The iBridges CLI is a command line interface to up and download large amounts of
 
 The client uses the same configuration files as the GUI, i.e. the *irods_environment.json* and the *ibridges_config.json*.
 
-- Please create a directory named `.irods` in your home directory:
+- Please create a directory `~/.irods` and place your `irods_environment.json` there:
 	- Linux: /home/\<username\>/.irods/irods_environment.json
 	- Mac: /Users/\<username\>/.irods/irods_environment.json
 	- Windows: C:\\\\....\\\<username\>\\.irods\\irods_environment.json	
 
-- Please create a directory named `.ibridges` in your home directory
+- Please create a directory named `~/.ibridges`. You can start the client and let the configuration file `~/.ibridges/ibridges_config.json` be created.
+
+- If your iRODS instance does not provide information on available storage through the resource metadata *free_space*, please make sure to have the following setting in `~/.ibridges/ibridges_config.json`
+    
+    ```sh
+    "check_free_space": false,
+    "force_transfers": true,
+    ```
 
 ## Commandline parameters
 - `--local_path LOCAL_PATH, -l LOCAL_PATH`: mandatory
 - ` --irods_path IRODS_PATH, -i IRODS_PATH`: mandatory
 - `--operation {upload,download}, -o {upload,download}`: mandatory, direction of data transfer
-- `--env ENV, -e ENV`: optional, path to *irods_environment.json*; default value is last irods environment file as mentioned in *.ibridges/ibridges_conf.json*, if that value is not set in the file it is the default *.irods/irods_environment.json*
-- `--irods_resc IRODS_RESC, -r IRODS_RESC`: optional, default should be set in *.irods/irods_environment.json* as `"irods_default_resource": "name of resource"`
-- `--logdir LOGDIR`: optional, default is *.ibridges* in your home directory
+- `--env ENV, -e ENV`: optional, path to *irods_environment.json*; default value is last irods environment file as mentioned in *~/.ibridges/ibridges_conf.json*, if that value is not set in the file it is the default *~/.irods/irods_environment.json*
+- `--irods_resc IRODS_RESC, -r IRODS_RESC`: optional, default should be set in *~/.irods/irods_environment.json* as `"irods_default_resource": "name of resource"`
+- `--logdir LOGDIR`: optional, default is *~/.ibridges* in your home directory
 
 
 ## Usage

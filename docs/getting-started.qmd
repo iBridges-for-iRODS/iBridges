@@ -18,6 +18,7 @@ pip install -r requirements.txt
 ```
 
 You can already start the application with
+
 ```sh
 ./iBridges.py 
 #or
@@ -35,6 +36,7 @@ install -r requirements.txt
 ```
 
 You can already start the application with
+
 ```sh
 ./iBridges.py 
 #or
