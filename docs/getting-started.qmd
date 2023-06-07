@@ -133,6 +133,12 @@ export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
 python iBridges.py
 ```
 
+or
+
+```sh
+env PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML ./iBridges.py
+```
+
 
 ## iRODS server dependencies
 ### Storage capacity
