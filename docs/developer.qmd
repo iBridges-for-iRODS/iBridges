@@ -1,7 +1,7 @@
 # Developer guide
 
 ## Submitting issues
-If you want to report a bug please make sure to mention:
+If you want to report a bug, please make sure to mention:
 - Software version or branch you are working on
 - Python version and iRODS server version
 - `python-irodsclient` version
@@ -22,13 +22,13 @@ Each tab in the GUI is an own class. If you want to create your own tab, please 
 
 ::: {.callout-note collapse="true"}
 ### 1. Create a ui-file
-To ease the layouting of the new tab we recommend to use the QT-designer. Please choose **Qt Designer Form** and the template **Widget**. 
+To help you to create a nice layout of the new tab we recommend to use the QT-designer. Please choose **Qt Designer Form** and the template **Widget**. 
 
 ![](../screenshots/create-ui-file.png){fig-align="center" height=300}
 
 Set the **Path** to *\<iBridges-Gui/gui/ui-files\>* 
 
-To ensure the same color theme, right-click on **Form** and choose change stylesheet. 
+To ensure the same color theme, right-click on **Form** and choose change the stylesheet. 
 
 ![](../screenshots/colortheme-ui-file.png){fig-align="center" width=300}
 
@@ -59,9 +59,9 @@ QLabel#error_label
 }
 ```
 
-The *errorLabel* is specific object, while the settings for *Qwidget*, *QLineEdit* and *QTreeView* are valid for all objects of that type.
+The *errorLabel* is a specific object, while the settings for *Qwidget*, *QLineEdit* and *QTreeView* are valid for all objects of that type.
 
-Now you can design your new form. In our example our form contains a placeholder for the iRODS tree, a text field (green text) and an error label (yellow text). 
+Now you can design your new form. In our example the form contains a placeholder for the iRODS tree, a text field (green text) and an error label (yellow text). 
 
 
 ![](../screenshots/layout-ui-file.png){fig-align="center" height=300}
@@ -99,7 +99,7 @@ class Ui_Form(object):
         Form.setObjectName("Form")
         ...
 ``` 
-You can change the class name *Ui_Form* to something more meaningful. In this example we rename the class to **Ui_ExampleTab**.
+You can change the class name *Ui_Form* to something more meaningful. In this example, we rename the class to **Ui_ExampleTab**.
 
 We provide a full example file in [*iBridges/gui/IrodsExampleTab.py*](https://github.com/chStaiger/iBridges-Gui/blob/master/gui/IrodsExampleTab.py).
 
@@ -161,7 +161,7 @@ ui_tabs_lookup = {
 ```
 
 Now we need to write the function `setupTabExample`
-Add the new function below `setupTabBrowser`:
+Add the new function `setupTabBrowser`:
 
 ```py
     def setupTabExample(self):
@@ -170,13 +170,13 @@ Add the new function below `setupTabBrowser`:
 ```
 Don't forget to add the new keyword to the tabs in your *ibridges_config.json*
 
-Now the new tab should appear as last tab in the application and we can continue definning its behaviour.
+Now the new tab should appear as last tab in the application and we can continue defining its behaviour.
 :::
 
 ::: {.callout-note collapse="true"}
 ### 5. Defining the functionality of the new tab 
 
-You migt have observed that we already defined a variable `context` as a global variable. The class `utils.context.Context` contains all parameters from the *irods_environment.json*, *ibridges_config.json* and it contains an object `context.irods_connector`.
+You might have observed that we already defined a variable `context` as a global variable. The class `utils.context.Context` contains all parameters from the *irods_environment.json*, *ibridges_config.json* and it contains an object `context.irods_connector`.
 
 ```py
 import utils
@@ -195,8 +195,7 @@ dir(context)
  'save_ibridges_configuration',
  'save_irods_environment']
 ```
-The class `Context` is a singleton, i.e. no matter how often you instantiate a `Context` object
- there will just be one object in memory.
+The class `Context` is a singleton, i.e. no matter how often you instantiate a `Context` object there will always and only be one object in memory.
 
 ```py
 context = utils.context.Context()
@@ -210,7 +209,7 @@ That also means that if you change the values in the object, all other classes u
 
 `irods_connector` contains all functionality to interact with the iRODS server.
 
-With all that you can define the functionality of the tab like in the [exmaple we provide](https://github.com/chStaiger/iBridges-Gui/blob/master/gui/IrodsExampleTab.py).
+With all that you can define the functionality of the tab like in the [example we provide](https://github.com/chStaiger/iBridges-Gui/blob/master/gui/IrodsExampleTab.py).
 
 :::
 
