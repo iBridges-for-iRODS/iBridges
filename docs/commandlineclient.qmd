@@ -1,5 +1,5 @@
 # iBridges CLI
-The iBridges CLI is a commandline interface to up and download large amounts of data. It only updates data when necessary, i.e. if checksums of files differ.
+The iBridges CLI is a command line interface to up and download large amounts of data. It only updates data when necessary, i.e. if checksums of files differ.
 
 ## Configuration
 

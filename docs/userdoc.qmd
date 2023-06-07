@@ -24,7 +24,7 @@ To browse through your data collections in iRODS click on the **Browser** tab.
    - Click on the `Name`  of a collection or option. This will load the tabs below the table (see below)
    - Double click on a collection to navigate into the collection
 3. Lower tabs
-   - Preview: Lists the content of a collection or the first 50 lines  of textual data (.txt, .json, .csv)
+   - Preview: Lists the content of a collection or the first 50 lines  of text data (.txt, .json, .csv)
    - Metadata: You can annotate collections and data objects with own annotation `key, value, unit`. The keys and values can be used in the search-drop down menu to look for data
    - Permissions: Will show the permissions own(er), read, write.
    - Resources: The tab shows on which storage resource data objects are stored. Note, collections do not have a resource.
@@ -45,13 +45,13 @@ Note: The `File Upload` and `File download` buttons are only meant for uploading
 
 ![](../screenshots/howto_download2.png)
 
-When the  check is done the loading screen disappears and the number of files which exist with a different checksum (1) and files which only exist on iRODS (2) will be indicated. Press the `Download` button to start the file transfer. iRODS automatically checks the checksum to ensure all downloaded files are complete.
+When the  check is done, the loading screen disappears and the number of files which exist with a different checksum (1) and files which only exist on iRODS (2) will be indicated. Press the `Download` button to start the file transfer. iRODS automatically checks the checksum to ensure all downloaded files are complete.
 
 ## Uploading data
 
 ![](../screenshots/howto_upload.png)
 
- 1. Check the resource. There may be several storage resources configured for you in the system. Your iRODS admin will give you advice which one to use for which data and workflow. The dropdown menu is preset with the `irods_default_resource` from the *.irods/irods_environment.json*.
+ 1. Check the resource. There may be several storage resources configured for you in the system. Your iRODS admin will give you advice which one to use for which data and workflow. The drop-down menu is preset with the `irods_default_resource` from the *.irods/irods_environment.json*.
 Your iRODS administrator can help you to decide which resource to use for which data. 
  2. Select the local file or folder and iRODS collection to upload to. 
  3. Press the upload button. As in the download, a pop up window will appear which will execute the same checks as for the data downloads.
@@ -88,9 +88,9 @@ The `Select and Close` button will load the selected collections and objects int
 - You will see that the group table will be filled and once you selected (simply click on) a group, the experiments will be loaded. Please click on the experiment you would like to upload data for.
 - Step 2: When you successfully selected a group and an experiment their IDs will show up here.
 - Step 3: Select the data on your PC which you want to upload to iRODS.
-- Step 4: Make sure to provide the path to the correct collection in iRODS where the data should be uploaded to
+- Step 4: Make sure to provide the path to the correct collection in iRODS where the data should be uploaded to.
 - When you click on **Upload**, a new collection will be created in iRODS (if it does not exist) with the path *\<collection provided in step 4\>/ELN/\<groupID\>/\<experimentID\>*
-- A preview of the data will be shown in teh fiel below the iRODS path.
+- A preview of the data will be shown in the file below the iRODS path.
 - Uploaded data to iRODS will be labeled with the URL to the Elabjournal experiment. You can inspect the metadata in the tab *Browser*.
 ![](../screenshots/eln-metadata.png)
 

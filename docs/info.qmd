@@ -4,7 +4,7 @@ title: "What is iBridges"
 iBridges is a standalone client software *desktop application*, written in **Python**, to provide users of *Windows, Linux and Mac* with a *graphical user interface* to interact with **iRODS** servers. 
 The tool is agnostic to any rules/policies in the server. The out-of-the-box iBridges supports three main functions: browsing and manipulating data objects, upload/download data, and search through data collections. 
 
-We also provide a commandline interface with which data can be uploaded and downloaded.
+We also provide a command line interface with which data can be uploaded and downloaded.
 
 The GUI can be extended by users to implement their own data workflows.
 

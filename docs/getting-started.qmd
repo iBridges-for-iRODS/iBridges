@@ -1,7 +1,7 @@
 ---
 title: "iBridges configuration"
 ---
-The iRODS GUI works with any iRODS instance. Here we show how to configure the application to work your specific iRODS instance.
+The iRODS GUI works with any iRODS instance. Here, we show how to configure the application to work your specific iRODS instance.
 *Please note*, that some features (tab views in the GUI) depend on certain server settings. You will find those dependencies at the end of the document.
 
 ## System dependencies
@@ -110,7 +110,7 @@ The `check_free_space` and `force_transfers` options are *REQUIRED*. The default
 "force_transfers": false
 ```
 
-However, if the iRODS instance does not provide information about free space through the resources' metadata *free_space*, no resources will be shown and no uploads will be allowed.
+However, if the iRODS instance does not provide information about free space through the resource's metadata *free_space*, no resources will be shown and no uploads will be allowed.
 
 To enable and allow data transfers in case *free_space* is not set, set the options to:
 
@@ -119,9 +119,9 @@ To enable and allow data transfers in case *free_space* is not set, set the opti
 "force_transfers": true
 ```
 
-this setting makes unannotated top-level resources visible in the drop-downs allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
+This setting makes top-level resources which are not annotated with their free space visible in the drop-down menus allowing selection of them.  In addition, it sets the `force` flag for uploads overriding resource overflow protection.
 
-The logs for both GUI and CLI clients can be found in the `~/.ibridges/iBridges.log`.
+The logs for both GUI and CLI clients can be found in `~/.ibridges/iBridges.log`.
 
 ## Usage
 
