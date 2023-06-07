@@ -1,7 +1,6 @@
 import logging
 import sys
 
-import irods.exception
 import PyQt6.QtCore
 import PyQt6.QtGui
 import PyQt6.QtWidgets
@@ -23,15 +22,19 @@ class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
             PyQt6.uic.loadUi("gui/ui_files/ExampleTab.ui", self)
         self.error_label.setText("Whooohoo")
 
+        self.ienv_dict = self.context.irods_environment.config
         self._initialize_irods_model(self.irodsTreeView)
         self.irodsTreeView.clicked.connect(self.treeFunction)
 
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(treeView)
         treeView.setModel(self.irodsmodel)
-        irodsRootColl = self.context.irods_environment.config.get(
-                'irods_home', '/'+self.context.irods_connector.zone)
-        self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
+        
+        home_coll_str = utils.path.IrodsPath(
+            '/', self.context.irods_connector.zone, 'home')
+        irods_root_coll = self.ienv_dict.get('irods_home', home_coll_str)
+        
+        self.irodsmodel.setHorizontalHeaderLabels([irods_root_coll,
                                               'Level', 'iRODS ID',
                                               'parent ID', 'type'])
         treeView.expanded.connect(self.irodsmodel.refresh_subtree)
@@ -56,8 +59,6 @@ class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
     def treeFunction(self):
         index, path = self._get_paths_from_trees(self.irodsTreeView)
         self.textField.setText(path)
- 
+
         return(index, path)
-
-
 
