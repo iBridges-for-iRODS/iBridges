@@ -52,12 +52,13 @@ The installation of binaries or executables will follow soon.
 ## Configuration
 ### iRODS environment.json
 
-- Please create a directory/folder named `.irods` in your home directory/folder (`~/.irods/` in Linux shorthand).
+- Please create a directory `~/.irods`
+- Your *iRODS* admin will provide an `irods_environment.json` file, its contents, or instructions on how to create it.  Place that file into the `.irods` directory/folder.
   - Linux: `/home/\<username\>/.irods/irods_environment.json`
   - Mac: `/Users/\<username\>/.irods/irods_environment.json`
   - Windows: `C:\\\\....\\\<username\>\\.irods\\irods_environment.json`
 
-- Your *iRODS* admin will provide an `irods_environment.json` file, its contents, or instructions on how to create it.  Place that file into the `.irods` directory/folder.  Here is an example that can be created with the `iinit` iCommands on Linux:
+-   Here is an example that can be created with the `iinit` iCommands on Linux:
 
 ```json
 {
