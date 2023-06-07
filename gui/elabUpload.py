@@ -273,7 +273,7 @@ class Worker(QObject, utils.context.ContextContainer):
                     items.extend(objs)
                 self.context.irods_connector.add_metadata(items, 'ELN', self.expUrl)
             self.progress.emit()
-            self.finish.emit()
+            self.finished.emit()
         except Exception as error:
             logging.error('ElabUpload data upload and annotation worker: %r', error)
             self.error.emit("ERROR: upload failed.")
