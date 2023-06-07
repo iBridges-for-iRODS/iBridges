@@ -62,6 +62,8 @@ Your iRODS administrator can help you to decide which resource to use for which 
 
 Click on `Options` in the menu bar of the window and select `Search`. This will open a mask to search for  data objects and collections using metadata key-value pairs, collection paths and data object paths. 
 
+![](../screenshots/menu_search.png)
+
 The `Select and Close` button will load the selected collections and objects into the **Browser** tab where you can further inspect and annotate the data.
 
 ## Additional features {#sec-features}
