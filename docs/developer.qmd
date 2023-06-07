@@ -101,32 +101,26 @@ class Ui_Form(object):
 ``` 
 You can change the class name *Ui_Form* to something more meaningful. In this example we rename the class to **Ui_ExampleTab**.
 
-For the software package to find the layout for the new tab, we need to add it to the *iBridges/gui/ui_files/__init__.py*.
-Add the line:
+We provide a full example file in [*iBridges/gui/IrodsExampleTab.py*](https://github.com/chStaiger/iBridges-Gui/blob/master/gui/IrodsExampleTab.py).
+
+This is the minimum code you need to initialise the new tab in the GUI:
+
 ```py
-from . import ExampleTab
-```
-:::
+import logging
+import sys
 
-::: {.callout-note collapse="true"}
-### 3. Integrate the new tab into iBridges
-- Create a new python class *iBridges/gui/IrodsExampleTab.py* with the following content:
-	
-	```py
-	import logging
-	import sys
+import PyQt6.QtCore
+import PyQt6.QtGui
+import PyQt6.QtWidgets
+import PyQt6.uic
 
-	import irods.exception
-	import PyQt6.QtCore
-	import PyQt6.QtGui
-	import PyQt6.QtWidgets
-	import PyQt6.uic
+import gui
+import meta
+import utils
+from gui.irodsTreeView import IrodsModel
 
-	import gui
-	import meta
-	import utils
-
-	class IrodsExampleTab(PyQt6.QtWidgets.QWidget, gui.ui_files.ExampleTab.Ui_ExampleTab):
+class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
+                   gui.ui_files.ExampleTab.Ui_ExampleTab):
     context = utils.context.Context()
     def __init__(self):
         super().__init__()
@@ -134,8 +128,20 @@ from . import ExampleTab
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/ExampleTab.ui", self)
-        print("Whooohoo")
-	```
+        self.error_label.setText("Whooohoo")
+```
+
+For the software package to find the layout for the new tab, we need to add it to the *iBridges/gui/ui_files/__init__.py*.
+Add the line:
+
+```py
+from . import ExampleTab
+```
+:::
+
+::: {.callout-note collapse="true"}
+### 3. Integrate the new tab into iBridges
+- Create a new python class *iBridges/gui/IrodsExampleTab.py*
 - Add `from . import IrodsExampleTab` to *iBridges/gui/__init__.py*
 
 :::
@@ -204,70 +210,8 @@ That also means that if you change the values in the object, all other classes u
 
 `irods_connector` contains all functionality to interact with the iRODS server.
 
-With all that you can define the functionality of the tab, e.g.:
+With all that you can define the functionality of the tab like in the [exmaple we provide](https://github.com/chStaiger/iBridges-Gui/blob/master/gui/IrodsExampleTab.py).
 
-```py
-import PyQt6.QtCore
-import PyQt6.QtGui
-import PyQt6.QtWidgets
-import PyQt6.uic
-
-import gui
-import meta
-import utils
-from gui.irodsTreeView import IrodsModel
-
-class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
-                   gui.ui_files.ExampleTab.Ui_ExampleTab):
-    context = utils.context.Context()
-    def __init__(self):
-        super().__init__()
-        if getattr(sys, 'frozen', False):
-            super().setupUi(self)
-        else:
-            PyQt6.uic.loadUi("gui/ui_files/ExampleTab.ui", self)
-        self.error_label.setText("Whooohoo")
-
-        self.ienv_dict = self.context.irods_environment.config
-        self._initialize_irods_model(self.irodsTreeView)
-        self.irodsTreeView.clicked.connect(self.treeFunction)
-
-    def _initialize_irods_model(self, treeView):
-        self.irodsmodel = IrodsModel(treeView)
-        treeView.setModel(self.irodsmodel)
-        
-        home_coll_str = utils.path.IrodsPath(
-            '/', self.context.irods_connector.zone, 'home')
-        irods_root_coll = self.ienv_dict.get('irods_home', home_coll_str)
-        
-        self.irodsmodel.setHorizontalHeaderLabels([irodsRootColl,
-                                              'Level', 'iRODS ID',
-                                              'parent ID', 'type'])
-        treeView.expanded.connect(self.irodsmodel.refresh_subtree)
-        treeView.clicked.connect(self.irodsmodel.refresh_subtree)
-        self.irodsmodel.init_tree()
-
-        treeView.setHeaderHidden(True)
-        treeView.header().setDefaultSectionSize(180)
-        treeView.setColumnHidden(1, True)
-        treeView.setColumnHidden(2, True)
-        treeView.setColumnHidden(3, True)
-        treeView.setColumnHidden(4, True)
-
-    def _get_paths_from_trees(self, treeView, local=False):
-        index = treeView.selectedIndexes()[0]
-        if local:
-            path = self.localmodel.filePath(index)
-        else:
-            path = self.irodsmodel.irods_path_from_tree_index(index)
-        return(index, path)
-
-    def treeFunction(self):
-        index, path = self._get_paths_from_trees(self.irodsTreeView)
-        self.textField.setText(path)
-
-        return(index, path)
-```
 :::
 
 
