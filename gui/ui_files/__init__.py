@@ -16,3 +16,4 @@ from . import tabPage
 from . import tabTicketAccess
 from . import tabTicketCreate
 from . import tabUpDownload
+from . import ExampleTab

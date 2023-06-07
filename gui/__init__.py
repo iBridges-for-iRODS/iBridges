@@ -16,3 +16,4 @@ from . import amberWorkflow
 from . import mainmenu
 from . import popupWidgets
 from . import ui_files
+from . import IrodsExampleTab

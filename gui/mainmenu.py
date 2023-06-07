@@ -60,6 +60,7 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
                 'tabCreateTicket': self.setupTabCreateTicket,
                 'tabAmberWorkflow': self.setupTabAmberWorkflow,
                 'tabInfo': self.setupTabInfo,
+                'tabExample': self.setupTabExample,
             }
             found = set(self.conf.get('ui_tabs', []))
             if not found:
@@ -90,6 +91,10 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
         # needed for Search
         self.irodsBrowser = gui.IrodsBrowser.IrodsBrowser()
         self.tabWidget.addTab(self.irodsBrowser, 'Browser')
+
+    def setupTabExample(self):
+        self.exampleTab = gui.IrodsExampleTab.IrodsExampleTab()
+        self.tabWidget.addTab(self.exampleTab, 'Example')
 
     def setupTabUpDownload(self):
         self.updownload = gui.IrodsUpDownload.IrodsUpDownload()
