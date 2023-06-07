@@ -138,7 +138,7 @@ python iBridges.py
 To protect the *iRODS* resources from overflowing you should install an event hook on the *iRODS* servers that fill the resources' `RESC_FREE_SPACE` attribute in the iCAT.  These can be either *catalog* or *resource* servers.  Please add the following to the `/etc/irods/core.re` or another rule engine file:
 
 ::: {.callout-note collapse="true"}
-## Example storage capacity rule
+### Example storage capacity rule
 
 ```py
 ######################################################
@@ -174,6 +174,13 @@ For very busy systems, updating this value for every upload or delete can be pre
 :::
 
 For more complex resource hierarchies, the top of the resource tree (the _root_ node) will usually not be updated with the free space values, but if it is (the sum of all _leaf_ nodes is asssumed), the value in any _leaf_ nodes will be ignored.  If the _root_ node has no free space value, the sum of the _leaf_ nodes will be used instead.  If none of the resource nodes are annotated, an error will occur.  This feature can be overridden by annotating the _root_ node's free space value with an arbitrarily large value.  _*Please note, that this action disables the built-in protection offered by this client.*_
+
+### Resource status
+In the tab *Info* users can view the `status` of the resources. This metadata can be set by admins:
+
+```sh
+iadmin modresc <resource name> status <String>
+```
 
 ### Data (un)bundling
 
