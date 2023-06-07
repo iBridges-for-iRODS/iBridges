@@ -229,7 +229,6 @@ class Context:
         """Reset existing instances of dynamic class members
 
         """
-        del self.irods_connector
         if self.ibridges_configuration:
             self.ibridges_configuration.reset()
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
@@ -238,6 +237,8 @@ class Context:
             self.irods_environment.reset()
             filepath = path.LocalPath(self.irods_env_file).expanduser()
             self.irods_environment.filepath = filepath
+        if self.irods_connector:
+            self.irods_environment.reset()
 
 
 def is_complete(conf_dict: dict, mandatory: list, conf_type: str) -> bool:
