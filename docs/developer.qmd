@@ -2,6 +2,7 @@
 
 ## Submitting issues
 If you want to report a bug, please make sure to mention:
+
 - Software version or branch you are working on
 - Python version and iRODS server version
 - `python-irodsclient` version
