@@ -5,13 +5,13 @@ iBridges is a GUI to a Data management platform based on iRODS. It exposes iRODS
 The tabs which currently are in use:
 
 - The **Browser** is a tool to browse through iRODS collections and gather information on iRODS data objects
-- The **Up and Download** tab gives tools to up and download large data safely.
-- The **ELN Data upload** tab is made for specific data uploads that belong to an Experiment described in an ElabJournal instance. 
+- The **Data Transfers** tab gives tools to up and download large data safely.
+- In the **Compress/bundle data** tab the user is given tools to bundle (tar)  iRODS data collections and to extract them again. Note, that this only bundles the files, it will not preserve the metadata.
 - The **Create access token** tab allows users to create iRODS tickets to collections in read mode.
+- The **ELN Data upload** tab is made for specific data uploads that belong to an Experiment described in an Elabjournal instance. 
 - The **AmberScript Connection** tab allows to up and download data from and to Amberscript.
 - The **Info** tab summarises information from the iRODS server e.g. the user's group, resources, their status and their available storage etc.
 
-For experimental feature tabs please refer to section @sec-features.
 
 ## Browsing through your iRODS collections
 
@@ -24,15 +24,15 @@ To browse through your data collections in iRODS click on the **Browser** tab.
    - Click on the `Name`  of a collection or option. This will load the tabs below the table (see below)
    - Double click on a collection to navigate into the collection
 3. Lower tabs
-   - Preview: Lists the content of a collection or the first 50 lines  of text data (.txt, .json, .csv)
-   - Metadata: You can annotate collections and data objects with own annotation `key, value, unit`. The keys and values can be used in the search-drop down menu to look for data
-   - Permissions: Will show the permissions own(er), read, write.
-   - Resources: The tab shows on which storage resource data objects are stored. Note, collections do not have a resource.
-   - Delete: In the browser table click on the collection or object you want to delete, then click `Load` and then `Delete`. This will delete a whole collection with all its members or the data object. 
+   - **Preview**: Lists the content of a collection or the first 50 lines  of text data (.txt, .json, .csv)
+   - **Metadata**: You can annotate collections and data objects with own annotations of  `key, value, unit`. The keys and values can be used in the search-drop down menu to search for data.
+   - **Permissions**: Will show the permissions own(er), read, write. It also provides to grant and withdraw rights.
+   - **Replicas**: The tab shows the resource hierarchy and on which storage resource data objects are stored. It also provides information on the size and modificatin dates, and the status (good or broken) per resource which holds a copy of the data. Note, collections do not have a resource.
+   - **Delete**: In the browser table click on the collection or object you want to delete, then click `Load` and then `Delete`. This will delete a whole collection with all its members or the data object. 
 
 Note: The `File Upload` and `File download` buttons are only meant for uploading and downloading small single files. For large data transfers go to the **Data transfer** tab.
 
-### Downloading data
+## Downloading data
 ![](../screenshots/howto_download.png)
 
  1. Select the iRODS collection or data object to download and the folder
@@ -57,6 +57,18 @@ Your iRODS administrator can help you to decide which resource to use for which 
  3. Press the upload button. As in the download, a pop up window will appear which will execute the same checks as for the data downloads.
 
 ![](../screenshots/howto_upload2.png)
+
+::: {.callout-note collapse="true"}
+## Create access tokens
+iRODS tickets can be created in the tab *"Create access tokens"* (`tabTicketLogin` in *.ibridges/ibridges_config.json*).
+
+Currently, tickets can only be set to iRODS collections and in mode *read*. Tickets can be given an expiration date.
+:::
+
+::: {.callout-note collapse="true"}
+## Data bundeling
+Users can bundle their data into tar-archives. Please note that metadata and acls will not be part of the bundled data and will be "forgotten" when unpacking data.
+:::
 
 ## Searching for data
 
@@ -116,17 +128,9 @@ The `Select and Close` button will load the selected collections and objects int
 
 :::
 
-::: {.callout-note collapse="true"}
-## Create access tokens
-iRODS tickets can be created in the tab *"Create access tokens"* (`tabTicketLogin` in *.ibridges/ibridges_config.json*).
-
-Currently, tickets can only be set to iRODS collections and in mode *read*. Tickets can be given an expiration date.
-:::
 
 ::: {.callout-note collapse="true"}
-## Experimental tabs and fetaures {#sec-experimental}
-### Data bundeling
-Please contact us through a ticket to get more information on this feature.
+## Prototype tabs and fetaures {#sec-experimental}
 
 ### Ticket Login
 Users can login with a ticket, the iRODS server name and the collection name if the *anonymous user* is allowed on the iRODS server. 

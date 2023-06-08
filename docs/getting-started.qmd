@@ -1,7 +1,9 @@
 ---
 title: "iBridges configuration"
 ---
-The iRODS GUI works with any iRODS instance. Here, we show how to configure the application to work your specific iRODS instance.
+The iRODS GUI works with iRODS instances of versions 4.2.11, 4.2.12 and 4.3.0. 
+
+Here, we show how to configure the application to work your specific iRODS instance.
 *Please note*, that some features (tab views in the GUI) depend on certain server settings. You will find those dependencies at the end of the document.
 
 ## System dependencies
@@ -14,7 +16,7 @@ The iRODS GUI works with any iRODS instance. Here, we show how to configure the 
 ```sh
 git clone git@github.com:chStaiger/iBridges-Gui.git
 cd iBridges-Gui
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 You can already start the application with
@@ -32,7 +34,7 @@ Please see below how to configure the software to connect to your iRODS instance
 ```sh
 unzip iBridges-Gui.zip
 cd iBridges-Gui
-install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 You can already start the application with
@@ -106,7 +108,10 @@ Options:
 - `force_transfers`: always write data to iRODS
 - `check_free_space`: checks the metadata *free_space* of resources and only shows resources with a *free_space* larger than 0.
 
-The `check_free_space` and `force_transfers` options are *REQUIRED*. The default values are  
+The order of the list `ui_tabs` defines in which order the tabs will be presented in the GUI. By default the first tab is always the iRODS Browser and the last tab is always the Info tab; [see here](userdoc.qmd). These two tabs will always be loaded even when no tabs are configured.
+
+
+The `check_free_space` and `force_transfers` options are *REQUIRED* and if not provided will be added automatically. The default values are  
 
 ```py
 "check_free_space": true,

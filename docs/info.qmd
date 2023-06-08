@@ -14,7 +14,7 @@ The GUI can be extended by users to implement their own data workflows.
 - `tabUpDownload`: a two-pane upload/download tab
 - `tabELNData`: Uploading data and linking it to an Electronical Labnotebook experiment
 - `tabAmberWorkflow`: Up ad downloading data to and from Amberscript from iRODS
-- `tabDataBundle`: (Experimental)(un)bundle datasets from/to four supported formats (depending on extra iRODS microservices)
+- `tabDataBundle`: (un)bundle datasets from/to four supported formats (depending on extra iRODS microservices)
 - `tabCreateTicket`: create iRODS tickets for anonymous access
 -  `tabInfo`: (Default) an overview over the iRODS server and client, groups and resources
 - The search functionality is available from the drop-down menu `Options` 
