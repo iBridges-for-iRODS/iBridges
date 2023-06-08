@@ -272,9 +272,14 @@ def is_complete(conf_dict: dict, mandatory: list, conf_type: str) -> bool:
 
 class ContextContainer:
     """Abstract base class for classes needing to use context.
+       DEPRECATED, class will be removed in the next release.
 
     """
     context = Context()
+
+    def __init__(self):
+        logging.info("WARNING: ContextContainer is deprecated.")
+        print("WARNING: ContextContainer is deprecated.")
 
     @property
     def conf(self) -> dict:
