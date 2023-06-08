@@ -19,14 +19,16 @@ from gui.ui_files.irodsIndexPopup import Ui_irodsIndexPopup
 
 import utils
 
-
-class irodsCreateCollection(QDialog, Ui_createCollection, utils.context.ContextContainer):
+class irodsCreateCollection(QDialog, Ui_createCollection):
+    context = utils.context.Context()
     def __init__(self, parent):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/createCollection.ui", self)
+
+        self.conn = self.context.irods_connector
         self.setWindowTitle("Create iRODS collection")
         self.setWindowFlags(QtCore.Qt.WindowType.WindowStaysOnTopHint)
         self.parent = parent
@@ -72,7 +74,7 @@ class createDirectory(QDialog, Ui_createCollection):
                     self.errorLabel.setText("ERROR: insufficient rights.")
 
 
-class irodsIndexPopup(QDialog, Ui_irodsIndexPopup, utils.context.ContextContainer):
+class irodsIndexPopup(QDialog, Ui_irodsIndexPopup):
     def __init__(self, irodsTarIndexFileList, tarFilePath, statusLabel):
         super().__init__()
         if getattr(sys, 'frozen', False):

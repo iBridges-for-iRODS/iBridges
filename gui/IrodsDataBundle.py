@@ -26,11 +26,12 @@ EXTENSIONS = [
 
 
 class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
-                      gui.ui_files.tabDataBundle.Ui_tabDataBundle,
-                      utils.context.ContextContainer):
+                      gui.ui_files.tabDataBundle.Ui_tabDataBundle):
     """Window for (un)bundling data withing the iRODS system.
 
     """
+
+    context = utils.context.Context()
 
     def __init__(self):
         """Construct the data bundle window.
@@ -41,6 +42,9 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
+        
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
         self.thread_create = None
         self.thread_extract = None
         self.worker_create = None
@@ -167,7 +171,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             self.enable_buttons()
             return
         resc_name, free_space = self.resourceBox.currentText().split(' / ')
-        if 2 * src_size * kw.MULTIPLIER > int(free_space):
+        if 2 * src_size * kw.MULTIPLIER > int(free_space) and not self.conf.get("force_transfers", False):
             self.statusLabel.setText(
                 'CREATE ERROR: Resource must have enough free space in it')
             self.setCursor(
@@ -305,6 +309,7 @@ class RuleRunner(PyQt6.QtCore.QObject):
 
     """
     finished = PyQt6.QtCore.pyqtSignal(bool, tuple, str)
+    context = utils.context.Context()
 
     def __init__(self, rule_file, params, operation):
         """
@@ -319,6 +324,8 @@ class RuleRunner(PyQt6.QtCore.QObject):
 
         """
         super().__init__()
+
+        self.conn = self.context.irods_connector
         self.rule_file = rule_file
         self.params = params
         self.operation = operation

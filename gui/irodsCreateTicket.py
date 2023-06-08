@@ -12,13 +12,15 @@ from gui.ui_files.tabTicketCreate import Ui_tabticketCreate
 import utils
 
 
-class irodsCreateTicket(QWidget, Ui_tabticketCreate, utils.context.ContextContainer):
+class irodsCreateTicket(QWidget, Ui_tabticketCreate):
     def __init__(self):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/tabTicketCreate.ui", self)
+
+        self.conn = utils.context.Context().irods_connector
         self.irodsmodel = IrodsModel(self.irodsFsTreeView)
         self.irodsFsTreeView.setModel(self.irodsmodel)
         self.irodsRootColl = f'/{self.conn.zone}'

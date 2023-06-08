@@ -27,9 +27,10 @@ class QPlainTextEditLogger(logging.Handler):
 
 
 class mainmenu(PyQt6.QtWidgets.QMainWindow,
-               gui.ui_files.MainMenu.Ui_MainWindow,
-               utils.context.ContextContainer):
+               gui.ui_files.MainMenu.Ui_MainWindow):
+    
     ticketAccessTab = None
+    context = utils.context.Context()
 
     def __init__(self, widget):
         super().__init__()
@@ -37,6 +38,11 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi('gui/ui_files/MainMenu.ui', self)
+
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
+        self.ienv = self.context.irods_environment.config
+
         # stackedWidget
         self.widget = widget
         # Menu actions
