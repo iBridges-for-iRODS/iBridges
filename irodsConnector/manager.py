@@ -197,9 +197,8 @@ class IrodsConnector():
 
     @session.deleter
     def session(self):
-        if self._session:
-            del self._session
-            self._session = None
+        del self._session
+        self._session = None
 
     @property
     def tickets(self) -> tickets.Tickets:

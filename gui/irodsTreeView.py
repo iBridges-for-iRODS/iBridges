@@ -8,7 +8,7 @@ import collections
 import logging
 import os
 
-import irods
+import irods.exception
 import PyQt6
 import PyQt6.QtCore
 import PyQt6.QtGui
@@ -25,8 +25,7 @@ ACCESS_NAMES = [
 ]
 
 
-class IrodsModel(PyQt6.QtGui.QStandardItemModel,
-                 utils.context.ContextContainer):
+class IrodsModel(PyQt6.QtGui.QStandardItemModel):
     """Model for an iRODS tree view.
 
     """
@@ -49,6 +48,7 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel,
         """
         super().__init__(parent)
         self.tree_view = tree_view
+        self.conn = utils.context.Context().irods_connector
         try:
             self.user_groups = self.conn.get_user_info()[1]
         except irods.exception.NetworkException:
@@ -174,7 +174,8 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel,
             parent.appendRow(row)
             nodes_in_tree[irods_id] = parent.child(parent.rowCount() - 1)
 
-    def delete_subtree(self, tree_item):
+    @staticmethod
+    def delete_subtree(tree_item):
         """Delete subtree?
 
         Parameters
@@ -246,7 +247,8 @@ class IrodsModel(PyQt6.QtGui.QStandardItemModel,
             data.append(row)
         return data
 
-    def add_subtree(self, tree_item, tree_level, irods_fs_subtree_data):
+    @staticmethod
+    def add_subtree(tree_item, tree_level, irods_fs_subtree_data):
         """Grow tree_view from tree_item
 
         Parameters

@@ -229,6 +229,7 @@ class Context:
         """Reset existing instances of dynamic class members
 
         """
+        self.irods_connector.reset()
         if self.ibridges_configuration:
             self.ibridges_configuration.reset()
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
@@ -237,8 +238,6 @@ class Context:
             self.irods_environment.reset()
             filepath = path.LocalPath(self.irods_env_file).expanduser()
             self.irods_environment.filepath = filepath
-        if self.irods_connector:
-            self.irods_environment.reset()
 
 
 def is_complete(conf_dict: dict, mandatory: list, conf_type: str) -> bool:
@@ -278,8 +277,8 @@ class ContextContainer:
     context = Context()
 
     def __init__(self):
-        logging.info("WARNING: ContextContainer is deprecated.")
-        print("WARNING: ContextContainer is deprecated.")
+        logging.debug('ContextContainer inherited by: %s', type(self).__name__)
+        logging.debug('ContextContainer is deprecated!')
 
     @property
     def conf(self) -> dict:
