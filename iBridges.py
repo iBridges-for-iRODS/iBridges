@@ -125,9 +125,6 @@ class IrodsLoginWindow(PyQt6.QtWidgets.QDialog,
         """Check connectivity and log in to iRODS handling common errors.
 
         """
-        # Replacement connector (required for new sessions)
-        if not self.context.irods_connector:
-            logging.debug('Setting new instance of the IrodsConnector')
         irods_env_file = self.irods_path.joinpath(self.envbox.currentText())
         self.context.irods_env_file = irods_env_file
         logging.debug('IRODS ENVIRONMENT FILE SET: %s', irods_env_file.name)
@@ -227,11 +224,10 @@ def main():
     utils.utils.init_logger(THIS_APPLICATION)
     # Singleton Context
     context = utils.context.Context()
-    context.irods_connector = irodsConnector.manager.IrodsConnector()
-    context.application_name = THIS_APPLICATION
     # Context is required to get the log_level from the configuration.
     # Here, it is taken from the configuration if not specified.
     utils.utils.set_log_level()
+    context.application_name = THIS_APPLICATION
     context.irods_connector = irodsConnector.manager.IrodsConnector()
     setproctitle.setproctitle(context.application_name)
     login_window = IrodsLoginWindow()
