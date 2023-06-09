@@ -26,6 +26,11 @@ University of Groningen, Center for Information Technology, 2022
 
 ## Dependencies
 
+### Supported iRODS versions
+
+- 4.2.11, 4.2.12
+- 4.3.0
+
 ### Python
 
 - Python 3 (>= 3.9)
