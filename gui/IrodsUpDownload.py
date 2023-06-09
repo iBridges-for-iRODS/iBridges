@@ -21,12 +21,13 @@ UPLOAD_MODE = 'ui_uplMode'
 
 
 class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
-                      gui.ui_files.tabUpDownload.Ui_tabUpDownload,
-                      utils.context.ContextContainer):
+                      gui.ui_files.tabUpDownload.Ui_tabUpDownload):
     """Window for transfers between the local file system and the iRODS
     system.
 
     """
+
+    context = utils.context.Context()
 
     def __init__(self):
         """Construct the transfer window.
@@ -37,6 +38,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabUpDownload.ui", self)
+
+        self.conn = self.context.irods_connector
         self.localmodel = None
         self.irodsmodel = None
         self.syncing = False

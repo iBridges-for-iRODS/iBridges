@@ -35,7 +35,7 @@ class FileWatcher():
 
 
 # Continous upload thread
-class contUpload(Thread, utils.context.ContextContainer):
+class contUpload(Thread):
     def __init__(self, source, destColl, upload_mode ="all", r_local_copy = False):
         self.tosync_dictionary = {}
         self.fWatcher = FileWatcher(source)

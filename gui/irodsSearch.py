@@ -13,10 +13,12 @@ from gui.ui_files.searchDialog import Ui_searchDialog
 import utils
 
 
-class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
+class irodsSearch(QDialog, Ui_searchDialog):
     """
 
     """
+
+    context = utils.context.Context()
 
     def __init__(self, collTable):
         """
@@ -31,6 +33,9 @@ class irodsSearch(QDialog, Ui_searchDialog, utils.context.ContextContainer):
             super().setupUi(self)
         else:
             loadUi("gui/ui_files/searchDialog.ui", self)
+
+        self.conn = self.context.irods_connector
+
         self.collTable = collTable
         self.keys = [self.key1, self.key2, self.key3, self.key4, self.key5]
         self.vals = [self.val1, self.val2, self.val3, self.val4, self.val5]

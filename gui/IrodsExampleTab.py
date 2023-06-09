@@ -29,7 +29,7 @@ class IrodsExampleTab(PyQt6.QtWidgets.QWidget,
     def _initialize_irods_model(self, treeView):
         self.irodsmodel = IrodsModel(treeView)
         treeView.setModel(self.irodsmodel)
-        
+
         home_coll_str = utils.path.IrodsPath(
             '/', self.context.irods_connector.zone, 'home')
         irods_root_coll = self.ienv_dict.get('irods_home', home_coll_str)

@@ -27,9 +27,10 @@ class QPlainTextEditLogger(logging.Handler):
 
 
 class mainmenu(PyQt6.QtWidgets.QMainWindow,
-               gui.ui_files.MainMenu.Ui_MainWindow,
-               utils.context.ContextContainer):
+               gui.ui_files.MainMenu.Ui_MainWindow):
+
     ticketAccessTab = None
+    context = utils.context.Context()
 
     def __init__(self, widget):
         super().__init__()
@@ -37,6 +38,11 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi('gui/ui_files/MainMenu.ui', self)
+
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
+        self.ienv = self.context.irods_environment.config
+
         # stackedWidget
         self.widget = widget
         # Menu actions
@@ -55,9 +61,9 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             ui_tabs_lookup = {
                 'tabBrowser': self.setupTabBrowser,
                 'tabUpDownload': self.setupTabUpDownload,
-                'tabELNData': self.setupTabELNData,
                 'tabDataBundle': self.setupTabDataBundle,
                 'tabCreateTicket': self.setupTabCreateTicket,
+                'tabELNData': self.setupTabELNData,
                 'tabAmberWorkflow': self.setupTabAmberWorkflow,
                 'tabInfo': self.setupTabInfo,
                 'tabExample': self.setupTabExample,
@@ -127,8 +133,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             # connector must be destroyed directly, not a reference to it.
-            if self.context.irods_connector:
-                del self.context.irods_connector
+            if self.conn:
+                del self.conn
             elif self.ticketAccessTab and self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.closeSession()
             sys.exit()

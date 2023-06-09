@@ -37,6 +37,11 @@ class elabUpload(QWidget, Ui_tabELNData):
         else:
             loadUi("gui/ui_files/tabELNData.ui", self)
         # Selecting and uploading local files and folders
+
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
+        self.ienv = self.context.irods_environment.config
+
         self.dirmodel = QFileSystemModel(self.localFsTable)
         self.localFsTable.setModel(self.dirmodel)
         self.localFsTable.setColumnHidden(1, True)
@@ -48,10 +53,9 @@ class elabUpload(QWidget, Ui_tabELNData):
         index = self.dirmodel.setRootPath(home_location)
         self.localFsTable.setCurrentIndex(index)
         self.elnIrodsPath.setText(
-            self.context.irods_environment.config.get("irods_home", 
-                "/"+self.context.irods_connector.zone+"/home/"+self.context.irods_connector.username)) 
+                self.ienv.get("irods_home", "/"+self.conn.zone+"/home/"+self.conn.username)) 
         # defining events and listeners
-        self.elnTokenInput.setText(self.context.ibridges_configuration.config.get('eln_token', ''))
+        self.elnTokenInput.setText(self.conf.get('eln_token', ''))
         self.elnTokenInput.setEchoMode(QLineEdit.EchoMode.Password)
         self.elnTokenInput.returnPressed.connect(self.connectElab)
         self.elnConnectButton.clicked.connect(self.connectElab)
@@ -180,7 +184,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             size = utils.utils.get_local_size([path])
             # if user specifies a different path than standard home
             collPath = '/'+self.elnIrodsPath.text().strip('/')+'/'+subcoll
-            self.coll = self.context.irods_connector.ensure_coll(collPath)
+            self.coll = self.conn.ensure_coll(collPath)
             self.elnIrodsPath.setText(collPath)
             buttonReply = QMessageBox.question(
                 self.elnUploadButton,
@@ -219,7 +223,7 @@ class elabUpload(QWidget, Ui_tabELNData):
             #    QtGui.QCursor(QtCore.Qt.ArrowCursor))
             return
 
-class Worker(QObject, utils.context.ContextContainer):
+class Worker(QObject):
     """
 
     """
@@ -251,6 +255,9 @@ class Worker(QObject, utils.context.ContextContainer):
         self.elab = elab
         self.errorLabel = errorLabel
         self.status = ""
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
+        self.ienv = self.context.irods_environment.config
         logging.debug("Start worker: ")
 
     @pyqtSlot()
@@ -258,20 +265,20 @@ class Worker(QObject, utils.context.ContextContainer):
         try:
             if os.path.isfile(self.filePath):
                 # TODO shouldn't all the "force"es here be configurable?
-                force = self.context.ibridges_configuration.config.get("force_transfers", False)
+                force = self.conf.get("force_transfers", False)
                 self.context.irods_connector.upload_data(self.filePath, self.coll, None, self.size, force=force)
-                item = self.context.irods_connector.get_dataobject(
+                item = self.conn.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))
-                self.context.irods_connector.add_metadata([item], 'ELN', self.expUrl)
+                self.conn.add_metadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
-                self.context.irods_connector.upload_data(self.filePath, self.coll, None, self.size, force=True)
-                upColl = self.context.irods_connector.get_collection(
+                self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
+                upColl = self.conn.get_collection(
                             self.coll.path+'/'+os.path.basename(self.filePath))
                 items = [upColl]
                 for c, _, objs in upColl.walk():
                     items.append(c)
                     items.extend(objs)
-                self.context.irods_connector.add_metadata(items, 'ELN', self.expUrl)
+                self.conn.add_metadata(items, 'ELN', self.expUrl)
             self.progress.emit()
             self.finished.emit()
         except Exception as error:
@@ -281,8 +288,8 @@ class Worker(QObject, utils.context.ContextContainer):
         annotation = {
             "Data size": f'{self.size} Bytes',
             "iRODS path": self.coll.path,
-            "iRODS server": self.context.irods_connector.host,
-            "iRODS user": self.context.irods_connector.username,
+            "iRODS server": self.conn.host,
+            "iRODS user": self.conn.username,
         }
         self.annotateElab(annotation)
 
@@ -294,30 +301,31 @@ class Worker(QObject, utils.context.ContextContainer):
         metadata
 
         """
+        print(self.conn.davrods)
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
-        if self.context.irods_connector.davrods and \
-                ("yoda" in self.context.irods_connector.host or "uu.nl" in self.context.irods_connector.host):
+        if self.conn.davrods and \
+                ("yoda" in self.conn.host or "uu.nl" in self.conn.host):
             self.elab.addMetadata(
-                self.context.irods_connector.davrods + '/' + self.coll.path.split('home/')[1].strip(),
+                self.conn.davrods + '/' + self.coll.path.split('home/')[1].strip(),
                 meta=annotation,
                 title='Data in iRODS')
-        elif self.context.irods_connector.davrods and "surfsara.nl" in self.context.irods_connector.host:
-                self.elab.add_metadata(
-                    self.context.irods_connector.davrods + '/' + self.coll.path.split(
-                        self.context.irods_connector.zone)[1].strip('/'),
+        elif self.conn.davrods and "surfsara.nl" in self.conn.host:
+                self.elab.addMetadata(
+                    self.conn.davrods + '/' + self.coll.path.split(
+                        self.conn.zone)[1].strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
-        elif self.context.irods_connector.davrods:
-            self.elab.add_metadata(
-                self.context.irods_connector.davrods + '/' + self.coll.path.strip('/'),
+        elif self.conn.davrods:
+            self.elab.addMetadata(
+                self.conn.davrods + '/' + self.coll.path.strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
         else:
-            host = self.context.irods_connector.host
-            zone = self.context.irods_connector.zone
-            name = self.context.irods_connector.username
-            port = self.context.irods_connector.port
+            host = self.conn.host
+            zone = self.conn.zone
+            name = self.conn.username
+            port = self.conn.port
             path = self.coll.path
-            conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-            self.elab.add_metadata(self.context.irods_connector, meta=annotation, title='Data in iRODS')
+            irods_path = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
+            self.elab.addMetadata(irods_path, meta=annotation, title='Data in iRODS')
