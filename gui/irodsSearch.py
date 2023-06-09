@@ -19,7 +19,7 @@ class irodsSearch(QDialog, Ui_searchDialog):
     """
 
     context = utils.context.Context()
-    
+
     def __init__(self, collTable):
         """
 

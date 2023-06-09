@@ -28,7 +28,7 @@ class QPlainTextEditLogger(logging.Handler):
 
 class mainmenu(PyQt6.QtWidgets.QMainWindow,
                gui.ui_files.MainMenu.Ui_MainWindow):
-    
+
     ticketAccessTab = None
     context = utils.context.Context()
 
@@ -133,8 +133,8 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
             PyQt6.QtWidgets.QMessageBox.StandardButton.No)
         if reply == PyQt6.QtWidgets.QMessageBox.StandardButton.Yes:
             # connector must be destroyed directly, not a reference to it.
-            if self.context.irods_connector:
-                del self.context.irods_connector
+            if self.conn:
+                del self.conn
             elif self.ticketAccessTab and self.ticketAccessTab.conn:
                 self.ticketAccessTab.conn.closeSession()
             sys.exit()

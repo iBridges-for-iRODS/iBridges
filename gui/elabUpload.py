@@ -269,7 +269,7 @@ class Worker(QObject):
                 self.context.irods_connector.upload_data(self.filePath, self.coll, None, self.size, force=force)
                 item = self.conn.get_dataobject(
                         self.coll.path+'/'+os.path.basename(self.filePath))
-                self.context.irods_connector.add_metadata([item], 'ELN', self.expUrl)
+                self.conn.add_metadata([item], 'ELN', self.expUrl)
             elif os.path.isdir(self.filePath):
                 self.conn.upload_data(self.filePath, self.coll, None, self.size, force=True)
                 upColl = self.conn.get_collection(
@@ -301,6 +301,7 @@ class Worker(QObject):
         metadata
 
         """
+        print(self.conn.davrods)
         self.errorLabel.setText("Linking data to Elabjournal experiment.")
         # YODA: webdav URL does not contain "home", but iRODS path does!
         if self.conn.davrods and \
@@ -310,13 +311,13 @@ class Worker(QObject):
                 meta=annotation,
                 title='Data in iRODS')
         elif self.conn.davrods and "surfsara.nl" in self.conn.host:
-                self.elab.add_metadata(
+                self.elab.addMetadata(
                     self.conn.davrods + '/' + self.coll.path.split(
                         self.conn.zone)[1].strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
         elif self.conn.davrods:
-            self.elab.add_metadata(
+            self.elab.addMetadata(
                 self.conn.davrods + '/' + self.coll.path.strip('/'),
                     meta=annotation,
                     title='Data in iRODS')
@@ -326,5 +327,5 @@ class Worker(QObject):
             name = self.conn.username
             port = self.conn.port
             path = self.coll.path
-            conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-            self.elab.add_metadata(self.conn, meta=annotation, title='Data in iRODS')
+            irods_path = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
+            self.elab.addMetadata(irods_path, meta=annotation, title='Data in iRODS')

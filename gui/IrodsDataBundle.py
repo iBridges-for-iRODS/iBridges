@@ -42,7 +42,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
-        
+ 
         self.conf = self.context.ibridges_configuration.config
         self.conn = self.context.irods_connector
         self.thread_create = None
