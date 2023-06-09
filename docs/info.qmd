@@ -20,6 +20,11 @@ The GUI can be extended by users to implement their own data workflows.
 - The search functionality is available from the drop-down menu `Options` 
 - Login with ticket: (Experimental)
 
+## Supported iRODS versions
+We test our code on iRODS servers with versions
+- 4.2.11, 4.2.12
+- 4.3.0
+
 ## Dependencies
 - Python3.9+
 - QT v6+
