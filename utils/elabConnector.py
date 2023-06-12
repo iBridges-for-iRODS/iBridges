@@ -121,8 +121,6 @@ class elabConnector():
         return exp_name
 
     def _switch_experiment(self, exp_id):
-        # TODO determine if this call is needed
-        # experiments = self.elab.experiments()
 
         if isinstance(exp_id, str) and exp_id.isnumeric():
             exp_id = int(exp_id)
