@@ -645,5 +645,8 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
             items = self._get_selected_objects()
             avus = meta.metadataFileParser.parse(path)
             if len(items) and len(avus):
-                self.conn.add_multiple_metadata(items, avus)
-                self._fill_metadata_tab(items[0].path)
+                try:
+                    self.conn.add_multiple_metadata(items, avus)
+                    self._fill_metadata_tab(items[0].path)
+                except Exception as error:
+                    self.errorLabel.setText(repr(error))
