@@ -74,14 +74,13 @@ QTabBar::tab:top:selected {
      <x>0</x>
      <y>0</y>
      <width>1300</width>
-     <height>26</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMenu">
     <property name="font">
      <font>
       <pointsize>13</pointsize>
-      <weight>50</weight>
       <bold>false</bold>
      </font>
     </property>
@@ -101,7 +100,6 @@ QTabBar::tab:top:selected {
      <string>Options</string>
     </property>
     <addaction name="actionSearch"/>
-    <addaction name="actionSaveConfig"/>
    </widget>
    <addaction name="menuMenu"/>
    <addaction name="menuOptions"/>
