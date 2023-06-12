@@ -7,6 +7,7 @@ Implemented for:
     Storage types:
         iRODS
 """
+from __future__ import annotations
 import argparse
 import logging
 import configparser
