@@ -164,12 +164,5 @@ class mainmenu(PyQt6.QtWidgets.QMainWindow,
         search = gui.irodsSearch.irodsSearch(self.irodsBrowser.collTable)
         search.exec()
 
-    def saveConfig(self):
-        logging.info('TODO: saving configuration')
-        # TODO is there any reason for this?
-        # self.context.save_ibridges_configuration()
-        # self.context.save_irods_environment()
-        # self.globalErrorLabel.setText(f'Environment saved to: {self.context.irods_env_file}')
-
     def exportMeta(self):
         logging.info('TODO: Metadata export')
