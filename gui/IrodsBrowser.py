@@ -461,8 +461,6 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
         self.loadTable()
 
     def fileUpload(self):
-        # TODO determine if this unused variable is required
-        # dialog = PyQt6.QtWidgets.QFileDialog(self)
         fileSelect = PyQt6.QtWidgets.QFileDialog.getOpenFileName(self,
                         "Open File", "","All Files (*);;Python Files (*.py)")
         size = utils.utils.get_local_size([fileSelect[0]])

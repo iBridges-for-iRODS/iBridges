@@ -128,6 +128,13 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.createButton.setEnabled(False)
         self.extractButton.setEnabled(False)
 
+    def _operation_allowed(self, item, user):
+        acls = self.conn.permission.get_permissions(item)
+        accepted_users = [acl.user_name for acl in acls 
+                          if acl.access_name in ['write', 'own']]
+
+        return user in accepted_users
+
     def create_data_bundle(self):
         """Run an iRODS bundle rule on selected collection.
 
@@ -153,14 +160,30 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        # TODO find a better test (add permissions too)
-        if len(coll_name.split('/')) < 5:
-            self.statusLabel.setText(
-                'CREATE ERROR: Collection must be within a user/group collection')
+        # TODO generalise checking permissions for all GUI classes
+        try:
+            coll = self.conn.data_op.get_collection(coll_name)
+            coll_parent = self.conn.data_op.get_collection(utils.path.IrodsPath(coll.path).parent)
+        except Exception as error:
+            if hasattr(error, 'message'):
+                self.statusLabel.setText(error.message)
+            else:
+                self.statusLabel.setText('CREATE ERROR: Invalid collection chosen.')
             self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
+
+        if not self._operation_allowed(coll, self.conn.username) or \
+                not self._operation_allowed(coll_parent, self.conn.username):
+        #if len(coll_name.split('/')) < 5:
+            self.statusLabel.setText(
+                'CREATE ERROR: Collection must be within a user/group collection, insufficient rights.')
+            self.setCursor(
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            self.enable_buttons()
+            return
+
         src_coll = self.conn.get_collection(coll_name)
         src_size = utils.utils.get_coll_size(src_coll)
         if src_size == 0:
