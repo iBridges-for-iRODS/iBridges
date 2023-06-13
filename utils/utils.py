@@ -1,21 +1,33 @@
 """iBridges utility classes and functions.
 
 """
-from __future__ import annotations
-import datetime
 import logging
 import logging.handlers
-import json
 import os
-import pathlib
-import shutil
 import socket
 import sys
+import datetime
 
 import irods.collection
 import irods.data_object
 import irods.exception
 import irods.path
+
+from . import context
+from . import path
+
+DEFAULT = '\x1b[0m'
+RED = '\x1b[1;31m'
+YELLOW = '\x1b[1;33m'
+LOG_LEVEL = {
+    'fulldebug': logging.DEBUG - 5,
+    'debug': logging.DEBUG,
+    'info': logging.INFO,
+    'warn': logging.WARNING,
+    'error': logging.ERROR,
+    'critical': logging.CRITICAL,
+}
+MAX_MSG_LEN = 1024
 
 
 def is_posix() -> bool:
@@ -27,630 +39,6 @@ def is_posix() -> bool:
         Whether or not this is a POSIX operating system.
     """
     return sys.platform not in ['win32', 'cygwin']
-
-
-class PurePath(str):
-    """A platform-dependent pure path without file system functionality
-    based on the best of str and pathlib.
-
-    """
-    a: PurePath
-    _path = None
-    _posix = None
-
-    def __new__(cls, *args):
-        """Instantiate a PurePath from whole paths or segments of paths,
-        absolute or logical.
-
-        Returns
-        -------
-        PurePath
-            Uninitialized instance.
-
-        """
-        if is_posix() or cls._posix:
-            path = pathlib.PurePosixPath(*args)
-        else:
-            path = pathlib.PureWindowsPath(*args)
-        return super().__new__(cls, path.__str__())
-
-    def __init__(self, *args):
-        """Initialize a PurePath.
-
-        """
-        self.args = args
-
-    def __str__(self) -> str:
-        """Render Paths into a string.
-
-        Returns
-        -------
-        str
-            String value of the pathlib.Path.
-
-        """
-        return self.path.__str__()
-
-    def __repr__(self) -> str:
-        """Render Paths into a representation.
-
-        Returns
-        -------
-        str
-            Representation of the pathlib.Path.
-
-        """
-        return f'{self.__class__.__name__}("{self.path.__str__()}")'
-
-    @property
-    def path(self) -> pathlib.PurePath:
-        """A pathlib.Path instance providing extra functionality.
-
-        Returns
-        -------
-        pathlib.PurePath
-            Initialized from self.args.
-
-        """
-        if self._path is None:
-            if is_posix():
-                self._path = pathlib.PurePosixPath(*self.args)
-            else:
-                self._path = pathlib.PureWindowsPath(*self.args)
-        return self._path
-
-    def joinpath(self, *args):
-        """Combine this path with one or several arguments, and return
-        a new path representing either a subpath (if all arguments are
-        relative paths) or a totally different path (if one of the
-        arguments is anchored).
-
-        Returns
-        -------
-        *Path
-            Joined Path.
-
-        """
-        return type(self)(str(self.path.joinpath(*args)))
-
-    def with_suffix(self, suffix: str):
-        """Create a new path with the file `suffix` changed.  If the
-        path has no `suffix`, add given `suffix`.  If the given
-        `suffix` is an empty string, remove the `suffix` from the path.
-
-        Parameters
-        ----------
-        suffix : str
-            New extension for the file 'stem'.
-
-        Returns
-        -------
-        *Path
-            Suffix-updated Path.
-
-        """
-        return type(self)(str(self.path.with_suffix(suffix)))
-
-    @property
-    def name(self) -> str:
-        """The final path component, if any.
-
-        Returns
-        -------
-        str
-            Name of the Path.
-
-        """
-        return self.path.name
-
-    @property
-    def parent(self):
-        """The logical parent of the path.
-
-        Returns
-        -------
-        *Path
-            Parent of the Path.
-
-        """
-        return type(self)(str(self.path.parent))
-
-    @property
-    def parts(self) -> tuple:
-        """An object providing sequence-like access to the components
-        in the filesystem path.
-
-        Returns
-        -------
-        tuple
-            Parts of the Path.
-
-        """
-        return self.path.parts
-
-    @property
-    def stem(self) -> str:
-        """The final path component, minus its last suffix.
-
-        Returns
-        -------
-        str
-            Stem of the Path.
-
-        """
-        return self.path.stem
-
-    @property
-    def suffix(self) -> str:
-        """The final component's last suffix, if any.  This includes
-        the leading period. For example: '.txt'.
-
-        Returns
-        -------
-        str
-            Suffix of the path.
-
-        """
-        return self.path.suffix
-
-    @property
-    def suffixes(self) -> list:
-        """A list of the final component's suffixes, if any.  These
-        include the leading periods. For example: ['.tar', '.gz'].
-
-        Returns
-        -------
-        list[str]
-            Suffixes of the path.
-
-        """
-        return self.path.suffixes
-
-
-class IrodsPath(PurePath, irods.path.iRODSPath):
-    """A pure POSIX path without file system functionality based on the
-    best of str, pathlib, and iRODSPath.  This path is normalized upon
-    instantiation.
-
-    """
-    a: IrodsPath
-
-    def __new__(cls, *args):
-        """Instantiate an IrodsPath.
-
-        Returns
-        -------
-        IrodsPath
-            Uninitialized instance.
-
-        """
-        cls._posix = True
-        path = pathlib.PurePosixPath(*args)
-        return super().__new__(cls, path.__str__())
-
-    @property
-    def path(self) -> pathlib.PurePosixPath:
-        """A pathlib.PurePosixPath instance providing extra
-        functionality.
-
-        Returns
-        -------
-        pathlib.PurePosixPath
-            Initialized from self.args.
-
-        """
-        if self._path is None:
-            self._path = pathlib.PurePosixPath(*self.args)
-        return self._path
-
-
-class LocalPath(PurePath):
-    """A platform-dependent local path with file system functionality
-    based on the best of str and pathlib.
-
-    """
-    a: LocalPath
-
-    def __new__(cls, *args, **kwargs):
-        """Instantiate a LocalPath.
-
-        Returns
-        -------
-        LocalPath
-            Uninitialized instance.
-
-        """
-        if is_posix():
-            path = pathlib.PosixPath(*args)
-        else:
-            path = pathlib.WindowsPath(*args)
-        return super().__new__(cls, path.__str__())
-
-    @property
-    def path(self) -> pathlib.Path:
-        """A pathlib.Path instance providing extra functionality.
-
-        Returns
-        -------
-        pathlib.Path
-            Initialized from self.args.
-
-        """
-        if self._path is None:
-            if is_posix():
-                self._path = pathlib.PosixPath(*self.args)
-            else:
-                self._path = pathlib.WindowsPath(*self.args)
-        return self._path
-
-    def absolute(self):
-        """Determine an absolute version of this path, i.e., a path
-        with a root or anchor.
-
-        No normalization is done, i.e. all '.' and '..' will be kept
-        along.  Use resolve() to get the canonical path to a file.
-
-        Returns
-        -------
-        LocalPath
-            Not normalized full path.
-
-        """
-        return type(self)(str(self.path.absolute()))
-
-    def copy_path(self, target: str, squash: bool = False):
-        """Copy this path to the target path, overwriting existing
-        elements if that path exists and `squash` is True.
-
-        The target path may be absolute or relative. Relative paths are
-        interpreted relative to the current working directory, *not*
-        the directory of the Path object.
-
-        Parameters
-        ----------
-        target : str
-            The path to replace.
-        squash : bool
-            Whether to overwrite path.
-
-        """
-        try:
-            shutil.copytree(self, target, symlinks=True)
-        except FileExistsError as error:
-            if squash:
-                type(self)(target).rmdir(squash=True)
-                shutil.copytree(self, target)
-            else:
-                print(f'Cannot copy to {target}: {error}')
-
-    @classmethod
-    def cwd(cls):
-        """Give the current working directory.
-
-        Returns
-        -------
-        LocalPath
-            The current working directory path.
-
-        """
-        return cls(str(pathlib.Path.cwd()))
-
-    def exists(self) -> bool:
-        """Whether this path exists.
-
-        Returns
-        -------
-        bool
-            Path exists or not.
-
-        """
-        # try:
-        return self.path.exists()
-        # except AttributeError:
-        #     return os.path.exists(self.path)
-
-    def expanduser(self):
-        """Return a new path with expanded ~ and ~user constructs (as
-        returned by os.path.expanduser)
-
-        Returns
-        -------
-        LocalPath
-            User-expanded Path.
-        """
-        try:
-            return type(self)(str(self.path.expanduser()))
-        except AttributeError:
-            return type(self)(os.path.expanduser(self.path))
-
-    def glob(self, pattern: str) -> iter:
-        """Iterate over this subtree and yield all existing files (of
-        any kind, including directories) matching the given relative
-        `pattern`.
-
-        Parameters
-        ----------
-        pattern : str
-            Wildcard patter to match files.
-
-        Returns
-        -------
-        iter
-            Generator of matches.
-
-        """
-        return (type(self)(path) for path in self.path.glob(pattern=pattern))
-
-    def is_dir(self) -> bool:
-        """Whether this path is a directory.
-
-        Returns
-        -------
-        bool
-            Is a directory (folder) or not.
-
-        """
-        # try:
-        return self.path.is_dir()
-        # except AttributeError:
-        #     return os.path.isdir(self.path)
-
-    def is_file(self) -> bool:
-        """Whether this path is a regular file (also True for symlinks
-        pointing to regular files)
-
-        Returns
-        -------
-        bool
-            Is a regular file (symlink) or not.
-
-        """
-        # try:
-        return self.path.is_file()
-        # except AttributeError:
-        #     return os.path.isfile(os.path)
-
-    def mkdir(self, mode: int = 511, parents: bool = False, exist_ok: bool = False):
-        """Create a new directory at this path.
-
-        Parameters
-        ----------
-        mode : int
-            Creation mode of the directory (folder).
-        parents : bool
-            Create the parents too?
-        exist_ok : bool
-            Okay if directory already exists?
-
-        """
-        try:
-            self.path.mkdir(mode=mode, parents=parents, exist_ok=exist_ok)
-        except AttributeError:
-            # TODO use os.mkdir() to implement this.
-            pass
-
-    def read_bytes(self) -> bytes:
-        """Open the file in bytes mode, read it, and close the file.
-
-        Returns
-        -------
-        bytes
-            Bytes contents of the file.
-
-        """
-        return self.path.read_bytes()
-
-    def read_text(self, encoding: str = None, errors: str = None) -> str:
-        """Open the file in text mode, read it, and close the file.
-
-        Parameters
-        ----------
-        encoding : str
-            The name of the encoding used to decode or encode the file
-            (see open()).
-        errors : str
-            Specifies how encoding errors are to be handled (see
-            open()).
-
-        Returns
-        -------
-        str
-            String contents of the file.
-
-        """
-        return self.path.read_text(encoding=encoding, errors=errors)
-
-    def rename_path(self, target: str):
-        """Rename (move) this path to the target path.  `target` is not
-        overwritten.  Use replace_path() if overwriting is desired.
-
-        The target path may be absolute or relative. Relative paths are
-        interpreted relative to the current working directory, *not*
-        the directory of the Path object.
-
-        Parameters
-        ----------
-        target : str
-            The path to replace.
-
-        Returns
-        -------
-        LocalPath
-            The target path.
-
-        """
-        return type(self)(str(self.path.rename(target)))
-
-    def replace_path(self, target: str, squash: bool = False):
-        """Rename (move) this path to the target path, overwriting the
-        directory if it exists and overwriting any contents if `squash`
-        is set.
-
-        The target path may be absolute or relative. Relative paths are
-        interpreted relative to the current working directory, *not*
-        the directory of the Path object.
-
-        Parameters
-        ----------
-        target : str
-            The path to replace.
-        squash : bool
-            Whether to overwrite path.
-
-        Returns
-        -------
-        LocalPath
-            The target path if replaced, this path otherwise.
-
-        """
-        try:
-            return type(self)(str(self.path.replace(target)))
-        except OSError as error:
-            if squash:
-                type(self)(target).rmdir(squash=True)
-                return type(self)(str(self.path.replace(target)))
-            else:
-                print(f'Cannot replace {target}: {error}')
-                return self
-
-    def resolve(self):
-        """Make the path absolute (full path with a root or anchor),
-        resolving all symlinks on the way and also normalizing it (for
-        example turning slashes into backslashes under Windows).
-
-        Returns
-        -------
-        LocalPath
-            Normalized full path with relative segments and symlinks
-            resolved.
-
-        """
-        return type(self)(str(self.path.resolve()))
-
-    def rmdir(self, squash: bool = False):
-        """Remove this directory.  The directory must be empty unless
-        `squash` is set.
-
-        Parameters
-        ----------
-        squash : bool
-            Whether to remove non-empty directory.
-        """
-        try:
-            self.path.rmdir()
-        except OSError as error:
-            if squash:
-                shutil.rmtree(self)
-            else:
-                print(f'Cannot rmdir {self}: {error}')
-
-    def stat(self) -> os.stat_result:
-        """Run os.stat() on this path.
-
-        Returns
-        -------
-        os.stat_result
-            Stat structure.
-
-        """
-        return self.path.stat()
-
-    def unlink(self, missing_ok: bool = False):
-        """Remove this file or link.  If the path is a directory, use
-        rmdir() instead.
-
-        Parameters
-        ----------
-        missing_ok : bool
-            Ignore missing files/directories.
-
-        """
-        self.path.unlink(missing_ok=missing_ok)
-
-    def write_bytes(self, data: bytes):
-        """Open the file in bytes mode, write to it, and close the file.
-
-        Parameters
-        ----------
-        data : bytes
-            Information to write to file.
-
-        """
-        self.path.write_bytes(data=data)
-
-    def write_text(self, data: str, encoding: str = None, errors: str = None):
-        """
-
-        Parameters
-        ----------
-        data : str
-            Information to write to file.
-        encoding : str
-            The name of the encoding used to decode or encode the file
-            (see open()).
-        errors : str
-            Specifies how encoding errors are to be handled (see
-            open()).
-
-        """
-        self.path.write_text(data=data, encoding=encoding, errors=errors)
-
-
-class JsonConfig:
-    """A configuration stored in a JSON file.
-
-    """
-
-    def __init__(self, filepath: str):
-        """Create the configuration.
-
-        Parameters
-        ----------
-        filepath : str
-
-        """
-        self.filepath = LocalPath(filepath)
-        self._config = None
-
-    @property
-    def config(self) -> dict:
-        """Configuration getter.
-
-        Attempt to load a configuration from the JSON file.
-
-        Returns
-        -------
-        dict or None
-            The configuration if it exists.
-
-        """
-        if self._config is None:
-            if self.filepath.exists():
-                with open(self.filepath, 'r', encoding='utf-8') as confd:
-                    self._config = json.load(confd)
-        return self._config
-
-    @config.setter
-    def config(self, conf_dict: dict):
-        """Configuration setter.
-
-        Set the configuration to `conf_dict` and write it to the JSON
-        file.
-
-        """
-        self._config = conf_dict
-        with open(self.filepath, 'w', encoding='utf-8') as confd:
-            json.dump(conf_dict, confd, indent=4, sort_keys=True)
-
-    @config.deleter
-    def config(self):
-        """Configuration deleter.
-
-        Delete both the configuration and its JSON file.
-
-        """
-        self._config = None
-        self.filepath.unlink(missing_ok=True)
 
 
 def ensure_dir(pathname: str) -> bool:
@@ -667,12 +55,12 @@ def ensure_dir(pathname: str) -> bool:
         If `pathname` exists/was created.
 
     """
-    path = LocalPath(pathname)
+    dirpath = path.LocalPath(pathname)
     try:
-        path.mkdir(parents=True, exist_ok=True)
+        dirpath.mkdir(parents=True, exist_ok=True)
     except (PermissionError, OSError) as error:
-        logging.info(f'Error ensuring directory: {error}')
-    return path.is_dir()
+        logging.info('Error ensuring directory: %r', error)
+    return dirpath.is_dir()
 
 
 def get_local_size(pathnames: list) -> int:
@@ -693,14 +81,14 @@ def get_local_size(pathnames: list) -> int:
     """
     sizes = []
     for pathname in pathnames:
-        path = LocalPath(pathname)
-        if path.is_dir():
-            for dirname, _, filenames in os.walk(path):
+        pathobj = path.LocalPath(pathname)
+        if pathobj.is_dir():
+            for dirname, _, filenames in os.walk(pathobj):
                 for filename in filenames:
-                    filepath = LocalPath(dirname, filename)
+                    filepath = path.LocalPath(dirname, filename)
                     sizes.append(filepath.stat().st_size)
-        elif path.is_file():
-            sizes.append(path.stat().st_size)
+        elif pathobj.is_file():
+            sizes.append(pathobj.stat().st_size)
     return sum(sizes)
 
 
@@ -745,7 +133,7 @@ def get_coll_size(coll: irods.collection.iRODSCollection) -> int:
         sum(get_data_size(obj) for obj in objs) for _, _, objs in coll.walk())
 
 
-def can_connect(hostname: str) -> bool:
+def can_connect(hostname: str, port: int) -> bool:
     """Check connectivity to an iRODS server.
 
     Parameters
@@ -762,7 +150,7 @@ def can_connect(hostname: str) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         try:
             sock.settimeout(10.0)
-            sock.connect((hostname, 1247))
+            sock.connect((hostname, port))
             return True
         except socket.error:
             return False
@@ -786,7 +174,7 @@ def get_coll_dict(root_coll: irods.collection.iRODSCollection) -> dict:
             for this_coll, _, data_objs in root_coll.walk()}
 
 
-def get_downloads_dir() -> LocalPath:
+def get_downloads_dir() -> path.LocalPath:
     """Find the platform-dependent 'Downloads' directory.
 
     Returns
@@ -795,41 +183,17 @@ def get_downloads_dir() -> LocalPath:
         Absolute path to 'Downloads' directory.
 
     """
-    if is_posix:
-        return LocalPath('~', 'Downloads').expanduser()
+    if is_posix():
+        return path.LocalPath('~', 'Downloads').expanduser()
     else:
         import winreg
         sub_key = r'SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders'
         downloads_guid = '{374DE290-123F-4565-9164-39C4925E467B}'
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, sub_key) as key:
-            return LocalPath(winreg.QueryValueEx(key, downloads_guid)[0])
+            return path.LocalPath(winreg.QueryValueEx(key, downloads_guid)[0])
 
 
-def save_irods_env(ienv: dict) -> LocalPath:
-    """Write the `ienv` dictionary to the iRODS environment file
-    specified in `ienv` or to the default location.
-
-    Parameters
-    ----------
-    ienv : dict
-
-    Returns
-    -------
-    LocalPath
-        Absolute path to iRODS environment file just saved.
-
-    """
-    if "ui_ienvFilePath" in ienv:
-        envname = LocalPath(ienv["ui_ienvFilePath"])
-    else:
-        envname = LocalPath('~', '.irods', 'irods_environment.json').expanduser()
-        ienv["ui_ienvFilePath"] = envname
-    # Writes the file.
-    JsonConfig(envname).config = ienv
-    return envname
-
-
-def get_working_dir() -> LocalPath:
+def get_working_dir() -> path.LocalPath:
     """Determine working directory where iBridges started.
 
     Returns
@@ -839,11 +203,11 @@ def get_working_dir() -> LocalPath:
 
     """
     if getattr(sys, 'frozen', False):
-        return LocalPath(sys.executable).parent
+        return path.LocalPath(sys.executable).parent
     elif __file__:
-        return LocalPath(__file__).parent
+        return path.LocalPath(__file__).parent
     else:
-        return LocalPath('.')
+        return path.LocalPath('.')
 
 
 def dir_exists(pathname: str) -> bool:
@@ -860,7 +224,7 @@ def dir_exists(pathname: str) -> bool:
         Whether the directory exists.
 
     """
-    return LocalPath(pathname).is_dir()
+    return path.LocalPath(pathname).is_dir()
 
 
 def file_exists(pathname: str) -> bool:
@@ -877,36 +241,7 @@ def file_exists(pathname: str) -> bool:
         Whether the file exists.
 
     """
-    return LocalPath(pathname).is_file()
-
-
-def setup_logger(logdir: str, appname: str):
-    """Initialize the application logging service.
-
-    Parameters
-    ----------
-    logdir : str
-        Path to logging location.
-    appname : str
-        Base name for the log file.
-
-    """
-    logdir = LocalPath(logdir)
-    logfile = logdir.joinpath(f'{appname}.log')
-    log_format = '[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s'
-    handlers = [
-        logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1),
-        logging.StreamHandler(sys.stdout),
-    ]
-    logging.basicConfig(
-        format=log_format, level=logging.INFO, handlers=handlers)
-    # Indicate start of a new session
-    with open(logfile, 'a', encoding='utf-8') as logfd:
-        logfd.write('\n\n')
-        underscores = f'{"_" * 50}\n'
-        logfd.write(underscores * 2)
-        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
-        logfd.write(underscores * 2)
+    return path.LocalPath(pathname).is_file()
 
 
 def bytes_to_str(value: int) -> str:
@@ -927,3 +262,76 @@ def bytes_to_str(value: int) -> str:
         return f'{value / 1e9:.3f} GB'
     else:
         return f'{value / 1e12:.3f} TB'
+
+
+def set_log_level(log_level: int = None):
+    """Set the log level excluding DEBUG-level entries from other
+    modules.  If log_level not specified, attempt to access the verbose
+    setting from the configuration.
+
+    Parameters
+    ----------
+    log_level : int
+        Level to set the current logger.
+
+    """
+    if log_level is None:
+        cntxt = context.Context()
+        verbose = cntxt.ibridges_configuration.config.get('verbose', 'info')
+        log_level = LOG_LEVEL.get(verbose, logging.INFO)
+    logging.getLogger().setLevel(log_level)
+    if log_level == logging.DEBUG:
+        for logger in logging.Logger.manager.loggerDict.values():
+            if hasattr(logger, 'name'):
+                if logger.name != 'root' and not logger.name.startswith('irods'):
+                    logger.debug('Disabling logger: %s', logger.name)
+                    logger.disabled = True
+
+
+def init_logger(app_name: str):
+    """Initialize the application logging service.
+
+    Parameters
+    ----------
+    app_name : str
+        Application name as base name of the log file.
+
+    """
+    old_factory = logging.getLogRecordFactory()
+
+    def new_factory(*args, **kwargs) -> logging.LogRecord:
+        """Custom record factory"""
+        record = old_factory(*args, **kwargs)
+        # Limit the size of the log message to something sane.
+        record.msg = record.msg[:MAX_MSG_LEN]
+        record.prefix = ''
+        record.postfix = ''
+        if record.levelname == 'WARNING':
+            record.prefix = YELLOW
+            record.postfix = DEFAULT
+        if record.levelname == 'ERROR':
+            record.prefix = RED
+            record.postfix = DEFAULT
+        return record
+
+    logging.setLogRecordFactory(new_factory)
+    logger = logging.getLogger()
+    logdir = path.LocalPath(context.IBRIDGES_DIR).expanduser()
+    logfile = logdir.joinpath(f'{app_name}.log')
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] %(name)s {%(filename)s:%(lineno)d} %(levelname)s - %(message)s')
+    file_handler = logging.handlers.RotatingFileHandler(logfile, 'a', 100000, 1)
+    file_handler.setFormatter(log_formatter)
+    logger.addHandler(file_handler)
+    log_formatter = logging.Formatter(
+        '[%(asctime)s] %(levelname)s - %(prefix)s%(message)s%(postfix)s')
+    stream_handler = logging.StreamHandler(sys.stdout)
+    stream_handler.setFormatter(log_formatter)
+    logger.addHandler(stream_handler)
+    # Indicate start of a new session
+    with open(logfile, 'a', encoding='utf-8') as logfd:
+        logfd.write('\n\n')
+        underscores = f'{"_" * 50}\n'
+        logfd.write(underscores * 2)
+        logfd.write(f'\t\t{datetime.datetime.now().isoformat()}\n')
+        logfd.write(underscores * 2)

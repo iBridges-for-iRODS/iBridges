@@ -14,14 +14,15 @@ from gui.checkableFsTree import checkableFsTreeModel
 from gui.dataTransfer import dataTransfer
 from gui.popupWidgets import createDirectory
 from gui.ui_files.tabTicketAccess import Ui_tabTicketAccess
-from utils.IrodsConnectorAnonymous import IrodsConnectorAnonymous
+from irodsConnector.AnonymousManager import IrodsConnectorAnonymous
 
 
+#TODO: Rewrite after AnonymousManager is rewriten
 class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
     """
 
     """
-    ic = None
+    conn = None
     coll = None
     this_application = 'iBridges'
 
@@ -64,14 +65,14 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         path = self.pathEdit.text().strip()
         token = self.ticketEdit.text().strip()
         try:
-            self.ic = IrodsConnectorAnonymous(
+            self.conn = IrodsConnectorAnonymous(
                 host, token, path, application_name=self.this_application)
-            self.coll = self.ic.getData()
+            self.coll = self.conn.get_data()
             self.loadTable()
             self.enableButtons(True)
-        except Exception as e:
+        except Exception as error:
             self.infoLabel.setText(
-                "LOGIN ERROR: Check ticket and iRODS path.\n"+repr(e))
+                f'LOGIN ERROR: Check ticket and iRODS path.\n{error!r}')
 
     def enableButtons(self, enable):
         self.connectButton.setEnabled(enable)
@@ -127,8 +128,8 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             item = self.collTable.item(row, 1).text()
             if item.endswith('/'):
                 item = item[:-1]
-            if self.ic.session.collections.exists(path+'/'+item):
-                coll = self.ic.session.collections.get(path+'/'+item)
+            if self.conn.session.collections.exists(path + '/' + item):
+                coll = self.conn.session.collections.get(path + '/' + item)
                 self.loadTable(update=coll)
 
     def fillInfo(self, index):
@@ -140,14 +141,14 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
         try:
             self.__fillPreview(value, path)
             self.__fillMetadata(value, path)
-        except Exception as e:
-            self.infoLabel.setText(repr(e))
+        except Exception as error:
+            self.infoLabel.setText(repr(error))
             raise
 
     def __fillPreview(self, value, path):
-        newPath = utils.utils.IrodsPath(path, value)
-        if self.ic.session.collections.exists(newPath):
-            coll = self.ic.session.collections.get(newPath)
+        newPath = utils.path.IrodsPath(path, value)
+        if self.conn.session.collections.exists(newPath):
+            coll = self.conn.session.collections.get(newPath)
             content = ['Collections:', '-----------------'] + \
                       [c.name+'/' for c in coll.subcollections] + \
                       ['\n', 'Data:', '-----------------'] + \
@@ -155,7 +156,7 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             previewString = '\n'.join(content)
             self.previewBrowser.append(previewString)
         else:
-            subcoll = self.ic.session.collections.get(path)
+            subcoll = self.conn.session.collections.get(path)
             obj = [o for o in subcoll.data_objects if o.name == value][0]
             # get mimetype
             mimetype = value.split(".")[len(value.split("."))-1]
@@ -167,22 +168,22 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
                             out.append(readObj.read(50))
                     previewString = ''.join([line.decode('utf-8') for line in out])
                     self.previewBrowser.append(previewString)
-                except Exception as e:
+                except Exception as error:
                     self.previewBrowser.append(obj.path)
-                    self.previewBrowser.append(repr(e))
+                    self.previewBrowser.append(repr(error))
                     self.previewBrowser.append("Storage resource might be down.")
             else:
                 self.previewBrowser.append("No preview for "+obj.path)
 
     def __fillMetadata(self, value, path):
         newPath = "/"+path.strip("/")+"/"+value.strip("/")
-        if value.endswith("/") and self.ic.session.collections.exists(newPath):
-            coll = self.ic.session.collections.get(
+        if value.endswith("/") and self.conn.session.collections.exists(newPath):
+            coll = self.conn.session.collections.get(
                         "/"+path.strip("/")+"/"+value.strip("/")
                         )
             metadata = coll.metadata.items()
         else:
-            subcoll = self.ic.session.collections.get(path)
+            subcoll = self.conn.session.collections.get(path)
             obj = [o for o in subcoll.data_objects if o.name == value][0]
             metadata = obj.metadata.items()
         self.metadataTable.setRowCount(len(metadata))
@@ -237,12 +238,12 @@ class irodsTicketLogin(QWidget, Ui_tabTicketAccess):
             self.enableButtons(True)
             return
         
-        if self.ic.session.collections.exists(collPath+'/'+dataName):
-            item = self.ic.session.collections.get(collPath+'/'+dataName)
+        if self.conn.session.collections.exists(collPath + '/' + dataName):
+            item = self.conn.session.collections.get(collPath + '/' + dataName)
         else:
-            parent = self.ic.session.collections.get(collPath)
+            parent = self.conn.session.collections.get(collPath)
             item = [obj for obj in parent.data_objects if obj.name == dataName][0]
-        self.downloadWindow = dataTransfer(self.ic, False, destination, item)
+        self.downloadWindow = dataTransfer(self.conn, False, destination, item)
         self.downloadWindow.finished.connect(self.finishedTransfer)
 
     def finishedTransfer(self, success, irodsIdx):

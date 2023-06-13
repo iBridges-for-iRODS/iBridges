@@ -12,7 +12,8 @@ from . import irodsSearch
 from . import irodsTicketLogin
 from . import irodsTreeView
 from . import IrodsUpDownload
-# from . import mainmenu
-from .mainmenu import mainmenu
+from . import amberWorkflow
+from . import mainmenu
 from . import popupWidgets
 from . import ui_files
+from . import IrodsExampleTab

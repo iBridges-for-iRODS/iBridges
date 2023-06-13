@@ -73,7 +73,7 @@ QLabel#infoLabel{
           </font>
          </property>
          <property name="text">
-          <string>Expiration date: (linux only)</string>
+          <string>Expiry date:</string>
          </property>
         </widget>
        </item>
@@ -122,7 +122,6 @@ QLabel#infoLabel{
          <property name="font">
           <font>
            <pointsize>13</pointsize>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>

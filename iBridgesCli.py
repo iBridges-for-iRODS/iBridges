@@ -6,438 +6,324 @@ Commandline client to upload data to a storage service and double-link the stora
 Implemented for:
     Storage types:
         iRODS
-    Metadata stores:
-        Elabjournal
 """
-
-from utils.elabConnector import elabConnector
-from utils.IrodsConnector import IrodsConnector
-from utils.IrodsConnector import FreeSpaceNotSet
-from utils.IrodsConnectorIcommands import IrodsConnectorIcommands
-from irods.exception import ResourceDoesNotExist, NoResultFound
-
+from __future__ import annotations
+import argparse
+import logging
 import configparser
 import os
 import sys
 import json
-import getopt
 import getpass
-from utils.utils import setup_logger, get_local_size, ensure_dir
+from pathlib import Path
+from irods.exception import CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM
+import irodsConnector.keywords as kw
+from irodsConnector.manager import IrodsConnector
+import utils
+from utils.elab_plugin import ElabPlugin
 
-RED = '\x1b[1;31m'
-DEFAULT = '\x1b[0m'
-YEL = '\x1b[1;33m'
-BLUE = '\x1b[1;34m'
 
-
-def getConfig(path):
+def plugin_hook(func):
     """
-    Reads in config file. checks that at least section "iRODS" exists
+    Callable function for the plugin_hook decorator.
     """
-    config = configparser.ConfigParser()
-    config.read_file(open(path))
-    args = config._sections
-    if 'iRODS' not in args:
-        raise AttributeError("iRODS environment not defined.")
+    def wrapper(self, **kwargs):
+        """
+        Executes hooked functions pre and post the decorated function.
+        """
 
-    return args
+        pre_fs = post_fs = []
+        actions = [x['actions'] for x in self.plugins if x['hook'] == func.__name__]
+        if actions:
+            pre_fs = [x['function'] for x in actions[0] if x['slot'] == 'pre']
+            post_fs = [x['function'] for x in actions[0] if x['slot'] == 'post']
+
+        for pre_f in pre_fs:
+            pre_f(calling_class=self, **kwargs)
+
+        func(self, **kwargs)
+
+        for post_f in post_fs:
+            post_f(calling_class=self, **kwargs)
+
+    return wrapper
 
 
-def annotateElab(annotation, ic, elab, coll, title='Data in iRODS'):
+class IBridgesCli:                          # pylint: disable=too-many-instance-attributes
     """
-    Example annotation
-    annotation = {
-            "Data size": f'{size} Bytes',
-            "iRODS path": coll.path,
-            "iRODS server": ic.session.host,
-            "iRODS user": ic.session.username,
-        }
+    Class for up- and downloading to YODA/iRODS via the command line.
+    Includes option for writing metadata to Elab Journal.
     """
-    # YODA: webdav URL does not contain "home", but iRODS path does!
-    if ic.davrods and ("yoda" in ic.session.host or "uu.nl" in ic.session.host):
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.split('home/')[1].strip(),
-            meta=annotation,
-            title=title)
-    elif ic.davrods and "surfsara.nl" in ic.session.host:
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.split(ic.session.zone)[1].strip('/'),
-            meta=annotation,
-            title=title)
-    elif ic.davrods:
-        elab.addMetadata(
-            ic.davrods+'/'+coll.path.strip('/'),
-            meta=annotation,
-            title=title)
-    else:
-        host = ic.session.host
-        zone = ic.session.zone
-        name = ic.session.username
-        port = ic.session.port
-        path = coll.path
-        conn = f'{{{host}\n{zone}\n{name}\n{port}\n{path}}}'
-        elab.addMetadata(conn, meta=annotation, title='Data in iRODS')
+    context = utils.context.Context()
 
+    def __init__(self,                      # pylint: disable=too-many-arguments
+                 local_path: str,
+                 irods_path: str,
+                 irods_env: str,
+                 irods_resc: str,
+                 operation: str,
+                 logdir: str,
+                 plugins: list[dict] = None) -> None:
 
-def connectIRODS(config):
+        self.irods_env = None
+        self.irods_path = None
+        self.irods_resc = None
+        self.local_path = None
+        self.config_file = None
+        self.download_finished = None
+        self.upload_finished = None
+        self.irods_conn = None
+        
+        default_irods_env = utils.path.LocalPath('~/.irods', 'irods_environment.json').expanduser()
+        logdir_path = utils.path.LocalPath(logdir)
 
-    # icommands present and irods_environment file present and user wants to use standard envFile
-    standardEnv = os.path.expanduser('~' + os.sep+'.irods' + os.sep + 'irods_environment.json')
-    if os.path.exists(standardEnv) and \
-            (config['iRODS']['irodsenv'] == '' or config['iRODS']['irodsenv'] == standardEnv):
-        try:
-            ic = IrodsConnectorIcommands()
-            print(BLUE+"INFO: Icommands and standard environment file are present.")
-            print("INFO: Using icommands for data up and download."+DEFAULT)
-        except ConnectionRefusedError:
-            raise
-        except FileNotFoundError:
-            raise
-        except EnvironmentError:
-            print("INFO: Connect with python API")
-            success = False
-            while not success:
-                passwd = getpass.getpass(
-                    'Password for '+os.environ['HOME']+'/.irods/irods_environment.json'+': ')
-                ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
-                try:
-                    ic.session.pool.get_connection
-                    success = True
-                except Exception as e:
-                    print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
-                    res = input('Try again (Y/N): ')
-                    if res not in ['Y', 'y']:
-                        sys.exit(2)
-        except Exception:
-            raise
+        # CLI parameters override ibridges_config.json
+        last_env = None
+        if self.context.ibridges_configuration.config.get('last_ienv', ''):
+            last_env = utils.path.LocalPath(
+                    '~/.irods/'+self.context.ibridges_configuration.config.get('last_ienv', ''))
+        irods_env_file = irods_env or last_env or default_irods_env \
+            or self._clean_exit("need iRODS environment file", True)
+        self.context.irods_environment.reset()
+        self.context.irods_env_file = irods_env_file
+        self.irods_path = irods_path or self._clean_exit("need iRODS path", True)
+        self.local_path = local_path or self._clean_exit("need local path", True)
 
-    elif os.path.exists(config['iRODS']['irodsenv']):
-        print("INFO: Connect with python API")
-        success = False
-        while not success:
-            passwd = getpass.getpass(
-                    'Password for '+config['iRODS']['irodsenv']+': ')
-            ic = IrodsConnector(config['iRODS']['irodsenv'], passwd)
+        self.local_path = Path(os.path.expanduser(self.local_path))
+        self.irods_path = self.irods_path.rstrip("/")
+
+        # checking if paths actually exist
+        for path in [self.context.irods_env_file, self.local_path, logdir_path]:
+            if not path.exists():
+                self._clean_exit(f"{path} does not exist")
+
+        # reading default irods_resc from env file if not specified otherwise
+        self.irods_resc = irods_resc \
+                or self.context.irods_environment.config.get('irods_default_resource', '') \
+                or self._clean_exit("need an iRODS resource", True)
+
+        self.operation = operation
+        self.plugins = self._cleanup_plugins(plugins)
+        utils.utils.init_logger("iBridgesCli")
+        utils.utils.set_log_level()
+        self._run()
+
+    @classmethod
+    def _cleanup_plugins(cls, plugins):
+        """
+            Format:
+            plugins = [
+                {
+                    'hook': 'upload',
+                    'actions' : [
+                        { 'slot': 'pre', 'function': function_before },
+                        { 'slot': 'post', 'function': function_after }
+                    ]
+                }
+            ]
+        """
+        plugins = [x for x in plugins if 'hook' in x and 'actions' in x]
+        for key, val in enumerate(plugins):
+            plugins[key]['actions'] = [x for x in val['actions']
+                                       if 'function' in x and callable(x['function'])
+                                       and 'slot' in x and x['slot'] in ['pre', 'post']]
+
+        return [x for x in plugins if len(x['actions']) > 0]
+
+    @classmethod
+    def from_arguments(cls, **kwargs):
+        """
+        Creates class instance from CLI-arguments. Optionally, functions to be triggered
+        at hook-points can be specified.
+        """
+        cls.parser = argparse.ArgumentParser(
+            prog='python iBridgesCli.py',
+            description="",
+            epilog=""
+            )
+        default_logdir = utils.path.LocalPath('~/.ibridges').expanduser()
+
+        cls.parser.add_argument('--local_path', '-l',
+                                help='Local path to download to, or upload from',
+                                type=str)
+        cls.parser.add_argument('--irods_path', '-i',
+                                help='iRods path to upload to, or download from',
+                                type=str)
+        cls.parser.add_argument('--operation', '-o',
+                                type=str,
+                                choices=['upload', 'download'],
+                                required=True)
+        cls.parser.add_argument('--env', '-e', type=str,
+                                help=f'Path to iRods environment file (irods_environment.json).')
+        cls.parser.add_argument('--irods_resc', '-r', type=str,
+                                help='iRods resource. If omitted default will be read from iRods env file.')
+        cls.parser.add_argument('--logdir', type=str,
+                                help=f'Directory for logfile. Default: {default_logdir}',
+                                default=default_logdir)
+
+        args = cls.parser.parse_args()
+
+        return cls(irods_env=args.env,
+                   irods_resc=args.irods_resc,
+                   local_path=args.local_path,
+                   irods_path=args.irods_path,
+                   operation=args.operation,
+                   logdir=args.logdir,
+                   plugins=kwargs["plugins"] if "plugins" in kwargs else None
+                   )
+
+    def _clean_exit(self, message=None, show_help=False, exit_code=1):
+        if message:
+            if exit_code == 0:
+                logging.info(message)
+            else:
+                logging.error(message)
+        if show_help:
+            IBridgesCli.parser.print_help()
+        if self.irods_conn:
+            self.irods_conn.cleanup()
+        sys.exit(exit_code)
+
+    def connect_irods(self):
+        """
+        Connect to iRods instance after interactivelty asking for password.
+        """
+        attempts = 0
+        while True:
+            secret = getpass.getpass(
+                    f'Password for {self.context.irods_env_file} (leave empty to use cached): ')
             try:
-                ic.session.pool.get_connection()
-                success = True
-            except Exception as e:
-                print(RED+"AUTHENTICATION failed. "+repr(e)+DEFAULT)
-                res = input('Try again (Y/N): ')
-                if res not in ['Y', 'y']:
-                    sys.exit(2)
+                if not (self.context.ienv_is_complete()):
+                    self._clean_exit("iRODS environment file incomplete", True)
+                self.irods_conn = IrodsConnector(secret)
+                self.irods_conn.ibridges_configuration = self.context.ibridges_configuration
+                self.irods_conn.irods_env_file = self.context.irods_env_file
+                self.irods_conn.irods_environment = self.context.irods_environment
+                self.irods_conn.connect()
+                
+                if self.irods_conn.icommands.has_icommands:
+                    in_var = input("Use icommands (Y/N, default Y): ").strip().lower()
+                    if in_var in ['', 'y', 'yes']:
+                        self.irods_conn.use_icommands = True
+                        self.irods_conn.icommands.set_irods_env_file(self.context.irods_env_file)
+                        
+                assert self.irods_conn.session.has_valid_irods_session(), "No session"
 
-        print(BLUE+"INFO: Data up and download by python API."+DEFAULT)
+                break
+            except AssertionError as error:
+                logging.error('Failed to connect: %r', error)
+                attempts += 1
+                if attempts >= 3 or input('Try again (Y/n): ').lower() == 'n':
+                    return False
+        return
 
-    else:
-        raise FileNotFoundError('Environment file not found e.g. ' + standardEnv)
+    @plugin_hook
+    def download(self):
+        """
+        Download dataobject or collection from iRods.
+        """
+        # status for ther benefit of the plugin
+        self.download_finished = False
 
-    return ic
-
-
-def setupIRODS(config, operation):
-    """
-    Connects to iRODS and sets up the environment.
-    """
-    ic = connectIRODS(config)
-    if operation == 'download':
-        return ic
-
-    # set iRODS path
-    try:
-        ic.ensure_coll(config['iRODS']['irodscoll'])
-        print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
-    except Exception:
-        print(RED+"Collection path not set in config or invalid: " + config['iRODS']['irodscoll']+DEFAULT)
-        success = False
-        while not success:
-            iPath = input('Choose iRODS collection: ')
-            try:
-                ic.ensure_coll(iPath)
-                config['iRODS']['irodscoll'] = iPath
-                print(YEL+'Uploading to '+config['iRODS']['irodscoll']+DEFAULT)
-                success = True
-            except Exception:
-                print(RED+"Collection path not valid: " + config['iRODS']['irodscoll']+DEFAULT)
-
-    # Set iRODS resource
-    # Look in config, then in ienv
-
-    print(YEL+"Confirming resource in config: " + config['iRODS']['irodsresc'])
-    try:
-        resource = ic.get_resource(config['iRODS']['irodsresc'])
-        try:
-            print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                  str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
-        except FreeSpaceNotSet:
-            ic.ienv.setdefault('force_unknown_free_space', 'True')
-            print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
-    except (NoResultFound, ResourceDoesNotExist):
-        print(RED+'iRODS resource does not exist: '+config['iRODS']['irodsresc']+DEFAULT)
-        try:
-            print(YEL+'Checking env-file: '+ic.default_resc)
-            resource = ic.get_resource(ic.default_resc)
-            config['iRODS']['irodsresc'] = ic.default_resc
-            try:
-                print(config['iRODS']['irodsresc'] + " upload capacity, free space: " + \
-                      str(round(int(ic.resource_space(resource.name) * ic.multiplier)) + 'GB'))
-            except FreeSpaceNotSet:
-                ic.ienv.setdefault('force_unknown_free_space', 'True')
-                print(config['iRODS']['irodsresc'] + " upload capacity, free space: No  inofrmation")
-        except Exception:
-            print(RED+"No resource set in environment file either ('irods_resource_name')"+DEFAULT)
-            print(RED+"ERROR: No resource set"+DEFAULT)
-            ic.session.cleanup()
-            sys.exit(2)
-    except Exception:
-        print(RED+'iRODS resource not found: '+config['iRODS']['irodsresc']+DEFAULT)
-        print(RED+'No valid resource set.')
-        ic.session.cleanup()
-        sys.exit(2)
-
-    return ic
-
-
-def setupELN(config):
-    md = elabConnector(config['ELN']['token'])
-    if config['ELN']['group'] != '' and config['ELN']['experiment'] != '':
-        try:
-            md.updateMetadataUrl(group=config['ELN']['group'],
-                                 experiment=config['ELN']['experiment'])
-        except Exception:
-            print(RED+'ELN groupID or experimentID not set or valid.'+DEFAULT)
-            md.showGroups()
-            md.updateMetadataUrlInteractive(group=True)
-    else:
-        md.showGroups()
-        md.updateMetadataUrlInteractive(group=True)
-
-    if config['ELN']['title'] == '':
-        config['ELN']['title'] = input('ELN paragraph title: ')
-
-    print(BLUE+('Link Data to experiment: '))
-    print(md.metadataUrl)
-    config['ELN']['experiment'] = md.experiment.id()
-    config['ELN']['group'] = md.elab.group().id()
-    print('with title: '+config['ELN']['title']+DEFAULT)
-
-    return md, config['ELN']['title']
-
-
-def prepareUpload(dataPath, ic, config):
-    if not os.path.exists(dataPath):
-        print(RED+'Data path does not exist'+DEFAULT)
-        menu = input('Do you want to specify a new path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y', '']:
-            success = False
-            while not success:
-                dataPath = input('Full data path: ')
-                success = os.path.exists(dataPath)
+        # checks if remote object exists and if it's an object or a collection
+        if self.irods_conn.collection_exists(self.irods_path):
+            item = self.irods_conn.get_collection(self.irods_path)
+        elif self.irods_conn.dataobject_exists(self.irods_path):
+            item = self.irods_conn.get_dataobject(self.irods_path)
         else:
-            print('Aborted: Data path not given')
+            logging.error('iRODS path %s does not exist', self.irods_path)
             return False
-    else:
-        pass
-    # store verified dataPath
-    config["iRODS"]["uploadItem"] = dataPath
 
-    size = get_local_size([dataPath])
-    freeSpace = int(ic.get_free_space(config['iRODS']['irodsresc']))
-    print('Checking storage capacity for ' + dataPath + ', ' + str(float(size) * ic.multiplier) + 'GB')
+        # get its size to check if there's enough space
+        download_size = self.irods_conn.get_irods_size([self.irods_path])
+        logging.info("Downloading '%s' (approx. %sGB)", self.irods_path, round(download_size * kw.MULTIPLIER, 2))
 
-    if freeSpace is not None and int(freeSpace)-1000**3 < size:
-        print(RED+'Not enough space left on iRODS resource.'+DEFAULT)
-        res = input('Do you want to force the upload (Y/N): ')
-        if res != 'Y':
-            print('Aborted: Not enough space left.')
-            return False
-        else:
-            return True
-    else:
+        # download
+        self.irods_conn.download_data(source=item, destination=self.local_path, size=download_size, force=False)
+
+        self.download_finished = True
+
+        logging.info('Download complete')
         return True
 
+    @plugin_hook
+    def upload(self):
+        """
+        Uploads local file(s) to iRods.
+        """
+        # status for ther benefit of the plugin
+        self.upload_finished = False
 
-def prepareDownload(irodsItemPath, ic, config):
-    if not ic.session.data_objects.exists(irodsItemPath) and \
-       not ic.session.collections.exists(irodsItemPath):
-        print(RED+'iRODS path does not exist'+DEFAULT)
-        menu = input('Do you want to specify a new iRODS path? (Y/N)')
-        if menu in ['YES', 'Yes', 'Y', 'y', '']:
-            success = False
-            while not success:
-                irodsItemPath = input('Full data path: ')
-                success = ic.session.data_objects.exists(irodsItemPath) or \
-                    ic.session.collections.exists(irodsItemPath)
-            config["iRODS"]["downloadItem"] = irodsItemPath
-        else:
-            print('Aborted: iRODS path not given')
+        # check if intended upload target exists
+        try:
+            self.irods_conn.ensure_coll(self.target_path)
+            logging.info('Uploading to %s', self.target_path)
+        except (CollectionDoesNotExist, SYS_INVALID_INPUT_PARAM):
+            logging.error('Collection path invalid: %s', self.target_path)
             return False
-    else:
-        config["iRODS"]["downloadItem"] = irodsItemPath
 
-    if 'DOWNLOAD' not in config.keys():
-        config['DOWNLOAD'] = {'path': ''}
+        # check if there's enough space left on the resource
+        upload_size = utils.utils.get_local_size([self.local_path])
 
-    if config['DOWNLOAD']['path'] == '' or os.path.isfile(config['DOWNLOAD']['path']):
-        print(RED+'No download directory given'+DEFAULT)
-        success = False
-        while not success:
-            dataPath = input('Download directory: ')
-            success = ensure_dir(dataPath)
-            if not success:
-                abort = input('Abort download? (Y/N): ')
-                if abort == "Y":
-                    ic.session.cleanup()
-                    sys.exit(2)
-            else:
-                config["DOWNLOAD"]["path"] = dataPath
-                return ensure_dir(config['DOWNLOAD']['path'])
-    else:
-        return ensure_dir(config['DOWNLOAD']['path'])
+        free_space = int(self.irods_conn.get_free_space(resc_name=self.irods_resc))
+        if free_space-1000**3 < upload_size and \
+                not self.context.ibridges_configuration.config.get('force_transfers', False):
+            logging.error('Not enough space left on iRODS resource to upload.')
+            return False
 
-    return True
+        self.irods_conn.upload_data(
+            source=self.local_path,
+            destination=self.irods_conn.get_collection(self.target_path),
+            res_name=self.irods_resc,
+            size=upload_size,
+            force=True)
 
+        self.upload_finished = True
 
-def printHelp():
-    print('Data upload client')
-    print('Uploads local data to iRODS, and, if specified, links dat to an entry in a metadata store (ELN).')
-    print('Usage: ./iBridgesCli.py -c, --config= \t config file')
-    print('\t\t    -d, --data= \t datapath')
-    print('\t\t    -i, --irods= \t irodspath (download)')
-    print('Examples:')
-    print('Downloading: ./iBridgesCli.py -c <yourConfigFile> --irods=/npecZone/home')
-    print('Uploading: ./iBridgesCli.py -c <yourConfigFile> --data=/my/data/path')
+        return True
 
+    def _run(self):
+        self.connect_irods()
 
-def main(argv):
+        if not self.irods_conn:
+            self._clean_exit("Connection failed")
 
-    irodsEnvPath = os.path.expanduser('~') + os.sep + ".irods"
-    setup_logger(irodsEnvPath, "iBridgesCli")
+        if self.operation == 'download':
 
-    try:
-        opts, args = getopt.getopt(argv, "hc:d:i:", ["config=", "data=", "irods="])
-    except getopt.GetoptError:
-        print(RED+"ERROR: incorrect usage."+DEFAULT)
-        printHelp()
-        sys.exit(2)
+            if not self.download():
+                self._clean_exit()
 
-    config = None
-    operation = None
+        elif self.operation == 'upload':
 
-    for opt, arg in opts:
-        if opt == '-h':
-            printHelp()
-            sys.exit(2)
-        elif opt in ['-c', '--config']:
-            try:
-                config = getConfig(arg)
-            except Exception:
-                print(RED+'No config file found.'+DEFAULT)
-                sys.exit(2)
-        elif opt in ['-i', '--irods']:
-            operation = 'download'
-            if arg.endswith("/"):
-                irodsPath = arg[:-1]
-            else:
-                irodsPath = arg
-        elif opt in ['-d', '--data']:
-            operation = 'upload'
-            if arg.endswith("/"):
-                dataPath = arg[:-1]
-            else:
-                dataPath = arg
+            # try:
+            #     _ = self.irods_conn.resources.get(self.irods_resc)
+            # except ResourceDoesNotExist:
+            #     self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
+
+            if self.irods_resc not in self.irods_conn.resources:
+                self._clean_exit(f"iRODS resource '{self.irods_resc}' not found")
+
+            self.target_path = self.irods_path
+
+            if not self.upload():
+                self._clean_exit()
+
         else:
-            printHelp()
-            sys.exit(2)
+            logging.error('Unknown operation: %s', self.operation)
 
-    # initialise iRODS
-    if operation is None:
-        print(RED+"ERROR: missing parameter."+DEFAULT)
-        printHelp()
-        sys.exit(2)
-    ic = setupIRODS(config, operation)
-    # initialise medata store connetcions
-    if 'ELN' in config and operation == 'upload':
-        md, title = setupELN(config)
-    else:
-        md = None
-
-    # check files for upload
-    if operation == 'upload':
-        if len(config) == 1:
-            print(BLUE+"INFO: No metadata store configured. Only upload data to iRODS."+DEFAULT)
-        if prepareUpload(dataPath, ic, config):
-            if md is not None:
-                iPath = config['iRODS']['irodscoll'] + '/' + md.__name__ + '/' + \
-                    str(config['ELN']['group']) + '/'+str(config['ELN']['experiment'])
-            # elif os.path.isdir(dataPath):
-            #     iPath = config['iRODS']['irodscoll']+'/'+os.path.basename(dataPath)
-            else:
-                iPath = config['iRODS']['irodscoll']
-            iColl = ic.session.collections.get(iPath)
-            dataPath = config["iRODS"]["uploadItem"]
-            ic.upload_data(dataPath, iColl, config['iRODS']['irodsresc'],
-                           get_local_size([dataPath]), force=True)
-        else:
-            ic.session.cleanup()
-            sys.exit(2)
-        # tag data in iRODS and metadata store
-        if md is not None:
-            coll = ic.session.collections.get(iPath)
-            metadata = {
-                "iRODS path": coll.path,
-                "iRODS server": ic.session.host,
-                "iRODS user": ic.session.username,
-            }
-            if config["ELN"]["title"] == '':
-                annotateElab(metadata, ic, md, coll, title='Data in iRODS')
-            else:
-                annotateElab(metadata, ic, md, coll, title=config["ELN"]["title"])
-
-            if os.path.isfile(dataPath):
-                item = ic.session.data_objects.get(
-                    coll.path+'/'+os.path.basename(dataPath))
-                ic.addMetadata([item], 'ELN', md.metadataUrl)
-            elif os.path.isdir(dataPath):
-                upColl = ic.session.collections.get(
-                            coll.path+'/'+os.path.basename(dataPath))
-                items = [upColl]
-                for c, _, objs in upColl.walk():
-                    items.append(c)
-                    items.extend(objs)
-                ic.addMetadata(items, 'ELN', md.metadataUrl)
-
-        print()
-        print(BLUE+'Upload complete with the following parameters:')
-        print(json.dumps(config, indent=4))
-        print(DEFAULT)
-        ic.session.cleanup()
-    elif operation == 'download':
-        if prepareDownload(irodsPath, ic, config):
-            downloadDir = config['DOWNLOAD']['path']
-            irodsDataPath = config["iRODS"]["downloadItem"]
-            print(YEL,
-                  'Downloading: ' + irodsDataPath + ', ' + \
-                  str(ic.get_irods_size([irodsDataPath]) * ic.multiplier) + 'GB',
-                  DEFAULT)
-            try:
-                item = ic.session.collections.get(irodsDataPath)
-            except Exception:
-                item = ic.session.data_objects.get(irodsDataPath)
-            print(item, downloadDir)
-            ic.download_data(item, downloadDir, ic.get_irods_size([irodsDataPath]), force=False)
-            print()
-            print(BLUE+'Download complete with the following parameters:')
-            print(json.dumps(config, indent=4))
-            print(DEFAULT)
-            ic.session.cleanup()
-        else:
-            ic.session.cleanup()
-            sys.exit(2)
-    else:
-        print('Not an implemented operation.')
-        sys.exit(2)
+        self._clean_exit(message="Done", exit_code=0)
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+
+    elab = ElabPlugin()
+
+    cli = IBridgesCli.from_arguments(plugins=[
+        {
+            'hook': 'upload',
+            'actions': [
+                {'slot': 'pre', 'function': elab.setup},
+                {'slot': 'post', 'function': elab.annotate}
+            ]
+        }
+    ])

@@ -1,14 +1,21 @@
 # iBridges User Documentation
 ## Synopsis 
-iBridges is a GUI to an Data management platform based on iRODS. It exposes iRODS functionality through a GUI to the users. We divided the different function into groups where each function group is represented in an own tab in the GUI. The tabs are configured for the user depending on the user's rights and role in the Data management platform.
+iBridges is a GUI to a Data management platform based on iRODS. It exposes iRODS functionality through the graphical interface to the users. We divided the different functions into groups where each function group is represented in an own tab in the GUI. The tabs are configured for the user depending on the user's rights and role in the Data management platform.
+
+The tabs which currently are in use:
+
 - The **Browser** is a tool to browse through iRODS collections and gather information on iRODS data objects
-- The **Up and Download** tab gives tools to up and download large data safely.
-- The **ELN Data upload** tab is made for specific data uploads that belong to an Experiment described in an ElabJournal instance. 
-- In the **Compress/bundle data** tab the user is given tools to bundle (tar) or compress (zip) iRODS data collections and to extract them again.
+- The **Data Transfers** tab gives tools to up and download large data safely.
+- In the **Compress/bundle data** tab the user is given tools to bundle (tar)  iRODS data collections and to extract them again. Note, that this only bundles the files, it will not preserve the metadata.
+- The **Create access token** tab allows users to create iRODS tickets to collections in read mode.
+- The **ELN Data upload** tab is made for specific data uploads that belong to an Experiment described in an Elabjournal instance. 
+- The **AmberScript Connection** tab allows to up and download data from and to Amberscript.
+- The **Info** tab summarises information from the iRODS server e.g. the user's group, resources, their status and their available storage etc.
+
 
 ## Browsing through your iRODS collections
 
-![Browse](../screenshots/browser.png)
+![](../screenshots/browser.png)
 
 To browse through your data collections in iRODS click on the **Browser** tab. 
 
@@ -17,59 +24,117 @@ To browse through your data collections in iRODS click on the **Browser** tab.
    - Click on the `Name`  of a collection or option. This will load the tabs below the table (see below)
    - Double click on a collection to navigate into the collection
 3. Lower tabs
-   - Preview: Lists the content of a collection or the first 50 lines  of textual data (.txt, .json, .csv)
-   - Metadata: You can annotate collections and data objects with own annotation `key, value, unit`. The keys and values can be used in the search-drop down menu to look for data
-   - Permissions: Will show the permissions own(er), read, write. If you have the role of data steward, you will also be able to change and add permissions
-   - Resources: The tab shows on which storage resource data objects are stored. Note, collections do not have a resource.
-   - Delete: In the browser table click on the collection or object you want to delete, then click `Load` and then `Delete`. This will delete a whole collection with all its members or the data object. 
+   - **Preview**: Lists the content of a collection or the first 50 lines  of text data (.txt, .json, .csv)
+   - **Metadata**: You can annotate collections and data objects with own annotations of  `key, value, unit`. The keys and values can be used in the search-drop down menu to search for data.
+   - **Permissions**: Will show the permissions own(er), read, write. It also provides to grant and withdraw rights.
+   - **Replicas**: The tab shows the resource hierarchy and on which storage resource data objects are stored. It also provides information on the size and modificatin dates, and the status (good or broken) per resource which holds a copy of the data. Note, collections do not have a resource.
+   - **Delete**: In the browser table click on the collection or object you want to delete, then click `Load` and then `Delete`. This will delete a whole collection with all its members or the data object. 
 
 Note: The `File Upload` and `File download` buttons are only meant for uploading and downloading small single files. For large data transfers go to the **Data transfer** tab.
 
-### Downloading data
-![Download](../screenshots/howto_download.png)
+## Downloading data
+![](../screenshots/howto_download.png)
 
  1. Select the iRODS collection or data object to download and the folder
     to download to. 
     
  2. Press the download button. A pop up window opens and the difference between the source and destination is calculated:
-						- Based on checksums, a unique hash for each file the GUI determines whether the source file and the destination file are identical. If so, the file will **not** be downloaded again. The GUI will only download data which does not exist or differs.
+ 
+	- Based on checksums, a unique hash for each file the GUI determines whether the source file and the destination file are identical. If so, the file will **not** be downloaded again. The GUI will only download data which does not exist or where its content differs.
 	- The GUI also computes the total size of the data objects and will only start the download if the total amount will fit on your destination file system. 
 
-![Download dialog](../screenshots/howto_download2.png)
+![](../screenshots/howto_download2.png)
 
-When the  check is done the loading screen disappears and the number of files which exist with a different checksum (1) and files which only exist on iRODS (2) will be indicated. Press the `Download` button to start the file transfer. iRODS automatically checks the checksum to ensure all downloaded files are complete.
+When the  check is done, the loading screen disappears and the number of files which exist with a different checksum (1) and files which only exist on iRODS (2) will be indicated. Press the `Download` button to start the file transfer. iRODS automatically checks the checksum to ensure all downloaded files are complete.
 
 ## Uploading data
 
-![Upload](../screenshots/howto_upload.png)
+![](../screenshots/howto_upload.png)
 
- 1. Check the resource. There may be several storage resources configured for you in the system. Your iRODS admin will give you advice which one to use for which data and workflow. Note, that `archive` resources are made to archive large files. Please adhere for those resources to the following policy:
-	 - Files need to be 1GB or larger. 
-	 - Do not start calculations on data which is stored on `archive` resources. They have a low latency and will inhibit your program. Your iRODS administrator can help you to migrate the data to a suited resources in that case. 
+ 1. Check the resource. There may be several storage resources configured for you in the system. Your iRODS admin will give you advice which one to use for which data and workflow. The drop-down menu is preset with the `irods_default_resource` from the *.irods/irods_environment.json*.
+Your iRODS administrator can help you to decide which resource to use for which data. 
  2. Select the local file or folder and iRODS collection to upload to. 
-  3. Press the upload button. As in the download, a pop up window will appear which will execute the same checks as for the data downloads.
+ 3. Press the upload button. As in the download, a pop up window will appear which will execute the same checks as for the data downloads.
 
-![Upload Dialog](../screenshots/howto_upload2.png)
+![](../screenshots/howto_upload2.png)
+
+::: {.callout-note collapse="true"}
+## Create access tokens
+iRODS tickets can be created in the tab *"Create access tokens"* (`tabTicketLogin` in *.ibridges/ibridges_config.json*).
+
+Currently, tickets can only be set to iRODS collections and in mode *read*. Tickets can be given an expiration date.
+:::
+
+::: {.callout-note collapse="true"}
+## Data bundeling
+Users can bundle their data into tar-archives. Please note that metadata and acls will not be part of the bundled data and will be "forgotten" when unpacking data.
+:::
 
 ## Searching for data
 
 Click on `Options` in the menu bar of the window and select `Search`. This will open a mask to search for  data objects and collections using metadata key-value pairs, collection paths and data object paths. 
 
+![](../screenshots/menu_search.png)
+
 The `Select and Close` button will load the selected collections and objects into the **Browser** tab where you can further inspect and annotate the data.
 
-## Additional features
+## Additional features {#sec-features}
 ::: {.callout-note collapse="true"}
 ## Elabjournal
+- Add `"tabELNData"` to the `"ui_tabs"` in *.ibridges/ibridges_config*
+- Store your ElabJournal API token in *.ibridges/ibridges_config* :
+	
+	```py
+	{
+	    "davrods_server": "<Fully qualified domain name>",
+    	"eln_token": "xx.elabjournal.com;*********",
+    	"force_transfers": false,
+    	"check_free_space": true,
+    	"ui_tabs":[
+    		"tabELNData"
+    	]
+    }
+	```
+![](../screenshots/eln-tab.png)
+- Step 1: Provide your Elabjournal API key, it is read from the *.ibridges/ibridges_config.json* but you can also paste it into the mask. Click **connect**.
+- You will see that the group table will be filled and once you selected (simply click on) a group, the experiments will be loaded. Please click on the experiment you would like to upload data for.
+- Step 2: When you successfully selected a group and an experiment their IDs will show up here.
+- Step 3: Select the data on your PC which you want to upload to iRODS.
+- Step 4: Make sure to provide the path to the correct collection in iRODS where the data should be uploaded to.
+- When you click on **Upload**, a new collection will be created in iRODS (if it does not exist) with the path *\<collection provided in step 4\>/ELN/\<groupID\>/\<experimentID\>*
+- A preview of the data will be shown in the file below the iRODS path.
+- Uploaded data to iRODS will be labeled with the URL to the Elabjournal experiment. You can inspect the metadata in the tab *Browser*.
+![](../screenshots/eln-metadata.png)
+
+**Note**: data will always be uploaded to iRODS, there will only be a small section added in your Elabjournal experiment with a link to the data.
+
 :::
 
 ::: {.callout-note collapse="true"}
-## Overview tab
-### Resources
+## Amberscript
+- Add `tabAmberWorkflow` to the `"ui_tabs"` in *.ibridges/ibridges_config.json*
+- Store your Amberscript API token in *.ibridges/ibridges_config.json*
+	
+	```py
+	{
+    	"amber_token": "**************",
+    	"force_transfers": false,
+    	"check_free_space": true,
+    	"ui_tabs":[
+    		"tabAmberWorkflow"
+    	]
+    }
+	```
+
 :::
 
+
 ::: {.callout-note collapse="true"}
-## Experimental tabs and fetaures
-### Data bundeling
-### Ticket creation
+## Prototype tabs and fetaures {#sec-experimental}
+
 ### Ticket Login
+Users can login with a ticket, the iRODS server name and the collection name if the *anonymous user* is allowed on the iRODS server. 
+
+**Currently, this feature does not work if the iRODS instance is SSL enabled.**
+
 :::

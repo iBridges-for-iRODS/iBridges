@@ -10,6 +10,7 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+import utils
 
 REMOVE_LOCAL = 'ui_remLocalcopy'
 UPLOAD_HOSTS = [
@@ -26,15 +27,10 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
 
     """
 
-    def __init__(self, ic, ienv):
-        """Construct the transfer window.
+    context = utils.context.Context()
 
-        Parameters
-        ----------
-        ic : IrodsConnector
-            Connection to an iRODS session.
-        ienv : dict
-            iRODS environment settings.
+    def __init__(self):
+        """Construct the transfer window.
 
         """
         super().__init__()
@@ -42,8 +38,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabUpDownload.ui", self)
-        self.ic = ic
-        self.ienv = ienv
+
+        self.conn = self.context.irods_connector
         self.localmodel = None
         self.irodsmodel = None
         self.syncing = False
@@ -75,8 +71,7 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """Initialize iRODS QTreeView.
 
         """
-        self.irodsmodel = gui.irodsTreeView.IrodsModel(
-            self.ic, self.irodsFsTreeView)
+        self.irodsmodel = gui.irodsTreeView.IrodsModel(self.irodsFsTreeView)
         self.irodsFsTreeView.setModel(self.irodsmodel)
         self.irodsZoneLabel.setText(f'{self.irodsmodel.zone_path}:')
         self.irodsFsTreeView.expanded.connect(
@@ -111,8 +106,8 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         """Create resource drop-down menu.
 
         """
-        default_resc = self.ic.default_resc
-        names, spaces = self.ic.list_resources()
+        default_resc = self.conn.default_resc
+        names, spaces = self.conn.list_resources()
         resources = [
             f'{name} / {space}' for name, space in zip(names, spaces)]
         self.resourceBox.clear()
@@ -189,12 +184,12 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
         if len(indexes):
             index = indexes[0]
             parent = self.irodsmodel.irods_path_from_tree_index(index)
-            if self.ic.dataobject_exists(parent):
+            if self.conn.dataobject_exists(parent):
                 self.errorLabel.setText(
                     "No parent collection selected.")
             else:
                 create_coll_widget = gui.popupWidgets.irodsCreateCollection(
-                    parent, self.ic)
+                    parent)
                 create_coll_widget.exec()
                 self.irodsmodel.refresh_subtree(index)
         else:
@@ -213,14 +208,14 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
                     "ERROR Up/Download: Please select source and destination.")
             self.enable_buttons(True)
             return
-        if not self.ic.collection_exists(irods_path):
+        if not self.conn.collection_exists(irods_path):
             self.errorLabel.setText(
                     "ERROR UPLOAD: iRODS destination is a file, must be a collection.")
             self.enable_buttons(True)
             return
-        dest_coll = self.ic.get_collection(irods_path)
+        dest_coll = self.conn.get_collection(irods_path)
         self.upload_window = gui.dataTransfer.dataTransfer(
-            self.ic, True, local_path, dest_coll, irods_index,
+            True, local_path, dest_coll, irods_index,
             self.get_resource())
         self.upload_window.finished.connect(self.transfer_complete)
 
@@ -262,12 +257,12 @@ class IrodsUpDownload(PyQt6.QtWidgets.QWidget,
             self.enable_buttons(True)
             return
         # TODO check if querying for collection is faster
-        if self.ic.dataobject_exists(irods_path):
-            irods_obj = self.ic.session.data_objects.get(irods_path)
+        if self.conn.dataobject_exists(irods_path):
+            irods_obj = self.conn.get_dataobject(irods_path)
         else:
-            irods_obj = self.ic.get_collection(irods_path)
+            irods_obj = self.conn.get_collection(irods_path)
         self.upload_window = gui.dataTransfer.dataTransfer(
-            self.ic, False, local_path, irods_obj)
+            False, local_path, irods_obj)
         self.upload_window.finished.connect(self.transfer_complete)
 
     def get_paths_from_trees(self):

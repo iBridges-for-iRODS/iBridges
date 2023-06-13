@@ -12,6 +12,7 @@ import PyQt6.uic
 
 import gui
 import utils
+import irodsConnector.keywords as kw
 
 CWD = os.getcwd()
 EXTENSIONS = [
@@ -30,15 +31,10 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
 
     """
 
-    def __init__(self, ic, ienv):
-        """Construct the bundle window.
+    context = utils.context.Context()
 
-        Parameters
-        ----------
-        ic : IrodsConnector
-            Connection to an iRODS session.
-        ienv : dict
-            iRODS environment settings.
+    def __init__(self):
+        """Construct the data bundle window.
 
         """
         super().__init__()
@@ -46,13 +42,14 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabDataBundle.ui", self)
-        self.ic = ic
-        self.ienv = ienv
+ 
+        self.conf = self.context.ibridges_configuration.config
+        self.conn = self.context.irods_connector
         self.thread_create = None
         self.thread_extract = None
         self.worker_create = None
         self.worker_extract = None
-        self.root_path = f'/{ic.session.zone}'
+        self.root_path = f'/{self.conn.zone}'
         self.irodsZoneLabel.setText(f'{self.root_path}:')
         self.irods_tree_model = self.setup_fs_tree(self.irodsFsTreeView)
         self.irodsFsTreeView.expanded.connect(self.irods_tree_model.refresh_subtree)
@@ -83,7 +80,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             Constructed tree view.
 
         """
-        model = gui.irodsTreeView.IrodsModel(self.ic, tree_view)
+        model = gui.irodsTreeView.IrodsModel(tree_view)
         tree_view.setModel(model)
         model.setHorizontalHeaderLabels(
             [self.root_path, 'Level', 'iRODS ID', 'parent ID', 'type'])
@@ -106,12 +103,12 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         selector : QtWidget
 
         """
-        names, spaces = self.ic.list_resources()
+        names, spaces = self.conn.list_resources()
         resources = [
             f'{name} / {space}' for name, space in zip(names, spaces)]
         selector.clear()
         selector.addItems(resources)
-        default_resc = self.ic.default_resc
+        default_resc = self.conn.default_resc
         if default_resc in names:
             ridx = names.index(default_resc)
             index = selector.findText(resources[ridx])
@@ -131,6 +128,13 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.createButton.setEnabled(False)
         self.extractButton.setEnabled(False)
 
+    def _operation_allowed(self, item, user):
+        acls = self.conn.permission.get_permissions(item)
+        accepted_users = [acl.user_name for acl in acls 
+                          if acl.access_name in ['write', 'own']]
+
+        return user in accepted_users
+
     def create_data_bundle(self):
         """Run an iRODS bundle rule on selected collection.
 
@@ -149,22 +153,38 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         else:
             coll_name = self.irods_tree_model.irods_path_from_tree_index(coll_indexes[0])
-        if not self.ic.collection_exists(coll_name):
+        if not self.conn.collection_exists(coll_name):
             self.statusLabel.setText(
                 'CREATE ERROR: A collection must be selected')
             self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        # TODO find a better test (add permissions too)
-        if len(coll_name.split('/')) < 5:
-            self.statusLabel.setText(
-                'CREATE ERROR: Collection must be within a user/group collection')
+        # TODO generalise checking permissions for all GUI classes
+        try:
+            coll = self.conn.data_op.get_collection(coll_name)
+            coll_parent = self.conn.data_op.get_collection(utils.path.IrodsPath(coll.path).parent)
+        except Exception as error:
+            if hasattr(error, 'message'):
+                self.statusLabel.setText(error.message)
+            else:
+                self.statusLabel.setText('CREATE ERROR: Invalid collection chosen.')
             self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        src_coll = self.ic.get_collection(coll_name)
+
+        if not self._operation_allowed(coll, self.conn.username) or \
+                not self._operation_allowed(coll_parent, self.conn.username):
+        #if len(coll_name.split('/')) < 5:
+            self.statusLabel.setText(
+                'CREATE ERROR: Collection must be within a user/group collection, insufficient rights.')
+            self.setCursor(
+                PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
+            self.enable_buttons()
+            return
+
+        src_coll = self.conn.get_collection(coll_name)
         src_size = utils.utils.get_coll_size(src_coll)
         if src_size == 0:
             self.statusLabel.setText(
@@ -174,7 +194,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             self.enable_buttons()
             return
         resc_name, free_space = self.resourceBox.currentText().split(' / ')
-        if 2 * src_size * self.ic.multiplier > int(free_space):
+        if 2 * src_size * kw.MULTIPLIER > int(free_space) and not self.conf.get("force_transfers", False):
             self.statusLabel.setText(
                 'CREATE ERROR: Resource must have enough free space in it')
             self.setCursor(
@@ -183,7 +203,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         obj_path = f'{coll_name}.tar'
         force = self.forceCheckBox.isChecked()
-        if self.ic.dataobject_exists(obj_path):
+        if self.conn.dataobject_exists(obj_path):
             if not force:
                 self.statusLabel.setText(
                     f'CREATE ERROR: Destination bundle ({obj_path}) exists.  Use force to override')
@@ -202,7 +222,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.thread_create = PyQt6.QtCore.QThread()
         self.statusLabel.setText(f'CREATE STATUS: Creating {obj_path}')
         self.worker_create = RuleRunner(
-            self.ic, io.StringIO(CREATE_RULE), params, 'CREATE')
+            io.StringIO(CREATE_RULE), params, 'CREATE')
         self.worker_create.moveToThread(self.thread_create)
         self.thread_create.started.connect(self.worker_create.run)
         self.worker_create.finished.connect(self.thread_create.quit)
@@ -229,14 +249,14 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         else:
             obj_path = self.irods_tree_model.irods_path_from_tree_index(obj_indexes[0])
-        if not self.ic.dataobject_exists(obj_path):
+        if not self.conn.dataobject_exists(obj_path):
             self.statusLabel.setText(
                 'EXTRACT ERROR: A data object must be selected')
             self.setCursor(
                 PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.ArrowCursor))
             self.enable_buttons()
             return
-        obj_path = utils.utils.IrodsPath(obj_path)
+        obj_path = utils.path.IrodsPath(obj_path)
         file_type = ''.join(obj_path.suffixes)[1:]
         if file_type not in EXTENSIONS:
             self.statusLabel.setText(
@@ -247,8 +267,8 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
             return
         force = self.forceCheckBox.isChecked()
         coll_name = obj_path.with_suffix('').with_suffix('')
-        if self.ic.collection_exists(coll_name):
-            bund_coll = self.ic.get_collection(coll_name)
+        if self.conn.collection_exists(coll_name):
+            bund_coll = self.conn.get_collection(coll_name)
             if len(bund_coll.subcollections) or len(bund_coll.data_objects):
                 if not force:
                     self.statusLabel.setText(
@@ -259,7 +279,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
                     return
                 else:
                     bund_coll.remove(force=force)
-        self.ic.ensure_coll(coll_name)
+        self.conn.ensure_coll(coll_name)
         resc_name = self.resourceBox.currentText().split(' / ')[0]
         force_flag = 'force' if force else ''
         params = {
@@ -272,7 +292,7 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.statusLabel.setText(
             f'EXTRACT STATUS: Extracting {coll_name}')
         self.worker_extract = RuleRunner(
-            self.ic, io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
+            io.StringIO(EXTRACT_RULE), params, 'EXTRACT')
         self.worker_extract.moveToThread(self.thread_extract)
         self.thread_extract.started.connect(self.worker_extract.run)
         self.worker_extract.finished.connect(self.thread_extract.quit)
@@ -312,13 +332,12 @@ class RuleRunner(PyQt6.QtCore.QObject):
 
     """
     finished = PyQt6.QtCore.pyqtSignal(bool, tuple, str)
+    context = utils.context.Context()
 
-    def __init__(self, ic, rule_file, params, operation):
+    def __init__(self, rule_file, params, operation):
         """
         Parameters
         ----------
-        ic : IrodsConnector
-            Connection to an iRODS session.
         rule_file : str, file-like
             Name of the iRODS rule file, or a file-like object representing it.
         params : dict
@@ -328,7 +347,8 @@ class RuleRunner(PyQt6.QtCore.QObject):
 
         """
         super().__init__()
-        self.ic = ic
+
+        self.conn = self.context.irods_connector
         self.rule_file = rule_file
         self.params = params
         self.operation = operation
@@ -337,7 +357,7 @@ class RuleRunner(PyQt6.QtCore.QObject):
         """Run the rule and "return" the results.
 
         """
-        stdout, stderr = self.ic.execute_rule(self.rule_file, self.params)
+        stdout, stderr = self.conn.execute_rule(self.rule_file, self.params)
         if stderr == '':
             self.finished.emit(True, (stdout, stderr), self.operation)
         else:

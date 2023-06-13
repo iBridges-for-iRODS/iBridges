@@ -8,20 +8,25 @@ import PyQt6.QtWidgets
 import PyQt6.uic
 
 import gui
+import utils
 
 
-class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
+class irodsInfo(PyQt6.QtWidgets.QWidget,
+                gui.ui_files.tabInfo.Ui_tabInfo):
     """Set iRODS information in the GUI
 
     """
 
-    def __init__(self, ic):
-        self.ic = ic
+    context = utils.context.Context()
+
+    def __init__(self):
         super().__init__()
         if getattr(sys, 'frozen', False):
             super().setupUi(self)
         else:
             PyQt6.uic.loadUi("gui/ui_files/tabInfo.ui", self)
+        self.conn = self.context.irods_connector
+
         self.refreshButton.clicked.connect(self.refresh_info)
         self.refresh_info()
 
@@ -32,21 +37,21 @@ class irodsInfo(PyQt6.QtWidgets.QWidget, gui.ui_files.tabInfo.Ui_tabInfo):
         self.rescTable.setRowCount(0)
         self.setCursor(PyQt6.QtGui.QCursor(PyQt6.QtCore.Qt.CursorShape.WaitCursor))
         # irods Zone
-        self.zoneLabel.setText(self.ic.session.zone)
+        self.zoneLabel.setText(self.conn.zone)
         # irods user
-        self.userLabel.setText(self.ic.session.username)
+        self.userLabel.setText(self.conn.username)
         # irods user type and groups
-        user_type, user_groups = self.ic.get_user_info()
+        user_type, user_groups = self.conn.get_user_info()
         self.typeLabel.setText(user_type)
         self.groupsLabel.setText('\n'.join(user_groups))
         # default resource
-        self.rescLabel.setText(self.ic.default_resc)
+        self.rescLabel.setText(self.conn.default_resc)
         # irods server and version
-        self.serverLabel.setText(self.ic.session.host)
+        self.serverLabel.setText(self.conn.host)
         self.versionLabel.setText(
-            '.'.join((str(num) for num in self.ic.session.server_version)))
+            '.'.join((str(num) for num in self.conn.server_version)))
         # irods resources
-        resc_info = self.ic.list_resources(['name', 'status', 'free_space'])
+        resc_info = self.conn.list_resources(['name', 'status', 'free_space'])
         self.rescTable.setRowCount(len(resc_info[0]))
         for row, (name, status, space) in enumerate(zip(*resc_info)):
             self.rescTable.setItem(row, 0, PyQt6.QtWidgets.QTableWidgetItem(name))
