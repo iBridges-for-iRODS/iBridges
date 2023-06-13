@@ -647,4 +647,4 @@ class IrodsBrowser(PyQt6.QtWidgets.QWidget,
                     self.conn.add_multiple_metadata(items, avus)
                     self._fill_metadata_tab(items[0].path)
                 except Exception as error:
-                    self.errorLabel.setText(repr(error))
+                    self.errorLabel.setText(repr(error)+", do you have iRODS server version 4.2.12 or higher?")
