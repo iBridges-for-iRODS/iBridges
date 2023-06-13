@@ -129,10 +129,9 @@ class IrodsDataBundle(PyQt6.QtWidgets.QWidget,
         self.extractButton.setEnabled(False)
 
     def _operation_allowed(self, item, user):
-        acls = self.conn.permission.get_permissions(item)
+        acls = self.conn.permission.get_permissions(obj=item)
         accepted_users = [acl.user_name for acl in acls 
-                          if acl.access_name in ['write', 'own']]
-
+                          if acl.access_name in ['own']]
         return user in accepted_users
 
     def create_data_bundle(self):
