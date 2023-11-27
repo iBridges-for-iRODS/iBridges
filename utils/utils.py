@@ -1,52 +1,10 @@
-"""iBridges utility classes and functions.
-
-"""
-import logging
-import logging.handlers
-import os
-import socket
-import sys
-import datetime
-
-import irods.collection
-import irods.data_object
-import irods.exception
-import irods.path
-
-from . import context
-from . import path
-
-DEFAULT = '\x1b[0m'
-RED = '\x1b[1;31m'
-YELLOW = '\x1b[1;33m'
-LOG_LEVEL = {
-    'fulldebug': logging.DEBUG - 5,
-    'debug': logging.DEBUG,
-    'info': logging.INFO,
-    'warn': logging.WARNING,
-    'error': logging.ERROR,
-    'critical': logging.CRITICAL,
-}
-MAX_MSG_LEN = 1024
-
-
-def is_posix() -> bool:
-    """Determine POSIXicity.
-
-    Returns
-    -------
-    bool
-        Whether or not this is a POSIX operating system.
-    """
-    return sys.platform not in ['win32', 'cygwin']
-
-
-def ensure_dir(pathname: str) -> bool:
+### Filesystem utils
+def ensure_dir(pathname: path.LocalPath) -> bool:
     """Ensure `pathname` exists as a directory.
 
     Parameters
     ----------
-    pathname : str
+    pathname : pathLocalPath
         The path to be ensured.
 
     Returns
@@ -55,123 +13,11 @@ def ensure_dir(pathname: str) -> bool:
         If `pathname` exists/was created.
 
     """
-    dirpath = path.LocalPath(pathname)
     try:
-        dirpath.mkdir(parents=True, exist_ok=True)
+        pathname.mkdir(parents=True, exist_ok=True)
     except (PermissionError, OSError) as error:
         logging.info('Error ensuring directory: %r', error)
     return dirpath.is_dir()
-
-
-def get_local_size(pathnames: list) -> int:
-    """Collect the sizes of a set of local files and/or directories and
-    determine the total size recursively.
-
-    Parameters
-    ----------
-    pathnames : list
-        Names of input paths.
-
-    Returns
-    -------
-    int
-        Total size [bytes] of all local files found from the paths in
-        `pathnames`.
-
-    """
-    sizes = []
-    for pathname in pathnames:
-        pathobj = path.LocalPath(pathname)
-        if pathobj.is_dir():
-            for dirname, _, filenames in os.walk(pathobj):
-                for filename in filenames:
-                    filepath = path.LocalPath(dirname, filename)
-                    sizes.append(filepath.stat().st_size)
-        elif pathobj.is_file():
-            sizes.append(pathobj.stat().st_size)
-    return sum(sizes)
-
-
-def get_data_size(obj: irods.data_object.iRODSDataObject) -> int:
-    """For an iRODS data object, get the size as reported by the ICAT.
-    This should be considered an estimate if the size cannot be verified.
-
-    Parameters
-    ----------
-    obj : irods.data_object.iRODSDataObject
-        The iRODS data object whose size is to be estimated.
-
-    Returns
-    -------
-    int
-        Estimated size of data object `obj`.
-
-    """
-    sizes = {repl.size for repl in obj.replicas if repl.status == '1'}
-    if len(sizes) == 1:
-        return list(sizes)[0]
-    raise irods.exception.MiscException(f'No consistent size found for {obj.path}')
-
-
-def get_coll_size(coll: irods.collection.iRODSCollection) -> int:
-    """For an iRODS collection, sum the sizes of data objects
-    recursively as reported by the ICAT.  This should be considered an
-    estimate if the sizes cannot be verified.
-
-    Parameters
-    ----------
-    coll : irods.collection.iRODSCollection
-        The iRODS collection whose size is to be estimated.
-
-    Returns
-    -------
-    int
-        Estimated sum of total sizes of data objects in `coll`.
-
-    """
-    return sum(
-        sum(get_data_size(obj) for obj in objs) for _, _, objs in coll.walk())
-
-
-def can_connect(hostname: str, port: int) -> bool:
-    """Check connectivity to an iRODS server.
-
-    Parameters
-    ----------
-    hostname : str
-        FQDN/IP of an iRODS server.
-
-    Returns
-    -------
-    bool
-        Connection to `hostname` possible.
-
-    """
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        try:
-            sock.settimeout(10.0)
-            sock.connect((hostname, port))
-            return True
-        except socket.error:
-            return False
-
-
-def get_coll_dict(root_coll: irods.collection.iRODSCollection) -> dict:
-    """Create a recursive metadata dictionary for `coll`.
-
-    Parameters
-    ----------
-    root_coll : irods.collection.iRODSCollection
-        Root collection for the metadata gathering.
-
-    Returns
-    -------
-    dict
-        Keys of logical paths, values
-
-    """
-    return {this_coll.path: [data_obj.name for data_obj in data_objs]
-            for this_coll, _, data_objs in root_coll.walk()}
 
 
 def get_downloads_dir() -> path.LocalPath:
@@ -210,39 +56,59 @@ def get_working_dir() -> path.LocalPath:
         return path.LocalPath('.')
 
 
-def dir_exists(pathname: str) -> bool:
-    """Does `pathname` exist as a directory?
+def get_local_size(pathnames: list) -> int:
+    """Collect the sizes of a set of local files and/or directories and
+    determine the total size recursively.
 
     Parameters
     ----------
-    pathname : str
-        Name of path to check.
+    pathnames : list
+        Names of input paths.
+
+    Returns
+    -------
+    int
+        Total size [bytes] of all local files found from the paths in
+        `pathnames`.
+
+    """
+    sizes = []
+    for pathname in pathnames:
+        pathobj = path.LocalPath(pathname)
+        if pathobj.is_dir():
+            for dirname, _, filenames in os.walk(pathobj):
+                for filename in filenames:
+                    filepath = path.LocalPath(dirname, filename)
+                    sizes.append(filepath.stat().st_size)
+        elif pathobj.is_file():
+            sizes.append(pathobj.stat().st_size)
+    return sum(sizes)
+
+
+### Network utils
+def can_connect(hostname: str, port: int) -> bool:
+    """Check connectivity to an iRODS server.
+
+    Parameters
+    ----------
+    hostname : str
+        FQDN/IP of an iRODS server.
 
     Returns
     -------
     bool
-        Whether the directory exists.
+        Connection to `hostname` possible.
 
     """
-    return path.LocalPath(pathname).is_dir()
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        try:
+            sock.settimeout(10.0)
+            sock.connect((hostname, port))
+            return True
+        except socket.error:
+            return False
 
-
-def file_exists(pathname: str) -> bool:
-    """Does `pathname` exist as a file?
-
-    Parameters
-    ----------
-    pathname : str
-        Name of path to check.
-
-    Returns
-    -------
-    bool
-        Whether the file exists.
-
-    """
-    return path.LocalPath(pathname).is_file()
-
+### Output conversion
 
 def bytes_to_str(value: int) -> str:
     """Render incoming number of bytes to a string with units.
@@ -264,6 +130,7 @@ def bytes_to_str(value: int) -> str:
         return f'{value / 1e12:.3f} TB'
 
 
+### Logger utils
 def set_log_level(log_level: int = None):
     """Set the log level excluding DEBUG-level entries from other
     modules.  If log_level not specified, attempt to access the verbose
