@@ -1,16 +1,14 @@
 # iBridges
 
-<p align="center">
-  <p align="center">
-    <a href="https://chstaiger.github.io/iBridges-Gui/"><strong> Documentation »</strong></a> .
-    <a href="https://github.com/chStaiger/iBridges-Gui/issues">Report Bug or Request Feature</a>
-    .
-  </p>
-</p>
-
 ## About
 
-The git repository contains a generic *iRODS* graphical user interface and the corresponding command-line interface clients.  The GUI and CLI work with any *iRODS* instance.  However, for user and data security we depend on some *iRODS* event hooks that need to be installed on the *iRODS* server.  Please refer to the documentation below.
+This git repo contains some wrapping classes and functions around the *python-irodsclient* 
+to ease the connection and meta/data handling in iRODS.
+
+We offer two main classes
+
+- irodsConnector: basic iRODS functionality
+- ibridges: extra fuctionality and presets for scientific programmers to safely wirk with data on an iRODS server.
 
 ## Authors
 
@@ -49,20 +47,9 @@ If the icommands are installed, the users can choose them as backend for up and 
 ## Usage
 ```
 export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
-./iBridges.py
 ```
 
-
-
-Please consult the documentation for more information about the configuration: 
-	
-
-<p align="center">
-    <a href="https://chstaiger.github.io/iBridges-Gui/docs/getting-started.html#configuration"><strong> iBridges Configuration »</strong></a> .
-    
-## Contributing
-### Code
-Instructions on how to extend the GUI or contribute to the code base can be found in the [documentation](https://chstaiger.github.io/iBridges-Gui/).
+TODO: link to jupyter notebooks
 
 ## License
 This project is licensed under the GPL-v3 license.
