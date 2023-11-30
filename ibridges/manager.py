@@ -115,6 +115,22 @@ class ibridges():
                 return irods.password_obfuscation.decode(authfd.read())
         return ''
 
+    def _write_password(self):
+        """Store the password in the iRODS
+        authentication file in obfuscated form.
+
+        """
+        connection = self._irods_session.pool.get_connection()
+        pam_passwords = self._irods_session.pam_pw_negotiated
+        if len(pam_passwords):
+            irods_auth_file = self._irods_session.get_irods_password_file()
+            with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
+                authfd.write(
+                    irods.password_obfuscation.encode(pam_passwords[0]))
+        else:
+            logging.info('WARNING -- unable to cache obfuscated password locally')
+        connection.release()
+
 
     def is_coll(self, irods_path: utils.path.IrodsPath):
         """

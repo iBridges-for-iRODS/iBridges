@@ -8,209 +8,99 @@ import irods.data_object
 import irods.resource
 import irods.session
 
-from utils import json_config
-from . import dataOperations
-from . import Icommands
-from . import keywords as kw
-from . import meta
-from . import permission
-from . import query
-from . import resource
-from . import rules
 from . import session
-from . import tickets
-from . import users
-
 
 class IrodsConnector():
     """Top-level connection to the Python iRODS client
 
     """
     _data_op = None
-    _icommands = None
     _meta = None
     _permission = None
-    _query = None
     _resource = None
     _rules = None
     _session = None
     _tickets = None
     _users = None
-    _ibridges_configuration = None
-    _irods_env_file = ''
     _irods_environment = None
-    use_icommands = None
 
-    def __init__(self, password=''):
+    def __init__(self, irods_env: dict, password='': str):
         """Initialize connection to iRODS functionality based on the
         user's credentials.
 
         Parameters
         ----------
+        irods_env : dict
+            Dictionary dereived from an irods_environment.json
         password : str
             Plain text password.
 
         """
         self.__name__ = 'IrodsConnector'
+        self._irods_env = irods_env
         self._password = password
+        self.session = connect()
 
     def __del__(self):
-        self.cleanup()
         del self.session
 
-    # Configuration properties
-    #
+    
     @property
-    def ibridges_configuration(self) -> json_config.JsonConfig:
-        """iBridges configuration.
-
-        Returns
-        -------
-        utils.json_config.JsonConfig or None
-            iBridges configuration.
-
-        """
-        logging.debug('getting: self._ibridges_configuration')
-        return self._ibridges_configuration
-
-    @ibridges_configuration.setter
-    def ibridges_configuration(self, config: json_config.JsonConfig):
-        """iBridges configuration setter.
-
-        Parameters
-        ----------
-        config : utils.json_config.JsonConfig
-            iBridges configuration.
-
-        """
-        self._ibridges_configuration = config
-
-        logging.debug(f'setting: {self._ibridges_configuration=}')
-
-    @property
-    def irods_env_file(self) -> str:
-        """iRODS environment filename.
-
-        Returns
-        -------
-        str
-            Name of environment file
-
-        """
-        logging.debug('getting: self._irods_env_file')
-        return self._irods_env_file
-
-    @irods_env_file.setter
-    def irods_env_file(self, filepath: str):
-        """iRODS environment filename setter.
-
-        Parameters
-        ----------
-        filepath : str
-            Name of the environment file.
-
-        """
-        self._irods_env_file = filepath
-
-        logging.debug(f'setting: {self._irods_env_file=}')
-
-    @property
-    def irods_environment(self) -> json_config.JsonConfig:
+    def irods_environment(self) -> dict:
         """iRODS environment.
 
         Returns
         -------
-        utils.json_config.JsonConfig or None
+        dict or None
             iRODS environment.
 
         """
-        logging.debug('getting: self._irods_environment')
-        return self._irods_environment
+        return self._irods_env
 
-    @irods_environment.setter
-    def irods_environment(self, config: json_config.JsonConfig):
-        """iRODS environment setter.
+    @property 
+    def password(self) -> str:
+        return self._password
 
-        Parameters
-        ----------
-        config : utils.json_config.JsonConfig
-            iRODS environment.
-
+    def data_op(self):
+        """Link to class that carries out the data operations
         """
-        self._irods_environment = config
+        return None
+    
+    def metadata(self) -> meta.Meta:
+        """Link to class that carries out all metadata operations
+        """
+        return None
 
-        logging.debug(f'setting: {self._irods_environment=}')
-
-
-    # Properties for all the classes themselves
-    #
-    @property
-    def data_op(self) -> dataOperations.DataOperation:
-        if self._data_op is None:
-            self._data_op = dataOperations.DataOperation(self.resource, self.session)
-        return self._data_op
-
-    @property
-    def icommands(self) -> Icommands.IrodsConnectorIcommands:
-        if self._icommands is None:
-            self._icommands = Icommands.IrodsConnectorIcommands()
-        return self._icommands
-
-    @property
-    def meta(self) -> meta.Meta:
-        if self._meta is None:
-            self._meta = meta.Meta()
-        return self._meta
-
-    @property
     def permission(self) -> permission.Permission:
-        if self._permission is None:
-            self._permission = permission.Permission(self.data_op, self.session)
-        return self._permission
+        """Link to class that carries out all permission operations
+        """
+        return None
 
-    @property
-    def query(self) -> query.Query:
-        if self._query is None:
-            self._query = query.Query(self.session)
-        return self._query
+    def resources(self) -> resource.Resource:
+        return None
 
-    @property
-    def resource(self) -> resource.Resource:
-        if self._resource is None:
-            self._resource = resource.Resource(self.session)
-            self._resource.ibridges_configuration = self.ibridges_configuration
-            self._resource.irods_environment = self.irods_environment
-        return self._resource
-
-    @property
     def rules(self) -> rules.Rules:
-        if self._rules is None:
-            self._rules = rules.Rules(self.session)
-        return self._rules
+        return None
 
-    @property
-    def session(self) -> session.Session:
-        if self._session is None:
-            self._session = session.Session(self.irods_env_file, self.irods_environment.config,
-                                            self.ibridges_configuration.config, self._password)
-        return self._session
-
-    @session.deleter
-    def session(self):
-        del self._session
-        self._session = None
-
-    @property
     def tickets(self) -> tickets.Tickets:
-        if self._tickets is None:
-            self._tickets = tickets.Tickets(self.session)
-        return self._tickets
-
+        return None
+    
     @property
-    def users(self) -> users.Users:
-        if self._users is None:
-            self._users = users.Users(self.session)
-        return self._users
+    def user_info(self) -> tuple:
+        """Returns user type and groups the user who started the sessionbelongs to.
+
+        Returns
+        -------
+        (user_type, user_groups) -> (str, list)
+        """
+        query = self.irods_session.query(kw.USER_TYPE).filter(
+                kw.LIKE(kw.USER_NAME, self.sess_man.username))
+        user_type = [list(result.values())[0] for result in query.get_results()][0]
+        query = self.sess_man.irods_session.query(kw.USER_GROUP_NAME).filter(
+                kw.LIKE(kw.USER_NAME, self.sess_man.username))
+        user_groups = [list(result.values())[0] for result in query.get_results()]
+        return user_type, user_groups
+
 
     # Data operation/iCommands functionality
     #
@@ -222,23 +112,6 @@ class IrodsConnector():
 
     def delete_data(self, item: None):
         return self.data_op.delete_data(item)
-
-    def diff_obj_file(self, objpath: str, fspath: str, scope: str = "size") -> tuple:
-        return self.data_op.diff_obj_file(objpath, fspath, scope)
-
-    def diff_irods_localfs(self, coll: irods.collection.iRODSCollection,
-                           dirpath: str, scope: str = "size") -> tuple:
-        return self.data_op.diff_irods_localfs(coll, dirpath, scope)
-
-    def download_data(self,
-                      source: (irods.collection.iRODSCollection,
-                               irods.data_object.iRODSDataObject),
-                      destination: str, size: int, buff: int = kw.BUFF_SIZE,
-                      force: bool = False, diffs: tuple = None):
-        if self.use_icommands:
-            return self.icommands.download_data(source, destination, size, buff, force)
-        else:
-            return self.data_op.download_data(source, destination, size, buff, force, diffs)
 
     def ensure_coll(self, coll_name: str) -> irods.collection.iRODSCollection:
         return self.data_op.ensure_coll(coll_name)
@@ -252,10 +125,10 @@ class IrodsConnector():
     def get_dataobject(self, path: str) -> irods.data_object.iRODSDataObject:
         return self.data_op.get_dataobject(path)
 
-    def get_irods_size(self, path_names: list) -> int:
-        return self.data_op.get_irods_size(path_names)
+    def get_items_size(self, path_names: list) -> int:
+        return self.data_op.get_items_size(path_names)
 
-    def irods_put(self, local_path: str, irods_path: str, res_name: str = ''):
+    def irods_put(self, local_path: str, irods_path: str, res_name: str = '', options: dict = None):
         return self.data_op.irods_put(local_path, irods_path, res_name)
 
     def irods_get(self, irods_path: str, local_path: str, options: dict = None):
@@ -266,16 +139,6 @@ class IrodsConnector():
 
     def is_dataobject(self, obj) -> bool:
         return self.data_op.is_dataobject(obj)
-
-    def upload_data(self, source: str, destination: irods.collection.iRODSCollection,
-                    res_name: str, size: int, buff: int = kw.BUFF_SIZE,
-                    force: bool = False, diffs: tuple = None):
-        if self.use_icommands:
-            return self.icommands.upload_data(
-                source, destination, res_name, size, buff, force)
-        else:
-            return self.data_op.upload_data(
-                source, destination, res_name, size, buff, force, diffs)
 
     # Metadata functionality
     #
@@ -295,19 +158,16 @@ class IrodsConnector():
     #
     @property
     def permissions(self) -> dict:
+        """Returns available iRODS permissions for data objects
+        """
         return self.permission.permissions
 
-    def get_permissions(self, path: str = '', obj: irods.collection = None) -> list:
+    def get_permissions(self, path: str, obj: irods.collection = None) -> list:
         return self.permission.get_permissions(path, obj)
 
     def set_permissions(self, perm: str, path: str, user: str = '', zone: str = '',
                         recursive: bool = False, admin: bool = False):
         return self.permission.set_permissions(perm, path, user, zone, recursive, admin)
-
-    # Query functionality
-    #
-    def search(self, key_vals: dict = None) -> list:
-        return self.query.search(key_vals)
 
     # Resource functionality
     #
@@ -335,10 +195,17 @@ class IrodsConnector():
     def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         return self.rules.execute_rule(rule_file, params, output)
 
+
+    # Tickets functionality
+    #
+    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
+        return self.tickets.create_ticket(obj_path, expiry_string)
+
+
     # Session functionality
     #
     def connect(self):
-        """Manually establish an iRODS session.
+        """Establish an iRODS session.
 
         """
         self._session = session.Session(self.irods_env_file, self.irods_environment.config,
@@ -346,33 +213,8 @@ class IrodsConnector():
         if not self.session.has_irods_session():
             self.session.connect()
 
-    def reset(self):
-        del self.session
-
-    def cleanup(self):
-        if self.has_session() and self.session.has_irods_session():
-            # In case the iRODS session is not fully there.
-            try:
-                self.session.irods_session.cleanup()
-            except NameError:
-                pass
-
-    def has_session(self) -> bool:
-        """Check if an iBridges session has been assigned to its shadow
-        variable.
-
-        Returns
-        -------
-        bool
-            Has a session been set?
-
-        """
-        return self._session is not None
-
-    @property
-    def davrods(self) -> str:
-        return self.session.davrods
-
+    # iRODS session properties
+    #
     @property
     def default_resc(self) -> str:
         return self.session.default_resc
@@ -380,32 +222,6 @@ class IrodsConnector():
     @property
     def host(self) -> str:
         return self.session.host
-
-    @property
-    def password(self) -> str:
-        """Password scraped from iRODS obfuscated auth file or manually
-        set.
-
-        Returns
-        -------
-        str
-            Plain text password.
-
-        """
-        return self.session.password
-
-    @password.setter
-    def password(self, password: str):
-        """Set the session password.
-
-        Parameters
-        ----------
-        password : str
-            Plain text password.
-
-        """
-        self.session.password = password
-        self._password = password
 
     @property
     def port(self) -> str:
@@ -422,13 +238,3 @@ class IrodsConnector():
     @property
     def zone(self) -> str:
         return self.session.zone
-
-    # Tickets functionality
-    #
-    def create_ticket(self, obj_path: str, expiry_string: str = '') -> tuple:
-        return self.tickets.create_ticket(obj_path, expiry_string)
-
-    # Users functionality
-    #
-    def get_user_info(self) -> tuple:
-        return self.users.get_user_info()
