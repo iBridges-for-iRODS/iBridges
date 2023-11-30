@@ -3,7 +3,6 @@
 import logging
 
 import irods.exception
-import irods.session
 import irods.resource
 
 import utils
@@ -11,20 +10,19 @@ from . import keywords as kw
 from . import session
 
 
-class Resource(object):
+class Resources(object):
     """Irods Resource operations """
-    context = utils.context.Context()
 
-    def __init__(self, sess_man: session.Session):
+    def __init__(self, session: session.Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            sess_man : session.Session
+            session : session.Session
                 instance of the Session class
         """
         self._resources = None
-        self.sess_man = sess_man
+        self.session = session
 
     def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
         """Instantiate an iRODS resource.
@@ -44,7 +42,7 @@ class Resource(object):
 
         """
         try:
-            return self.sess_man.irods_session.resources.get(resc_name)
+            return self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as error:
             logging.warning('Resource with name %s not found', resc_name)
             return {'successful': False, 'reason': repr(error)}
@@ -75,7 +73,7 @@ class Resource(object):
 
         """
         try:
-            resc = self.sess_man.irods_session.resources.get(resc_name)
+            resc = self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
             logging.warning('Resource with name %s not found', resc_name)
             return -1
@@ -126,7 +124,7 @@ class Resource(object):
 
         """
         if self._resources is None or update:
-            query = self.sess_man.irods_session.query(
+            query = self.session.irods_session.query(
                 kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():

@@ -11,7 +11,7 @@ from . import session
 class Rules(object):
     """Irods Rule operations """
 
-    def __init__(self, sess_man: session.Session):
+    def __init__(self, session: session.Session):
         """ iRODS data operations initialization
 
             Parameters
@@ -20,7 +20,7 @@ class Rules(object):
                 instance of the Session class
 
         """
-        self.sess_man = sess_man
+        self.session = session
 
     def execute_rule(self, rule_file: str, params: dict, output: str = 'ruleExecOut') -> tuple:
         """Execute an iRODS rule.
@@ -49,7 +49,7 @@ class Rules(object):
         """
         try:
             rule = irods.rule.Rule(
-                self.sess_man.irods_session, rule_file=rule_file, params=params, output=output,
+                self.session.irods_session, rule_file=rule_file, params=params, output=output,
                 instance_name='irods_rule_engine_plugin-irods_rule_language-instance')
             out = rule.execute()
         except irods.exception.NetworkException as error:

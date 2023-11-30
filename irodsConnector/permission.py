@@ -14,7 +14,7 @@ class Permission(object):
     """Irods permission operations """
     _permissions = None
 
-    def __init__(self, data_man: dataOperations.DataOperation, sess_man: session.Session):
+    def __init__(self, data_man: dataOperations.DataOperation, session: session.Session):
         """ iRODS data operations initialization
 
             Parameters
@@ -25,8 +25,7 @@ class Permission(object):
                 instance of the Session class
 
         """
-        self.data_man = data_man
-        self.sess_man = sess_man
+        self.session = session
 
     @property
     def permissions(self) -> dict:
@@ -45,22 +44,18 @@ class Permission(object):
                 'modify_object': 'write',
                 'own': 'own',
             }
-            if self.sess_man.server_version < (4, 3, 0):
+            if self.session.server_version < (4, 3, 0):
                 self._permissions.update(
                     {'read object': 'read', 'modify object': 'write'})
         return self._permissions
 
-    def get_permissions(self, path: str = '', obj: irods.collection = None) \
-            -> list:
+    def get_permissions(self, item: irods.collection | irods.data_object) -> list:
         """Discover ACLs for an iRODS collection expressed as a `path`
         or an `obj`ect.
 
         Parameters
         ----------
-        path: str
-            Logical iRODS path of a collection or data object.
-        obj: iRODSCollection, iRODSDataObject
-            Instance of an iRODS collection or data object.
+        item: irods.collection | irods.data_object
 
         Returns
         -------
@@ -68,28 +63,21 @@ class Permission(object):
             iRODS ACL instances.
 
         """
-        if isinstance(path, str) and path:
-            try:
-                return self.sess_man.irods_session.permissions.get(
-                    self.sess_man.irods_session.collections.get(path))
-            except irods.exception.CollectionDoesNotExist:
-                return self.sess_man.irods_session.permissions.get(
-                    self.sess_man.irods_session.data_objects.get(path))
         if dataOperations.DataOperation.is_dataobject_or_collection(obj):
-            return self.sess_man.irods_session.permissions.get(obj)
-        logging.debug('`obj` must be or `path` must resolve into, a collection or data object')
+            return self.session.irods_session.permissions.get(obj)
+        logging.debug('Not a valid iRODS object or collection')
         return []
 
-    def set_permissions(self, perm: str, path: str, user: str = '',
-                        zone: str = '', recursive: bool = False, admin: bool = False):
+    def set_permissions(self, perm: str, item: irods.collection | irods.data_object,
+                        user: str = '', zone: str = '', recursive: bool = False,
+                        admin: bool = False):
         """Set permissions (ACL) for an iRODS collection or data object.
 
         Parameters
         ----------
         perm: str
             Name of permission string: own, read, write, or null.
-        path: str
-            Name of iRODS logical path.
+        item: irods.data_object or irods.collection
         user: str
             Name of user.
         zone: str
@@ -102,9 +90,7 @@ class Permission(object):
         """
         acl = irods.access.iRODSAccess(perm, path, user, zone)
         try:
-            if self.data_man.dataobject_exists(path) or \
-                    self.data_man.collection_exists(path):
-                self.sess_man.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
+            self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as error:
             logging.error('ACL: user unknown')
             raise error

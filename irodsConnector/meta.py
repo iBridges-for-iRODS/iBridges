@@ -25,35 +25,13 @@ class Meta(object):
         for item in items:
             try:
                 item.metadata.add(key.upper(), value, units)
+                return {'successful': True}
             except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
                 logging.error('ADD META: Metadata already present')
+                return {'successful': False, 'reason': 'Metadata already present'}
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('UPDATE META: no permissions')
-                raise error
-
-    def add_multiple(self, items: list, avus: list):
-        """
-        Adds multiple metadata fields to all items
-
-        Parameters
-        ----------
-        items: list of iRODS data objects or iRODS collections
-        avus: list of a,v,u triplets
-        """
-        list_of_tags = [
-            irods.meta.AVUOperation(operation='add',
-                                    avu=irods.meta.iRODSMeta(a, v, u))
-            for (a, v, u) in avus]
-        for item in items:
-            try:
-                item.metadata.apply_atomic_operations(*list_of_tags)
-            except irods.meta.BadAVUOperationValue:
-                logging.error('ADD MULTIPLE META: bad metadata value')
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('UPDATE META: no permissions')
-                raise error
-            except Exception:
-                logging.error('ADD MULTIPLE META: unexpected error')
+                raise {'successful': False, 'reason': 'Insufficient permissions'}
 
     def update(self, items: list, key: str, value: str, units: str = None):
         """
@@ -79,12 +57,12 @@ class Meta(object):
                             item.metadata.remove(meta)
                         # Add key, value, units
                         self.add(items, key, value, units)
-
                 else:
                     self.add(items, key, value, units)
+            return {'successful': True}
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             logging.error('UPDATE META: no permissions %s', item.path)
-            raise error
+            return {'successful': False, 'reason': 'Insufficient permissions'}
 
     def delete(self, items: list, key: str, value: str, units: str = None):
         """
@@ -103,8 +81,9 @@ class Meta(object):
         for item in items:
             try:
                 item.metadata.remove(key, value, units)
+                return {'successful': True}
             except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
                 logging.error('DELETE META: Metadata never existed')
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('UPDATE META: no permissions %s', item.path)
-                raise error
+                logging.error('DELETE META: no permissions %s', item.path)
+                return {'successful': False, 'reason': 'Insufficient permissions'}
