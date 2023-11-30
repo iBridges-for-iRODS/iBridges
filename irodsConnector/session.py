@@ -1,13 +1,7 @@
 """ session operations
 """
 import logging
-
-import irods.connection
-import irods.exception
-import irods.password_obfuscation
 import irods.session
-
-import utils
 
 
 class Session:
@@ -15,7 +9,7 @@ class Session:
 
     """
 
-    def __init__(self, irods_conf: dict, password='': str): -> irods.session
+    def __init__(self, irods_env: dict, irods_env_path='', password='') -> irods.session:
         """ iRODS authentication with Python client.
 
         Parameters
@@ -28,6 +22,7 @@ class Session:
         """
         self._password = password
         self._irods_env = irods_env
+        self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
 
     def __del__(self):
@@ -55,6 +50,8 @@ class Session:
                 self._irods_session.cleanup()
             except NameError:
                 pass
+            except AttributeError:
+                pass
             del self._irods_session
             self._irods_session = None
 
@@ -76,7 +73,7 @@ class Session:
         """Establish an iRODS session.
 
         """
-        user = self.context.irods_environment.config.get('irods_user_name', '')
+        user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             try:
                 # TODO: implement and test for SSL enabled iRODS
@@ -104,12 +101,11 @@ class Session:
     def authenticate_using_password(self):
         try:
             self._irods_session = irods.session.iRODSSession(password=self._password,
-                                                             **self.context.irods_environment.config)
+                                                             **self._irods_env)
             assert self._irods_session.server_version != ()
             logging.info('IRODS LOGIN SUCCESS: %s:%s',
                          self._irods_session.host, self._irods_session.port)
-            self._write_pam_password()
-            return {'successful': True}
+            return self._irods_session
         except Exception as e:
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             return {'successful': False, 'reason': repr(e)}
@@ -117,11 +113,12 @@ class Session:
     def authenticate_using_auth_file(self):
         logging.info('AUTH FILE SESSION')
         try:
-            self._irods_session = irods.session.iRODSSession(irods_env_file=self.context.irods_env_file)
+            self._irods_session = irods.session.iRODSSession(
+                    irods_env_file=self._irods_env_file)
             assert self._irods_session.server_version != ()
             logging.info('IRODS LOGIN SUCCESS: %s:%s',
                          self._irods_session.host, self._irods_session.port)
-            return {'successful': True}
+            return self._irods_session
         except Exception as e:
             logging.error('AUTH FILE LOGIN FAILED')
             logging.error('Have you set the iRODS environment file correctly?')
