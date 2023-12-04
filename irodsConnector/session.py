@@ -2,6 +2,7 @@
 """
 import logging
 import irods.session
+from irods.exception import NetworkException
 from keywords import exceptions
 
 class Session:
@@ -106,9 +107,13 @@ class Session:
             logging.info('IRODS LOGIN SUCCESS: %s:%s',
                          self._irods_session.host, self._irods_session.port)
             return self._irods_session
+        except ValueError as e:
+            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
+            raise Exception("Unexpected value in irods_environment.json; "+repr(e))
+        except NetworkException as e:
+            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
+            raise Exception("Host or port name not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
-            print(repr(e))
-            print(repr(e) in exceptions)
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             if repr(e) in exceptions:
                 raise Exception(exceptions[repr(e)]+"; "+repr(e))
@@ -124,6 +129,12 @@ class Session:
             logging.info('IRODS LOGIN SUCCESS: %s:%s',
                          self._irods_session.host, self._irods_session.port)
             return self._irods_session
+        except ValueError as e:
+            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
+            raise Exception("Unexpected value in irods_environment.json; "+repr(e))
+        except NetworkException as e:
+            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
+            raise Exception("Host or port name not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
             logging.error('AUTH FILE LOGIN FAILED')
             logging.error('Have you set the iRODS environment file correctly?')

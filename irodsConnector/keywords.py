@@ -43,5 +43,5 @@ NUM_THREADS = 4
 exceptions = {
     'PAM_AUTH_PASSWORD_FAILED(None,)': "Wrong password",
     "NetworkException('Client-Server negotiation failure: CS_NEG_REFUSE,CS_NEG_REQUIRE')":
-    '"irods_client_server_policy" not set (correctly) in irods_environment.json'
+    '"irods_client_server_policy" not set (correctly) in irods_environment.json' 
 }
