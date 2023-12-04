@@ -114,7 +114,7 @@ class Session:
         logging.info('AUTH FILE SESSION')
         try:
             self._irods_session = irods.session.iRODSSession(
-                    irods_env_file=self._irods_env_file)
+                    irods_env_file=self._irods_env_path)
             assert self._irods_session.server_version != ()
             logging.info('IRODS LOGIN SUCCESS: %s:%s',
                          self._irods_session.host, self._irods_session.port)
