@@ -1,7 +1,8 @@
-"""Keywords and defines"""
+"""Keywords and definitions"""
 import irods.column as cm
 import irods.keywords as kw
 import irods.models as imodels
+#from irods.exception import *
 
 # Keywords
 ALL_KW = kw.ALL_KW
@@ -38,3 +39,9 @@ YEL = '\x1b[1;33m'
 BUFF_SIZE = 10**9
 MULTIPLIER = 1 / 10**9
 NUM_THREADS = 4
+# Excpetion mapping
+exceptions = {
+    'PAM_AUTH_PASSWORD_FAILED(None,)': "Wrong password",
+    "NetworkException('Client-Server negotiation failure: CS_NEG_REFUSE,CS_NEG_REQUIRE')":
+    '"irods_client_server_policy" not set (correctly) in irods_environment.json'
+}

@@ -2,7 +2,7 @@
 """
 import logging
 import irods.session
-
+from keywords import exceptions
 
 class Session:
     """Irods session authentication.
@@ -107,8 +107,13 @@ class Session:
                          self._irods_session.host, self._irods_session.port)
             return self._irods_session
         except Exception as e:
+            print(repr(e))
+            print(repr(e) in exceptions)
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
-            return {'successful': False, 'reason': repr(e)}
+            if repr(e) in exceptions:
+                raise Exception(exceptions[repr(e)]+"; "+repr(e))
+            else:
+                raise e
 
     def authenticate_using_auth_file(self):
         logging.info('AUTH FILE SESSION')
@@ -122,7 +127,10 @@ class Session:
         except Exception as e:
             logging.error('AUTH FILE LOGIN FAILED')
             logging.error('Have you set the iRODS environment file correctly?')
-            return {'successful': False, 'reason': repr(e)}
+            if repr(e) in exceptions:
+                raise Exception(exceptions[repr(e)]+"; "+repr(e))
+            else:
+                raise e
 
     @property
     def default_resc(self) -> str:
@@ -178,8 +186,11 @@ class Session:
         """
         try:
             return self._irods_session.server_version
-        except Exception:
-            return ()
+        except Exception as e:
+            if repr(e) in exceptions:
+                raise Exception(exceptions[repr(e)])
+            else:
+                raise e
 
     @property
     def username(self) -> str:
