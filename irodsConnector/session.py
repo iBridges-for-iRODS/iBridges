@@ -112,7 +112,7 @@ class Session:
             raise Exception("Unexpected value in irods_environment.json; "+repr(e))
         except NetworkException as e:
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
-            raise Exception("Host or port name not set correctly in irods_environment.json; "+repr(e))
+            raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             if repr(e) in exceptions:
@@ -134,7 +134,7 @@ class Session:
             raise Exception("Unexpected value in irods_environment.json; "+repr(e))
         except NetworkException as e:
             logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
-            raise Exception("Host or port name not set correctly in irods_environment.json; "+repr(e))
+            raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
             logging.error('AUTH FILE LOGIN FAILED')
             logging.error('Have you set the iRODS environment file correctly?')
