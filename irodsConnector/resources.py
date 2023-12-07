@@ -1,7 +1,5 @@
 """ resource operations
 """
-import logging
-
 import irods.exception
 import irods.resource
 
@@ -44,7 +42,6 @@ class Resources(object):
         try:
             return self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as error:
-            logging.warning('Resource with name %s not found', resc_name)
             return {'successful': False, 'reason': repr(error)}
 
     def get_free_space(self, resc_name: str) -> int:
@@ -75,7 +72,6 @@ class Resources(object):
         try:
             resc = self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
-            logging.warning('Resource with name %s not found', resc_name)
             return -1
         if resc.free_space is not None:
             return int(resc.free_space)

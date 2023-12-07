@@ -89,7 +89,7 @@ class Session:
         if user == 'anonymous':
             try:
                 # TODO: implement and test for SSL enabled iRODS
-                logging.debug('iRODS LOGIN of anonymous user')
+                #logging.debug('iRODS LOGIN of anonymous user')
                 # self._irods_session = iRODSSession(user='anonymous',
                 #                        password='',
                 #                        zone=zone,
@@ -97,7 +97,6 @@ class Session:
                 #                        host=host)
                 assert False
             except Exception:
-                logging.error('Anonymous LOGIN FAILED: %s', 'Not implemented')
                 return {'successful': False, 'reason': 'Not implemented'}
         else:  # authentication with irods environment and password
             if self._password == '':
@@ -107,7 +106,6 @@ class Session:
             else:
                 print("Auth with password")
                 # irods environment and given password
-                logging.info('FULL ENVIRONMENT SESSION')
                 return self.authenticate_using_password()
 
     def authenticate_using_password(self):
@@ -115,41 +113,28 @@ class Session:
             self._irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
             assert self._irods_session.server_version != ()
-            logging.info('IRODS LOGIN SUCCESS: %s:%s',
-                         self._irods_session.host, self._irods_session.port)
             return self._irods_session
         except ValueError as e:
-            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             raise Exception("Unexpected value in irods_environment.json; "+repr(e))
         except NetworkException as e:
-            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
-            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             if repr(e) in exceptions:
                 raise Exception(exceptions[repr(e)]+"; "+repr(e))
             else:
                 raise e
 
     def authenticate_using_auth_file(self):
-        logging.info('AUTH FILE SESSION')
         try:
             self._irods_session = irods.session.iRODSSession(
                     irods_env_file=self._irods_env_path)
             assert self._irods_session.server_version != ()
-            logging.info('IRODS LOGIN SUCCESS: %s:%s',
-                         self._irods_session.host, self._irods_session.port)
             return self._irods_session
         except ValueError as e:
-            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             raise Exception("Unexpected value in irods_environment.json; "+repr(e))
         except NetworkException as e:
-            logging.error('FULL ENVIRONMENT LOGIN FAILED: %r', e)
             raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
-            logging.error('AUTH FILE LOGIN FAILED')
-            logging.error('Have you set the iRODS environment file correctly?')
-            print(repr(e))
             if repr(e) in exceptions:
                 raise Exception(exceptions[repr(e)]+"; "+repr(e))
             else:
