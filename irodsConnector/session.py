@@ -3,6 +3,8 @@
 import warnings
 import os
 import json
+from typing import Optional
+
 import irods.session
 from irods.exception import NetworkException
 from .keywords import exceptions
@@ -12,8 +14,8 @@ class Session:
 
     """
 
-    def __init__(self, irods_env: dict=None, irods_env_path: str='', 
-                 password: str='') -> irods.session:
+    def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None, 
+                 password: Optional[str] = None) -> irods.session:
         """ iRODS authentication with Python client.
 
         Parameters
@@ -24,7 +26,7 @@ class Session:
             Plain text password.
 
         """
-        if irods_env == None and irods_env_path == '':
+        if irods_env is None and irods_env_path is None:
             raise Exception("CONNECTION ERROR: no irods environment given.")
         if irods_env and irods_env_path:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
@@ -87,17 +89,13 @@ class Session:
         """
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
-            try:
-                # TODO: implement and test for SSL enabled iRODS
-                #logging.debug('iRODS LOGIN of anonymous user')
-                # self._irods_session = iRODSSession(user='anonymous',
-                #                        password='',
-                #                        zone=zone,
-                #                        port=1247,
-                #                        host=host)
-                assert False
-            except Exception:
-                return {'successful': False, 'reason': 'Not implemented'}
+            # TODO: implement and test for SSL enabled iRODS
+            # self._irods_session = iRODSSession(user='anonymous',
+            #                        password='',
+            #                        zone=zone,
+            #                        port=1247,
+            #                        host=host)
+            raise NotImplementedError
         else:  # authentication with irods environment and password
             if self._password == '':
                 print("Auth without password")

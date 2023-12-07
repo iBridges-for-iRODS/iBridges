@@ -99,7 +99,7 @@ class Resources(object):
             children.extend(self.get_resource_children(child))
         return resc.children + children
 
-    def resources(self, update: bool=False) -> dict:
+    def resources(self, update: bool = False) -> dict:
         """iRODS resources and their metadata.
 
         Parameters
