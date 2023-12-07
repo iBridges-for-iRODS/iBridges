@@ -1,16 +1,19 @@
 """ session operations
 """
-import logging
+import warnings
+import os
+import json
 import irods.session
 from irods.exception import NetworkException
-from keywords import exceptions
+from .keywords import exceptions
 
 class Session:
     """Irods session authentication.
 
     """
 
-    def __init__(self, irods_env: dict, irods_env_path='', password='') -> irods.session:
+    def __init__(self, irods_env: dict=None, irods_env_path: str='', 
+                 password: str='') -> irods.session:
         """ iRODS authentication with Python client.
 
         Parameters
@@ -21,6 +24,14 @@ class Session:
             Plain text password.
 
         """
+        if irods_env == None and irods_env_path == '':
+            raise Exception("CONNECTION ERROR: no irods environment given.")
+        if irods_env and irods_env_path:
+            warnings.warn("Environment dictionary will be overwritten with irods environment file")
+        if irods_env_path:
+            with open(os.path.expanduser("~/.irods/irods_environment.json"), "r") as f:
+                irods_ienv = json.load(f)
+
         self._password = password
         self._irods_env = irods_env
         self._irods_env_path = irods_env_path
@@ -138,6 +149,7 @@ class Session:
         except Exception as e:
             logging.error('AUTH FILE LOGIN FAILED')
             logging.error('Have you set the iRODS environment file correctly?')
+            print(repr(e))
             if repr(e) in exceptions:
                 raise Exception(exceptions[repr(e)]+"; "+repr(e))
             else:
