@@ -1,11 +1,8 @@
 """ resource operations
 """
-import logging
-
 import irods.exception
 import irods.resource
 
-import utils
 from . import keywords as kw
 from . import session
 
@@ -44,7 +41,6 @@ class Resources(object):
         try:
             return self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist as error:
-            logging.warning('Resource with name %s not found', resc_name)
             return {'successful': False, 'reason': repr(error)}
 
     def get_free_space(self, resc_name: str) -> int:
@@ -75,7 +71,6 @@ class Resources(object):
         try:
             resc = self.session.irods_session.resources.get(resc_name)
         except irods.exception.ResourceDoesNotExist:
-            logging.warning('Resource with name %s not found', resc_name)
             return -1
         if resc.free_space is not None:
             return int(resc.free_space)
@@ -104,7 +99,7 @@ class Resources(object):
             children.extend(self.get_resource_children(child))
         return resc.children + children
 
-    def resources(self, update = False) -> dict:
+    def resources(self, update: bool = False) -> dict:
         """iRODS resources and their metadata.
 
         Parameters
