@@ -3,7 +3,6 @@
 import irods.exception
 import irods.resource
 
-#import utils
 from . import keywords as kw
 from . import session
 
