@@ -6,8 +6,8 @@ import irods.access
 import irods.collection
 import irods.exception
 
-from . import dataOperations
-from . import session
+from ibridges.irodsconnector import dataOperations
+from ibridges.irodsconnector import session
 
 
 class Permission(object):

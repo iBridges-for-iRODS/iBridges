@@ -8,8 +8,8 @@ import irods.data_object
 import irods.resource
 import irods.session
 
-from . import session
-from . import permissions
+from ibridges.connector import session
+from ibridges.connector import permissions  # obsolete/renamed?
 
 class IrodsConnector():
     """Top-level connection to the Python iRODS client

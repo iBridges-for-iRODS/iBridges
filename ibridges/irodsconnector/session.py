@@ -7,7 +7,7 @@ from typing import Optional
 
 import irods.session
 from irods.exception import NetworkException
-from .keywords import exceptions
+from ibridges.irodsconnector.keywords import exceptions
 
 class Session:
     """Irods session authentication.
