@@ -16,7 +16,7 @@ class IrodsConnector():
 
     """
 
-    def __init__(self, irods_env: dict, password='': str):
+    def __init__(self, irods_env: dict, password: str = ''):
         """Initialize connection to iRODS functionality based on the
         user's credentials.
 

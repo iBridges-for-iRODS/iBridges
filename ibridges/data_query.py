@@ -1,7 +1,7 @@
 """ query operations
 """
-from . import keywords as kw
-from . import session
+from ibridges.connector import keywords as kw
+from ibridges.connector import session
 
 
 class Query(object):
