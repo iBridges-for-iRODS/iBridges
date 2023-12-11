@@ -4,8 +4,8 @@
 import json
 import logging
 
-from . import json_config
-from . import path
+from ibridges.utils import json_config
+from ibridges.utils import path
 
 IBRIDGES_DIR = '~/.ibridges'
 IRODS_DIR = '~/.irods'

@@ -7,8 +7,8 @@ from subprocess import Popen, PIPE
 
 import irods.ticket
 
-from . import Icommands
-from . import session
+from . import Icommands  # Seems to be not there anymore?
+from ibridges.irodsconnector import session
 
 
 class Tickets(object):

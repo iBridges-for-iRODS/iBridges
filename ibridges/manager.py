@@ -63,7 +63,8 @@ class ibridges():
         Returns irods_conf dictionary 
         """
 
-    @irods_conf.setter(self, irods_conf_path: utils.path.LocalPath):
+    @irods_conf.setter
+    def irods_conf(self, irods_conf_path: utils.path.LocalPath):
         """
         Loads a new irods environment, deletes a current existing irods connection.
         """
@@ -141,7 +142,7 @@ class ibridges():
         present on iRODS
         """
 
-    def writeable_resources(self, size=0: int):
+    def writeable_resources(self, size: int = 0):
         """Return only writeable resources.
         size: Required space in bytes
         """
@@ -149,7 +150,7 @@ class ibridges():
         # If ibridges config is set to force_transfers = False, only return root resources
         # which have free_space > size
 
-    def search_data(self, key_vals: dict = None): -> list:
+    def search_data(self, key_vals: dict = None) -> list:
         """Given a dictionary with metadata attribute names as keys and
         associated values, query for collections and data objects that
         fullfill the criteria.

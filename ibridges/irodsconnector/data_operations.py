@@ -10,10 +10,10 @@ import irods.collection
 import irods.data_object
 import irods.exception
 
-from . import keywords as kw
-from . import resource
-from . import session
-import utils
+from ibridges.irodsconnector import keywords as kw
+from ibridges.irodsconnector import resource
+from ibridges.irodsconnector import session
+from ibridges import utils
 
 
 class DataOperation(object):

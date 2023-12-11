@@ -4,8 +4,10 @@ Plugin for IBridgesCli for annotating eLab Journal.
 
 import logging
 import os
+
 from irods.exception import CollectionDoesNotExist, CAT_NO_ACCESS_PERMISSION
-from utils.elabConnector import elabConnector
+
+from ibridges.utils.elabConnector import elabConnector
 
 
 class ElabPlugin():

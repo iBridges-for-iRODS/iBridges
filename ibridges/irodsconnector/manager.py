@@ -8,15 +8,15 @@ import irods.data_object
 import irods.resource
 import irods.session
 
-from . import session
-from . import permissions
+from ibridges.connector import session
+from ibridges.connector import permissions  # obsolete/renamed?
 
 class IrodsConnector():
     """Top-level connection to the Python iRODS client
 
     """
 
-    def __init__(self, irods_env: dict, password='': str):
+    def __init__(self, irods_env: dict, password: str = ''):
         """Initialize connection to iRODS functionality based on the
         user's credentials.
 

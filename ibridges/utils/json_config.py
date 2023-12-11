@@ -3,7 +3,7 @@
 """
 import json
 
-from . import path
+from ibridges.utils import path
 
 
 class JsonConfig:

@@ -3,7 +3,6 @@
 import requests
 import json
 import os.path
-from utils import utils
 
 
 class AmberConnector():

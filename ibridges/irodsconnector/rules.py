@@ -5,7 +5,7 @@ import logging
 import irods.exception
 import irods.rule
 
-from . import session
+from ibridges.irodsconnector import session
 
 
 class Rules(object):
