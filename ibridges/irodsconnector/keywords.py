@@ -15,7 +15,9 @@ VERIFY_CHKSUM_KW = kw.VERIFY_CHKSUM_KW
 REG_CHKSUM_KW = kw.REG_CHKSUM_KW
 # Map model names to iquest attribute names
 COLL_NAME = imodels.Collection.name
+COLL_ID = imodels.Collection.id
 DATA_NAME = imodels.DataObject.name
+DATA_ID = imodels.DataObject.id
 DATA_CHECKSUM = imodels.DataObject.checksum
 META_COLL_ATTR_NAME = imodels.CollectionMeta.name
 META_COLL_ATTR_VALUE = imodels.CollectionMeta.value
