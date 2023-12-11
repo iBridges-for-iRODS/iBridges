@@ -8,6 +8,7 @@ import ibridges.irodsconnector.keywords as kw
 import warnings
 from typing import Optional
 
+
 class Tickets(object):
     """Irods Ticket operations """
 
@@ -23,8 +24,8 @@ class Tickets(object):
         self.session = session
         self._all_tickets = None
 
-    def create_ticket(self, obj_path: str, 
-                      ticket_type: Optional[str] = 'read', 
+    def create_ticket(self, obj_path: str,
+                      ticket_type: Optional[str] = 'read',
                       expiry_string: Optional[str] = None) -> tuple:
         """Create an iRODS ticket to allow read access to the object
         referenced by `obj_path`.
@@ -70,11 +71,11 @@ class Tickets(object):
     def delete_ticket(self, ticket: irods.ticket.Ticket):
         if ticket and ticket.string in self.all_ticket_strings:
             ticket.delete()
-            self.all_tickets(update = True)
+            self.all_tickets(update=True)
         else:
             warnings.warn("Ticket does not exist.")
 
-    def all_tickets(self, update: bool=False) -> list:
+    def all_tickets(self, update: bool = False) -> list:
         """retrieves all tickets and their metadata belonging to the user.
 
         Parameters
@@ -91,7 +92,7 @@ class Tickets(object):
         if update or self._all_tickets is None:
             self._all_tickets = []
             for row in self.session.irods_session.query(TicketQuery.Ticket).filter(
-                    TicketQuery.Owner.name ==user):
+                    TicketQuery.Owner.name == user):
                 self._all_tickets.append((row[TicketQuery.Ticket.string],
                                           row[TicketQuery.Ticket.type],
                                           self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
@@ -102,9 +103,9 @@ class Tickets(object):
     def _id_to_path(self, itemid: str) -> str:
         data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME)
         data_query = data_query.filter(kw.DATA_ID == itemid)
-        
+
         if len(list(data_query)) > 0:
-            res  = next(data_query.get_results())
+            res = next(data_query.get_results())
             return list(res.values())[0] + "/" + list(res.values())[1]
         else:
             coll_query = self.session.irods_session.query(kw.COLL_NAME)
@@ -114,5 +115,3 @@ class Tickets(object):
                 return list(res.values())[0]
             else:
                 return ''
-
-
