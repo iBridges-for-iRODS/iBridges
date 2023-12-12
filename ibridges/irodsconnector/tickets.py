@@ -61,7 +61,7 @@ class Tickets(object):
     def all_ticket_strings(self) -> list:
         return [name for name, _, _, _ in self.all_tickets()]
 
-    def get_ticket(self, ticket_str: str) -> irods.ticket.Ticket:
+    def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
         else:
