@@ -3,7 +3,7 @@
 import irods.ticket
 from irods.models import TicketQuery
 
-from .session import Session
+from ibridges.irodsconnector.session import Session
 import ibridges.irodsconnector.keywords as kw
 import warnings
 from typing import Optional
