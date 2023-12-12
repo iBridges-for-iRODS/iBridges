@@ -22,7 +22,7 @@ class Tickets(object):
 
         """
         self.session = session
-        self._all_tickets = None
+        self._all_tickets = self.all_tickets(update = True)
 
     def create_ticket(self, obj_path: str,
                       ticket_type: Optional[str] = 'read',
@@ -64,8 +64,6 @@ class Tickets(object):
     def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
-        else:
-            warnings.warn("Ticket does not exist.")
         return None
 
     def delete_ticket(self, ticket: irods.ticket.Ticket):
@@ -75,7 +73,7 @@ class Tickets(object):
         else:
             warnings.warn("Ticket does not exist.")
 
-    def all_tickets(self, update: bool = False) -> list:
+    def all_tickets(self, update: bool = False) -> list[tuple[str, str, str, str]]:
         """retrieves all tickets and their metadata belonging to the user.
 
         Parameters
@@ -86,7 +84,7 @@ class Tickets(object):
         Returns
         -------
         list
-            [(ticket string, ticket type, irods obj/coll id, expiry data in epoche)]
+            [(ticket string, ticket type, irods obj/coll path, expiry data in epoche)]
         """
         user = self.session.username
         if update or self._all_tickets is None:
@@ -101,6 +99,22 @@ class Tickets(object):
         return self._all_tickets
 
     def _id_to_path(self, itemid: str) -> str:
+        """
+        Given an iRODS item id (data object or collection) from the
+        TicketQuery.Ticket.object_id this function retrieves the corresponding
+        iRODS path.
+
+        Parameters
+        ----------
+        itemid : str
+            iRODS identifier for a collection or data object (str(row[TicketQuery.Ticket.object_id]))
+
+        Returns
+        -------
+        str
+            collection or data object path
+            returns '' if the identifier does not exist any longer
+        """
         data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME)
         data_query = data_query.filter(kw.DATA_ID == itemid)
 
