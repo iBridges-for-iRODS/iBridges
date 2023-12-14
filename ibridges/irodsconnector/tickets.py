@@ -64,14 +64,13 @@ class Tickets(object):
     def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
-        return None
+        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' does not exist.")
 
     def delete_ticket(self, ticket: irods.ticket.Ticket):
-        if ticket and ticket.string in self.all_ticket_strings:
+        if ticket.string in self.all_ticket_strings:
             ticket.delete()
             self.all_tickets(update=True)
-        else:
-            warnings.warn("Ticket does not exist.")
+        raise KeyError(f"Cannot delete ticket: ticket '{ticket}' does not exist (anymore).")
 
     def all_tickets(self, update: bool = False) -> list[tuple[str, str, str, str]]:
         """retrieves all tickets and their metadata belonging to the user.
