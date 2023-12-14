@@ -1,14 +1,16 @@
 """ metadata operations
 """
-import logging
-
 import irods.exception
 import irods.meta
 
 
-class Meta(object):
+class MetaData():
     """Irods metadata operations """
-    def add(self, items: list, key: str, value: str, units: str = None):
+
+    def __init__(self, item):
+        self.item = item
+
+    def add(self, key: str, value: str, units: str = None):
         """
         Adds metadata to all items
 
@@ -22,20 +24,20 @@ class Meta(object):
         Throws:
             CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
         """
-        for item in items:
-            try:
-                item.metadata.add(key.upper(), value, units)
-                return {'successful': True}
-            except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-                logging.error('ADD META: Metadata already present')
-                return {'successful': False, 'reason': 'Metadata already present'}
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('UPDATE META: no permissions')
-                raise {'successful': False, 'reason': 'Insufficient permissions'}
+        try:
+            self.item.metadata.add(key.upper(), value, units)
+        except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
+            raise ValueError("ADD META: Metadata already present") from error
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise ValueError("UPDATE META: no permissions") from error
 
-    def update(self, items: list, key: str, value: str, units: str = None):
-        """
-        Updates a metadata entry to all items
+    def set(self, key: str, value: str, units: str = None):
+        """Set the metadata entry.
+
+        If the metadata entry already exists, then all metadata entries with
+        the same key will be deleted before adding the new entry. An alternative
+        is using the add method to only add to the metadata entries and not
+        delete them.
 
         Parameters
         ----------
@@ -46,25 +48,11 @@ class Meta(object):
 
         Throws: CAT_NO_ACCESS_PERMISSION
         """
-        try:
-            for item in items:
-                if key in item.metadata.keys():
-                    metas = item.metadata.get_all(key)
-                    value_units = [(m.value, m.units) for m in metas]
-                    if (value, units) not in value_units:
-                        # Remove all iCAT entries with that key
-                        for meta in metas:
-                            item.metadata.remove(meta)
-                        # Add key, value, units
-                        self.add(items, key, value, units)
-                else:
-                    self.add(items, key, value, units)
-            return {'successful': True}
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            logging.error('UPDATE META: no permissions %s', item.path)
-            return {'successful': False, 'reason': 'Insufficient permissions'}
+        if key in item.metadata.keys():
+            self.delete(key, None)
+        self.add(key, value, units)
 
-    def delete(self, items: list, key: str, value: str, units: str = None):
+    def delete(self, key: str, value: Optional[str], units: Optional[str] = None):
         """
         Deletes a metadata entry of all items
 
@@ -78,12 +66,18 @@ class Meta(object):
         Throws:
             CAT_SUCCESS_BUT_WITH_NO_INFO: metadata did not exist
         """
-        for item in items:
-            try:
-                item.metadata.remove(key, value, units)
-                return {'successful': True}
-            except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO:
-                logging.error('DELETE META: Metadata never existed')
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('DELETE META: no permissions %s', item.path)
-                return {'successful': False, 'reason': 'Insufficient permissions'}
+        try:
+            if value is None:
+                metas = self.item.metadata.get_all(key)
+                value_units = [(m.value, m.units) for m in metas]
+                if (value, units) not in value_units:
+                    for meta in metas:
+                        self.item.metadata.remove(meta)
+            else:
+                self.item.metadata.remove(key, value, units)
+        except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
+            raise ValueError("Cannot delete metadata with key '{key}', value '{value}'"
+                             " and units '{units}' since it does not exist.") from error
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise ValueError("Cannot delete metadata due to insufficient permission for "
+                             "path '{item.path}'.") from error
