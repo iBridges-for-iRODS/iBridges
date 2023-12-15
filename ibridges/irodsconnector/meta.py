@@ -12,21 +12,14 @@ class MetaData():
     def __init__(self, item):
         self.item = item
 
-    # @property
-    # def metadata_as_str(self) -> list[tuple[str, str, str]]:
-    #     metadata = []
-    #     for m in self:
-    #         if m.units:
-    #             metadata.append((m.name, m.value, m.units))
-    #         else:
-    #             metadata.append((m.name, m.value, ''))
-    #     return metadata
-
     def __iter__(self) -> Iterator:
         for m in self.item.metadata.items():
             yield m
 
     def __repr__(self) -> str:
+        """Create a sorted representation of the metadata"""
+
+        # Sort the list of items name -> value -> units, where None is the lowest
         meta_list = list(self)
         meta_list = sorted(meta_list, key=lambda m: (m.units is None, m.units))
         meta_list = sorted(meta_list, key=lambda m: (m.value is None, m.value))
