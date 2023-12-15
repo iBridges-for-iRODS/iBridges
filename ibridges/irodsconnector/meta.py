@@ -1,8 +1,10 @@
 """ metadata operations
 """
+from typing import Iterator, Optional
+
 import irods.exception
 import irods.meta
-from typing import Optional
+
 
 class MetaData():
     """Irods metadata operations """
@@ -10,17 +12,34 @@ class MetaData():
     def __init__(self, item):
         self.item = item
 
-    @property
-    def metadata_as_str(self) -> list[tuple[str, str, str]]:
-        metadata = []
-        for m in self.item.metadata.items():
-            if m.units:
-                metadata.append((m.name, m.value, m.units))
-            else:
-                metadata.append((m.name, m.value, ''))
-        return metadata
+    # @property
+    # def metadata_as_str(self) -> list[tuple[str, str, str]]:
+    #     metadata = []
+    #     for m in self:
+    #         if m.units:
+    #             metadata.append((m.name, m.value, m.units))
+    #         else:
+    #             metadata.append((m.name, m.value, ''))
+    #     return metadata
 
-    def add(self, key: str, value: str, units: str = None):
+    def __iter__(self) -> Iterator:
+        for m in self.item.metadata.items():
+            yield m
+
+    def __repr__(self) -> str:
+        meta_list = list(self)
+        meta_list = sorted(meta_list, key=lambda m: (m.units is None, m.units))
+        meta_list = sorted(meta_list, key=lambda m: (m.value is None, m.value))
+        meta_list = sorted(meta_list, key=lambda m: (m.name is None, m.name))
+        meta_str = ""
+        for m in meta_list:
+            meta_str += f" - {{name: {m.name}, value: {m.value}, units: {m.units}}}\n"
+        return meta_str
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+    def add(self, key: str, value: str, units: Optional[str] = None):
         """
         Adds metadata to all items
 
@@ -41,7 +60,7 @@ class MetaData():
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise ValueError("UPDATE META: no permissions") from error
 
-    def set(self, key: str, value: str, units: str = None):
+    def set(self, key: str, value: str, units: Optional[str] = None):
         """Set the metadata entry.
 
         If the metadata entry already exists, then all metadata entries with
@@ -58,8 +77,7 @@ class MetaData():
 
         Throws: CAT_NO_ACCESS_PERMISSION
         """
-        if key in self.item.metadata.keys():
-            self.delete(key, None)
+        self.delete(key, None)
         self.add(key, value, units)
 
     def delete(self, key: str, value: Optional[str], units: Optional[str] = None):

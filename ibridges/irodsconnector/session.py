@@ -1,21 +1,23 @@
 """ session operations
 """
-import warnings
-import os
 import json
+import os
+import warnings
 from typing import Optional
 
 import irods.session
 from irods.exception import NetworkException
+
 from ibridges.irodsconnector.keywords import exceptions
+
 
 class Session:
     """Irods session authentication.
 
     """
 
-    def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None, 
-                 password: Optional[str] = None) -> irods.session:
+    def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None,
+                 password: Optional[str] = None):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -32,7 +34,7 @@ class Session:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
         if irods_env_path:
             with open(os.path.expanduser("~/.irods/irods_environment.json"), "r") as f:
-                irods_ienv = json.load(f)
+                irods_env = json.load(f)
 
         self._password = password
         self._irods_env = irods_env
