@@ -58,7 +58,7 @@ class MetaData():
 
         Throws: CAT_NO_ACCESS_PERMISSION
         """
-        if key in item.metadata.keys():
+        if key in self.item.metadata.keys():
             self.delete(key, None)
         self.add(key, value, units)
 
