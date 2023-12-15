@@ -2,13 +2,23 @@
 """
 import irods.exception
 import irods.meta
-
+from typing import Optional
 
 class MetaData():
     """Irods metadata operations """
 
     def __init__(self, item):
         self.item = item
+
+    @property
+    def metadata_as_str(self) -> list[tuple[str, str, str]]:
+        metadata = []
+        for m in self.item.metadata.items():
+            if m.units:
+                metadata.append((m.name, m.value, m.units))
+            else:
+                metadata.append((m.name, m.value, ''))
+        return metadata
 
     def add(self, key: str, value: str, units: str = None):
         """
