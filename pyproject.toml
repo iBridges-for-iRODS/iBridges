@@ -56,8 +56,11 @@ module = [
 ignore_missing_imports = true
 
 [tool.pylint.'MASTER']
-# ignore-paths = "^ibridges/_version.py$"
  ignore-patterns="_version.py"
+
+[tool.pylint.'BASIC']
+good-names=["e", "f", "m"]
+
 
 [tool.pylint.'FORMAT']
 max-line-length=100
