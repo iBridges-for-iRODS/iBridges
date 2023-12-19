@@ -47,7 +47,7 @@ test = [
 packages = ["ibridges"]
 
 [tool.setuptools_scm]
-write_to = "ibridges._version"
+write_to = "ibridges/_version.py"
 
 [[tool.mypy.overrides]]
 module = [
