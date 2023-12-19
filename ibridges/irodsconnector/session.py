@@ -117,7 +117,7 @@ class Session:
         except ValueError as e:
             raise Exception("Unexpected value in irods_environment.json; "+repr(e))
         except NetworkException as e:
-            raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
+            raise Exception("Host, port, irods_client_server_policy or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
         except Exception as e:
             if repr(e) in exceptions:
                 raise Exception(exceptions[repr(e)]+"; "+repr(e))
@@ -151,8 +151,10 @@ class Session:
 
         """
         if self._irods_session:
-            return self._irods_session.default_resource
-        return ''
+            try:
+                return self._irods_session.default_resource
+            except AttributeError as e:
+                raise Exception("'irods_default_resource' not set in iRODS configuration.")
 
     @property
     def host(self) -> str:
