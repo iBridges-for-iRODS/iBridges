@@ -5,13 +5,13 @@ import logging
 import irods.exception
 import irods.rule
 
-from ibridges.irodsconnector import session
+from ibridges.irodsconnector.session import Session
 
 
-class Rules(object):
+class Rules():  # pylint: disable=too-few-public-methods
     """Irods Rule operations """
 
-    def __init__(self, session: session.Session):
+    def __init__(self, session: Session):
         """ iRODS data operations initialization
 
             Parameters
@@ -59,8 +59,9 @@ class Rules(object):
             logging.info('iRODS server hiccuped.  Check the results and try again.')
             return '', repr(error)
         except Exception as error:
-            logging.info('RULE EXECUTION ERROR', exc_info=True)
-            return '', repr(error)
+            raise ValueError("Unknown rule execution error") from error
+            # logging.info('RULE EXECUTION ERROR', exc_info=True)
+            # return '', repr(error)
         stdout, stderr = '', ''
         if len(out.MsParam_PI) > 0:
             buffers = out.MsParam_PI[0].inOutStruct

@@ -1,24 +1,26 @@
 """ resource operations
 """
+from typing import Optional
+
 import irods.exception
 import irods.resource
 
-from . import keywords as kw
-from . import session
+from ibridges.irodsconnector import keywords as kw
+from ibridges.irodsconnector.session import Session
 
 
-class Resources(object):
+class Resources():
     """Irods Resource operations """
 
-    def __init__(self, session: session.Session):
+    def __init__(self, session: Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            session : session.Session
+            session : Session
                 instance of the Session class
         """
-        self._resources = None
+        self._resources: Optional[dict] = None
         self.session = session
 
     def get_resource(self, resc_name: str) -> irods.resource.iRODSResource:
@@ -149,5 +151,5 @@ class Resources(object):
         List [(resource_name, status, free_space, context)]
         """
         parents = [(key, val) for key, val in self.resources().items() if not val['parent']]
-        return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"]) 
+        return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"])
                 for resc in parents]

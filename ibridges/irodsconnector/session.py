@@ -29,11 +29,12 @@ class Session:
 
         """
         if irods_env is None and irods_env_path is None:
-            raise Exception("CONNECTION ERROR: no irods environment given.")
+            raise ValueError("CONNECTION ERROR: no irods environment given.")
         if irods_env and irods_env_path:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
         if irods_env_path:
-            with open(os.path.expanduser("~/.irods/irods_environment.json"), "r") as f:
+            env_fp = os.path.expanduser("~/.irods/irods_environment.json")
+            with open(env_fp, "r", encoding="utf-8") as f:
                 irods_env = json.load(f)
 
         self._password = password
@@ -91,54 +92,59 @@ class Session:
         """
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
-            # TODO: implement and test for SSL enabled iRODS
+            # TODOx: implement and test for SSL enabled iRODS
             # self._irods_session = iRODSSession(user='anonymous',
             #                        password='',
             #                        zone=zone,
             #                        port=1247,
             #                        host=host)
             raise NotImplementedError
-        else:  # authentication with irods environment and password
-            if self._password == '':
-                print("Auth without password")
-                # use cached password of .irodsA built into prc
-                return self.authenticate_using_auth_file()
-            else:
-                print("Auth with password")
-                # irods environment and given password
-                return self.authenticate_using_password()
+
+        # authentication with irods environment and password
+        if self._password == '':
+            # use cached password of .irodsA built into prc
+            print("Auth without password")
+            return self.authenticate_using_auth_file()
+
+        # irods environment and given password
+        print("Auth with password")
+        return self.authenticate_using_password()
 
     def authenticate_using_password(self):
+        """Authenticate with the iRods server using a password."""
         try:
             self._irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
             assert self._irods_session.server_version != ()
             return self._irods_session
         except ValueError as e:
-            raise Exception("Unexpected value in irods_environment.json; "+repr(e))
+            raise ValueError("Unexpected value in irods_environment.json; ") from e
         except NetworkException as e:
-            raise Exception("Host, port, irods_client_server_policy or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
+            raise ValueError(
+                "Host, port, irods_client_server_policy or irods_client_server_negotiation not set"
+                " correctly in irods_environment.json; ") from e
         except Exception as e:
             if repr(e) in exceptions:
-                raise Exception(exceptions[repr(e)]+"; "+repr(e))
-            else:
-                raise e
+                raise ValueError(exceptions[repr(e)]+"; ") from e
+            raise e
 
     def authenticate_using_auth_file(self):
+        """Authenticate with an authentication file."""
         try:
             self._irods_session = irods.session.iRODSSession(
                     irods_env_file=self._irods_env_path)
             assert self._irods_session.server_version != ()
             return self._irods_session
         except ValueError as e:
-            raise Exception("Unexpected value in irods_environment.json; "+repr(e))
+            raise ValueError("Unexpected value in irods_environment.json; ") from e
         except NetworkException as e:
-            raise Exception("Host, port or irods_client_server_negotiation not set correctly in irods_environment.json; "+repr(e))
+            raise ValueError(
+                "Host, port or irods_client_server_negotiation not set correctly in "
+                "irods_environment.json; ") from e
         except Exception as e:
             if repr(e) in exceptions:
-                raise Exception(exceptions[repr(e)]+"; "+repr(e))
-            else:
-                raise e
+                raise ValueError(exceptions[repr(e)]+"; "+repr(e)) from e
+            raise e
 
     @property
     def default_resc(self) -> str:
@@ -153,8 +159,9 @@ class Session:
         if self._irods_session:
             try:
                 return self._irods_session.default_resource
-            except AttributeError as e:
-                raise Exception("'irods_default_resource' not set in iRODS configuration.")
+            except AttributeError:
+                pass
+        raise ValueError("'irods_default_resource' not set in iRODS configuration.")
 
     @property
     def host(self) -> str:
@@ -198,9 +205,8 @@ class Session:
             return self._irods_session.server_version
         except Exception as e:
             if repr(e) in exceptions:
-                raise Exception(exceptions[repr(e)])
-            else:
-                raise e
+                raise ValueError(exceptions[repr(e)]) from e
+            raise e
 
     @property
     def username(self) -> str:

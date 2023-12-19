@@ -2,6 +2,7 @@
 import irods.column as cm
 import irods.keywords as kw
 import irods.models as imodels
+
 #from irods.exception import *
 
 # Keywords
@@ -47,5 +48,5 @@ exceptions = {
     "CAT_PASSWORD_EXPIRED(None,)": "Cached password expired",
     "CAT_INVALID_AUTHENTICATION(None,)": "Cached password is wrong",
     "NetworkException('Client-Server negotiation failure: CS_NEG_REFUSE,CS_NEG_REQUIRE')":
-    '"irods_client_server_policy" not set (correctly) in irods_environment.json' 
+    '"irods_client_server_policy" not set (correctly) in irods_environment.json'
 }

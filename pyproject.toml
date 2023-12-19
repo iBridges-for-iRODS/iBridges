@@ -47,7 +47,7 @@ test = [
 packages = ["ibridges"]
 
 [tool.setuptools_scm]
-write_to = "ibridges/_version.py"
+write_to = "ibridges._version"
 
 [[tool.mypy.overrides]]
 module = [
@@ -56,7 +56,8 @@ module = [
 ignore_missing_imports = true
 
 [tool.pylint.'MASTER']
-ignore-patterns="_version.py"
+# ignore-paths = "^ibridges/_version.py$"
+ ignore-patterns="_version.py"
 
 [tool.pylint.'FORMAT']
 max-line-length=100

@@ -1,27 +1,28 @@
 """ permission operations
 """
-import logging
+import logging  # noqa: I001
+from typing import Optional
 
 import irods.access
 import irods.collection
 import irods.exception
 
-from ibridges.irodsconnector import dataOperations
-from ibridges.irodsconnector import session
+from ibridges.irodsconnector.data_operations import DataOperation
+from ibridges.irodsconnector.session import Session
 
 
-class Permission(object):
+class Permission():
     """Irods permission operations """
-    _permissions = None
+    _permissions: Optional[dict[str, str]] = None
 
-    def __init__(self, data_man: dataOperations.DataOperation, session: session.Session):
+    def __init__(self, session: Session):
         """ iRODS data operations initialization
 
             Parameters
             ----------
             data_man: dataOperations.DataOperation
                 instance of the Dataoperation class
-            sess_man : session.Session
+            sess_man : Session
                 instance of the Session class
 
         """
@@ -63,8 +64,8 @@ class Permission(object):
             iRODS ACL instances.
 
         """
-        if dataOperations.DataOperation.is_dataobject_or_collection(obj):
-            return self.session.irods_session.permissions.get(obj)
+        if DataOperation.is_dataobject_or_collection(item):
+            return self.session.irods_session.permissions.get(item)
         logging.debug('Not a valid iRODS object or collection')
         return []
 
@@ -88,7 +89,7 @@ class Permission(object):
             If a 'rodsadmin' apply ACL for another user.
 
         """
-        acl = irods.access.iRODSAccess(perm, path, user, zone)
+        acl = irods.access.iRODSAccess(perm, item.path, user, zone)
         try:
             self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
         except irods.exception.CAT_INVALID_USER as error:
@@ -96,6 +97,6 @@ class Permission(object):
             raise error
         except irods.exception.CAT_INVALID_ARGUMENT as error:
             logging.error(
-                'ACL: permission %s or path %s not known', perm, path,
+                'ACL: permission %s or path %s not known', perm, item.path,
                 exc_info=True)
             raise error

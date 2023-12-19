@@ -2,8 +2,10 @@
 
 """
 import json
+from typing import Union
 
 from ibridges.utils import path
+from ibridges.utils.path import LocalPath
 
 
 class JsonConfig:
@@ -11,7 +13,7 @@ class JsonConfig:
 
     """
 
-    def __init__(self, filepath: str):
+    def __init__(self, filepath: Union[str, LocalPath]):
         """Create the configuration.
 
         Parameters
@@ -19,8 +21,8 @@ class JsonConfig:
         filepath : str
 
         """
-        self._config = {}
-        self.filepath = filepath
+        self._config: dict = {}
+        self.filepath = LocalPath(filepath)
 
     def __bool__(self) -> bool:
         """If 'config' dictionary is truthy.
@@ -31,7 +33,7 @@ class JsonConfig:
             If self.config is truthy.
 
         """
-        return self._config != {}
+        return bool(self._config)
 
     def __repr__(self) -> str:
         """Representation of this configuration.
@@ -57,7 +59,7 @@ class JsonConfig:
             exists.  The empty persistent dictionary otherwise.
 
         """
-        if self._config == {}:
+        if not self._config:
             if self.filepath.is_file():
                 with open(self.filepath, 'r', encoding='utf-8') as confd:
                     self._config.update(json.load(confd))
@@ -85,8 +87,7 @@ class JsonConfig:
 
     @property
     def filepath(self) -> path.LocalPath:
-        """
-
+        """Return path linked to the configuration.
         """
         if not isinstance(self._filepath, path.LocalPath):
             return path.LocalPath()
@@ -118,7 +119,7 @@ class JsonConfig:
 
         """
         config = {}
-        if self.config != {}:
+        if self.config:
             config = self.config
         with open(self.filepath, 'w', encoding='utf-8') as confd:
             json.dump(config, confd, indent=4, sort_keys=True)

@@ -1,15 +1,15 @@
 """ ticket operations
 """
+from typing import Optional
+
 import irods.ticket
 from irods.models import TicketQuery
 
-from ibridges.irodsconnector.session import Session
 import ibridges.irodsconnector.keywords as kw
-import warnings
-from typing import Optional
+from ibridges.irodsconnector.session import Session
 
 
-class Tickets(object):
+class Tickets():
     """Irods Ticket operations """
 
     def __init__(self, session: Session):
@@ -54,19 +54,24 @@ class Tickets(object):
                 expiration_set = ticket.modify('expire', expiry_string) == ticket
             except Exception as error:
                 self.delete_ticket(ticket)
-                raise Exception('Could not set expiration date: %r', error)
+                raise ValueError('Could not set expiration date') from error
+        self.all_tickets(update=True)
         return ticket.ticket, expiration_set
 
     @property
-    def all_ticket_strings(self) -> list:
+    def all_ticket_strings(self) -> list[str]:
+        """Get the names of all tickets."""
         return [name for name, _, _, _ in self.all_tickets()]
 
     def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
+        """Obtain a ticket using its string identifier."""
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
-        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' does not exist.")
+        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' "
+                       "does not exist.")
 
     def delete_ticket(self, ticket: irods.ticket.Ticket, check: bool = False):
+        """Delete irods ticket."""
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
             self.all_tickets(update=True)
@@ -107,7 +112,8 @@ class Tickets(object):
         Parameters
         ----------
         itemid : str
-            iRODS identifier for a collection or data object (str(row[TicketQuery.Ticket.object_id]))
+            iRODS identifier for a collection or data object
+            (str(row[TicketQuery.Ticket.object_id]))
 
         Returns
         -------
@@ -121,11 +127,9 @@ class Tickets(object):
         if len(list(data_query)) > 0:
             res = next(data_query.get_results())
             return list(res.values())[0] + "/" + list(res.values())[1]
-        else:
-            coll_query = self.session.irods_session.query(kw.COLL_NAME)
-            coll_query = coll_query.filter(kw.COLL_ID == itemid)
-            if len(list(coll_query)) > 0:
-                res = next(coll_query.get_results())
-                return list(res.values())[0]
-            else:
-                return ''
+        coll_query = self.session.irods_session.query(kw.COLL_NAME)
+        coll_query = coll_query.filter(kw.COLL_ID == itemid)
+        if len(list(coll_query)) > 0:
+            res = next(coll_query.get_results())
+            return list(res.values())[0]
+        return ''

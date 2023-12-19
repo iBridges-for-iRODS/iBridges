@@ -1,36 +1,33 @@
 """ collections and data objects
 """
-import base64
-import hashlib
 import logging
-import os
-from shutil import disk_usage
+from typing import Optional, Union
 
 import irods.collection
 import irods.data_object
 import irods.exception
 
 from ibridges.irodsconnector import keywords as kw
-from ibridges.irodsconnector import resource
-from ibridges.irodsconnector import session
-from ibridges import utils
+from ibridges.irodsconnector.resources import Resources
+from ibridges.irodsconnector.session import Session
+from ibridges.utils.path import IrodsPath, LocalPath
 
 
-class DataOperation(object):
+class DataOperation():
     """ Irods collections and data objects operations"""
 
-    def __init__(self, resources: resources.Resources, session: session.Session):
+    def __init__(self, resources: Resources, session: Session):
         """ iRODS data operations initialization
 
             Parameters
             ----------
-            resources : resource.Resource
+            resources : Resource
                 Instance of the Resource class
-            session : session.Session
+            session : Session
                 instance of the Session class
 
         """
-        self.resource = resource
+        self.resources = resources
         self.session = session
 
     @staticmethod
@@ -68,7 +65,7 @@ class DataOperation(object):
         """
         return self.session.irods_session.data_objects.exists(path)
 
-    def collection_exists(self, path: str) -> bool:
+    def collection_exists(self, path: IrodsPath) -> bool:
         """Check if an iRODS collection exists.
 
         Parameters
@@ -189,7 +186,7 @@ class DataOperation(object):
             return self.session.irods_session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
 
-    def get_collection(self, path: str) -> irods.collection.iRODSCollection:
+    def get_collection(self, path: IrodsPath) -> irods.collection.iRODSCollection:
         """Instantiate an iRODS collection.
 
         Parameters
@@ -207,7 +204,7 @@ class DataOperation(object):
             return self.session.irods_session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
+    def irods_put(self, local_path: LocalPath, irods_path: IrodsPath, resc_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
@@ -230,7 +227,8 @@ class DataOperation(object):
             options[kw.RESC_NAME_KW] = resc_name
         self.session.irods_session.data_objects.put(local_path, irods_path, **options)
 
-    def irods_get(self, irods_path: str, local_path: str, options: dict = None):
+    def irods_get(self, irods_path: IrodsPath, local_path: LocalPath,
+                  options: Optional[dict] = None):
         """Download `irods_path` to `local_path` following iRODS `options`.
 
         Parameters
@@ -252,7 +250,8 @@ class DataOperation(object):
         self.session.irods_session.data_objects.get(irods_path, local_path, **options)
 
 
-    def delete_data(self, item: (irods.collection.iRODSCollection, irods.data_object.iRODSDataObject)):
+    def delete_data(self, item: Union[irods.collection.iRODSCollection,
+                                      irods.data_object.iRODSDataObject]):
         """
         Delete a data object or a collection recursively.
         Parameters
@@ -276,31 +275,32 @@ class DataOperation(object):
                 logging.error('IRODS DELETE: no permissions %s', item.path)
                 raise error
 
-    def get_irods_size(self, path_names: list) -> int:
-        """Collect the sizes of a set of iRODS data objects and/or
-        collections and determine the total size.
+# TODOx: find get_coll_size methods
+    # def get_irods_size(self, path_names: list) -> int:
+    #     """Collect the sizes of a set of iRODS data objects and/or
+    #     collections and determine the total size.
 
-        Parameters
-        ----------
-        path_names : list
-            Names of logical iRODS paths.
+    #     Parameters
+    #     ----------
+    #     path_names : list
+    #         Names of logical iRODS paths.
 
-        Returns
-        -------
-        int
-            Total size [bytes] of all iRODS objects found from the
-            logical paths in `path_names`.
+    #     Returns
+    #     -------
+    #     int
+    #         Total size [bytes] of all iRODS objects found from the
+    #         logical paths in `path_names`.
 
-        """
-        irods_sizes = []
-        for path_name in path_names:
-            irods_name = utils.path.IrodsPath(path_name)
-            if self.collection_exists(irods_name):
-                irods_sizes.append(
-                    utils.utils.get_coll_size(
-                        self.get_collection(irods_name)))
-            elif self.dataobject_exists(irods_name):
-                irods_sizes.append(
-                    utils.utils.get_data_size(
-                        self.get_dataobject(irods_name)))
-        return sum(irods_sizes)
+    #     """
+    #     irods_sizes = []
+    #     for path_name in path_names:
+    #         irods_name = utils.path.IrodsPath(path_name)
+    #         if self.collection_exists(irods_name):
+    #             irods_sizes.append(
+    #                 utils.utils.get_coll_size(
+    #                     self.get_collection(irods_name)))
+    #         elif self.dataobject_exists(irods_name):
+    #             irods_sizes.append(
+    #                 utils.utils.get_data_size(
+    #                     self.get_dataobject(irods_name)))
+    #     return sum(irods_sizes)
