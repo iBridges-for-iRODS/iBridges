@@ -1,4 +1,12 @@
 ### Filesystem utils
+import logging
+import os
+import socket
+import sys
+
+from ibridges.utils import path
+
+
 def ensure_dir(pathname: path.LocalPath) -> bool:
     """Ensure `pathname` exists as a directory.
 
@@ -17,7 +25,7 @@ def ensure_dir(pathname: path.LocalPath) -> bool:
         pathname.mkdir(parents=True, exist_ok=True)
     except (PermissionError, OSError) as error:
         logging.info('Error ensuring directory: %r', error)
-    return dirpath.is_dir()
+    return pathname.is_dir()
 
 
 def get_downloads_dir() -> path.LocalPath:
@@ -29,7 +37,7 @@ def get_downloads_dir() -> path.LocalPath:
         Absolute path to 'Downloads' directory.
 
     """
-    if is_posix():
+    if path.is_posix():
         return path.LocalPath('~', 'Downloads').expanduser()
     else:
         import winreg
@@ -131,7 +139,7 @@ def bytes_to_str(value: int) -> str:
 
 
 ### Logger utils
-def set_log_level(log_level: int = None):
+def set_log_level(log_level: Optional[int] = None):
     """Set the log level excluding DEBUG-level entries from other
     modules.  If log_level not specified, attempt to access the verbose
     setting from the configuration.

@@ -33,7 +33,7 @@ class JsonConfig:
             If self.config is truthy.
 
         """
-        return bool(self._config)
+        return self._config != {}
 
     def __repr__(self) -> str:
         """Representation of this configuration.
@@ -59,7 +59,7 @@ class JsonConfig:
             exists.  The empty persistent dictionary otherwise.
 
         """
-        if not self._config:
+        if self._config == {}:
             if self.filepath.is_file():
                 with open(self.filepath, 'r', encoding='utf-8') as confd:
                     self._config.update(json.load(confd))
@@ -87,7 +87,8 @@ class JsonConfig:
 
     @property
     def filepath(self) -> path.LocalPath:
-        """Return path linked to the configuration.
+        """
+
         """
         if not isinstance(self._filepath, path.LocalPath):
             return path.LocalPath()
@@ -119,7 +120,7 @@ class JsonConfig:
 
         """
         config = {}
-        if self.config:
+        if self.config != {}:
             config = self.config
         with open(self.filepath, 'w', encoding='utf-8') as confd:
             json.dump(config, confd, indent=4, sort_keys=True)

@@ -2,6 +2,7 @@
 
 """
 from urllib.parse import urlparse
+
 from elabjournal import elabjournal
 
 URL_PATH = '/members/experiments/browser/#view=experiment&nodeID='
@@ -11,7 +12,7 @@ YEL = '\x1b[1;33m'
 BLUE = '\x1b[1;34m'
 
 
-class elabConnector():
+class ElabConnector():
 
     def __init__(self, token):
         try:
@@ -27,7 +28,7 @@ class elabConnector():
         self.__name__ = 'ELN'
         self.group = None
 
-    def showGroups(self, get=False):
+    def show_groups(self, get=False):
         groups_frame = self.elab.groups().all(['name', 'description'])
         print(groups_frame)
         if get:
@@ -71,11 +72,11 @@ class elabConnector():
 
         raise ValueError('ERROR ELAB: groupId not found.')
 
-    def showExperiments(self, groupId=None, get=False):
+    def show_experiments(self, group_id=None, get=False):
         current_group = self.elab.group().id()
-        if groupId is None:
-            groupId = self.elab.group().id()
-        self._switch_group(groupId)
+        if group_id is None:
+            group_id = self.elab.group().id()
+        self._switch_group(group_id)
         exp_frames = self.elab.experiments().all()
         print('Your experiments:')
         my_exp_frame = exp_frames.loc[exp_frames['userID'] == self.userId, ['name', 'projectID']]
@@ -134,7 +135,7 @@ class elabConnector():
 
         raise ValueError("ERROR ELAB: expId not found.")
 
-    def updateMetadataUrlInteractive(self, **params):
+    def update_metadata_url_interactive(self, **params):
         current_group = self.elab.group().id()
         if 'group' in params and params['group'] is True:
             group_id = self._choose_group()
@@ -147,7 +148,7 @@ class elabConnector():
         self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         return self.elab.group().name(), self.experiment.name()
 
-    def updateMetadataUrl(self, **params):
+    def update_metadata_url(self, **params):
         group_id = params['group']
         exp_id = params['experiment']
         self._switch_group(group_id)
@@ -155,7 +156,7 @@ class elabConnector():
         self.metadataUrl = f'{self.baseUrl}{URL_PATH}{exp_id}'
         return self.metadataUrl
 
-    def addMetadata(self, url, meta=None, title='Title'):
+    def add_metadata(self, url, meta=None, title='Title'):
         infos = []
 
         url_parts = urlparse(url)

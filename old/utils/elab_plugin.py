@@ -5,9 +5,9 @@ Plugin for IBridgesCli for annotating eLab Journal.
 import logging
 import os
 
-from irods.exception import CollectionDoesNotExist, CAT_NO_ACCESS_PERMISSION
+from irods.exception import CAT_NO_ACCESS_PERMISSION, CollectionDoesNotExist
 
-from ibridges.utils.elabConnector import elabConnector
+from ibridges.utils.elab_connector import ElabConnector
 
 
 class ElabPlugin():
@@ -25,9 +25,10 @@ class ElabPlugin():
         """
         token = calling_class.context.ibridges_configuration.config.get('eln_token', '')
         #self.group = calling_class.context.ibridges_configuration.config.get('eln_group', '')
-        #self.experiment = calling_class.context.ibridges_configuration.config.get('eln_experiment', '')
+        #self.experiment = calling_class.context.ibridges_configuration.config.get(
+            # 'eln_experiment', '')
         #self.title = calling_class.context.ibridges_configuration.config.get('eln_title', '')
-        
+
         in_var = input('Link data to ElabJournal experiment (Y/N, default N): ').strip().lower()
         if in_var in ['', 'n', 'no']:
             logging.info('Skipping ELN')
@@ -37,7 +38,7 @@ class ElabPlugin():
             logging.info('Skipping ELN (no API token found)')
             return
 
-        self.elab = elabConnector(token)
+        self.elab = ElabConnector(token)
         print(f'INFO: Default experiment is: {self.elab.experiment.name()}')
         print(f'INFO: Data will be linked to: {self.elab.metadataUrl}')
         in_var = input('Choose another group or experiment? (Y/N): ').strip().lower()
@@ -45,7 +46,7 @@ class ElabPlugin():
         if in_var in ['y', 'yes']:
             self.elab.showGroups()
             self.elab.updateMetadataUrlInteractive(group=True)
-        
+
         if not self.title:
             title = input('ELN paragraph title (default "iRODS data"): ')
             if title:
@@ -105,10 +106,12 @@ class ElabPlugin():
 
         try:
             if os.path.isfile(calling_class.local_path):
-                item = irods_conn.get_dataobject(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+                item = irods_conn.get_dataobject(
+                    f"{coll.path}/{os.path.basename(calling_class.local_path)}")
                 irods_conn.add_metadata([item], 'ELN', self.elab.metadataUrl)
             elif os.path.isdir(calling_class.local_path):
-                uploaded_coll = irods_conn.get_collection(f"{coll.path}/{os.path.basename(calling_class.local_path)}")
+                uploaded_coll = irods_conn.get_collection(
+                    f"{coll.path}/{os.path.basename(calling_class.local_path)}")
                 items = [uploaded_coll]
                 for this_coll, _, objs in uploaded_coll.walk():
                     items.append(this_coll)

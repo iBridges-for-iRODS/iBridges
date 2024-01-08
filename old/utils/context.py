@@ -1,11 +1,16 @@
 """iBridges context: configurations and common services.
 
 """
+from __future__ import annotations
+
 import json
 import logging
+from typing import Optional
 
-from ibridges.utils import json_config
-from ibridges.utils import path
+from ibridges.irodsconnector.manager import IrodsConnector
+from ibridges.utils import json_config, path
+from ibridges.utils.json_config import JsonConfig
+from ibridges.utils.path import LocalPath
 
 IBRIDGES_DIR = '~/.ibridges'
 IRODS_DIR = '~/.irods'
@@ -29,12 +34,12 @@ class Context:
     configurations and iBridges session instance.
 
     """
-    _ibridges_conf_file = ''
-    _ibridges_configuration = None
-    _instance = None
-    _irods_connector = None
-    _irods_env_file = ''
-    _irods_environment = None
+    _ibridges_conf_file = LocalPath("")
+    _ibridges_configuration: Optional[JsonConfig] = None
+    _instance: Optional[Context] = None
+    _irods_connector: Optional[IrodsConnector] = None
+    _irods_env_file = LocalPath('')
+    _irods_environment: Optional[JsonConfig] = None
     application_name = ''
 
     def __new__(cls):
@@ -54,7 +59,7 @@ class Context:
         del self.irods_connector
 
     @property
-    def ibridges_conf_file(self) -> str:
+    def ibridges_conf_file(self) -> LocalPath:
         """iBridges configuration filename.
 
         Returns
@@ -75,7 +80,7 @@ class Context:
             Name of the configuration file.
 
         """
-        self._ibridges_conf_file = path.LocalPath(filename).expanduser()
+        self._ibridges_conf_file = LocalPath(filename).expanduser()
         if self._ibridges_configuration:
             self._ibridges_configuration.filepath = self._ibridges_conf_file
 
@@ -92,7 +97,7 @@ class Context:
         """
         if self._ibridges_configuration is None:
             if not self.ibridges_conf_file:
-                self.ibridges_conf_file = DEFAULT_IBRIDGES_CONF_FILE
+                self.ibridges_conf_file = LocalPath(DEFAULT_IBRIDGES_CONF_FILE)
             filepath = path.LocalPath(self.ibridges_conf_file).expanduser()
             if not filepath.parent.is_dir():
                 filepath.parent.mkdir()
@@ -151,7 +156,7 @@ class Context:
         self._irods_connector = None
 
     @property
-    def irods_env_file(self) -> str:
+    def irods_env_file(self) -> LocalPath:
         """iRODS environment filename.
 
         Returns
@@ -173,8 +178,9 @@ class Context:
             Name of the environment file.
 
         """
-        self._irods_env_file = path.LocalPath(filename).expanduser()
+        self._irods_env_file = LocalPath(filename).expanduser()
         logging.debug('setting: self._irods_env_file')
+        assert self._irods_environment is not None
         self._irods_environment.filepath = self._irods_env_file
 
     @property

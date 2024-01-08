@@ -1,8 +1,8 @@
 """Connector class with useful functions for AmberScript
 """
-import requests
 import json
-import os.path
+
+import requests
 
 
 class AmberConnector():
@@ -55,11 +55,11 @@ class AmberConnector():
         querystring = {"jobId":job_id,"apiKey":self._token}
         payload = ""
         response = requests.request("GET", url, data=payload, params=querystring)
-        if _status_response(response) in range(200, 300):
-            return _content_response(response)
+        if self._status_response(response) in range(200, 300):
+            return self._content_response(response)
         else:
-            raise Exception("HTTP ERROR "+str(_status_response(response))+ \
-                                          str(_content_response(response)))
+            raise Exception("HTTP ERROR "+str(self._status_response(response))+ \
+                                          str(self._content_response(response)))
 
     def submit_job(self, data, glossary_id = None):
         url = 'https://api.amberscript.com/api/jobs/upload-media'

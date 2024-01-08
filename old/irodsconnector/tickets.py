@@ -9,7 +9,7 @@ import ibridges.irodsconnector.keywords as kw
 from ibridges.irodsconnector.session import Session
 
 
-class Tickets():
+class Tickets(object):
     """Irods Ticket operations """
 
     def __init__(self, session: Session):
@@ -54,24 +54,19 @@ class Tickets():
                 expiration_set = ticket.modify('expire', expiry_string) == ticket
             except Exception as error:
                 self.delete_ticket(ticket)
-                raise ValueError('Could not set expiration date') from error
-        self.all_tickets(update=True)
+                raise Exception('Could not set expiration date: %r', error)
         return ticket.ticket, expiration_set
 
     @property
-    def all_ticket_strings(self) -> list[str]:
-        """Get the names of all tickets."""
+    def all_ticket_strings(self) -> list:
         return [name for name, _, _, _ in self.all_tickets()]
 
     def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
-        """Obtain a ticket using its string identifier."""
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
-        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' "
-                       "does not exist.")
+        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' does not exist.")
 
     def delete_ticket(self, ticket: irods.ticket.Ticket, check: bool = False):
-        """Delete irods ticket."""
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
             self.all_tickets(update=True)
@@ -112,8 +107,7 @@ class Tickets():
         Parameters
         ----------
         itemid : str
-            iRODS identifier for a collection or data object
-            (str(row[TicketQuery.Ticket.object_id]))
+            iRODS identifier for a collection or data object (str(row[TicketQuery.Ticket.object_id]))
 
         Returns
         -------
@@ -127,9 +121,11 @@ class Tickets():
         if len(list(data_query)) > 0:
             res = next(data_query.get_results())
             return list(res.values())[0] + "/" + list(res.values())[1]
-        coll_query = self.session.irods_session.query(kw.COLL_NAME)
-        coll_query = coll_query.filter(kw.COLL_ID == itemid)
-        if len(list(coll_query)) > 0:
-            res = next(coll_query.get_results())
-            return list(res.values())[0]
-        return ''
+        else:
+            coll_query = self.session.irods_session.query(kw.COLL_NAME)
+            coll_query = coll_query.filter(kw.COLL_ID == itemid)
+            if len(list(coll_query)) > 0:
+                res = next(coll_query.get_results())
+                return list(res.values())[0]
+            else:
+                return ''

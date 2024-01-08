@@ -8,21 +8,21 @@ import irods.collection
 import irods.exception
 
 from ibridges.irodsconnector.data_operations import DataOperation
-from ibridges.irodsconnector.session import Session
+from ibridges.irodsconnector import session
 
 
-class Permission():
+class Permission(object):
     """Irods permission operations """
     _permissions: Optional[dict[str, str]] = None
 
-    def __init__(self, session: Session):
+    def __init__(self, data_man: DataOperation, session: session.Session):
         """ iRODS data operations initialization
 
             Parameters
             ----------
             data_man: dataOperations.DataOperation
                 instance of the Dataoperation class
-            sess_man : Session
+            sess_man : session.Session
                 instance of the Session class
 
         """

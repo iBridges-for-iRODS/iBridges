@@ -17,7 +17,7 @@ def is_posix() -> bool:
 
 
 class IrodsPath(pathlib.PurePosixPath):
-    """A path on the irods server."""
+    pass
     # """
     # A POSIX path without file system functionality.
     # """
@@ -36,7 +36,7 @@ class IrodsPath(pathlib.PurePosixPath):
 
 
 class LocalPath(pathlib.Path):
-    """A local path."""
+    pass
     # """
     # A platform-dependent local path with file system functionality.
     # """

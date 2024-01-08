@@ -6,18 +6,18 @@ import irods.exception
 import irods.resource
 
 from ibridges.irodsconnector import keywords as kw
-from ibridges.irodsconnector.session import Session
+from ibridges.irodsconnector import session
 
 
-class Resources():
+class Resources(object):
     """Irods Resource operations """
 
-    def __init__(self, session: Session):
+    def __init__(self, session: session.Session):
         """ iRODS resource initialization
 
             Parameters
             ----------
-            session : Session
+            session : session.Session
                 instance of the Session class
         """
         self._resources: Optional[dict] = None
@@ -137,7 +137,7 @@ class Resources():
                 }
                 resc_list.append((name, metadata))
             resc_dict = dict(
-                sorted(resc_list, key=lambda item: str.casefold(item[0])))
+                sorted(resc_list, key=lambda item: str.casefold(item[0].decode())))
             self._resources = resc_dict
         return self._resources
 
@@ -151,5 +151,5 @@ class Resources():
         List [(resource_name, status, free_space, context)]
         """
         parents = [(key, val) for key, val in self.resources().items() if not val['parent']]
-        return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"])
+        return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"]) 
                 for resc in parents]
