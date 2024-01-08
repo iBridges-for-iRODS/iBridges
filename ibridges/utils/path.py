@@ -20,6 +20,11 @@ class IrodsPath(pathlib.PurePosixPath):
     """A path on the irods server."""
 
     def __init__(self, session, *args, **kwargs):
+        self.session = session
+        super().__init__()
+
+
+    def __new__(cls, session, *args, **kwargs):
          """
          Instantiate an IrodsPath
 
@@ -28,8 +33,7 @@ class IrodsPath(pathlib.PurePosixPath):
          IrodsPath
              Instance of PurePosixPath
          """
-         self.session = session
-         super().__init__(*args, **kwargs)
+         return super().__new__(cls, *args, **kwargs)
 
 class LocalPath(pathlib.Path):
     """A local path."""
