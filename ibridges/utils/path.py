@@ -18,22 +18,18 @@ def is_posix() -> bool:
 
 class IrodsPath(pathlib.PurePosixPath):
     """A path on the irods server."""
-    # """
-    # A POSIX path without file system functionality.
-    # """
 
-    # def __new__(cls, *args):
-    #     """
-    #     Instantiate an IrodsPath
+    def __init__(self, session, *args, **kwargs):
+         """
+         Instantiate an IrodsPath
 
-    #     Returns
-    #     -------
-    #     IrodsPath
-    #         Instance of PurePosixPath
-    #     """
-    #     path = pathlib.PurePosixPath(*args)
-    #     return path
-
+         Returns
+         -------
+         IrodsPath
+             Instance of PurePosixPath
+         """
+         self.session = session
+         super().__init__(*args, **kwargs)
 
 class LocalPath(pathlib.Path):
     """A local path."""
