@@ -30,144 +30,6 @@ class DataOperation():
         self.resources = resources
         self.session = session
 
-    @staticmethod
-    def is_dataobject_or_collection(obj: None):
-        """Check if `obj` is an iRODS data object or collection.
-
-        Parameters
-        ----------
-        obj : iRODS object instance
-            iRODS instance to check.
-
-        Returns
-        -------
-        bool
-            If `obj` is an iRODS data object or collection.
-
-        """
-        return isinstance(obj, (
-            irods.data_object.iRODSDataObject,
-            irods.collection.iRODSCollection))
-
-    def dataobject_exists(self, path: str) -> bool:
-        """Check if an iRODS data object exists.
-
-        Parameters
-        ----------
-        path : str
-            Name of an iRODS data object.
-
-        Returns
-        -------
-        bool
-            Existence of the data object with `path`.
-
-        """
-        return self.session.irods_session.data_objects.exists(path)
-
-    def collection_exists(self, path: IrodsPath) -> bool:
-        """Check if an iRODS collection exists.
-
-        Parameters
-        ----------
-        path : str
-            Name of an iRODS collection.
-
-        Returns
-        -------
-        bool
-            Existance of the collection with `path`.
-
-        """
-        return self.session.irods_session.collections.exists(path)
-
-    @staticmethod
-    def is_dataobject(obj) -> bool:
-        """Check if `obj` is an iRODS data object.
-
-        Parameters
-        ----------
-        obj : iRODS object instance
-            iRODS instance to check.
-
-        Returns
-        -------
-        bool
-            If `obj` is an iRODS data object.
-
-        """
-        return isinstance(obj, irods.data_object.iRODSDataObject)
-
-    @staticmethod
-    def is_collection(obj) -> bool:
-        """Check if `obj` is an iRODS collection.
-
-        Parameters
-        ----------
-        obj : iRODS object instance
-            iRODS instance to check.
-
-        Returns
-        -------
-        bool
-            If `obj` is an iRODS collection.
-
-        """
-        return isinstance(obj, irods.collection.iRODSCollection)
-
-
-    def ensure_data_object(self, data_object_name: str) -> irods.data_object.iRODSDataObject:
-        """Optimally create a data object with `data_object_name` if one does
-        not exist.
-
-        Parameters
-        ----------
-        data_object_name : str
-            Name of the data object to check/create.
-
-        Returns
-        -------
-        iRODS Data object
-            Existing or new iRODS data object.
-
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-
-        """
-        try:
-            if self.session.irods_session.data_objects.exists(data_object_name):
-                return self.session.irods_session.data_objects.get(data_object_name)
-            return self.session.irods_session.data_objects.create(data_object_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            logging.info('ENSURE DATA OBJECT', exc_info=True)
-            raise error
-
-    def ensure_coll(self, coll_name: str) -> irods.collection.iRODSCollection:
-        """Optimally create a collection with `coll_name` if one does
-        not exist.
-
-        Parameters
-        ----------
-        coll_name : str
-            Name of the collection to check/create.
-
-        Returns
-        -------
-        iRODSCollection
-            Existing or new iRODS collection.
-
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-
-        """
-        try:
-            if self.session.irods_session.collections.exists(coll_name):
-                return self.session.irods_session.collections.get(coll_name)
-            return self.session.irods_session.collections.create(coll_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            logging.info('ENSURE COLLECTION', exc_info=True)
-            raise error
-
     def get_dataobject(self, path: str) -> irods.data_object.iRODSDataObject:
         """Instantiate an iRODS data object.
 
@@ -185,6 +47,29 @@ class DataOperation():
         if self.dataobject_exists(path):
             return self.session.irods_session.data_objects.get(path)
         raise irods.exception.DataObjectDoesNotExist(path)
+
+    @static
+    def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list(tuple(int, str, str. int, str)):
+        """Retrieves information about replicas (copies of the file on different resources) 
+        of the data object in the iRODS system.
+
+        Parameters
+        ----------
+        obj : irods.data_object.iRODSDataObject
+            The data object
+
+        Returns
+        -------
+        list(tuple(int, str, str. int, str))
+            List with tuple where each tuple contains replica index/number, resource name on which 
+            the replica is stored about one replica, replica checksum, replica size, 
+            replica status of the replica
+        """
+        replicas = []
+        for r in obj.replicas:
+            replicas.append((r.number, r.resource_name, r.checksum))
+
+        return replicas
 
     def get_collection(self, path: IrodsPath) -> irods.collection.iRODSCollection:
         """Instantiate an iRODS collection.
@@ -204,7 +89,7 @@ class DataOperation():
             return self.session.irods_session.collections.get(path)
         raise irods.exception.CollectionDoesNotExist(path)
 
-    def irods_put(self, local_path: LocalPath, irods_path: IrodsPath, resc_name: str = ''):
+    def irods_put(self, local_path: str, irods_path: str, resc_name: str = ''):
         """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
@@ -248,32 +133,6 @@ class DataOperation():
             kw.VERIFY_CHKSUM_KW: '',
             })
         self.session.irods_session.data_objects.get(irods_path, local_path, **options)
-
-
-    def delete_data(self, item: Union[irods.collection.iRODSCollection,
-                                      irods.data_object.iRODSDataObject]):
-        """
-        Delete a data object or a collection recursively.
-        Parameters
-        ----------
-        item: iRODS data object or collection
-            item to delete
-        """
-
-        if self.session.irods_session.collections.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.remove(recurse=True, force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
-        elif self.session.irods_session.data_objects.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.unlink(force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
 
 # TODOx: find get_coll_size methods
     # def get_irods_size(self, path_names: list) -> int:
