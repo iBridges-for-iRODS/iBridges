@@ -19,8 +19,8 @@ class Permission():
     def __repr__(self) -> str:
         acl_string = ""
         for m in self.session.irods_session.permissions.get(self.item):
-            acl_string += f"{m.path}: {m.user_name} ({m.user_zone}): {m.access_name} {m.inheritance}\n"
-            # acl_string += f"{repr(m)}\n"
+            # acl_string += f"{m.path}: {m.user_name} ({m.user_zone}): {m.access_name}\n"
+            acl_string += f"{repr(m)}\n"
         return acl_string
 
     #TODO: why do we need this?
