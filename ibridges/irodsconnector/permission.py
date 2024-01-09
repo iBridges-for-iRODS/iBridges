@@ -1,102 +1,43 @@
-""" permission operations
-"""
-import logging  # noqa: I001
-from typing import Optional
-
+""" permission operations """
 import irods.access
 import irods.collection
 import irods.exception
-
-from ibridges.irodsconnector.data_operations import DataOperation
-from ibridges.irodsconnector.session import Session
-
+import irods.session
+from typing import Iterator
 
 class Permission():
-    """Irods permission operations """
-    _permissions: Optional[dict[str, str]] = None
+    """Irods permission operations"""
 
-    def __init__(self, session: Session):
-        """ iRODS data operations initialization
-
-            Parameters
-            ----------
-            data_man: dataOperations.DataOperation
-                instance of the Dataoperation class
-            sess_man : Session
-                instance of the Session class
-
-        """
+    def __init__(self, session, item):
         self.session = session
+        self.item = item
 
+    def __iter__(self) -> Iterator:
+        for m in self.session.irods_session.permissions.get(self.item):
+            yield m
+
+    def __repr__(self) -> str:
+        acl_string = ""
+        for m in self.session.irods_session.permissions.get(self.item):
+            acl_string += f"{m.path}: {m.user_name} ({m.user_zone}): {m.access_name} {m.inheritance}\n"
+            # acl_string += f"{repr(m)}\n"
+        return acl_string
+
+    #TODO: why do we need this?
     @property
     def permissions(self) -> dict:
-        """iRODS permissions mapping.
+        permissions = {
+            'null': 'none',
+            'read_object': 'read',
+            'modify_object': 'write',
+            'own': 'own',
+        }
+        if self.session.server_version < (4, 3, 0):
+            permissions.update({'read object': 'read', 'modify object': 'write'})
+        return permissions
 
-        Returns
-        -------
-        dict
-            Correct permissions mapping for the current server version.
+    def set(self, perm: str, user: str = '', zone: str = '', recursive: bool = False, admin: bool = False):
+        """Set permissions (ACL) for an iRODS collection or data object."""
+        acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
+        self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
 
-        """
-        if self._permissions is None:
-            self._permissions = {
-                'null': 'none',
-                'read_object': 'read',
-                'modify_object': 'write',
-                'own': 'own',
-            }
-            if self.session.server_version < (4, 3, 0):
-                self._permissions.update(
-                    {'read object': 'read', 'modify object': 'write'})
-        return self._permissions
-
-    def get_permissions(self, item: irods.collection | irods.data_object) -> list:
-        """Discover ACLs for an iRODS collection expressed as a `path`
-        or an `obj`ect.
-
-        Parameters
-        ----------
-        item: irods.collection | irods.data_object
-
-        Returns
-        -------
-        list
-            iRODS ACL instances.
-
-        """
-        if DataOperation.is_dataobject_or_collection(item):
-            return self.session.irods_session.permissions.get(item)
-        logging.debug('Not a valid iRODS object or collection')
-        return []
-
-    def set_permissions(self, perm: str, item: irods.collection | irods.data_object,
-                        user: str = '', zone: str = '', recursive: bool = False,
-                        admin: bool = False):
-        """Set permissions (ACL) for an iRODS collection or data object.
-
-        Parameters
-        ----------
-        perm: str
-            Name of permission string: own, read, write, or null.
-        item: irods.data_object or irods.collection
-        user: str
-            Name of user.
-        zone: str
-            Name of user's zone.
-        recursive: bool
-            Apply ACL to all children of `path`.
-        admin: bool
-            If a 'rodsadmin' apply ACL for another user.
-
-        """
-        acl = irods.access.iRODSAccess(perm, item.path, user, zone)
-        try:
-            self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
-        except irods.exception.CAT_INVALID_USER as error:
-            logging.error('ACL: user unknown')
-            raise error
-        except irods.exception.CAT_INVALID_ARGUMENT as error:
-            logging.error(
-                'ACL: permission %s or path %s not known', perm, item.path,
-                exc_info=True)
-            raise error
