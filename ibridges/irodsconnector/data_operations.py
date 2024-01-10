@@ -99,13 +99,16 @@ class DataOperations():
         Parameters
         ----------
         local_path : str
-            Path of local file or directory/folder.
+            Path of local file.
         irods_path : str
             Path of iRODS data object or collection.
         resc_name : str
             Optional resource name.
 
         """
+        if not local_path.is_file():
+            raise ValueError("local_path must be a file.")
+
         options = {
             kw.ALL_KW: '',
             kw.NUM_THREADS_KW: kw.NUM_THREADS,
@@ -114,7 +117,7 @@ class DataOperations():
         }
         if resc_name not in ['', None]:
             options[kw.RESC_NAME_KW] = resc_name
-        self.session.irods_session.data_objects.put(local_path, irods_path, **options)
+        self.session.irods_session.data_objects.put(local_path, str(irods_path), **options)
 
     def irods_get(self, irods_path: IrodsPath, local_path: Path,
                   overwrite: bool=False, options: Optional[dict] = None):
@@ -130,6 +133,8 @@ class DataOperations():
             iRODS transfer options.
 
         """
+        if not irods_path.is_dataobject():
+            raise ValueError("irods_path must be a data object.")
         if options is None:
             options = {}
         options.update({
@@ -138,6 +143,7 @@ class DataOperations():
             })
         if overwrite:
             options[kw.FORCE_FLAG_KW] = ''
+
         self.session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
     def get_size(self, item: Union[irods.data_object.iRODSDataObject,
@@ -159,8 +165,13 @@ class DataOperations():
         if self.has_type_dataobj(item):
             return item.size
         elif self.has_type_collection(item):
-            irods_sizes = []
-            #iterate over all data objects
-            return sum(irods_sizes)
+            irods_size = 0
+            subcollections = [item]
+            while len(subcollections) > 0:
+                coll = subcollections.pop()
+                for obj in coll.data_objects:
+                    irods_size+= obj.size
+                subcollections.extend(coll.subcollections)
+            return irods_size
         else:
             raise ValueError("Item must be an iRODS object or iRODS collection.")
