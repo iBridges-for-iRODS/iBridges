@@ -63,7 +63,7 @@ class DataOperations():
         """
         replicas = []
         for r in obj.replicas:
-            replicas.append((r.number, r.resource_name, r.checksum))
+            replicas.append((r.number, r.resource_name, r.checksum, r.size, r.status))
 
         return replicas
 
