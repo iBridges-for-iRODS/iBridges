@@ -23,7 +23,7 @@ class Permission():
 
         if isinstance(self.item, irods.collection.iRODSCollection):
             coll = self.session.irods_session.collections.get(self.item.path)
-            acl_string += f"<iRODSAccess inheritance {coll.inheritance} {self.item.path}>\n"
+            acl_string += f"inheritance {coll.inheritance} {self.item.path}\n"
 
         return acl_string
 
