@@ -3,7 +3,7 @@ A classes to handle iRODS and local (Win, linux) paths.
 """
 import pathlib
 import sys
-
+import irods
 
 def is_posix() -> bool:
     """Determine POSIXicity.
@@ -54,7 +54,7 @@ class IrodsPath(pathlib.PurePosixPath):
                 logging.error('IRODS DELETE: no permissions %s', item.path)
                 raise error
     
-    def rename(self) -> IrodsPath:
+    def rename(self):
         """
         Rename the collection or data object
         """
@@ -63,15 +63,15 @@ class IrodsPath(pathlib.PurePosixPath):
         """
         Check if the path points to an iRODS collection
         """
-        return self.session.irods_session.collections.exists(path)
+        return self.session.irods_session.collections.exists(str(self))
 
     def is_dataobject(self) -> bool:
         """
         Check if the path points to an iRODS data object
         """
-        return self.session.irods_session.data_objects.exists(path)
+        return self.session.irods_session.data_objects.exists(str(self))
 
-    def absolute(self) -> IrodsPath:
+    def absolute(self):
         """
         Return the path if the path starts with '/zone/home', otherwise 
         concatenate the '/zone/home' prefix to the current path.
@@ -82,14 +82,14 @@ class IrodsPath(pathlib.PurePosixPath):
         Check if the path already exists on the iRODS server
         """
 
-    def home(self) -> IrodsPath:
+    def home(self):
         """
         If the session environment defines an 'irods_home', checks if this path exists 
         and returns the path.
         If 'irods_home' is not defined, returns the path /zone/home
         """
 
-    def walk(self, depth: int) -> tuple(IrodsPath, list(IrodsPath), list(IrodsPath)):
+    def walk(self, depth: int):
         """
         Walk on a collection.
 
@@ -99,7 +99,7 @@ class IrodsPath(pathlib.PurePosixPath):
             Stops after depth many iterations, even if the tree is deeper.
         """
 
-    def ensure_collection(coll_name, self) -> irods.collection.iRODSCOllection:
+    def ensure_collection(coll_name, self) -> irods.collection.iRODSCollection:
         """Create a collection with `coll_name` if one does
         not exist.
 
@@ -125,7 +125,7 @@ class IrodsPath(pathlib.PurePosixPath):
             logging.info('ENSURE COLLECTION', exc_info=True)
             raise error
 
-    def ensure_data_object(self) -> irods.data_object:
+    def ensure_data_object(self) -> irods.data_object.iRODSDataObject:
         """
         Creates an empty data object if the path does not exist and returns the data object.
         Throws irods.exception.CAT_NAME_EXISTS_AS_COLLECTION if path already exists as collection.
