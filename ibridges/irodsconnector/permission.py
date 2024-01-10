@@ -1,9 +1,9 @@
 """ permission operations """
+from typing import Iterator
 import irods.access
 import irods.collection
 import irods.exception
 import irods.session
-from typing import Iterator, Union
 
 class Permission():
     """Irods permission operations"""
@@ -13,13 +13,13 @@ class Permission():
         self.item = item
 
     def __iter__(self) -> Iterator:
-        for m in self.session.irods_session.permissions.get(self.item):
-            yield m
+        for perm in self.session.irods_session.permissions.get(self.item):
+            yield perm
 
     def __repr__(self) -> str:
         acl_string = ""
-        for m in self.session.irods_session.permissions.get(self.item):
-            acl_string += f"{repr(m)}\n"
+        for perm in self.session.irods_session.permissions.get(self.item):
+            acl_string += f"{repr(perm)}\n"
 
         if isinstance(self.item, irods.collection.iRODSCollection):
             coll = self.session.irods_session.collections.get(self.item.path)
@@ -29,9 +29,10 @@ class Permission():
 
     @property
     def available_permissions(self) -> dict:
+        """Get available permissions"""
         try:
             return self.session.irods_session.available_permissions
-        except:
+        except AttributeError:
             permissions = {
                 'null': 'none',
                 'read_object': 'read',
@@ -42,7 +43,8 @@ class Permission():
                 permissions.update({'read object': 'read', 'modify object': 'write'})
             return permissions
 
-    def set(self, perm: str, user: str = '', zone: str = '', recursive: bool = False, admin: bool = False) -> None:
+    def set(self, perm: str, user: str = '', zone: str = '',        #pylint: disable=too-many-arguments
+            recursive: bool = False, admin: bool = False) -> None:
         """Set permissions (ACL) for an iRODS collection or data object."""
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
         self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
