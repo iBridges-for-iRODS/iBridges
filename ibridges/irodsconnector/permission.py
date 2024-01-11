@@ -17,15 +17,15 @@ class Permission():
             yield perm
 
     def __repr__(self) -> str:
-        acl_string = ""
-        for perm in self.session.irods_session.permissions.get(self.item):
-            acl_string += f"{repr(perm)}\n"
+        acl = ""
+        for p in self.session.irods_session.permissions.get(self.item):
+            acl += f"{p.access_name.replace(' ','_')} {p.user_name}#{p.user_zone} ({p.user_type})\n"
 
         if isinstance(self.item, irods.collection.iRODSCollection):
             coll = self.session.irods_session.collections.get(self.item.path)
-            acl_string += f"inheritance {coll.inheritance} {self.item.path}\n"
+            acl += f"inheritance {coll.inheritance}\n"
 
-        return acl_string
+        return acl
 
     @property
     def available_permissions(self) -> dict:
