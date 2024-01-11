@@ -150,6 +150,21 @@ class DataOperations():
 
     def upload_collection(self, local_path: Path, irods_path: IrodsPath, 
                           resc_name: str = '', options: Optional[dict] = None):
+        """Upload a local directory to iRODS
+
+        Parameters
+        ----------
+        local_path : Path
+            Absolute path to the directory to upload
+        irods_path : IrodsPath
+            Absolute irods destination path
+        resc_name : str
+            Name of the resource to which data is uploaded, by default the server will decide
+        options : dict
+            More options for the upload
+        """
+
+
         # get all files and their relative path to local_path
         if not local_path.is_dir():
             raise ValueError("local_path must be a directory.")
@@ -172,6 +187,19 @@ class DataOperations():
 
     def download_collection(self, irods_path: IrodsPath, local_path: Path,
                             overwrite: bool=False, options: Optional[dict]=None):
+        """Download a collection to the local filesystem
+        
+        Parameters
+        ----------
+        irods_path : IrodsPath
+            Absolute irods source path pointing to a collection
+        local_path : Path
+            Absolute path to the destination directory
+        overwrite : bool
+            Overwrite existing local data
+        options : dict
+            More options for the download
+        """
         if not irods_path.is_collection():
             raise ValueError("irods_path must be a collection.")
 
@@ -193,7 +221,7 @@ class DataOperations():
 
         Parameters
         ----------
-        item : 
+        item : iRODSDataObject or iRODSCollection 
 
 
         Returns
@@ -206,12 +234,12 @@ class DataOperations():
             return item.size
         elif self.has_type_collection(item):
             all_objs = self._get_data_objects(item)
-            return sum([size for _, _, size in all_objs])
+            return sum([size for _, _, size, _ in all_objs])
         else:
             raise ValueError("Item must be an iRODS object or iRODS collection.")
 
 
-    def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int]:
+    def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
         """Retrieve all data objects in a collection and all its subcollections.
         
         Parameters
@@ -222,19 +250,18 @@ class DataOperations():
         Returns
         -------
         list of all data objects
-            [(cllection path, name, size)]
+            [(cllection path, name, size, checksum)]
         """
 
         # all objects in the collection
-        objs = [(obj.collection.path, obj.name, obj.size) for obj in coll.data_objects]
+        objs = [(obj.collection.path, obj.name, obj.size, obj.checksum) for obj in coll.data_objects]
 
         # all objects in subcollections
         data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME, 
-                                                      DataObject.size)
+                                                      DataObject.size, DataObject.checksum)
         data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, coll.path+"/%"))
         for res in data_query.get_results():
-            path, name, size = res.values()
-            objs.append((path, name, size))
+            path, name, size, checksum = res.values()
+            objs.append((path, name, size, checksum))
 
         return objs
-        
