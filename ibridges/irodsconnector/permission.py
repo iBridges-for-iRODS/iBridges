@@ -4,6 +4,7 @@ import irods.access
 import irods.collection
 import irods.exception
 import irods.session
+from collections import defaultdict
 
 class Permission():
     """Irods permission operations"""
@@ -17,9 +18,14 @@ class Permission():
             yield perm
 
     def __repr__(self) -> str:
-        acl = ""
-        for p in self.session.irods_session.permissions.get(self.item):
-            acl += f"{p.access_name.replace(' ','_')} {p.user_name}#{p.user_zone} ({p.user_type})\n"
+        acl_dict = defaultdict(list)
+        for p in self:
+            acl_dict[f'{p.user_name}#{p.user_zone}\n'].append(
+                    f'\t{p.access_name}\t{p.user_type}\n')
+        acl = ''
+        for key, value in sorted(acl_dict.items()):
+            acl += key + ''.join(value)
+            
 
         if isinstance(self.item, irods.collection.iRODSCollection):
             coll = self.session.irods_session.collections.get(self.item.path)
@@ -43,7 +49,7 @@ class Permission():
                 permissions.update({'read object': 'read', 'modify object': 'write'})
             return permissions
 
-    def set(self, perm: str, user: str = '', zone: str = '',        #pylint: disable=too-many-arguments
+    def set(self, perm: str, user: str = '', zone: str = '',
             recursive: bool = False, admin: bool = False) -> None:
         """Set permissions (ACL) for an iRODS collection or data object."""
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
