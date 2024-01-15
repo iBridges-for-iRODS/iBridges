@@ -6,8 +6,8 @@ import irods.exception
 import irods.session
 from collections import defaultdict
 
-class Permission():
-    """Irods permission operations"""
+class Permissions():
+    """Irods permissions operations"""
 
     def __init__(self, session, item) -> None:
         self.session = session
