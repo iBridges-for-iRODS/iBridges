@@ -35,18 +35,7 @@ class Permission():
     @property
     def available_permissions(self) -> dict:
         """Get available permissions"""
-        try:
-            return self.session.irods_session.available_permissions
-        except AttributeError:
-            permissions = {
-                'null': 'none',
-                'read_object': 'read',
-                'modify_object': 'write',
-                'own': 'own',
-            }
-            if self.session.server_version < (4, 3, 0):
-                permissions.update({'read object': 'read', 'modify object': 'write'})
-            return permissions
+        return self.session.irods_session.available_permissions
 
     def set(self, perm: str, user: str = '', zone: str = '',
             recursive: bool = False, admin: bool = False) -> None:
