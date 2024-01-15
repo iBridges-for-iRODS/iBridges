@@ -20,12 +20,11 @@ class Permission():
     def __str__(self) -> str:
         acl_dict = defaultdict(list)
         for p in self:
-            acl_dict[f'{p.user_name}#{p.user_zone}\n'].append(
-                    f'\t{p.access_name}\t{p.user_type}\n')
+            acl_dict[f'{p.user_name}#{p.user_zone}'].append(f'{p.access_name}\t{p.user_type}')
         acl = ''
         for key, value in sorted(acl_dict.items()):
-            acl += key + ''.join(value)
-            
+            v_str= '\n\t'.join(value)
+            acl += f'{key}\n\t{v_str}\n'
 
         if isinstance(self.item, irods.collection.iRODSCollection):
             coll = self.session.irods_session.collections.get(self.item.path)
