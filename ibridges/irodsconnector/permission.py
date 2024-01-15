@@ -17,7 +17,7 @@ class Permission():
         for perm in self.session.irods_session.permissions.get(self.item):
             yield perm
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         acl_dict = defaultdict(list)
         for p in self:
             acl_dict[f'{p.user_name}#{p.user_zone}\n'].append(
