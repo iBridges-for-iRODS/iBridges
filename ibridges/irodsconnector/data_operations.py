@@ -265,6 +265,22 @@ class DataOperations():
 
         return objs
 
+    def remove(self, irods_path: Union[IrodsPath, str]):
+        """Removes the data behind an iRODS path
+
+        Parameters
+        ----------
+        irods_path : str or IrodsPath
+            Path and data to be removed
+        """
+        irods_path = IrodsPath(self.session, irods_path)
+        if irods_path.is_collection():
+            coll = self.get_collection(irods_path)
+            coll.remove()
+        elif irods_path.is_dataobject():
+            obj = self.get_dataobject(irods_path)
+            obj.unlink()
+
     def create_collection(self, coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
 
