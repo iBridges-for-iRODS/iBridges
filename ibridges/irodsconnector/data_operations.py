@@ -48,7 +48,7 @@ class DataOperations():
 
     @staticmethod
     def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
-        """Retrieves information about replicas (copies of the file on different resources) 
+        """Retrieves information about replicas (copies of the file on different resources)
         of the data object in the iRODS system.
 
         Parameters
@@ -59,8 +59,8 @@ class DataOperations():
         Returns
         -------
         list(tuple(int, str, str. int, str))
-            List with tuple where each tuple contains replica index/number, resource name on which 
-            the replica is stored about one replica, replica checksum, replica size, 
+            List with tuple where each tuple contains replica index/number, resource name on which
+            the replica is stored about one replica, replica checksum, replica size,
             replica status of the replica
         """
         replicas = []
@@ -95,7 +95,8 @@ class DataOperations():
     def has_type_collection(item) -> bool:
         return isinstance(item, irods.collection.iRODSCollection)
 
-    def irods_put(self, local_path: Path, irods_path: IrodsPath, resc_name: str = ''):
+    def irods_put(self, local_path: Path, irods_path: IrodsPath, resc_name: str = '',
+                  options: Optional[dict] = None):
         """Upload `local_path` to `irods_path` following iRODS `options`.
 
         Parameters
@@ -174,21 +175,22 @@ class DataOperations():
         for w in walk(local_path):
             files.extend([(w[0].removeprefix(str(local_path)), f) for f in w[2]])
 
-        if not irods_path.is_collection():
-            self.session.irods_session.collections.create(str(irods_path))
-        
+        upload_path = IrodsPath(self.session,
+                                str(irods_path.joinpath(local_path.name)))
+        _ = self.create_collection(upload_path)
+
         for f in files:
             # ensure iRODS collection exists
-            self.session.irods_session.collections.create(str(irods_path) + '/' + f[0])
+            _ = self.create_collection(upload_path.joinpath(f[0].lstrip('/')))
             # call irods put for Path(local_path, f[0], f[1]) to destination collection
-            dest = IrodsPath(self.session, str(irods_path), f[0].lstrip('/'))
-            self.irods_put(Path(str(local_path), f[0].lstrip('/'), f[1]), dest, 
+            dest = IrodsPath(self.session, str(upload_path), f[0].lstrip('/'))
+            self.irods_put(Path(str(local_path), f[0].lstrip('/'), f[1]), dest,
                            resc_name, options)
 
     def download_collection(self, irods_path: IrodsPath, local_path: Path,
                             overwrite: bool=False, options: Optional[dict]=None):
         """Download a collection to the local filesystem
-        
+
         Parameters
         ----------
         irods_path : IrodsPath
@@ -221,7 +223,7 @@ class DataOperations():
 
         Parameters
         ----------
-        item : iRODSDataObject or iRODSCollection 
+        item : iRODSDataObject or iRODSCollection
 
 
         Returns
@@ -241,7 +243,7 @@ class DataOperations():
 
     def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
         """Retrieve all data objects in a collection and all its subcollections.
-        
+
         Parameters
         ----------
         coll : irods.collection.iRODSCollection
@@ -257,11 +259,21 @@ class DataOperations():
         objs = [(obj.collection.path, obj.name, obj.size, obj.checksum) for obj in coll.data_objects]
 
         # all objects in subcollections
-        data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME, 
+        data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
                                                       DataObject.size, DataObject.checksum)
         data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, coll.path+"/%"))
         for res in data_query.get_results():
             path, name, size, checksum = res.values()
             objs.append((path, name, size, checksum))
 
-        return objs
+        return obj
+
+    def create_collection(self, coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
+        """Create a collection and all collections in its path.
+
+        Parameters
+        ----------
+        coll_path: IrodsPath
+            Collection path
+        """
+        return self.session.irods_session.collections.create(str(coll_path))
