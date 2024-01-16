@@ -2,7 +2,7 @@
 """
 from typing import Optional, Union
 from pathlib import Path
-from os import walk, makedirs
+import os
 
 import irods.collection
 import irods.data_object
@@ -123,7 +123,7 @@ class DataOperations():
         self.session.irods_session.data_objects.put(local_path, str(irods_path), **options)
 
     def irods_get(self, irods_path: IrodsPath, local_path: Path,
-                  overwrite: bool=False, options: Optional[dict] = None):
+                  overwrite: bool = False, options: Optional[dict] = None):
         """Download `irods_path` to `local_path` following iRODS `options`.
 
         Parameters
@@ -149,7 +149,7 @@ class DataOperations():
 
         self.session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
-    def upload_collection(self, local_path: Path, irods_path: IrodsPath, 
+    def upload_collection(self, local_path: Path, irods_path: IrodsPath,
                           resc_name: str = '', options: Optional[dict] = None):
         """Upload a local directory to iRODS
 
@@ -164,15 +164,13 @@ class DataOperations():
         options : dict
             More options for the upload
         """
-
-
         # get all files and their relative path to local_path
         if not local_path.is_dir():
             raise ValueError("local_path must be a directory.")
 
-        files = [] # (rel_path, name)
+        files = []  # (rel_path, name)
 
-        for w in walk(local_path):
+        for w in os.walk(local_path):
             files.extend([(w[0].removeprefix(str(local_path)), f) for f in w[2]])
 
         upload_path = IrodsPath(self.session,
@@ -188,7 +186,7 @@ class DataOperations():
                            resc_name, options)
 
     def download_collection(self, irods_path: IrodsPath, local_path: Path,
-                            overwrite: bool=False, options: Optional[dict]=None):
+                            overwrite: bool = False, options: Optional[dict] = None):
         """Download a collection to the local filesystem
 
         Parameters
@@ -216,8 +214,8 @@ class DataOperations():
                 os.makedirs(dest)
             self.irods_get(IrodsPath(self.session, o[0], o[1]), local_path, overwrite, options)
 
-    def get_size(self, item: Union[irods.data_object.iRODSDataObject,
-                             irods.collection.iRODSCollection]) -> int:
+    def get_size(self,
+                 item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]) -> int:
         """Collect the sizes of a data object or a
         collection.
 
@@ -239,7 +237,6 @@ class DataOperations():
             return sum([size for _, _, size, _ in all_objs])
         else:
             raise ValueError("Item must be an iRODS object or iRODS collection.")
-
 
     def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
         """Retrieve all data objects in a collection and all its subcollections.
@@ -266,7 +263,7 @@ class DataOperations():
             path, name, size, checksum = res.values()
             objs.append((path, name, size, checksum))
 
-        return obj
+        return objs
 
     def create_collection(self, coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
