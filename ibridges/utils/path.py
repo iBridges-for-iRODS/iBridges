@@ -53,19 +53,19 @@ class IrodsPath(pathlib.PurePosixPath):
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 logging.error('IRODS DELETE: no permissions %s', item.path)
                 raise error
-    
+
     def rename(self):
         """
         Rename the collection or data object
         """
 
-    def is_collection(self) -> bool:
+    def collection_exists(self) -> bool:
         """
         Check if the path points to an iRODS collection
         """
         return self.session.irods_session.collections.exists(str(self))
 
-    def is_dataobject(self) -> bool:
+    def dataobject_exists(self) -> bool:
         """
         Check if the path points to an iRODS data object
         """
