@@ -256,7 +256,7 @@ class DataOperations():
                 os.makedirs(dest)
             try:
                 self._obj_get(IrodsPath(self.session, subcoll_path, obj_name),
-                              local_path, overwrite, options)
+                              dest, overwrite, options)
             except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
                 o = IrodsPath(self.session, subcoll_path, obj_name)
                 warnings.warn(f'Download: File already exists\n\tSkipping {o}')
