@@ -49,7 +49,8 @@ class DataOperations():
         raise irods.exception.DataObjectDoesNotExist(path)
 
     @staticmethod
-    def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
+    def obj_replicas(
+        obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
         """Retrieves information about replicas (copies of the file on different resources)
         of the data object in the iRODS system.
 
@@ -100,10 +101,14 @@ class DataOperations():
 
     @staticmethod
     def is_dataobject(item) -> bool:
+        """Determine if item is an iRODS data object
+        """
         return isinstance(item, irods.data_object.iRODSDataObject)
 
     @staticmethod
     def is_collection(item) -> bool:
+        """Determine if item is an iRODS collection
+        """
         return isinstance(item, irods.collection.iRODSCollection)
 
     def _obj_put(self, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
@@ -174,7 +179,8 @@ class DataOperations():
         self.session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
     def _upload_collection(self, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
-                           overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
+                           overwrite: bool = False, resc_name: str = '',
+                           options: Optional[dict] = None):
         """Upload a local directory to iRODS
 
         Parameters
@@ -306,8 +312,8 @@ class DataOperations():
         except irods.exception.CUT_ACTION_PROCESSED_ERR:
             raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
 
-    def get_size(self,
-                 item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]) -> int:
+    def get_size(self, item: Union[irods.data_object.iRODSDataObject,
+                                   irods.collection.iRODSCollection]) -> int:
         """Collect the sizes of a data object or a
         collection.
 
@@ -343,7 +349,8 @@ class DataOperations():
         """
 
         # all objects in the collection
-        objs = [(obj.collection.path, obj.name, obj.size, obj.checksum) for obj in coll.data_objects]
+        objs = [(obj.collection.path, obj.name, obj.size, obj.checksum)
+                for obj in coll.data_objects]
 
         # all objects in subcollections
         data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
@@ -374,7 +381,8 @@ class DataOperations():
         except irods.exception.CUT_ACTION_PROCESSED_ERR:
             raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
 
-    def create_collection(self, coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
+    def create_collection(self,
+                          coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
 
         Parameters

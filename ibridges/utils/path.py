@@ -39,20 +39,6 @@ class IrodsPath(pathlib.PurePosixPath):
         """
         Remove the collection or data object.
         """
-        if self.session.irods_session.collections.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.remove(recurse=True, force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
-        elif self.session.irods_session.data_objects.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.unlink(force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
 
     def rename(self):
         """
@@ -97,36 +83,4 @@ class IrodsPath(pathlib.PurePosixPath):
         ----------
         depth : int
             Stops after depth many iterations, even if the tree is deeper.
-        """
-
-    def ensure_collection(coll_name, self) -> irods.collection.iRODSCollection:
-        """Create a collection with `coll_name` if one does
-        not exist.
-
-        Parameters
-        ----------
-        coll_name : str
-            Name of the collection to check/create.
-
-        Returns
-        -------
-        iRODSCollection
-            Existing or new iRODS collection.
-
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-            irods.exception.CAT_NAME_EXISTS_AS_DATAOBJ
-        """
-        try:
-            if self.session.irods_session.collections.exists(coll_name):
-                return self.session.irods_session.collections.get(coll_name)
-            return self.session.irods_session.collections.create(coll_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            logging.info('ENSURE COLLECTION', exc_info=True)
-            raise error
-
-    def ensure_data_object(self) -> irods.data_object.iRODSDataObject:
-        """
-        Creates an empty data object if the path does not exist and returns the data object.
-        Throws irods.exception.CAT_NAME_EXISTS_AS_COLLECTION if path already exists as collection.
         """
