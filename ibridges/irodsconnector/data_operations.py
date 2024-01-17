@@ -60,14 +60,22 @@ class DataOperations():
 
         Returns
         -------
-        list(tuple(int, str, str. int, str))
+        list(tuple(int, str, str, int, str))
             List with tuple where each tuple contains replica index/number, resource name on which
             the replica is stored about one replica, replica checksum, replica size,
             replica status of the replica
         """
         replicas = []
+        repl_states = {
+            '0': 'stale',
+            '1': 'good',
+            '2': 'intermediate',
+            '3': 'write-locked'
+        }
+
         for r in obj.replicas:
-            replicas.append((r.number, r.resource_name, r.checksum, r.size, r.status))
+            replicas.append((r.number, r.resource_name, r.checksum, r.size,
+                             repl_states.get(r.status, r.status)))
 
         return replicas
 
