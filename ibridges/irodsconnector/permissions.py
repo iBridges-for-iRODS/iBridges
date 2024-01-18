@@ -14,7 +14,7 @@ class Permissions():
         self.item = item
 
     def __iter__(self) -> Iterator:
-        for perm in self.session.irods_session.acls.get(self.item):
+        for perm in self.session.irods_session.acls.get(self.item)
             yield perm
 
     def __str__(self) -> str:
