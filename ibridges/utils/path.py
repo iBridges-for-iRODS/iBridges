@@ -5,6 +5,8 @@ import pathlib
 import sys
 import irods
 
+from typing import Optional, Union
+
 def is_posix() -> bool:
     """Determine POSIXicity.
 
@@ -36,9 +38,32 @@ class IrodsPath(pathlib.PurePosixPath):
         return super().__new__(cls, *args, **kwargs)
 
     def remove(self):
+        """Removes the data behind an iRODS path
         """
-        Remove the collection or data object.
+        try:
+            if self.collection_exists():
+                coll = self.session.irods_session.collections.get(str(self))
+                coll.remove()
+            elif self.dataobject_exists():
+                obj = self.session.irods_session.data_objects.get(irods_path)
+                obj.unlink()
+        except irods.exception.CUT_ACTION_PROCESSED_ERR:
+            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+
+    @staticmethod
+    def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
+        """Create a collection and all collections in its path. Return he collection. If the
+        collection already exists, return ir.
+        
+        Return
+        ------
+        irods.collection.iRODSCollection
+            The 
         """
+        try:
+            return session.irods_session.collections.create(str(coll_path))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR:
+            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
 
     def rename(self):
         """
