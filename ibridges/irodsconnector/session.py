@@ -99,9 +99,9 @@ class Session:
             #                        port=1247,
             #                        host=host)
             raise NotImplementedError
-
+        print(self._password)
         # authentication with irods environment and password
-        if self._password == '':
+        if self._password is None or self._password == '':
             # use cached password of .irodsA built into prc
             print("Auth without password")
             return self.authenticate_using_auth_file()
