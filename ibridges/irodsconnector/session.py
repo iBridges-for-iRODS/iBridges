@@ -99,7 +99,6 @@ class Session:
             #                        port=1247,
             #                        host=host)
             raise NotImplementedError
-        print(self._password)
         # authentication with irods environment and password
         if self._password is None or self._password == '':
             # use cached password of .irodsA built into prc
@@ -145,6 +144,22 @@ class Session:
             if repr(e) in exceptions:
                 raise ValueError(exceptions[repr(e)]+"; "+repr(e)) from e
             raise e
+
+    def _write_pam_password(self):
+        """Store the password in the iRODS
+        authentication file in obfuscated form.
+
+        """
+        connection = self._irods_session.pool.get_connection()
+        pam_passwords = self._irods_session.pam_pw_negotiated
+        if len(pam_passwords):
+            irods_auth_file = self._irods_session.get_irods_password_file()
+            with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
+                authfd.write(
+                    irods.password_obfuscation.encode(pam_passwords[0]))
+        else:
+            warnings.warn('WARNING -- unable to cache obfuscated password locally')
+        connection.release()
 
     @property
     def default_resc(self) -> str:
