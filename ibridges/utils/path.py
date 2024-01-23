@@ -3,7 +3,9 @@ A classes to handle iRODS and local (Win, linux) paths.
 """
 import pathlib
 import sys
+import irods
 
+from typing import Optional, Union
 
 def is_posix() -> bool:
     """Determine POSIXicity.
@@ -36,42 +38,51 @@ class IrodsPath(pathlib.PurePosixPath):
         return super().__new__(cls, *args, **kwargs)
 
     def remove(self):
+        """Removes the data behind an iRODS path
         """
-        Remove the collection or data object.
+        try:
+            if self.collection_exists():
+                coll = self.session.irods_session.collections.get(str(self))
+                coll.remove()
+            elif self.dataobject_exists():
+                obj = self.session.irods_session.data_objects.get(irods_path)
+                obj.unlink()
+        except irods.exception.CUT_ACTION_PROCESSED_ERR:
+            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+
+    @staticmethod
+    def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
+        """Create a collection and all collections in its path. Return he collection. If the
+        collection already exists, return ir.
+        
+        Return
+        ------
+        irods.collection.iRODSCollection
+            The 
         """
-        if self.session.irods_session.collections.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.remove(recurse=True, force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
-        elif self.session.irods_session.data_objects.exists(item.path):
-            logging.info('IRODS DELETE: %s', item.path)
-            try:
-                item.unlink(force=True)
-            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-                logging.error('IRODS DELETE: no permissions %s', item.path)
-                raise error
-    
-    def rename(self) -> IrodsPath:
+        try:
+            return session.irods_session.collections.create(str(coll_path))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR:
+            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+
+    def rename(self):
         """
         Rename the collection or data object
         """
 
-    def is_collection(self) -> bool:
+    def collection_exists(self) -> bool:
         """
         Check if the path points to an iRODS collection
         """
-        return self.session.irods_session.collections.exists(path)
+        return self.session.irods_session.collections.exists(str(self))
 
-    def is_dataobject(self) -> bool:
+    def dataobject_exists(self) -> bool:
         """
         Check if the path points to an iRODS data object
         """
-        return self.session.irods_session.data_objects.exists(path)
+        return self.session.irods_session.data_objects.exists(str(self))
 
-    def absolute(self) -> IrodsPath:
+    def absolute(self):
         """
         Return the path if the path starts with '/zone/home', otherwise 
         concatenate the '/zone/home' prefix to the current path.
@@ -82,14 +93,14 @@ class IrodsPath(pathlib.PurePosixPath):
         Check if the path already exists on the iRODS server
         """
 
-    def home(self) -> IrodsPath:
+    def home(self):
         """
         If the session environment defines an 'irods_home', checks if this path exists 
         and returns the path.
         If 'irods_home' is not defined, returns the path /zone/home
         """
 
-    def walk(self, depth: int) -> tuple(IrodsPath, list(IrodsPath), list(IrodsPath)):
+    def walk(self, depth: int):
         """
         Walk on a collection.
 
@@ -97,36 +108,4 @@ class IrodsPath(pathlib.PurePosixPath):
         ----------
         depth : int
             Stops after depth many iterations, even if the tree is deeper.
-        """
-
-    def ensure_collection(coll_name, self) -> irods.collection.iRODSCOllection:
-        """Create a collection with `coll_name` if one does
-        not exist.
-
-        Parameters
-        ----------
-        coll_name : str
-            Name of the collection to check/create.
-
-        Returns
-        -------
-        iRODSCollection
-            Existing or new iRODS collection.
-
-        Raises:
-            irods.exception.CAT_NO_ACCESS_PERMISSION
-            irods.exception.CAT_NAME_EXISTS_AS_DATAOBJ
-        """
-        try:
-            if self.session.irods_session.collections.exists(coll_name):
-                return self.session.irods_session.collections.get(coll_name)
-            return self.session.irods_session.collections.create(coll_name)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            logging.info('ENSURE COLLECTION', exc_info=True)
-            raise error
-
-    def ensure_data_object(self) -> irods.data_object:
-        """
-        Creates an empty data object if the path does not exist and returns the data object.
-        Throws irods.exception.CAT_NAME_EXISTS_AS_COLLECTION if path already exists as collection.
         """

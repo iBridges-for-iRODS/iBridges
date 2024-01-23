@@ -14,7 +14,7 @@ class Permissions():
         self.item = item
 
     def __iter__(self) -> Iterator:
-        for perm in self.session.irods_session.permissions.get(self.item):
+        for perm in self.session.irods_session.acls.get(self.item):
             yield perm
 
     def __str__(self) -> str:
@@ -41,4 +41,4 @@ class Permissions():
             recursive: bool = False, admin: bool = False) -> None:
         """Set permissions (ACL) for an iRODS collection or data object."""
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
-        self.session.irods_session.permissions.set(acl, recursive=recursive, admin=admin)
+        self.session.irods_session.acls.set(acl, recursive=recursive, admin=admin)
