@@ -132,7 +132,6 @@ class DataOperations():
             raise ValueError("local_path must be a file.")
 
         # Check if irods object already exists
-        obj_exists = False
         obj_exists = IrodsPath(self.session,
                                irods_path.joinpath(local_path.name)).dataobject_exists() \
                      or irods_path.dataobject_exists()
