@@ -23,7 +23,7 @@ class IrodsPath(pathlib.PurePosixPath):
 
     def __init__(self, session, *args, **kwargs):
         self.session = session
-        super().__init__()
+        super().__init__(*args)
 
 
     def __new__(cls, session, *args, **kwargs):
