@@ -1,11 +1,14 @@
 """
 A classes to handle iRODS and local (Win, linux) paths.
 """
+from __future__ import annotations
+
 import pathlib
 import sys
+from typing import Optional, Union
+
 import irods
 
-from typing import Optional, Union
 
 def is_posix() -> bool:
     """Determine POSIXicity.
@@ -18,24 +21,53 @@ def is_posix() -> bool:
     return sys.platform not in ['win32', 'cygwin']
 
 
-class IrodsPath(pathlib.PurePosixPath):
+class IrodsPath():
     """Extending the posix path functionalities with iRODS functionalities."""
 
-    def __init__(self, session, *args, **kwargs):
+    _current_working_path = ""
+
+    def __init__(self, session, *args):
         self.session = session
+        self._raw_paths = []
+        for arg in args:
+            if isinstance(arg, str):
+                self._raw_paths.extend(arg.split("/"))
+            elif isinstance(arg, IrodsPath):
+                self._raw_paths.extend(arg._raw_paths)
+        if len(args) == 0:
+            self._raw_paths = ["."]
         super().__init__()
 
-
-    def __new__(cls, session, *args, **kwargs):
+    def absolute_path(self) -> str:
         """
-        Instantiate an IrodsPath
-
-        Returns
-        -------
-        IrodsPath
-           Instance of PurePosixPath
+        Return the path if the path starts with '/zone/home', otherwise 
+        concatenate the '/zone/home' prefix to the current path.
         """
-        return super().__new__(cls, *args, **kwargs)
+        # absolute path
+        if self._raw_paths[0] == "":
+            return "/" + "/".join(self._raw_paths[1:])
+        if self._raw_paths[0] == "~":
+            begin, end = self.session.home(), self._raw_paths[1:]
+        elif self._raw_paths[0] == ".":
+            begin, end = self.session.cwd(), self._raw_paths[1:]
+        else:
+            begin, end = self.session.cwd(), self._raw_paths
+        if len(end) > 0:
+            return begin + "/" + "/".join(end)
+        return begin
+
+    def __str__(self) -> str:
+        return self.absolute_path()
+
+    def __repr__(self) -> str:
+        return f"IrodsPath({', '.join(self._raw_paths)})"
+
+    def __truediv__(self, other) -> IrodsPath:
+        return self.__class__(self.session, *self._raw_paths, other)
+
+    @property
+    def name(self) -> str:
+        return self._raw_paths[-1]
 
     def remove(self):
         """Removes the data behind an iRODS path
@@ -45,7 +77,7 @@ class IrodsPath(pathlib.PurePosixPath):
                 coll = self.session.irods_session.collections.get(str(self))
                 coll.remove()
             elif self.dataobject_exists():
-                obj = self.session.irods_session.data_objects.get(irods_path)
+                obj = self.session.irods_session.data_objects.get(str(self))
                 obj.unlink()
         except irods.exception.CUT_ACTION_PROCESSED_ERR:
             raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
@@ -54,7 +86,7 @@ class IrodsPath(pathlib.PurePosixPath):
     def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path. Return he collection. If the
         collection already exists, return ir.
-        
+
         Return
         ------
         irods.collection.iRODSCollection
@@ -82,23 +114,11 @@ class IrodsPath(pathlib.PurePosixPath):
         """
         return self.session.irods_session.data_objects.exists(str(self))
 
-    def absolute(self):
-        """
-        Return the path if the path starts with '/zone/home', otherwise 
-        concatenate the '/zone/home' prefix to the current path.
-        """
-
     def exists(self) -> bool:
         """
         Check if the path already exists on the iRODS server
         """
-
-    def home(self):
-        """
-        If the session environment defines an 'irods_home', checks if this path exists 
-        and returns the path.
-        If 'irods_home' is not defined, returns the path /zone/home
-        """
+        return self.dataobject_exists() or self.collection_exists()
 
     def walk(self, depth: int):
         """

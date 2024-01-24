@@ -17,7 +17,7 @@ class Session:
     """
 
     def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None,
-                 password: Optional[str] = None):
+                 password: Optional[str] = None, working_path="."):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -41,6 +41,17 @@ class Session:
         self._irods_env = irods_env
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
+        self._current_working_path = working_path
+
+
+    def home(self) -> str:
+        return self._irods_env.get('irods_home', '/'+self.zone+'/home/'+self.username)
+
+    def cwd(self) -> str:
+        return self._current_working_path
+
+    def chlocation(self, path) -> str:
+        self._current_working_path = str(path)
 
     def __del__(self):
         del self.irods_session

@@ -1,9 +1,9 @@
 """ collections and data objects
 """
-from typing import Optional, Union
-from pathlib import Path
 import os
 import warnings
+from pathlib import Path
+from typing import Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -133,7 +133,7 @@ class DataOperations():
 
         # Check if irods object already exists
         obj_exists = IrodsPath(self.session,
-                               irods_path.joinpath(local_path.name)).dataobject_exists() \
+                               irods_path / local_path.name).dataobject_exists() \
                      or irods_path.dataobject_exists()
 
         options = {
@@ -174,6 +174,7 @@ class DataOperations():
             })
         if overwrite:
             options[kw.FORCE_FLAG_KW] = ''
+        print("_obj_get", str(irods_path), local_path, options)
 
         self.session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
@@ -237,6 +238,7 @@ class DataOperations():
         options : dict
             More options for the download
         """
+        print("??", str(irods_path))
         irods_path = IrodsPath(self.session, irods_path)
         if not irods_path.collection_exists():
             raise ValueError("irods_path must be a collection.")
@@ -249,6 +251,7 @@ class DataOperations():
             os.makedirs(local_path)
 
         for subcoll_path, obj_name, _, _ in all_objs:
+            print(str(irods_path))
             # ensure local folder exists
             dest = Path(local_path, subcoll_path.removeprefix(str(irods_path)).lstrip('/'))
             if not dest.is_dir():
@@ -360,25 +363,6 @@ class DataOperations():
             objs.append((path, name, size, checksum))
 
         return objs
-
-    def remove(self, irods_path: Union[IrodsPath, str]):
-        """Removes the data behind an iRODS path
-
-        Parameters
-        ----------
-        irods_path : str or IrodsPath
-            Path and data to be removed
-        """
-        irods_path = IrodsPath(self.session, irods_path)
-        try:
-            if irods_path.collection_exists():
-                coll = self.get_collection(irods_path)
-                coll.remove()
-            elif irods_path.dataobject_exists():
-                obj = self.get_dataobject(irods_path)
-                obj.unlink()
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
 
     def create_collection(self,
                           coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
