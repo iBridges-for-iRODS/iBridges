@@ -174,7 +174,6 @@ class DataOperations():
             })
         if overwrite:
             options[kw.FORCE_FLAG_KW] = ''
-        print("_obj_get", str(irods_path), local_path, options)
 
         self.session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
@@ -238,7 +237,6 @@ class DataOperations():
         options : dict
             More options for the download
         """
-        print("??", str(irods_path))
         irods_path = IrodsPath(self.session, irods_path)
         if not irods_path.collection_exists():
             raise ValueError("irods_path must be a collection.")
@@ -251,7 +249,6 @@ class DataOperations():
             os.makedirs(local_path)
 
         for subcoll_path, obj_name, _, _ in all_objs:
-            print(str(irods_path))
             # ensure local folder exists
             dest = Path(local_path, subcoll_path.removeprefix(str(irods_path)).lstrip('/'))
             if not dest.is_dir():

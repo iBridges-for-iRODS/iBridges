@@ -3,22 +3,7 @@ A classes to handle iRODS and local (Win, linux) paths.
 """
 from __future__ import annotations
 
-import pathlib
-import sys
-from typing import Optional, Union
-
 import irods
-
-
-def is_posix() -> bool:
-    """Determine POSIXicity.
-
-    Returns
-    -------
-    bool
-        Whether or not this is a POSIX operating system.
-    """
-    return sys.platform not in ['win32', 'cygwin']
 
 
 class IrodsPath():
