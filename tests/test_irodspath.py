@@ -32,16 +32,16 @@ def test_parent():
     assert irods_path.parent == session.home()+"/"+dirname
 
 def test_raw_paths():
-    assert irods_path._raw_paths == [mocksession.zone, "home", 
+    assert irods_path._raw_paths == ['', mocksession.zone, "home", 
                                      mock_session.user, dirname, filename]
 
 def test_join_win():
-    assert irods_path.joinpath(windows_path)._raw_paths == [mocksession.zone, "home",
+    assert irods_path.joinpath(windows_path)._raw_paths == ['', mocksession.zone, "home",
                                                             mock_session.user, dirname, filename,
                                                             "windows", "path", "directory"]
 
 def test_join_linux():
-    assert irods_path.joinpath(linux_path)._raw_paths == [mocksession.zone, "home",
+    assert irods_path.joinpath(linux_path)._raw_paths == ['', mocksession.zone, "home",
                                                           mock_session.user, dirname, filename,
                                                           "linux", "or", "mac", "path"]
 
