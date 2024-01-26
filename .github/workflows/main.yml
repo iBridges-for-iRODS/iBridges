@@ -32,7 +32,7 @@ jobs:
       run: |
         pylint ibridges
 
-   - name: Test with pytest
-     run: |
-       pip install pytest
-       pytest tests
+    - name: Test with pytest
+      run: |
+        pip install pytest
+        pytest tests
