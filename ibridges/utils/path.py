@@ -3,6 +3,8 @@ A classes to handle iRODS and local (Win, linux) paths.
 """
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+
 import irods
 
 
@@ -13,46 +15,46 @@ class IrodsPath():
 
     def __init__(self, session, *args):
         self.session = session
-        self._raw_paths = []
-        for arg in args:
-            if isinstance(arg, str):
-                self._raw_paths.extend(arg.split("/"))
-            elif isinstance(arg, IrodsPath):
-                self._raw_paths.extend(arg._raw_paths)
-        if len(args) == 0:
-            self._raw_paths = ["."]
+        self._path = PurePosixPath(*args)
         super().__init__()
 
     def absolute_path(self) -> str:
         """
-        Return the path if the path starts with '/zone/home', otherwise 
+        Return the path if the path starts with '/zone/home', otherwise
         concatenate the '/zone/home' prefix to the current path.
         """
         # absolute path
-        if self._raw_paths[0] == "":
-            return "/" + "/".join(self._raw_paths[1:])
-        if self._raw_paths[0] == "~":
-            begin, end = self.session.home(), self._raw_paths[1:]
-        elif self._raw_paths[0] == ".":
-            begin, end = self.session.cwd(), self._raw_paths[1:]
+        if len(self._path.parts) == 0:
+            return self.session.home()
+        if self._path.parts[0] == "~" or self._path.parts[0] == ".":
+            begin, end = self.session.home(), self._path.parts[1:]
+        elif self._path.parts[0] == "/":
+            begin, end = "/", self._path.parts[1:]
         else:
-            begin, end = self.session.cwd(), self._raw_paths
-        if len(end) > 0:
-            return begin + "/" + "/".join(end)
-        return begin
+            begin, end = self.session.home(), self._path.parts
+        return str(PurePosixPath(begin, *end))
+
 
     def __str__(self) -> str:
         return self.absolute_path()
 
     def __repr__(self) -> str:
-        return f"IrodsPath({', '.join(self._raw_paths)})"
+        return f"IrodsPath({', '.join(self._path.parts)})"
 
     def __truediv__(self, other) -> IrodsPath:
-        return self.__class__(self.session, *self._raw_paths, other)
+        return self.__class__(self.session, *self._path, other)
+
+    def __getattribute__(self, attr):
+        if attr in ["name", "parts"]:
+            return self._path.__getattribute__(attr)
+        return super().__getattribute__(attr)
+
+    def joinpath(self, *args):
+        return IrodsPath(self.session, self._path, *args)
 
     @property
-    def name(self) -> str:
-        return self._raw_paths[-1]
+    def parent(self):
+        return IrodsPath(self.session, self._path.parent)
 
     def remove(self):
         """Removes the data behind an iRODS path
