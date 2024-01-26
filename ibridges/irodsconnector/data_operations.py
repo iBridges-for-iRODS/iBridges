@@ -271,7 +271,7 @@ class DataOperations():
         irods_path : IrodsPath
             Absolute irods destination path
         overwrite : bool
-            If data already exists on iRODS, overwrite
+            If data_description_ already exists on iRODS, overwrite
         resc_name : str
             Name of the resource to which data is uploaded, by default the server will decide
         options : dict
@@ -284,8 +284,9 @@ class DataOperations():
                 self._upload_collection(local_path, irods_path, overwrite, resc_name, options)
             else:
                 self._obj_put(local_path, irods_path, overwrite, resc_name, options)
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
     def download(self, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
                  overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
@@ -308,8 +309,10 @@ class DataOperations():
                 self._download_collection(irods_path, local_path, overwrite, options)
             else:
                 self._obj_get(irods_path, local_path, overwrite, options)
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                f"During download operation from '{irods_path}': iRODS server forbids action."
+                ) from exc
 
     def get_size(self, item: Union[irods.data_object.iRODSDataObject,
                                    irods.collection.iRODSCollection]) -> int:
@@ -329,9 +332,8 @@ class DataOperations():
         """
         if self.is_dataobject(item):
             return item.size
-        else:
-            all_objs = self._get_data_objects(item)
-            return sum([size for _, _, size, _ in all_objs])
+        all_objs = self._get_data_objects(item)
+        return sum(size for _, _, size, _ in all_objs)
 
     def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
         """Retrieve all data objects in a collection and all its subcollections.
@@ -372,5 +374,7 @@ class DataOperations():
         """
         try:
             return self.session.irods_session.collections.create(str(coll_path))
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                    f"While creating collection at '{coll_path}': iRODS server forbids action."
+                  ) from exc

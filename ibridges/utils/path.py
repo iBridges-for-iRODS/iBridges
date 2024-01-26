@@ -42,7 +42,7 @@ class IrodsPath():
         return f"IrodsPath({', '.join(self._path.parts)})"
 
     def __truediv__(self, other) -> IrodsPath:
-        return self.__class__(self.session, *self._path, other)
+        return self.__class__(self.session, self._path, other)
 
     def __getattribute__(self, attr):
         if attr in ["name", "parts"]:
@@ -50,10 +50,22 @@ class IrodsPath():
         return super().__getattribute__(attr)
 
     def joinpath(self, *args):
+        """Concanate another path to this one.
+
+        Returns
+        -------
+            The concatenated path.
+        """
         return IrodsPath(self.session, self._path, *args)
 
     @property
     def parent(self):
+        """Return the parent directory of the current directory
+
+        Returns
+        -------
+            The parent just above the current directory
+        """
         return IrodsPath(self.session, self._path.parent)
 
     def remove(self):
@@ -66,8 +78,9 @@ class IrodsPath():
             elif self.dataobject_exists():
                 obj = self.session.irods_session.data_objects.get(str(self))
                 obj.unlink()
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                f"While removing {self}: iRODS server forbids action.") from exc
 
     @staticmethod
     def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
@@ -77,12 +90,13 @@ class IrodsPath():
         Return
         ------
         irods.collection.iRODSCollection
-            The 
+            The
         """
         try:
             return session.irods_session.collections.create(str(coll_path))
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
     def rename(self):
         """

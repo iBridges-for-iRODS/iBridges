@@ -17,7 +17,7 @@ class Session:
     """
 
     def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None,
-                 password: Optional[str] = None, working_path="."):
+                 password: Optional[str] = None, irods_home: Optional[str] = None):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -37,21 +37,30 @@ class Session:
             with open(env_fp, "r", encoding="utf-8") as f:
                 irods_env = json.load(f)
 
+
         self._password = password
         self._irods_env = irods_env
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
-        self._current_working_path = working_path
-
+        if irods_home is not None:
+            self._irods_env["irods_home"] = irods_home
+        if "irods_home" not in self._irods_env:
+            self._irods_env["irods_home"] = '/'+self.zone+'/home/'+self.username
 
     def home(self) -> str:
-        return self._irods_env.get('irods_home', '/'+self.zone+'/home/'+self.username)
+        """Current working directory for irods.
 
-    def cwd(self) -> str:
-        return self._current_working_path
+        In the iRods community this is known as 'irods_home', in file system terms
+        it would be the current working directory.
 
-    def chlocation(self, path) -> str:
-        self._current_working_path = str(path)
+        Returns
+        -------
+            The current working directory in the current session.
+        """
+        return self._irods_env["irods_home"]
+
+    # def chlocation(self, path) -> str:
+        # self._current_working_path = str(path)
 
     def __del__(self):
         del self.irods_session

@@ -1,10 +1,12 @@
 """ permission operations """
+from collections import defaultdict
 from typing import Iterator
+
 import irods.access
 import irods.collection
 import irods.exception
 import irods.session
-from collections import defaultdict
+
 
 class Permissions():
     """Irods permissions operations"""
