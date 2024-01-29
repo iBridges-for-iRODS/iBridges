@@ -24,9 +24,14 @@ class Session:
         ----------
         irods_conf: dict
             Dictionary from irods_environment.json
+        irods_env_path:
+            File to read the dictionary from if irods_conf is not supplied.
         password : str
             Plain text password.
-
+        irods_home:
+            Override the home directory of irods. Otherwise attempt to retrive the value
+            from the irods environment dictionary. If it is not there either, then use
+            /{zone}/home/{username}.
         """
         if irods_env is None and irods_env_path is None:
             raise ValueError("CONNECTION ERROR: no irods environment given.")
