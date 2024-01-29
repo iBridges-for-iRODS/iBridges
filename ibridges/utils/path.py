@@ -15,6 +15,10 @@ class IrodsPath():
 
     def __init__(self, session, *args):
         self.session = session
+        # We don't want recursive IrodsPaths, so we take the
+        # path outside of the IrodsPath object.
+        args = [a._path if isinstance(a, IrodsPath) else a
+                for a in args]
         self._path = PurePosixPath(*args)
         super().__init__()
 

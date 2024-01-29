@@ -39,6 +39,7 @@ linux_path = "linux/or/mac/path"
         ([PurePosixPath(".", "xyz")], "/testzone/home/testuser/xyz", "xyz", "."),
         (["/x/y/z"], "/x/y/z", "z", "/x/y"),
         (["/x/y", "z"], "/x/y/z", "z", "/x/y"),
+        ([IrodsPath(123, "/x/y"), "z"], "/x/y/z", "z", "/x/y")
         # ([PureWindowsPath("c:\\x\\y\\z")], "c:\\/x/y/z", "z", "/x/y")
     ])
 def test_absolute_path(input, abs_path, name, parent):
