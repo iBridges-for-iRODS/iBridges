@@ -1,4 +1,4 @@
-from pathlib import PurePosixPath, PureWindowsPath
+from pathlib import PurePosixPath
 
 from pytest import mark
 
