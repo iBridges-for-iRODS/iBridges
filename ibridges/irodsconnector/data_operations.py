@@ -289,7 +289,7 @@ class DataOperations():
                 f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
     def download(self, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-                 overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
+                 overwrite: bool = False, _resc_name: str = '', options: Optional[dict] = None):
         """Download a collection or data object to the local filesystem
 
         Parameters
