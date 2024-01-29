@@ -102,6 +102,7 @@ class IrodsPath():
         """
         Rename the collection or data object
         """
+        raise NotImplementedError("Rename not implemented yet.")
 
     def collection_exists(self) -> bool:
         """
@@ -130,3 +131,4 @@ class IrodsPath():
         depth : int
             Stops after depth many iterations, even if the tree is deeper.
         """
+        raise NotImplementedError("Walk method not implemented yet.")
