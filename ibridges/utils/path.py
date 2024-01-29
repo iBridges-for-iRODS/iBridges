@@ -25,13 +25,13 @@ class IrodsPath():
         """
         # absolute path
         if len(self._path.parts) == 0:
-            return self.session.home()
+            return self.session.home
         if self._path.parts[0] == "~" or self._path.parts[0] == ".":
-            begin, end = self.session.home(), self._path.parts[1:]
+            begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == "/":
             begin, end = "/", self._path.parts[1:]
         else:
-            begin, end = self.session.home(), self._path.parts
+            begin, end = self.session.home, self._path.parts
         return str(PurePosixPath(begin, *end))
 
 

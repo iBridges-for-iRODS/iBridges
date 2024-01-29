@@ -43,10 +43,11 @@ class Session:
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
         if irods_home is not None:
-            self._irods_env["irods_home"] = irods_home
+            self.home = irods_home
         if "irods_home" not in self._irods_env:
-            self._irods_env["irods_home"] = '/'+self.zone+'/home/'+self.username
+            self.home = '/'+self.zone+'/home/'+self.username
 
+    @property
     def home(self) -> str:
         """Current working directory for irods.
 
@@ -59,8 +60,9 @@ class Session:
         """
         return self._irods_env["irods_home"]
 
-    # def chlocation(self, path) -> str:
-        # self._current_working_path = str(path)
+    @home.setter
+    def home(self, value):
+        self._irods_env["irods_home"] = value
 
     def __del__(self):
         del self.irods_session

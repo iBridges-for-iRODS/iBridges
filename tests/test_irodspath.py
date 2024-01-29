@@ -11,12 +11,10 @@ class MockIrodsSession:
     host = "test.host.nl"
     server_version = "test_version"
     port = 9876
+    home = "/testzone/home/testuser"
+    # def home(self):
+        # return "/"+self.zone+"/home/"+self.user
 
-    def home(self):
-        return "/"+self.zone+"/home/"+self.user
-
-    def cwd(self):
-        self.home()+"/mock"
 
 # IrodsPath tests
 mock_session = MockIrodsSession()
