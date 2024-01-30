@@ -1,4 +1,5 @@
 # iBridges
+[![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml)
 
 ## About
 
@@ -22,6 +23,10 @@ J.P. Mc Farland
 
 University of Groningen, Center for Information Technology, 2022
 
+Raoul Schram, Maarten Schermer
+
+Utrecht University, 2023
+
 ## Dependencies
 
 ### Supported iRODS versions
@@ -32,24 +37,23 @@ University of Groningen, Center for Information Technology, 2022
 ### Python
 
 - Python 3 (>= 3.9)
-  - Tested with python versions 3.9 and 3.10 on Windows, Ubuntu20.22 and MacOs
+  - Tested with python versions 3.11 on Windows, Ubuntu20.22 and MacOs
 - pip-22.2.2
 - Python packages (see install via `requirements.txt` below)
 
 Install dependencies with, for example:
 
 ```sh
-python3.10 -m pip install -r requirements.txt
+python3.11 -m pip install -r requirements.txt
 ```
 ### icommands (optional)
 If the icommands are installed, the users can choose them as backend for up and downloads.
 
 ## Usage
-```
-export PYTHON_IRODSCLIENT_DEFAULT_XML=QUASI_XML
-```
 
-TODO: link to jupyter notebooks
+[irodsConnector](Tutorial_irodsConnector.ipynb)
+
+[iRODS paths](Tutorial_iRODS_paths.ipynb)
 
 ## License
 This project is licensed under the GPL-v3 license.
