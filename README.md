@@ -1,5 +1,5 @@
 # iBridges
-[![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml)
+[![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svgi?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml)
 
 ## About
 
