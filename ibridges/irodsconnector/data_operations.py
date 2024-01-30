@@ -205,7 +205,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             local = Path(str(local_path), folder.lstrip(os.sep), file_name)
             warnings.warn(f'Upload: Object already exists\n\tSkipping {local}')
 
-def _download_collection(session: Session, irods_path: IrodsPath, local_path: Path,
+def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, options: Optional[dict] = None):
     """Download a collection to the local filesystem
 
@@ -220,6 +220,8 @@ def _download_collection(session: Session, irods_path: IrodsPath, local_path: Pa
     options : dict
         More options for the download
     """
+
+    irods_path = IrodsPath(session, irods_path)
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
 
@@ -317,7 +319,8 @@ def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
     all_objs = _get_data_objects(session, item)
     return sum(size for _, _, size, _ in all_objs)
 
-def _get_data_objects(session: Session, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
+def _get_data_objects(session: Session,
+                      coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
     """Retrieve all data objects in a collection and all its subcollections.
 
     Parameters
