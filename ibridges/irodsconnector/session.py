@@ -17,16 +17,21 @@ class Session:
     """
 
     def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None,
-                 password: Optional[str] = None):
+                 password: Optional[str] = None, irods_home: Optional[str] = None):
         """ iRODS authentication with Python client.
 
         Parameters
         ----------
         irods_conf: dict
             Dictionary from irods_environment.json
+        irods_env_path:
+            File to read the dictionary from if irods_conf is not supplied.
         password : str
             Plain text password.
-
+        irods_home:
+            Override the home directory of irods. Otherwise attempt to retrive the value
+            from the irods environment dictionary. If it is not there either, then use
+            /{zone}/home/{username}.
         """
         if irods_env is None and irods_env_path is None:
             raise ValueError("CONNECTION ERROR: no irods environment given.")
@@ -37,10 +42,32 @@ class Session:
             with open(env_fp, "r", encoding="utf-8") as f:
                 irods_env = json.load(f)
 
+
         self._password = password
         self._irods_env = irods_env
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
+        if irods_home is not None:
+            self.home = irods_home
+        if "irods_home" not in self._irods_env:
+            self.home = '/'+self.zone+'/home/'+self.username
+
+    @property
+    def home(self) -> str:
+        """Current working directory for irods.
+
+        In the iRods community this is known as 'irods_home', in file system terms
+        it would be the current working directory.
+
+        Returns
+        -------
+            The current working directory in the current session.
+        """
+        return self._irods_env["irods_home"]
+
+    @home.setter
+    def home(self, value):
+        self._irods_env["irods_home"] = value
 
     def __del__(self):
         del self.irods_session

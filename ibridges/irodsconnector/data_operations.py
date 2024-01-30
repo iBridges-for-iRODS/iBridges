@@ -1,9 +1,9 @@
 """ collections and data objects
 """
-from typing import Optional, Union
-from pathlib import Path
 import os
 import warnings
+from pathlib import Path
+from typing import Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -66,7 +66,7 @@ class DataOperations():
             the replica is stored about one replica, replica checksum, replica size,
             replica status of the replica
         """
-        replicas = []
+        #replicas = []
         repl_states = {
             '0': 'stale',
             '1': 'good',
@@ -74,9 +74,11 @@ class DataOperations():
             '3': 'write-locked'
         }
 
-        for r in obj.replicas:
-            replicas.append((r.number, r.resource_name, r.checksum, r.size,
-                             repl_states.get(r.status, r.status)))
+        replicas = [(r.number, r.resource_name, r.checksum,
+                     r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
+        #for repl in obj.replicas:
+        #    replicas.append((repl.number, repl.resource_name, repl.checksum, repl.size,
+        #                     repl_states.get(repl.status, repl.status)))
 
         return replicas
 
@@ -133,7 +135,7 @@ class DataOperations():
 
         # Check if irods object already exists
         obj_exists = IrodsPath(self.session,
-                               irods_path.joinpath(local_path.name)).dataobject_exists() \
+                               irods_path / local_path.name).dataobject_exists() \
                      or irods_path.dataobject_exists()
 
         options = {
@@ -202,9 +204,8 @@ class DataOperations():
             raise ValueError("local_path must be a directory.")
 
         files = []  # (rel_path, name)
-
-        for w in os.walk(local_path):
-            files.extend([(w[0].removeprefix(str(local_path)), f) for f in w[2]])
+        for root, _, files in os.walk(local_path):
+            files.extend([(root.removeprefix(str(local_path)), f) for f in files])
 
         upload_path = IrodsPath(self.session,
                                 str(irods_path.joinpath(local_path.name)))
@@ -216,11 +217,11 @@ class DataOperations():
             # call irods put for Path(local_path, f[0], f[1]) to destination collection
             dest = IrodsPath(self.session, str(upload_path), folder.lstrip('/'))
             try:
-                self._obj_put(Path(str(local_path), folder.lstrip('/'), file_name),
+                self._obj_put(Path(str(local_path), folder.lstrip(os.sep), file_name),
                               dest, overwrite, resc_name, options)
             except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-                l = Path(str(local_path), folder.lstrip('/'), file_name)
-                warnings.warn(f'Upload: Object already exists\n\tSkipping {l}')
+                local = Path(str(local_path), folder.lstrip(os.sep), file_name)
+                warnings.warn(f'Upload: Object already exists\n\tSkipping {local}')
 
     def _download_collection(self, irods_path: IrodsPath, local_path: Path,
                              overwrite: bool = False, options: Optional[dict] = None):
@@ -257,8 +258,8 @@ class DataOperations():
                 self._obj_get(IrodsPath(self.session, subcoll_path, obj_name),
                               dest, overwrite, options)
             except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-                o = IrodsPath(self.session, subcoll_path, obj_name)
-                warnings.warn(f'Download: File already exists\n\tSkipping {o}')
+                obj = IrodsPath(self.session, subcoll_path, obj_name)
+                warnings.warn(f'Download: File already exists\n\tSkipping {obj}')
 
     def upload(self, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
                overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
@@ -271,7 +272,7 @@ class DataOperations():
         irods_path : IrodsPath
             Absolute irods destination path
         overwrite : bool
-            If data already exists on iRODS, overwrite
+            If data_description_ already exists on iRODS, overwrite
         resc_name : str
             Name of the resource to which data is uploaded, by default the server will decide
         options : dict
@@ -284,11 +285,12 @@ class DataOperations():
                 self._upload_collection(local_path, irods_path, overwrite, resc_name, options)
             else:
                 self._obj_put(local_path, irods_path, overwrite, resc_name, options)
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
     def download(self, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-                 overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
+                 overwrite: bool = False, _resc_name: str = '', options: Optional[dict] = None):
         """Download a collection or data object to the local filesystem
 
         Parameters
@@ -308,8 +310,10 @@ class DataOperations():
                 self._download_collection(irods_path, local_path, overwrite, options)
             else:
                 self._obj_get(irods_path, local_path, overwrite, options)
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                f"During download operation from '{irods_path}': iRODS server forbids action."
+                ) from exc
 
     def get_size(self, item: Union[irods.data_object.iRODSDataObject,
                                    irods.collection.iRODSCollection]) -> int:
@@ -329,9 +333,8 @@ class DataOperations():
         """
         if self.is_dataobject(item):
             return item.size
-        else:
-            all_objs = self._get_data_objects(item)
-            return sum([size for _, _, size, _ in all_objs])
+        all_objs = self._get_data_objects(item)
+        return sum(size for _, _, size, _ in all_objs)
 
     def _get_data_objects(self, coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
         """Retrieve all data objects in a collection and all its subcollections.
@@ -361,25 +364,6 @@ class DataOperations():
 
         return objs
 
-    def remove(self, irods_path: Union[IrodsPath, str]):
-        """Removes the data behind an iRODS path
-
-        Parameters
-        ----------
-        irods_path : str or IrodsPath
-            Path and data to be removed
-        """
-        irods_path = IrodsPath(self.session, irods_path)
-        try:
-            if irods_path.collection_exists():
-                coll = self.get_collection(irods_path)
-                coll.remove()
-            elif irods_path.dataobject_exists():
-                obj = self.get_dataobject(irods_path)
-                obj.unlink()
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
-
     def create_collection(self,
                           coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
@@ -391,5 +375,7 @@ class DataOperations():
         """
         try:
             return self.session.irods_session.collections.create(str(coll_path))
-        except irods.exception.CUT_ACTION_PROCESSED_ERR:
-            raise(irods.exception.CUT_ACTION_PROCESSED_ERR('iRODS server forbids action.'))
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+                    f"While creating collection at '{coll_path}': iRODS server forbids action."
+                  ) from exc
