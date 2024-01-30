@@ -21,8 +21,9 @@ class Permissions():
 
     def __str__(self) -> str:
         acl_dict = defaultdict(list)
-        for p in self:
-            acl_dict[f'{p.user_name}#{p.user_zone}'].append(f'{p.access_name}\t{p.user_type}')
+        for perm in self:
+            acl_dict[f'{perm.user_name}#{perm.user_zone}'].append(
+                    f'{perm.access_name}\t{perm.user_type}')
         acl = ''
         for key, value in sorted(acl_dict.items()):
             v_str= '\n\t'.join(value)
