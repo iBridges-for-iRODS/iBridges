@@ -66,7 +66,7 @@ class DataOperations():
             the replica is stored about one replica, replica checksum, replica size,
             replica status of the replica
         """
-        replicas = []
+        #replicas = []
         repl_states = {
             '0': 'stale',
             '1': 'good',
@@ -74,9 +74,11 @@ class DataOperations():
             '3': 'write-locked'
         }
 
-        for r in obj.replicas:
-            replicas.append((r.number, r.resource_name, r.checksum, r.size,
-                             repl_states.get(r.status, r.status)))
+        replicas = [(r.number, r.resource_name, r.checksum,
+                     r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
+        #for repl in obj.replicas:
+        #    replicas.append((repl.number, repl.resource_name, repl.checksum, repl.size,
+        #                     repl_states.get(repl.status, repl.status)))
 
         return replicas
 
@@ -202,9 +204,8 @@ class DataOperations():
             raise ValueError("local_path must be a directory.")
 
         files = []  # (rel_path, name)
-
-        for w in os.walk(local_path):
-            files.extend([(w[0].removeprefix(str(local_path)), f) for f in w[2]])
+        for root, _, files in os.walk(local_path):
+            files.extend([(root.removeprefix(str(local_path)), f) for f in files])
 
         upload_path = IrodsPath(self.session,
                                 str(irods_path.joinpath(local_path.name)))
@@ -216,11 +217,11 @@ class DataOperations():
             # call irods put for Path(local_path, f[0], f[1]) to destination collection
             dest = IrodsPath(self.session, str(upload_path), folder.lstrip('/'))
             try:
-                self._obj_put(Path(str(local_path), folder.lstrip('/'), file_name),
+                self._obj_put(Path(str(local_path), folder.lstrip(os.sep), file_name),
                               dest, overwrite, resc_name, options)
             except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-                l = Path(str(local_path), folder.lstrip('/'), file_name)
-                warnings.warn(f'Upload: Object already exists\n\tSkipping {l}')
+                local = Path(str(local_path), folder.lstrip(os.sep), file_name)
+                warnings.warn(f'Upload: Object already exists\n\tSkipping {local}')
 
     def _download_collection(self, irods_path: IrodsPath, local_path: Path,
                              overwrite: bool = False, options: Optional[dict] = None):
@@ -257,8 +258,8 @@ class DataOperations():
                 self._obj_get(IrodsPath(self.session, subcoll_path, obj_name),
                               dest, overwrite, options)
             except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-                o = IrodsPath(self.session, subcoll_path, obj_name)
-                warnings.warn(f'Download: File already exists\n\tSkipping {o}')
+                obj = IrodsPath(self.session, subcoll_path, obj_name)
+                warnings.warn(f'Download: File already exists\n\tSkipping {obj}')
 
     def upload(self, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
                overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
