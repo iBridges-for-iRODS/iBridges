@@ -97,8 +97,8 @@ class MetaData():
             else:
                 self.item.metadata.remove(key, value, units)
         except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
-            raise ValueError("Cannot delete metadata with key '{key}', value '{value}'"
-                             " and units '{units}' since it does not exist.") from error
+            raise ValueError(f"Cannot delete metadata with key '{key}', value '{value}'"
+                             f" and units '{units}' since it does not exist.") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise ValueError("Cannot delete metadata due to insufficient permission for "
                              "path '{item.path}'.") from error

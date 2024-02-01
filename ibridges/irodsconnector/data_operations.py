@@ -299,6 +299,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         More options for the download
     """
     irods_path = IrodsPath(session, irods_path)
+    local_path = Path(local_path)
     try:
         if irods_path.collection_exists():
             _download_collection(session, irods_path, local_path, overwrite, options)
