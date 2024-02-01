@@ -1,9 +1,10 @@
 from pathlib import PurePosixPath
-
 from pytest import mark
+import os
+from pathlib import Path
 
 from ibridges import IrodsPath
-
+from ibridges.irodsconnector.data_operations import _create_irods_dest
 
 class MockIrodsSession:
     zone = "testzone"
@@ -61,3 +62,14 @@ def test_absolute_path(input, abs_path, name, parent):
 def test_join_path(path, to_join, result):
     irods_path = IrodsPath(123, path)
     assert str(irods_path.joinpath(*to_join)._path) == result
+
+# Create upload and download path tests for data_operations
+
+def test_create_irods_paths():
+    session = MockIrodsSession()
+    local_path = Path("tests/testdata").absolute()
+    irods_path = IrodsPath(123, session.home)
+    source_to_dest = _create_irods_dest(local_path, irods_path)
+    for source, dest in source_to_dest:
+        assert str(source).split("testdata")[1] == str(dest).split("testdata")[1]
+        assert str(dest).split("testdata")[0].rstrip("/") == session.home
