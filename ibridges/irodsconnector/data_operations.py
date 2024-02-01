@@ -160,6 +160,20 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
+def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
+    """ Assmbles the irods destination paths for upload of a folder
+    """
+
+    upload_path = irods_path.joinpath(local_path.name)
+    paths = [(root.removeprefix(str(local_path)), f) 
+             for root, _, files in os.walk(local_path) for f in files]
+    
+    source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
+                       upload_path.joinpath(folder.lstrip('/'), file_name))
+                       for folder, file_name in paths]
+
+    return source_to_dest
+
 def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
                        overwrite: bool = False, resc_name: str = '',
@@ -185,25 +199,30 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     if not local_path.is_dir():
         raise ValueError("local_path must be a directory.")
 
-    paths = []  # (rel_path, name)
-    for root, _, files in os.walk(local_path):
-        paths.extend([(root.removeprefix(str(local_path)), f) for f in files])
-    print(paths)
-    upload_path = IrodsPath(session,
-                            str(irods_path.joinpath(local_path.name)))
-    _ = create_collection(session, upload_path)
-
-    for folder, file_name in paths:
-        # ensure iRODS collection exists
-        _ = create_collection(session, upload_path.joinpath(folder.lstrip('/')))
-        # call irods put for Path(local_path, f[0], f[1]) to destination collection
-        dest = IrodsPath(session, str(upload_path), folder.lstrip('/'))
+    source_to_dest = _create_irods_dest(local_path, irods_path)
+    for source, dest in source_to_dest:
+        _ = create_collection(session, dest.parent)
         try:
-            _obj_put(session, Path(str(local_path), folder.lstrip(os.sep), file_name),
-                          dest, overwrite, resc_name, options)
+            _obj_put(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            local = Path(str(local_path), folder.lstrip(os.sep), file_name)
-            warnings.warn(f'Upload: Object already exists\n\tSkipping {local}')
+            warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
+
+def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path):
+    """Assmbles the local destination paths for download of a collection
+    """
+    # get all data objects
+    coll = get_collection(session, irods_path)
+    all_objs = _get_data_objects(session, coll)
+    
+    download_path = local_path.joinpath(irods_path.name.lstrip('/'))
+    source_to_dest = [(IrodsPath(session, subcoll_path, obj_name), 
+                      Path(download_path,
+                           subcoll_path.removeprefix(str(irods_path)).lstrip('/'),
+                           obj_name))
+                      for subcoll_path, obj_name, _, _ in all_objs]
+    
+    return source_to_dest
+
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, options: Optional[dict] = None):
@@ -228,21 +247,16 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     # get all data objects
     coll = get_collection(session, irods_path)
     all_objs = _get_data_objects(session, coll)
-    local_path = local_path.joinpath(irods_path.name.lstrip('/'))
-    if not local_path.is_dir():
-        os.makedirs(local_path)
+    source_to_dest = _create_local_dest(session, irods_path, local_path)
 
-    for subcoll_path, obj_name, _, _ in all_objs:
+    for source, dest in source_to_dest:
         # ensure local folder exists
-        dest = Path(local_path, subcoll_path.removeprefix(str(irods_path)).lstrip('/'))
-        if not dest.is_dir():
+        if not dest.parent.is_dir():
             os.makedirs(dest)
         try:
-            _obj_get(session, IrodsPath(session, subcoll_path, obj_name),
-                          dest, overwrite, options)
+            _obj_get(session, source, dest, overwrite, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            obj = IrodsPath(session, subcoll_path, obj_name)
-            warnings.warn(f'Download: File already exists\n\tSkipping {obj}')
+            warnings.warn(f'Download: File already exists\n\tSkipping {source}')
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
