@@ -71,5 +71,7 @@ def test_create_irods_paths():
     irods_path = IrodsPath(123, session.home)
     source_to_dest = _create_irods_dest(local_path, irods_path)
     for source, dest in source_to_dest:
-        assert str(source).split("testdata")[1] == str(dest).split("testdata")[1]
+        local_parts = source.parts[source.parts.index("testdata"):]
+        irods_parts = dest.parts[dest.parts.index("testdata"):]
+        assert local_parts == irods_parts
         assert str(dest).split("testdata")[0].rstrip("/") == session.home
