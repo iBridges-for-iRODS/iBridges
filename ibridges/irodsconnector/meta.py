@@ -47,7 +47,7 @@ class MetaData():
             CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
         """
         try:
-            self.item.metadata.add(key.upper(), value, units)
+            self.item.metadata.add(key, value, units)
         except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
             raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
