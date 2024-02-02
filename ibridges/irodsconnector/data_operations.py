@@ -169,7 +169,7 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
              for root, _, files in os.walk(local_path) for f in files]
 
     source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
-                       upload_path.joinpath(folder.lstrip('/'), file_name))
+                       upload_path.joinpath(folder.lstrip(os.sep), file_name))
                        for folder, file_name in paths]
 
     return source_to_dest
