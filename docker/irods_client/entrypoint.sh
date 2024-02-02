@@ -25,6 +25,8 @@ echo "iRODS is ready"
 # echo 'rods' | iinit
 # echo 'Authenticated as rods'
 
-python3 /ibridges/integration_test.py || echo "Failed"
+# python3 /ibridges/integration_test.py || echo "Failed"
+cd /ibridges/integration_test
+pytest .
 
 bash -c "until false; do sleep 2147483647d; done"

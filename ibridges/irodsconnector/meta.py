@@ -1,6 +1,6 @@
 """ metadata operations
 """
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Sequence, Union
 
 import irods.exception
 import irods.meta
@@ -15,6 +15,21 @@ class MetaData():
     def __iter__(self) -> Iterator:
         for m in self.item.metadata.items():
             yield m
+
+    def __contains__(self, val: Union[str, Sequence]) -> bool:
+        if isinstance(val, str):
+            val = [val]
+        all_attrs = ["name", "value", "units"][:len(val)]
+        for meta in self:
+            n_same = 0
+            for i_attr, attr in enumerate(all_attrs):
+                if getattr(meta, attr) == val[i_attr]:
+                    n_same += 1
+                else:
+                    break
+            if n_same == len(val):
+                return True
+        return False
 
     def __repr__(self) -> str:
         """Create a sorted representation of the metadata"""
@@ -97,8 +112,12 @@ class MetaData():
             else:
                 self.item.metadata.remove(key, value, units)
         except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
-            raise ValueError(f"Cannot delete metadata with key '{key}', value '{value}'"
+            raise KeyError(f"Cannot delete metadata with key '{key}', value '{value}'"
                              f" and units '{units}' since it does not exist.") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise ValueError("Cannot delete metadata due to insufficient permission for "
                              "path '{item.path}'.") from error
+
+    def clear(self):
+        for meta in self:
+            self.item.metadata.remove(meta)

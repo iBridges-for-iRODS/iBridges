@@ -1,0 +1,5 @@
+password = "rods"
+server_version = "4.3.0"
+can_write_pam_pass = false
+resources = ["bundleResc", "demoResc"]
+free_resources = [false, false]
