@@ -33,6 +33,10 @@ def get_dataobject(session: Session,
     path = IrodsPath(session, path)
     if path.dataobject_exists():
         return session.irods_session.data_objects.get(str(path))
+    if path.collection_exists():
+        raise ValueError("Error retrieving data object, path is linked to a collection."
+                         " Use get_collection instead to retrieve the collection.")
+
     raise irods.exception.DataObjectDoesNotExist(path)
 
 def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
@@ -82,6 +86,9 @@ def get_collection(session: Session,
     path = IrodsPath(session, path)
     if path.collection_exists():
         return session.irods_session.collections.get(str(path))
+    if path.dataobject_exists():
+        raise ValueError("Error retrieving collection, path is linked to a data object."
+                         " Use get_dataobject instead to retrieve the data object.")
     raise irods.exception.CollectionDoesNotExist(path)
 
 def is_dataobject(item) -> bool:
@@ -304,7 +311,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         if irods_path.collection_exists():
             _download_collection(session, irods_path, local_path, overwrite, options)
         else:
-            _obj_get(irods_path, local_path, overwrite, options)
+            _obj_get(session, irods_path, local_path, overwrite, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise irods.exception.CUT_ACTION_PROCESSED_ERR(
             f"During download operation from '{irods_path}': iRODS server forbids action."

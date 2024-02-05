@@ -8,13 +8,13 @@ from ibridges.utils.path import IrodsPath
 
 @pytest.fixture(scope="module")
 def collection(session):
-    return get_collection(session, IrodsPath("~"))
+    return get_collection(session, IrodsPath(session, "~"))
 
 
 @pytest.fixture(scope="module")
 def dataobject(session, testdata):
     ipath = IrodsPath(session, "~", "bunny.rtf")
-    upload(session, testdata/"bunny.rtf", IrodsPath("~"), overwrite=True)
+    upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
     yield get_dataobject(session, ipath)
     ipath.remove()
 
