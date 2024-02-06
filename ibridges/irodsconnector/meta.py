@@ -121,5 +121,7 @@ class MetaData():
                              "path '{item.path}'.") from error
 
     def clear(self):
+        """Delete all metadata belonging to the item.
+        """
         for meta in self:
             self.item.metadata.remove(meta)

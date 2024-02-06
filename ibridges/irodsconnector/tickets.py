@@ -104,6 +104,8 @@ class Tickets():
         return self._all_tickets
 
     def clear(self):
+        """Delete all tickets.
+        """
         self.all_tickets(update=True)
         for tick_data in self._all_tickets:
             tick_str = tick_data[0]
