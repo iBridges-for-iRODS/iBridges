@@ -69,7 +69,7 @@ def test_join_path(path, to_join, result):
 def test_create_irods_paths():
     session = MockIrodsSession()
     local_path = Path("tests/testdata").absolute()
-    irods_path = IrodsPath(123, session.home)
+    irods_path = IrodsPath(MockIrodsSession(), session.home)
     source_to_dest = _create_irods_dest(local_path, irods_path)
     for source, dest in source_to_dest:
         local_parts = source.parts[source.parts.index("testdata"):]
