@@ -1,22 +1,10 @@
 import pytest
 from pytest import mark
 
-from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, upload
+# from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, upload
 from ibridges.irodsconnector.meta import MetaData
-from ibridges.utils.path import IrodsPath
 
-
-@pytest.fixture(scope="module")
-def collection(session):
-    return get_collection(session, IrodsPath(session, "~"))
-
-
-@pytest.fixture(scope="module")
-def dataobject(session, testdata):
-    ipath = IrodsPath(session, "~", "bunny.rtf")
-    upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
-    yield get_dataobject(session, ipath)
-    ipath.remove()
+# from ibridges.utils.path import IrodsPath
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
@@ -67,10 +55,12 @@ def test_meta(item_name, request):
     meta.delete("x", "z")
     assert len(list(meta)) == 1
 
-    meta.delete("x")
+    meta.delete("x", None)
     assert len(list(meta)) == 0
 
     meta.add("x", "y")
+    meta.add("y", "z")
     meta.set("y", "x")
-    assert "x" not in meta
+    assert "x" in meta
+    assert ("y", "z") not in meta
     assert ("y", "x") in meta

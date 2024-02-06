@@ -14,21 +14,21 @@ from ibridges.utils.path import IrodsPath
 
 
 def test_upload_download_dataset(session, testdata):
-    ipath = IrodsPath(session, "~", "bunny.rtf")
+    ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
-    upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"))
+    upload(session, testdata/"plant.rtf", IrodsPath(session, "~"))
     data_obj = get_dataobject(session, ipath)
     assert is_dataobject(data_obj)
     assert not is_collection(data_obj)
     with pytest.raises(ValueError):
         get_collection(session, ipath)
     print(session)
-    download(session, ipath, testdata/"bunny.rtf.copy", overwrite=True)
+    download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
     # with open(data_obj, "r") as handle:
         # data_irods = handle.read()
-    with open(testdata/"bunny.rtf.copy") as handle:
+    with open(testdata/"plant.rtf.copy") as handle:
         data_redownload = handle.read()
-    with open(testdata/"bunny.rtf") as handle:
+    with open(testdata/"plant.rtf") as handle:
         data_original = handle.read()
     assert data_original == data_redownload
     # assert data_irods == data_original

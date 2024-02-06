@@ -23,7 +23,7 @@ class MetaData():
         for meta in self:
             n_same = 0
             for i_attr, attr in enumerate(all_attrs):
-                if getattr(meta, attr) == val[i_attr]:
+                if getattr(meta, attr) == val[i_attr] or val[i_attr] is None:
                     n_same += 1
                 else:
                     break
@@ -62,6 +62,8 @@ class MetaData():
             CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
         """
         try:
+            if (key, value, units) in self:
+                raise irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME()
             self.item.metadata.add(key, value, units)
         except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
             raise ValueError("ADD META: Metadata already present") from error

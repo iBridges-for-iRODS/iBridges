@@ -103,6 +103,13 @@ class Tickets():
                                           ))
         return self._all_tickets
 
+    def clear(self):
+        self.all_tickets(update=True)
+        for tick_data in self._all_tickets:
+            tick_str = tick_data[0]
+            tick = self.get_ticket(tick_str)
+            self.delete_ticket(tick)
+
     def _id_to_path(self, itemid: str) -> str:
         """
         Given an iRODS item id (data object or collection) from the

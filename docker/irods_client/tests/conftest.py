@@ -5,6 +5,14 @@ import pytest
 import tomli
 
 from ibridges import Session
+from ibridges.irodsconnector.data_operations import (
+    create_collection,
+    get_collection,
+    get_dataobject,
+    upload,
+)
+from ibridges.irodsconnector.permissions import Permissions
+from ibridges.utils.path import IrodsPath
 
 # def pytest_addoption(parser):
     # parser.addoption("--configdir", action="store")
@@ -40,6 +48,9 @@ def config(config_dir):
 @pytest.fixture(scope="session")
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
+    ipath = IrodsPath(session, "~")
+    perm = Permissions(session, get_collection(session, ipath))
+    perm.set("own")
     yield session
     del session
 
@@ -47,3 +58,19 @@ def session(irods_env, config):
 @pytest.fixture(scope="session")
 def testdata():
     return Path("/tmp/testdata")
+
+
+@pytest.fixture(scope="session")
+def collection(session):
+    return create_collection(session, IrodsPath(session, "~", "test_collection"))
+
+
+@pytest.fixture(scope="session")
+def dataobject(session, testdata):
+    ipath = IrodsPath(session, "~", "bunny.rtf")
+    upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
+    data_obj = get_dataobject(session, ipath)
+    perm = Permissions(session, data_obj)
+    perm.set("own")
+    yield data_obj
+    ipath.remove()

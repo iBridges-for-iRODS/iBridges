@@ -39,6 +39,7 @@ RUN apt-get install -y python3 git
 	# python3-pip \
 	# git
 
+# Work around for a bug in ubunto 22.04: https://github.com/pypa/setuptools/issues/3269#ref-issue-1217398136
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
 RUN mkdir -p /ibridges/integration_test
