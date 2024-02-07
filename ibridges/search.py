@@ -1,11 +1,13 @@
 """ Data query
 """
-from typing import Optional
+from typing import Optional, Union
 
 from ibridges.irodsconnector import keywords as kw
 from ibridges.irodsconnector.session import Session
+from ibridges.utils.path import IrodsPath
 
-def search(session: Session, path: Optional[str] = None, checksum: Optional[str] = None,
+def search(session: Session, path: Optional[Union[str, IrodsPath]] = None, 
+           checksum: Optional[str] = None,
                key_vals: Optional[dict] = None) -> list[tuple[str, str, str]]:
     """Retrieves all collections and data objects (the absolute collection path,
     data object or collection name) to the given user-defined and system metadata.
@@ -15,7 +17,7 @@ def search(session: Session, path: Optional[str] = None, checksum: Optional[str]
     Parameters
     ----------
     path: str
-        (Partial) path
+        (Partial) path or IrodsPath
     checksum: str
         (Partial) checksum
     key_vals : dict
@@ -37,8 +39,8 @@ def search(session: Session, path: Optional[str] = None, checksum: Optional[str]
     data_query = session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
                                              kw.DATA_CHECKSUM)
     if path:
-        coll_query = coll_query.filter(kw.LIKE(kw.COLL_NAME, path))
-        data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, path))
+        coll_query = coll_query.filter(kw.LIKE(kw.COLL_NAME, str(path)))
+        data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, str(path)))
     if key_vals:
         for key in key_vals:
             data_query.filter(kw.LIKE(kw.META_DATA_ATTR_NAME, key))
