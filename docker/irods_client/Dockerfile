@@ -26,9 +26,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN mkdir -p /root/.irods
-# COPY docker/irods_client/irods_environment.json /root/.irods
-# RUN mkdir -p /root/.ibridges
-# COPY docker/irods_client/ibridges_config.json /root/.ibridges
+
 RUN mkdir -p /tmp
 ADD docker/irods_client/testdata /tmp/testdata/
 
@@ -39,7 +37,7 @@ RUN apt-get install -y python3 git
 	# python3-pip \
 	# git
 
-# Work around for a bug in ubunto 22.04: https://github.com/pypa/setuptools/issues/3269#ref-issue-1217398136
+# Work around for a bug in Ubuntu 22.04: https://github.com/pypa/setuptools/issues/3269#ref-issue-1217398136
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
 RUN mkdir -p /ibridges/integration_test
@@ -50,9 +48,6 @@ ADD .git /ibridges/.git
 COPY pyproject.toml /ibridges
 RUN /usr/local/bin/pip3 install /ibridges
 RUN /usr/local/bin/pip3 install pytest tomli
-# COPY requirements.txt /iBridges-Gui/requirements_docker.txt
-# RUN pip3 install -r /iBridges-Gui/requirements_docker.txt
-COPY docker/irods_client/integration_test.py /ibridges/integration_test.py
 
 WORKDIR /
 COPY docker/irods_client/entrypoint.sh .

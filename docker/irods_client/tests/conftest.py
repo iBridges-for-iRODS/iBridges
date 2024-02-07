@@ -14,15 +14,10 @@ from ibridges.irodsconnector.data_operations import (
 from ibridges.irodsconnector.permissions import Permissions
 from ibridges.utils.path import IrodsPath
 
-# def pytest_addoption(parser):
-    # parser.addoption("--configdir", action="store")
-
 
 @pytest.fixture(scope="session")
 def config_dir(request):
-    # config_dir_name = request.config.option.configdir
-    # if config_dir_name is None:
-        # pytest.skip()
+
     return Path("environment")
 
 

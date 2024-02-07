@@ -1,10 +1,7 @@
 import pytest
 from pytest import mark
 
-# from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, upload
 from ibridges.irodsconnector.meta import MetaData
-
-# from ibridges.utils.path import IrodsPath
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])

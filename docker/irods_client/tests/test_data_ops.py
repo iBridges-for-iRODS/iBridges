@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -13,6 +14,21 @@ from ibridges.irodsconnector.data_operations import (
 from ibridges.utils.path import IrodsPath
 
 
+def _get_digest(obj_or_file):
+    with open(obj_or_file, "rb") as handle:
+        digest = hashlib.sha1(handle.read()).digest()
+    return digest
+
+def _check_files_equal(*files):
+    assert len(files) > 0
+    digests = [_get_digest(f) for f in files]
+
+    for dig in digests[1:]:
+        if digests[0] != dig:
+            return False
+    return True
+
+
 def test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
@@ -22,17 +38,8 @@ def test_upload_download_dataset(session, testdata):
     assert not is_collection(data_obj)
     with pytest.raises(ValueError):
         get_collection(session, ipath)
-    print(session)
     download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
-    # with open(data_obj, "r") as handle:
-        # data_irods = handle.read()
-    with open(testdata/"plant.rtf.copy") as handle:
-        data_redownload = handle.read()
-    with open(testdata/"plant.rtf") as handle:
-        data_original = handle.read()
-    assert data_original == data_redownload
-    # assert data_irods == data_original
-    # assert data_irods == data_redownload
+    assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
 
 
 def test_upload_download_collection(session, testdata, tmpdir):
