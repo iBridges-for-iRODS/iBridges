@@ -1,6 +1,7 @@
 """ Data query
 """
 from typing import Optional, Union
+from collections import namedtuple
 
 from ibridges.irodsconnector import keywords as kw
 from ibridges.irodsconnector.session import Session
@@ -8,7 +9,7 @@ from ibridges.utils.path import IrodsPath
 
 def search(session: Session, path: Optional[Union[str, IrodsPath]] = None, 
            checksum: Optional[str] = None,
-               key_vals: Optional[dict] = None) -> list[tuple[str, str, str]]:
+               key_vals: Optional[dict] = None) -> list[dict]:
     """Retrieves all collections and data objects (the absolute collection path,
     data object or collection name) to the given user-defined and system metadata.
     By Default all accessible collections and data objects will be returned.
@@ -25,7 +26,11 @@ def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
 
     Returns
     -------
-    list: [(Collection name, Object name, checksum)]
+    list: [dict]
+        List of dictionaries with keys: COLL_NAME (absolute path of the collection),
+                                        DATA_NAME (name of the data object), 
+                                        D_DATA_CHECKSUM (checksum of the data object)
+        The latter two keys are only present of the found item is a data object.
 
     """
     if path is None and checksum is None and key_vals is None:
@@ -51,9 +56,10 @@ def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     if checksum:
         data_query = data_query.filter(kw.LIKE(kw.DATA_CHECKSUM, checksum))
     # gather results
-    results = [tuple(res.values()) for res in data_query.get_results()]
+    results = [{key.icat_key: val} for res in data_query.get_results()
+                                   for key, val in res.items()]
     if checksum is None:
-        results.extend([tuple((list(res.values())[0], '', ''))
-                        for res in coll_query.get_results()])
+        results.extend([{key.icat_key: val} for res in coll_query.get_results() 
+                                            for key, val in res.items()])
 
     return results
