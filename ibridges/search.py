@@ -3,8 +3,7 @@
 from typing import Optional
 
 from ibridges.irodsconnector import keywords as kw
-from ibridges import Session
-
+from ibridges.irodsconnector.session import Session
 
 def search(session: Session, path: Optional[str] = None, checksum: Optional[str] = None,
                key_vals: Optional[dict] = None) -> list[tuple[str, str, str]]:
@@ -28,9 +27,13 @@ def search(session: Session, path: Optional[str] = None, checksum: Optional[str]
 
     """
     if path is None and checksum is None and key_vals is None:
-        raise ValueError("QUERY DATA: No query criteria set.")
+        raise ValueError(
+                "QUERY: Error while searching in the metadata: No query criteria set." \
+                        + " Please supply either a path, checksum or key_vals.")
 
+    # create the query for collections; we only want to return the collection name
     coll_query = session.irods_session.query(kw.COLL_NAME)
+    # create the query for data objects; we need the collection name, the data name and its checksum
     data_query = session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
                                              kw.DATA_CHECKSUM)
     if path:
