@@ -47,7 +47,7 @@ def search(session: Session, path: Optional[str] = None, checksum: Optional[str]
         data_query = data_query.filter(kw.LIKE(kw.DATA_CHECKSUM, checksum))
     # gather results
     results = [tuple(res.values()) for res in data_query.get_results()]
-    if checksum is not None:
+    if checksum is None:
         results.extend([tuple((list(res.values())[0], '', ''))
                         for res in coll_query.get_results()])
 
