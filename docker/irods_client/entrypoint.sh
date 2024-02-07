@@ -25,7 +25,6 @@ echo "iRODS is ready"
 # echo 'rods' | iinit
 # echo 'Authenticated as rods'
 
-# python3 /ibridges/integration_test.py || echo "Failed"
 cd /ibridges/integration_test
 pytest .
 
