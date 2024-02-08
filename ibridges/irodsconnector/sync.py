@@ -106,13 +106,12 @@ iRODS Version 4.3.0                irsync
 
 class FileObject(NamedTuple):
     name: str       # filename
-    path: str          # path relative to source or target root
+    path: str       # path (relative to source or target root)
     size: int       # file size
     checksum: int   # base64 encoded sha256 file hash
 
-
 class FolderObject(NamedTuple):
-    path: str   # path relative to source or target root
+    path: str       # path (relative to source or target root)
 
 
 class IBridgesSync:
