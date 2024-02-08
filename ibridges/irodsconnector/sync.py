@@ -170,8 +170,6 @@ class IBridgesSync:
             x.path[len(root):].lstrip('/'),
             x.size,
             x.checksum if len(x.checksum)>0 else x.chksum()) for x in coll.data_objects]
-        
-        collections=[]
 
         if max_level is None or level<max_level-1:
             collections=[FolderObject(
@@ -186,6 +184,8 @@ class IBridgesSync:
                     )
                 objects.extend(subobjects)
                 collections.extend(subcollections)
+        else:
+            collections=[]
 
         return sorted(objects, key=lambda x: (x.path.count('/'), x.path)), \
             sorted(collections, key=lambda x: (x.path.count('/'), x.path))
