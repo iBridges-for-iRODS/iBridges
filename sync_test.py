@@ -5,7 +5,7 @@ from ibridges.irodsconnector.sync import IBridgesSync
 
 session = Session(irods_env_path=os.path.expanduser("~/.irods/irods_environment.json"))
 
-print(session.username)
+# print(session.username)
 
 source='/data/ibridges'
 target_path='research-test-christine/books/otherbooks'
@@ -17,7 +17,13 @@ target_path='research-test-christine/books'
 
 # extend the home path with a new sub collection
 target = IrodsPath(session, "~", target_path)
-ibs=IBridgesSync(source=source, target=target, session=session)
+ibs=IBridgesSync(
+       source=source,
+       target=target,
+       session=session,
+       max_level=None,      # 1 for not-recursive, None for (fully) recursive
+       dry_run=True,
+       no_checksum=False)
 
 exit()
 
