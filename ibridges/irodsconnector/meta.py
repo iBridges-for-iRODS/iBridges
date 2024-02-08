@@ -1,6 +1,6 @@
 """ metadata operations
 """
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Sequence, Union
 
 import irods.exception
 import irods.meta
@@ -15,6 +15,21 @@ class MetaData():
     def __iter__(self) -> Iterator:
         for m in self.item.metadata.items():
             yield m
+
+    def __contains__(self, val: Union[str, Sequence]) -> bool:
+        if isinstance(val, str):
+            val = [val]
+        all_attrs = ["name", "value", "units"][:len(val)]
+        for meta in self:
+            n_same = 0
+            for i_attr, attr in enumerate(all_attrs):
+                if getattr(meta, attr) == val[i_attr] or val[i_attr] is None:
+                    n_same += 1
+                else:
+                    break
+            if n_same == len(val):
+                return True
+        return False
 
     def __repr__(self) -> str:
         """Create a sorted representation of the metadata"""
@@ -47,7 +62,9 @@ class MetaData():
             CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
         """
         try:
-            self.item.metadata.add(key.upper(), value, units)
+            if (key, value, units) in self:
+                raise irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME()
+            self.item.metadata.add(key, value, units)
         except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
             raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
@@ -97,8 +114,14 @@ class MetaData():
             else:
                 self.item.metadata.remove(key, value, units)
         except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
-            raise ValueError("Cannot delete metadata with key '{key}', value '{value}'"
-                             " and units '{units}' since it does not exist.") from error
+            raise KeyError(f"Cannot delete metadata with key '{key}', value '{value}'"
+                             f" and units '{units}' since it does not exist.") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise ValueError("Cannot delete metadata due to insufficient permission for "
                              "path '{item.path}'.") from error
+
+    def clear(self):
+        """Delete all metadata belonging to the item.
+        """
+        for meta in self:
+            self.item.metadata.remove(meta)
