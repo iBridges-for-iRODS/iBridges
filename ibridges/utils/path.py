@@ -15,6 +15,7 @@ class IrodsPath():
 
     def __init__(self, session, *args):
         self.session = session
+        assert hasattr(session, "irods_session")
         # We don't want recursive IrodsPaths, so we take the
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a

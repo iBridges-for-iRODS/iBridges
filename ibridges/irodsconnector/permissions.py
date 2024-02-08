@@ -1,6 +1,6 @@
 """ permission operations """
 from collections import defaultdict
-from typing import Iterator
+from typing import Iterator, Optional
 
 import irods.access
 import irods.collection
@@ -38,10 +38,17 @@ class Permissions():
     @property
     def available_permissions(self) -> dict:
         """Get available permissions"""
-        return self.session.irods_session.available_permissions
+        return self.session.irods_session.available_permissions.codes
 
-    def set(self, perm: str, user: str = '', zone: str = '',
+    def set(self, perm: str, user: Optional[str] = None, zone: Optional[str] = None,
             recursive: bool = False, admin: bool = False) -> None:
         """Set permissions (ACL) for an iRODS collection or data object."""
+        if user is None:
+            user = self.session.username
+        if zone is None:
+            zone = self.session.zone
+        if perm == "null" and user == self.session.username and zone == self.session.zone:
+            raise ValueError("Cannot set your own permissions to null, because you would lose "
+                             "access to the object/collection.")
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
         self.session.irods_session.acls.set(acl, recursive=recursive, admin=admin)
