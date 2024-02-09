@@ -7,12 +7,13 @@ RUN apt-get update && \
         apt-transport-https \
         gnupg \
         wget \
+	lsb-release \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
-# RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add - && \
-    # echo "deb [arch=amd64] https://packages.irods.org/apt/ focal main" | tee /etc/apt/sources.list.d/renci-irods.list
+RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add - && \
+    echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/renci-irods.list
 
 # ARG icommands_version=4.3.0
 # ARG icommands_package_version_suffix=-1~focal
@@ -21,6 +22,8 @@ RUN apt-get update && \
 RUN apt-get update && \
     apt-get install -y \
         netcat \
+	irods-runtime \
+	irods-icommands \
     && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/*
