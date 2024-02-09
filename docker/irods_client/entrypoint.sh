@@ -27,5 +27,4 @@ echo "iRODS is ready"
 
 cd /ibridges/integration_test
 pytest .
-
-bash -c "until false; do sleep 2147483647d; done"
+/bin/bash
