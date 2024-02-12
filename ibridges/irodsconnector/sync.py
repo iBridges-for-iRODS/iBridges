@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from hashlib import sha256
 from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.data_operations import get_collection
+from ibridges.irodsconnector.data_operations import get_collection, create_collection
 from pprint import pprint
 
 
@@ -230,7 +230,7 @@ class IBridgesSync:
         files_diff=set(src_files).difference(set(tgt_files))
 
         if isinstance(target, IrodsPath):
-            self.create_irods_collections(target=target, collections=folders_diff)
+            self.create_irods_collections(session=session, target=target, collections=folders_diff)
             self.copy_local_to_irods(source=source, target=target, files=files_diff)
         else:
             self.create_local_folders(target=target, folders=folders_diff)
@@ -313,20 +313,20 @@ class IBridgesSync:
         return sorted(objects, key=lambda x: (x.path.count('/'), x.path)), \
             sorted(collections, key=lambda x: (x.path.count('/'), x.path))
 
-    def create_irods_collections(self, target, collections):
+    def create_irods_collections(self, session, target, collections):
         if self.dry_run:
             print("Will create collection(s):")
 
         for collection in collections:
-
             if collection.is_empty() and not self.copy_empty_folders:
                 continue
 
             full_path=target / collection.path
+
             if self.dry_run:
                 print(f"  {full_path}")
             else:
-                pass
+                _=create_collection(session, str(full_path))
 
         if self.dry_run:
             print()
@@ -336,15 +336,15 @@ class IBridgesSync:
             print("will create folder(s):")
 
         for folder in folders:
-
             if folder.is_empty() and not self.copy_empty_folders:
                 continue
 
             full_path=Path(target) / Path(folder.path)
+
             if self.dry_run:
                 print(f"  {full_path}")
             else:
-                pass
+                full_path.mkdir(parents=True, exist_ok=True)
 
         if self.dry_run:
             print()
