@@ -139,10 +139,27 @@ class FileObject:
 
         return hash((self.name, self.path, self.size, self.checksum))
 
-class FolderObject(NamedTuple):
-    path: str        # path (relative to source or target root)
-    n_files: int     # number of files in folder
-    n_folders: int   # number of subfolders in folder
+class FolderObject():
+
+    def __init__(self, path, n_files, n_folders) -> None:
+        self.path=path            # path (relative to source or target root)
+        self.n_files=n_files      # number of files in folder
+        self.n_folders=n_folders  # number of subfolders in folder
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(path='{self.path}', n_files={self.n_files}, n_folders={self.n_folders})"
+
+    def __eq__(self, other):
+        if not isinstance(self,type(other)):
+            return False
+
+        return self.path==other.path
+
+    def __hash__(self):
+        return hash(self.path)
+
+
+
 
 """
     session
@@ -151,6 +168,7 @@ class FolderObject(NamedTuple):
     max_level       -r  recursive - store the whole subdirectory (max_level=None)
     dry_run         -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
     ignore_checksum -s  use the size instead of the checksum value for determining synchronization.
+    dont_copy_empty_folders
 """
 
 class IBridgesSync:
@@ -161,11 +179,13 @@ class IBridgesSync:
                  target,
                  max_level=None,
                  dry_run=False,
-                 ignore_checksum=False) -> None:  
+                 ignore_checksum=False,
+                 dont_copy_empty_folders=True) -> None:  
 
         self.max_level=max_level
         self.dry_run=dry_run
         self.ignore_checksum=ignore_checksum
+        self.dont_copy_empty_folders=dont_copy_empty_folders
 
         assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
         # assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
@@ -222,6 +242,7 @@ class IBridgesSync:
             self.copy_irods_to_local(source=source, target=target, objects=files_diff)
         
         # dry run only: print what overlaps (already exists at both sides)
+        # doesn't take into account
         if self.dry_run:
             self.print_existing(label='folders/collections',
                                 root=target, 
