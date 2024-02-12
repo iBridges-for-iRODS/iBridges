@@ -17,6 +17,8 @@ from pprint import pprint
 #   -a   synchronize to all replicas if the target is an iRODS dataobject/collection.
 #   --age age_in_minutes - The maximum age of the source copy in minutes for sync.
 
+# do we want to support sync iRODS -> iRODS?
+
 
 """
 Usage: irsync [-rahKsvV] [-N numThreads] [-R resource] [--link] [--age age_in_minutes]
@@ -123,13 +125,68 @@ class IBridgesSync:
                  max_level=None,
                  dry_run=False,
                  no_checksum=False) -> None:
+
         self.max_level=max_level
         self.dry_run=dry_run
         self.no_checksum=no_checksum
+
+        assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
+        # assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
+
         self.sync(session=session, source=source, target=target)
 
+    def sync(self, session, source, target):
+        if isinstance(source, IrodsPath):
+            assert source.collection_exists(), \
+                "Source collection '%s' does not exist" % source.absolute_path()
+            src_files, src_folders=self.get_irods_tree(
+                coll=get_collection(session=session, path=source),
+                max_level=self.max_level
+                )
+        else:
+            assert Path(source).is_dir(), "Source folder '%s' does not exist" % source
+            src_files, src_folders=self.get_local_tree(
+                path=source,
+                max_level=self.max_level
+                )
+
+        if isinstance(target, IrodsPath):
+            assert target.collection_exists(), \
+                "Target collection '%s' does not exist" % target.absolute_path()
+            tgt_files, tgt_folders=self.get_irods_tree(
+                coll=get_collection(session=session, path=target),
+                max_level=self.max_level
+                )
+        else:
+            assert Path(target).is_dir(), "Target folder '%s' does not exist" % target
+            tgt_files, tgt_folders=self.get_local_tree(
+                path=target,
+                max_level=self.max_level
+                )
+
+        # compares the relative paths
+        folders_diff=set(src_folders).difference(set(tgt_folders))
+        # compares the checksum, file size, file name & relative path
+        files_diff=set(src_files).difference(set(tgt_files))
+
+        if isinstance(target, IrodsPath):
+            self.create_irods_collections(target=target, collections=folders_diff)
+            self.copy_local_to_irods(source=source, target=target, files=files_diff)
+        else:
+            self.create_local_folders(target=target, folders=folders_diff)
+            self.copy_irods_to_local(source=source, target=target, objects=files_diff)
+        
+        # dry run only: print what overlaps (already exists at both sides)
+        if self.dry_run:
+            self.print_existing(label='folders/collections', 
+                                root=target, 
+                                existing=set(src_folders).intersection(set(tgt_folders)))
+            self.print_existing(label='files', 
+                                root=source, 
+                                existing=set(src_files).intersection(set(tgt_files)))
+
     @staticmethod
-    def get_filesystem_tree(path, max_level=None):
+    def get_local_tree(path, max_level=None):
 
         def calc_checksum(filename, prefix=''):
             h=sha256()
@@ -190,62 +247,65 @@ class IBridgesSync:
         return sorted(objects, key=lambda x: (x.path.count('/'), x.path)), \
             sorted(collections, key=lambda x: (x.path.count('/'), x.path))
 
-    def sync(self, session, source, target):
-        if isinstance(source, IrodsPath):
-            assert source.collection_exists(), "source collection '%s' does not exist" % source.absolute_path()
-            src_files, src_folders=self.get_irods_tree(
-                coll=get_collection(session=session, path=source),
-                max_level=self.max_level
-                )
-        else:
-            assert Path(source).is_dir(), "source folder '%s' does not exist" % source
-            src_files, src_folders=self.get_filesystem_tree(
-                path=source,
-                max_level=self.max_level
-                )
-
-        if isinstance(target, IrodsPath):
-            assert target.collection_exists(), "target collection '%s' does not exist" % target.absolute_path()
-            tgt_files, tgt_folders=self.get_irods_tree(
-                coll=get_collection(session=session, path=target),
-                max_level=self.max_level
-                )
-        else:
-            assert Path(target).is_dir(), "target folder '%s' does not exist" % target
-            tgt_files, tgt_folders=self.get_filesystem_tree(
-                path=target,
-                max_level=self.max_level
-                )
-
-        # pprint(set(src_folders))
-        # pprint(set(tgt_folders))
-        # pprint(set.intersection(*[set(src_folders), set(tgt_folders)]))
-        
-        # print()
-        # for folder in (src_folders):
-        #     print(folder.path)
-
-        # print()
-        # for file in (src_files):
-        #     print(file.path)
-
+    @staticmethod
+    def print_existing(root, existing, label):
+        print(f"Skipping {label} (already exist):")
+        for item in existing:
+            full_path=f"{root}/{item.path}"
+            print(f"  {full_path}")
         print()
-        for folder in (tgt_folders):
-            print(folder.path)
 
-        print()
-        for file in (tgt_files):
-            print(file.path)
+    def create_irods_collections(self, target, collections):
+        if self.dry_run:
+            print("Will create collection(s):")
 
-        # pprint(set(tgt_files))
-        # pprint(set.intersection(*[set(src_files), set(tgt_files)]))
+        for collection in collections:
+            full_path=target / collection.path
+            if self.dry_run:
+                print(f"  {full_path}")
+            else:
+                pass
 
-        # pprint(set.difference(*[set(src_files), set(tgt_files)]))
-        # pprint(set.difference(*[set(tgt_files), set(src_files)]))
+        if self.dry_run:
+            print()
 
-        # compare the checksum values, file sizes, file name & relative
-        # diff=set(src_files).difference(set(tgt_files))
-        # pprint(diff)
-        
-        
+    def create_local_folders(self, target, folders):
+        if self.dry_run:
+            print("will create folder(s):")
 
+        for folder in folders:
+            full_path=Path(target) / Path(folder.path)
+            if self.dry_run:
+                print(full_path)
+            else:
+                pass
+
+        if self.dry_run:
+            print()
+
+    def copy_local_to_irods(self, source, target, files):
+        if self.dry_run:
+            print(f"Will copy {source} --> {target}")
+
+        for file in files:
+            source_path=Path(source) / file.path
+            target_path=target / file.path
+            if self.dry_run:
+                print(f"  {file.path}  {file.size}")
+            else:
+                pass
+
+        if self.dry_run:
+            print()
+
+    def copy_irods_to_local(self, source, target, objects):
+        for object in objects:
+            target_path=Path(target) / object.path
+            source_path=source / object.path
+            if self.dry_run:
+                print(f"  {object.path}  {object.size}")
+            else:
+                pass
+
+        if self.dry_run:
+            print()
