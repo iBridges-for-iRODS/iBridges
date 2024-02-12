@@ -205,11 +205,11 @@ class IBridgesSync:
                 if max_level is None or rel_path.count(os.sep)<max_level:
                     objects.append(FileObject(
                         file, 
-                        rel_path,
+                        "/".join(rel_path.split(os.sep)), # win compat
                         full_path.stat().st_size,
                         calc_checksum(full_path, 'sha2:')))
 
-            collections.extend([FolderObject(f"{root}/{dir}"[len(path):].lstrip(os.sep)) 
+            collections.extend([FolderObject("/".join(f"{root}/{dir}"[len(path):].lstrip(os.sep).split(os.sep)))
                                 for dir in dirs 
                                 if max_level is None or dir.count(os.sep)<max_level-1])
 
