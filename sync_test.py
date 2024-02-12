@@ -32,9 +32,11 @@ target = IrodsPath(session, "~", target_path)
 # source, target=target, source
 
 # None = recursive
+max_level=1
 max_level=None
 dry_run=True
-no_checksum=False
+ignore_checksum=True
+ignore_checksum=False
 
 ibs=IBridgesSync(
        source=source,
@@ -42,7 +44,7 @@ ibs=IBridgesSync(
        session=session,
        max_level=max_level,      
        dry_run=dry_run,
-       no_checksum=no_checksum)
+       ignore_checksum=ignore_checksum)
 
 exit()
 

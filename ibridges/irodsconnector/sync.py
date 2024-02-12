@@ -106,11 +106,38 @@ iRODS Version 4.3.0                irsync
 
 """
 
-class FileObject(NamedTuple):
-    name: str       # filename
-    path: str       # path (relative to source or target root)
-    size: int       # file size
-    checksum: int   # base64 encoded sha256 file hash
+class FileObject:
+
+    def __init__(self, name, path, size, checksum, ignore_checksum=False) -> None:
+        self.name=name
+        self.path=path
+        self.size=size
+        self.checksum=checksum
+        self.ignore_checksum=ignore_checksum
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(name='{self.name}', path='{self.path}', size={self.size}, checksum='{self.checksum}, ignore_checksum={self.ignore_checksum})"
+
+    def __eq__(self, other):
+        if not isinstance(self,type(other)):
+            return False
+
+        if self.ignore_checksum:
+            return self.name==other.name \
+                and self.path==other.path \
+                and self.size==other.size
+
+        return self.name==other.name \
+            and self.path==other.path \
+            and self.size==other.size \
+            and self.checksum==other.checksum
+
+    def __hash__(self):
+        if self.ignore_checksum:
+            return hash((self.name, self.path, self.size))
+
+        return hash((self.name, self.path, self.size, self.checksum))
+
 
 class FolderObject(NamedTuple):
     path: str       # path (relative to source or target root)
@@ -123,11 +150,11 @@ class IBridgesSync:
                  target,
                  max_level=None,
                  dry_run=False,
-                 no_checksum=False) -> None:
+                 ignore_checksum=False) -> None:  
 
         self.max_level=max_level
         self.dry_run=dry_run
-        self.no_checksum=no_checksum
+        self.ignore_checksum=ignore_checksum
 
         assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
         # assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
@@ -140,13 +167,15 @@ class IBridgesSync:
                 "Source collection '%s' does not exist" % source.absolute_path()
             src_files, src_folders=self.get_irods_tree(
                 coll=get_collection(session=session, path=source),
-                max_level=self.max_level
+                max_level=self.max_level,
+                ignore_checksum=self.ignore_checksum
                 )
         else:
             assert Path(source).is_dir(), "Source folder '%s' does not exist" % source
             src_files, src_folders=self.get_local_tree(
                 path=source,
-                max_level=self.max_level
+                max_level=self.max_level,
+                ignore_checksum=self.ignore_checksum
                 )
 
         if isinstance(target, IrodsPath):
@@ -154,19 +183,26 @@ class IBridgesSync:
                 "Target collection '%s' does not exist" % target.absolute_path()
             tgt_files, tgt_folders=self.get_irods_tree(
                 coll=get_collection(session=session, path=target),
-                max_level=self.max_level
+                max_level=self.max_level,
+                ignore_checksum=self.ignore_checksum
                 )
         else:
             assert Path(target).is_dir(), "Target folder '%s' does not exist" % target
             tgt_files, tgt_folders=self.get_local_tree(
                 path=target,
-                max_level=self.max_level
+                max_level=self.max_level,
+                ignore_checksum=self.ignore_checksum
                 )
 
         # compares the relative paths
         folders_diff=set(src_folders).difference(set(tgt_folders))
         # compares the checksum, file size, file name & relative path
         files_diff=set(src_files).difference(set(tgt_files))
+
+
+        pprint(files_diff)
+        exit()
+
 
         if isinstance(target, IrodsPath):
             self.create_irods_collections(target=target, collections=folders_diff)
@@ -185,7 +221,7 @@ class IBridgesSync:
                                 existing=set(src_files).intersection(set(tgt_files)))
 
     @staticmethod
-    def get_local_tree(path, max_level=None):
+    def get_local_tree(path, max_level=None, ignore_checksum=False):
 
         def calc_checksum(filename, prefix=''):
             h=sha256()
@@ -204,10 +240,11 @@ class IBridgesSync:
                 rel_path=str(full_path)[len(path):].lstrip(os.sep)
                 if max_level is None or rel_path.count(os.sep)<max_level:
                     objects.append(FileObject(
-                        file, 
-                        "/".join(rel_path.split(os.sep)), # win compat
-                        full_path.stat().st_size,
-                        calc_checksum(full_path, 'sha2:')))
+                        name=file, 
+                        path="/".join(rel_path.split(os.sep)), # win compat
+                        size=full_path.stat().st_size,
+                        checksum=calc_checksum(full_path, 'sha2:'),
+                        ignore_checksum=ignore_checksum))
 
             collections.extend([FolderObject("/".join(f"{root}/{dir}"[len(path):].lstrip(os.sep).split(os.sep)))
                                 for dir in dirs 
@@ -217,7 +254,7 @@ class IBridgesSync:
             sorted(collections, key=lambda x: (str(x.path).count(os.sep), str(x)))
 
     @staticmethod
-    def get_irods_tree(coll, root=None, level=0, max_level=None):
+    def get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=False):
         
         root=coll.path if root is None else root
 
@@ -226,18 +263,19 @@ class IBridgesSync:
             x.name,
             x.path[len(root):].lstrip('/'),
             x.size,
-            x.checksum if len(x.checksum)>0 else x.chksum()) for x in coll.data_objects]
+            x.checksum if len(x.checksum)>0 else x.chksum(),
+            ignore_checksum) for x in coll.data_objects]
 
         if max_level is None or level<max_level-1:
-            collections=[FolderObject(
-                x.path[len(root):].lstrip('/')) for x in coll.subcollections]
+            collections=[FolderObject(x.path[len(root):].lstrip('/')) for x in coll.subcollections]
 
             for subcoll in coll.subcollections:
                 subobjects, subcollections=IBridgesSync.get_irods_tree(
                     coll=subcoll, 
                     root=root, 
                     level=level+1, 
-                    max_level=max_level
+                    max_level=max_level,
+                    ignore_checksum=ignore_checksum
                     )
                 objects.extend(subobjects)
                 collections.extend(subcollections)
