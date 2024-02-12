@@ -1,9 +1,7 @@
 import base64
 import os
-import fnmatch
 from pathlib import Path
 from hashlib import sha256
-from typing import NamedTuple
 from ibridges.utils.path import IrodsPath
 from ibridges.irodsconnector.data_operations import get_collection
 from pprint import pprint
