@@ -29,13 +29,13 @@ target = IrodsPath(session, "~", target_path)
 
 
 
-source, target=target, source
+# source, target=target, source
 
 # None = recursive
 max_level=1
 max_level=None
 dry_run=True
-dry_run=False
+# dry_run=False
 ignore_checksum=True
 # ignore_checksum=False
 copy_empty_folders=False
