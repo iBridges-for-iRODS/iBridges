@@ -115,7 +115,6 @@ class FileObject(NamedTuple):
 class FolderObject(NamedTuple):
     path: str       # path (relative to source or target root)
 
-
 class IBridgesSync:
 
     def __init__(self, 
@@ -199,17 +198,18 @@ class IBridgesSync:
         objects=[]
         collections=[]
 
-        for root, dirs, files in Path(path).walk(on_error=print):
+        for root, dirs, files in os.walk(path):
             for file in files:
-                rel_path=str(root / file)[len(path):].lstrip(os.sep)
+                full_path=Path(f"{root}/{file}")
+                rel_path=str(full_path)[len(path):].lstrip(os.sep)
                 if max_level is None or rel_path.count(os.sep)<max_level:
                     objects.append(FileObject(
                         file, 
                         rel_path,
-                        (root / file).stat().st_size,
-                        calc_checksum(root / file, 'sha2:')))
+                        full_path.stat().st_size,
+                        calc_checksum(full_path, 'sha2:')))
 
-            collections.extend([FolderObject(str(root / dir)[len(path):].lstrip(os.sep)) 
+            collections.extend([FolderObject(f"{root}/{dir}"[len(path):].lstrip(os.sep)) 
                                 for dir in dirs 
                                 if max_level is None or dir.count(os.sep)<max_level-1])
 
