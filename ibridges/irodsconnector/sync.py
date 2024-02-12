@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from hashlib import sha256
 from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.data_operations import get_collection, create_collection
+from ibridges.irodsconnector.data_operations import get_collection, create_collection, upload, download
 from pprint import pprint
 
 
@@ -17,7 +17,6 @@ from pprint import pprint
 #   --age age_in_minutes - The maximum age of the source copy in minutes for sync.
 
 # do we want to support sync iRODS -> iRODS?
-
 
 """
 Usage: irsync [-rahKsvV] [-N numThreads] [-R resource] [--link] [--age age_in_minutes]
@@ -231,10 +230,10 @@ class IBridgesSync:
 
         if isinstance(target, IrodsPath):
             self.create_irods_collections(session=session, target=target, collections=folders_diff)
-            self.copy_local_to_irods(source=source, target=target, files=files_diff)
+            self.copy_local_to_irods(session=session, source=source, target=target, files=files_diff)
         else:
             self.create_local_folders(target=target, folders=folders_diff)
-            self.copy_irods_to_local(source=source, target=target, objects=files_diff)
+            self.copy_irods_to_local(session=session, source=source, target=target, objects=files_diff)
         
         # set(src_folders).intersection(set(tgt_folders))
         # set(src_files).intersection(set(tgt_files))
@@ -349,29 +348,29 @@ class IBridgesSync:
         if self.dry_run:
             print()
 
-    def copy_local_to_irods(self, source, target, files):
+    def copy_local_to_irods(self, session, source, target, files):
         if self.dry_run:
             print(f"Will copy from '{source}' to '{target}':")
 
         for file in files:
             source_path=Path(source) / file.path
-            target_path=target / file.path
+            target_path=str(target / file.path)
             if self.dry_run:
                 print(f"  {file.path}  {file.size}")
             else:
-                pass
+                upload(session=session, local_path=source_path, irods_path=target_path, overwrite=True)
 
         if self.dry_run:
             print()
 
-    def copy_irods_to_local(self, source, target, objects):
+    def copy_irods_to_local(self, session, source, target, objects):
         for object in objects:
             target_path=Path(target) / object.path
-            source_path=source / object.path
+            source_path=str(source / object.path)
             if self.dry_run:
                 print(f"  {object.path}  {object.size}")
             else:
-                pass
+                download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
 
         if self.dry_run:
             print()
