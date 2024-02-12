@@ -161,9 +161,9 @@ class FolderObject:
 
 
 """
-    session
-    source
-    target
+    session         ibridges Session
+    source          can only be a folder or a iRODS collection, not individual files
+    target          iRODS collection or folder
     max_level       -r  recursive - store the whole subdirectory (max_level=None)
     dry_run         -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
     ignore_checksum -s  use the size instead of the checksum value for determining synchronization.
