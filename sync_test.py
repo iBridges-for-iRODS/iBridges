@@ -36,7 +36,7 @@ max_level=1
 max_level=None
 dry_run=True
 ignore_checksum=True
-ignore_checksum=False
+# ignore_checksum=False
 
 ibs=IBridgesSync(
        source=source,

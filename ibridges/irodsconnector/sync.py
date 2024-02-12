@@ -1,5 +1,6 @@
 import base64
 import os
+import fnmatch
 from pathlib import Path
 from hashlib import sha256
 from typing import NamedTuple
@@ -10,8 +11,8 @@ from pprint import pprint
 
 # now just doing folder --> collection (and vv), not files, --> collection. do that too?
 # what to do if the target (does not) exists? create & copy or fail (if not), copy to tagregt/source or copy content (if does exist)
-# -l: lists all the source files that needs to be synchronized  without actually doing the synchronization.
 # ??? -K  verify checksum - calculate and verify the checksum on the data
+
 # not doing:
 #   --link - ignore symlink --> can we make that default?
 #   -a   synchronize to all replicas if the target is an iRODS dataobject/collection.
@@ -138,9 +139,19 @@ class FileObject:
 
         return hash((self.name, self.path, self.size, self.checksum))
 
-
 class FolderObject(NamedTuple):
-    path: str       # path (relative to source or target root)
+    path: str        # path (relative to source or target root)
+    n_files: int     # number of files in folder
+    n_folders: int   # number of subfolders in folder
+
+"""
+    session
+    source
+    target
+    max_level       -r  recursive - store the whole subdirectory (max_level=None)
+    dry_run         -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
+    ignore_checksum -s  use the size instead of the checksum value for determining synchronization.
+"""
 
 class IBridgesSync:
 
@@ -199,10 +210,9 @@ class IBridgesSync:
         # compares the checksum, file size, file name & relative path
         files_diff=set(src_files).difference(set(tgt_files))
 
-
-        pprint(files_diff)
-        exit()
-
+        # pprint(src_folders)
+        pprint(tgt_folders)
+        print()
 
         if isinstance(target, IrodsPath):
             self.create_irods_collections(target=target, collections=folders_diff)
@@ -213,7 +223,7 @@ class IBridgesSync:
         
         # dry run only: print what overlaps (already exists at both sides)
         if self.dry_run:
-            self.print_existing(label='folders/collections', 
+            self.print_existing(label='folders/collections',
                                 root=target, 
                                 existing=set(src_folders).intersection(set(tgt_folders)))
             self.print_existing(label='files', 
@@ -231,24 +241,30 @@ class IBridgesSync:
                     h.update(mv[:n])
             return prefix+str(base64.b64encode(h.digest()), encoding='utf-8')
 
+        def fix_local_path(path):
+            return "/".join(path.split(os.sep))
+
         objects=[]
         collections=[]
 
         for root, dirs, files in os.walk(path):
             for file in files:
-                full_path=Path(f"{root}/{file}")
+                full_path=Path(f"{root}{os.sep}{file}")
                 rel_path=str(full_path)[len(path):].lstrip(os.sep)
                 if max_level is None or rel_path.count(os.sep)<max_level:
                     objects.append(FileObject(
                         name=file, 
-                        path="/".join(rel_path.split(os.sep)), # win compat
+                        path=fix_local_path(rel_path),
                         size=full_path.stat().st_size,
                         checksum=calc_checksum(full_path, 'sha2:'),
                         ignore_checksum=ignore_checksum))
 
-            collections.extend([FolderObject("/".join(f"{root}/{dir}"[len(path):].lstrip(os.sep).split(os.sep)))
-                                for dir in dirs 
-                                if max_level is None or dir.count(os.sep)<max_level-1])
+            collections.extend([FolderObject(
+                    fix_local_path(f"{root}{os.sep}{dir}"[len(path):].lstrip(os.sep)),
+                    len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_file()]),
+                    len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_dir()])
+                )
+                for dir in dirs if max_level is None or dir.count(os.sep)<max_level-1])
 
         return sorted(objects, key=lambda x: (str(x.path).count(os.sep), str(x))), \
             sorted(collections, key=lambda x: (str(x.path).count(os.sep), str(x)))
@@ -267,7 +283,10 @@ class IBridgesSync:
             ignore_checksum) for x in coll.data_objects]
 
         if max_level is None or level<max_level-1:
-            collections=[FolderObject(x.path[len(root):].lstrip('/')) for x in coll.subcollections]
+            collections=[FolderObject(
+                x.path[len(root):].lstrip('/'),
+                len(x.data_objects),
+                len(x.subcollections)) for x in coll.subcollections]
 
             for subcoll in coll.subcollections:
                 subobjects, subcollections=IBridgesSync.get_irods_tree(
@@ -323,7 +342,7 @@ class IBridgesSync:
 
     def copy_local_to_irods(self, source, target, files):
         if self.dry_run:
-            print(f"Will copy {source} --> {target}")
+            print(f"Will copy from '{source}' to '{target}':")
 
         for file in files:
             source_path=Path(source) / file.path
