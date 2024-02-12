@@ -139,12 +139,15 @@ class FileObject:
 
         return hash((self.name, self.path, self.size, self.checksum))
 
-class FolderObject():
+class FolderObject:
 
     def __init__(self, path, n_files, n_folders) -> None:
         self.path=path            # path (relative to source or target root)
         self.n_files=n_files      # number of files in folder
         self.n_folders=n_folders  # number of subfolders in folder
+
+    def is_empty(self):
+        return (self.n_files+self.n_folders)==0
 
     def __repr__(self):
         return f"{self.__class__.__name__}(path='{self.path}', n_files={self.n_files}, n_folders={self.n_folders})"
@@ -159,8 +162,6 @@ class FolderObject():
         return hash(self.path)
 
 
-
-
 """
     session
     source
@@ -168,7 +169,7 @@ class FolderObject():
     max_level       -r  recursive - store the whole subdirectory (max_level=None)
     dry_run         -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
     ignore_checksum -s  use the size instead of the checksum value for determining synchronization.
-    dont_copy_empty_folders
+    copy_empty_folders
 """
 
 class IBridgesSync:
@@ -180,12 +181,12 @@ class IBridgesSync:
                  max_level=None,
                  dry_run=False,
                  ignore_checksum=False,
-                 dont_copy_empty_folders=True) -> None:  
+                 copy_empty_folders=False) -> None:  
 
         self.max_level=max_level
         self.dry_run=dry_run
         self.ignore_checksum=ignore_checksum
-        self.dont_copy_empty_folders=dont_copy_empty_folders
+        self.copy_empty_folders=copy_empty_folders
 
         assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
         # assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
@@ -230,10 +231,6 @@ class IBridgesSync:
         # compares the checksum, file size, file name & relative path
         files_diff=set(src_files).difference(set(tgt_files))
 
-        # pprint(src_folders)
-        pprint(tgt_folders)
-        print()
-
         if isinstance(target, IrodsPath):
             self.create_irods_collections(target=target, collections=folders_diff)
             self.copy_local_to_irods(source=source, target=target, files=files_diff)
@@ -241,15 +238,8 @@ class IBridgesSync:
             self.create_local_folders(target=target, folders=folders_diff)
             self.copy_irods_to_local(source=source, target=target, objects=files_diff)
         
-        # dry run only: print what overlaps (already exists at both sides)
-        # doesn't take into account
-        if self.dry_run:
-            self.print_existing(label='folders/collections',
-                                root=target, 
-                                existing=set(src_folders).intersection(set(tgt_folders)))
-            self.print_existing(label='files', 
-                                root=source, 
-                                existing=set(src_files).intersection(set(tgt_files)))
+        # set(src_folders).intersection(set(tgt_folders))
+        # set(src_files).intersection(set(tgt_files))
 
     @staticmethod
     def get_local_tree(path, max_level=None, ignore_checksum=False):
@@ -325,19 +315,15 @@ class IBridgesSync:
         return sorted(objects, key=lambda x: (x.path.count('/'), x.path)), \
             sorted(collections, key=lambda x: (x.path.count('/'), x.path))
 
-    @staticmethod
-    def print_existing(root, existing, label):
-        print(f"Skipping {label} (already exist):")
-        for item in existing:
-            full_path=f"{root}/{item.path}"
-            print(f"  {full_path}")
-        print()
-
     def create_irods_collections(self, target, collections):
         if self.dry_run:
             print("Will create collection(s):")
 
         for collection in collections:
+
+            if collection.is_empty() and not self.copy_empty_folders:
+                continue
+
             full_path=target / collection.path
             if self.dry_run:
                 print(f"  {full_path}")
@@ -352,9 +338,13 @@ class IBridgesSync:
             print("will create folder(s):")
 
         for folder in folders:
+
+            if folder.is_empty() and not self.copy_empty_folders:
+                continue
+
             full_path=Path(target) / Path(folder.path)
             if self.dry_run:
-                print(full_path)
+                print(f"  {full_path}")
             else:
                 pass
 

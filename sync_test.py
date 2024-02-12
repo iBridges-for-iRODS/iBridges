@@ -37,7 +37,9 @@ max_level=None
 dry_run=True
 ignore_checksum=True
 # ignore_checksum=False
-dont_copy_empty_folders=True
+copy_empty_folders=False
+# copy_empty_folders=True
+
 
 
 ibs=IBridgesSync(
@@ -47,7 +49,7 @@ ibs=IBridgesSync(
        max_level=max_level,      
        dry_run=dry_run,
        ignore_checksum=ignore_checksum,
-       dont_copy_empty_folders=dont_copy_empty_folders)
+       copy_empty_folders=copy_empty_folders)
 
 exit()
 
