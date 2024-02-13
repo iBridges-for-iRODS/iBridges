@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from hashlib import sha256
 from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.data_operations import get_collection, create_collection, upload, download
+from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, create_collection, upload, download
 from pprint import pprint
 
 
@@ -158,16 +158,15 @@ class FolderObject:
     def __hash__(self):
         return hash(self.path)
 
-
 """
-    session         ibridges Session
-    source          can only be a folder or a iRODS collection, not individual files
-    target          iRODS collection or folder
-    max_level       -r  recursive - store the whole subdirectory (max_level=None)
-    dry_run         -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
-    ignore_checksum -s  use the size instead of the checksum value for determining synchronization.
-    verify_checksum -K  verify checksum - calculate and verify the checksum on the data
-    copy_empty_folders
+    session             ibridges Session
+    source              folder or a iRODS collection (not individual files, which is different from irsync)
+    target              iRODS collection or folder
+    max_level           -r  recursive - store the whole subdirectory (max_level=None)
+    dry_run             -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
+    ignore_checksum     -s  use the size instead of the checksum value for determining synchronization.
+    verify_checksum     -K  verify checksum - calculate and verify the checksum on the data
+    copy_empty_folders  
 """
 
 def sync(session,
@@ -231,7 +230,8 @@ def sync(session,
             source=source, 
             target=target, 
             files=files_diff,
-            dry_run=dry_run)
+            dry_run=dry_run, 
+            verify_checksum=verify_checksum)
     else:
         _create_local_folders(
             target=target,
@@ -245,9 +245,6 @@ def sync(session,
             objects=files_diff,
             dry_run=dry_run, 
             verify_checksum=verify_checksum)
-    
-    # set(src_folders).intersection(set(tgt_folders))
-    # set(src_files).intersection(set(tgt_files))
 
 def _calc_checksum(filepath):
     h=sha256()
@@ -357,7 +354,7 @@ def _create_local_folders(target, folders, dry_run, copy_empty_folders):
     if dry_run:
         print()
 
-def _copy_local_to_irods(session, source, target, files, dry_run):
+def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksum):
     if dry_run:
         print(f"Will copy from '{source}' to '{target}':")
 
@@ -367,10 +364,14 @@ def _copy_local_to_irods(session, source, target, files, dry_run):
         if dry_run:
             print(f"  {file.path}  {file.size}")
         else:
-            upload(session=session, local_path=source_path, irods_path=target_path, overwrite=True)
-
-    if dry_run:
-        print()
+            try:
+                _=upload(session=session, local_path=source_path, irods_path=target_path, overwrite=True)
+                if verify_checksum:
+                    object=get_dataobject(session, target_path)
+                    if file.checksum != (object.checksum if len(object.checksum)>0 else object.chksum()):
+                        logging.warning(f"Checksum mismatch after upload: '{target_path}'")
+            except Exception as e:
+                logging.error(f"Error uploading '{source_path}': {repr(e)}")
 
 def _copy_irods_to_local(session, source, target, objects, dry_run, verify_checksum):
     for object in objects:
@@ -379,10 +380,9 @@ def _copy_irods_to_local(session, source, target, objects, dry_run, verify_check
         if dry_run:
             print(f"  {object.path}  {object.size}")
         else:
-            _=download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
-            if verify_checksum and object.checksum != _calc_checksum(target_path):
-                logging.warning(f"Checkum mismatch after download: '{target_path}'")
-            
-
-    if dry_run:
-        print()
+            try:
+                _=download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
+                if verify_checksum and object.checksum != _calc_checksum(target_path):
+                    logging.warning(f"Checksum mismatch after download: '{target_path}'")
+            except Exception as e:
+                logging.error(f"Error downloading from '{source_path}': {repr(e)}")
