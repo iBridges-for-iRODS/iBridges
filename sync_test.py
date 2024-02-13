@@ -32,7 +32,7 @@ max_level=1
 max_level=None
 
 dry_run=False
-dry_run=True
+# dry_run=True
 ignore_checksum=False
 # ignore_checksum=True
 copy_empty_folders=True

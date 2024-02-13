@@ -170,6 +170,9 @@ class FolderObject:
     copy_empty_folders  
 """
 
+log=logging.getLogger()
+log.setLevel(logging.INFO)
+
 def sync(session,
          source,
          target,
@@ -181,6 +184,8 @@ def sync(session,
 
     assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
     assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
+
+    log.info(f"Syncing '{source}' --> '{target}'{' (dry run)' if dry_run else ''}")
 
     if isinstance(source, IrodsPath):
         assert source.collection_exists(), \
@@ -322,6 +327,8 @@ def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=Fa
 def _create_irods_collections(session, target, collections, dry_run, copy_empty_folders):
     if dry_run:
         print("Will create collection(s):")
+    else:
+        pbar=tqdm(desc='Creating collections', total=len([x for x in collections if copy_empty_folders or not x.is_empty()]))
 
     for collection in collections:
         if collection.is_empty() and not copy_empty_folders:
@@ -333,10 +340,13 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
             print(f"  {full_path}")
         else:
             _=create_collection(session, str(full_path))
+            pbar.update(1)
 
 def _create_local_folders(target, folders, dry_run, copy_empty_folders):
     if dry_run:
         print("will create folder(s):")
+    else:
+        pbar=tqdm(desc='Creating folders', total=len([x for x in folders if copy_empty_folders or not x.is_empty()]))
 
     for folder in folders:
         if folder.is_empty() and not copy_empty_folders:
@@ -348,10 +358,13 @@ def _create_local_folders(target, folders, dry_run, copy_empty_folders):
             print(f"  {full_path}")
         else:
             full_path.mkdir(parents=True, exist_ok=True)
+            pbar.update(1)
 
 def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksum):
     if dry_run:
-        print(f"Will copy from '{source}' to '{target}':")
+        print(f"Will upload from '{source}' to '{target}':")
+    else:
+        pbar=tqdm(desc='Uploading', total=sum([x.size for x in files]))
 
     for file in files:
         source_path=Path(source) / file.path
@@ -360,23 +373,20 @@ def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksu
             print(f"  {file.path}  {file.size}")
         else:
             try:
-                _=upload(session=session, local_path=source_path, irods_path=target_path, overwrite=True)
+                upload(session=session, local_path=source_path, irods_path=target_path, overwrite=True)
                 if verify_checksum:
                     object=get_dataobject(session, target_path)
                     if file.checksum != (object.checksum if len(object.checksum)>0 else object.chksum()):
-                        logging.warning(f"Checksum mismatch after upload: '{target_path}'")
+                        log.warning(f"Checksum mismatch after upload: '{target_path}'")
+                pbar.update(file.size)
             except Exception as e:
-                logging.error(f"Error uploading '{source_path}': {repr(e)}")
+                log.error(f"Error uploading '{source_path}': {repr(e)}")
 
 def _copy_irods_to_local(session, source, target, objects, dry_run, verify_checksum):
     if dry_run:
-        print(f"Will copy from '{source}' to '{target}':")
-
-    for object in objects:
-        print(object)
-        exit()
-    exit()
-    pbar = tqdm(desc='download', total=1)
+        print(f"Will download from '{source}' to '{target}':")
+    else:
+        pbar=tqdm(desc='Downloading', total=sum([x.size for x in objects]))
 
     for object in objects:
         target_path=Path(target) / object.path
@@ -385,9 +395,9 @@ def _copy_irods_to_local(session, source, target, objects, dry_run, verify_check
             print(f"  {object.path}  {object.size}")
         else:
             try:
-                _=download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
+                download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
                 if verify_checksum and object.checksum != _calc_checksum(target_path):
-                    logging.warning(f"Checksum mismatch after download: '{target_path}'")
-                os.unlink(target_path)
+                    log.warning(f"Checksum mismatch after download: '{target_path}'")
+                pbar.update(object.size)
             except Exception as e:
-                logging.error(f"Error downloading from '{source_path}': {repr(e)}")
+                log.error(f"Error downloading from '{source_path}': {repr(e)}")
