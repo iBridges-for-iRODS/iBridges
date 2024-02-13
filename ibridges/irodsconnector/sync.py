@@ -1,6 +1,7 @@
 import base64
 import os
 import logging
+from tqdm import tqdm
 from pathlib import Path
 from hashlib import sha256
 from ibridges.utils.path import IrodsPath
@@ -372,6 +373,12 @@ def _copy_irods_to_local(session, source, target, objects, dry_run, verify_check
         print(f"Will copy from '{source}' to '{target}':")
 
     for object in objects:
+        print(object)
+        exit()
+    exit()
+    pbar = tqdm(desc='download', total=1)
+
+    for object in objects:
         target_path=Path(target) / object.path
         source_path=str(source / object.path)
         if dry_run:
@@ -381,5 +388,6 @@ def _copy_irods_to_local(session, source, target, objects, dry_run, verify_check
                 _=download(session=session, irods_path=source_path, local_path=target_path, overwrite=True)
                 if verify_checksum and object.checksum != _calc_checksum(target_path):
                     logging.warning(f"Checksum mismatch after download: '{target_path}'")
+                os.unlink(target_path)
             except Exception as e:
                 logging.error(f"Error downloading from '{source_path}': {repr(e)}")
