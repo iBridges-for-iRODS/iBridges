@@ -1,107 +1,47 @@
-import base64
 import os
+import base64
 import logging
 from tqdm import tqdm
 from pathlib import Path
 from hashlib import sha256
 from ibridges.utils.path import IrodsPath
 from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, create_collection, upload, download
-from pprint import pprint
-
-
-# now just doing folder --> collection (and vv), not files, --> collection. do that too?
-# what to do if the target (does not) exists? create & copy or fail (if not), copy to tagregt/source or copy content (if does exist)
-
-# not doing:
-#   --link - ignore symlink --> can we make that default?
-#   -a   synchronize to all replicas if the target is an iRODS dataobject/collection.
-#   --age age_in_minutes - The maximum age of the source copy in minutes for sync.
-
-# do we want to support sync iRODS -> iRODS?
 
 """
-Usage: irsync [-rahKsvV] [-N numThreads] [-R resource] [--link] [--age age_in_minutes]
-          sourceFile|sourceDirectory [....] targetFile|targetDirectory
- 
 Synchronize the data between a local copy (local file system) and
-the copy stored in iRODS or between two iRODS copies. The command can be 
-in one of the three modes  : synchronization of data from the client's
-local file system to iRODS, from iRODS to the local file system, or from
-one iRODS path to another iRODS path. The mode is determined by
-the way the sourceFile|sourceDirectory and targetFile|targetDirectory are
-specified. Files and directories prepended with 'i:' are iRODS files and
-collections. Local files and directories are specified without any prefix.
-For example, the command:
- 
-     irsync -r foo1 i:foo2
- 
-synchronizes recursively the data from the local directory
-foo1 to the iRODS collection foo2 and the command:
- 
-     irsync -r i:foo1 foo2
- 
-synchronizes recursively the data from the iRODS collection
-foo1 to the local directory foo2.
- 
-     irsync -r i:foo1 i:foo2
- 
-synchronizes recursively the data from the iRODS collection foo1 to another
-iRODS collection foo2.
- 
-The command compares the checksum values and file sizes of the source
-and target files to determine whether synchronization is needed. Therefore,
-the command will run faster if the checksum value for the specific iRODS file,
-no matter whether it is a source or target, already exists and is registered
-with iCAT. This can be achieved by using the -k or -K options of the iput
-command at the time of  ingestion, or by using the ichksum command after the
-data have already been ingested into iRODS.
-If the -s option is used, only the file size (instead of the the size and
-checksum value) is used for determining whether synchronization is needed.
-This mode gives a faster operation but the result is less accurate.
- 
-The command accepts multiple sourceFiles|sourceDirectories and a single
-targetFile|targetDirectory. It pretty much follows the syntax of the UNIX
-cp command with one exception- irsync of a single source directory to a 
-single target directory. In UNIX, the command:
- 
-     cp -r foo1 foo2
- 
-has a different meaning depending on whether the target directory foo2 
-exists. If the target directory exists, the content of source directory foo1
-is copied to the target directory foo2/foo1. But if the target directory
-does not exist, the content is copied to the target directory foo2.
- 
-With the irsync command,
- 
-     irsync -r foo1 i:foo2
- 
-always means the synchronization of the local directory foo1 to collection
-foo2, no matter whether foo2 exists.
- 
- -K  verify checksum - calculate and verify the checksum on the data
- -N  numThreads - the number of threads to use for the transfer. A value of
-       0 means no threading. By default (-N option not used) the server
-       decides the number of threads to use.
- -R  resource - specifies the target resource. This can also be specified in
-       your environment or via a rule set up by the administrator.
- -r  recursive - store the whole subdirectory
- -v  verbose
- -V  Very verbose
- -h  this help
- -l  lists all the source files that needs to be synchronized
-       (including their filesize in bytes) with respect to the target
-       without actually doing the synchronization.
- --link - ignore symlink. Valid only for rsync from local host to iRODS.
- -a   synchronize to all replicas if the target is an iRODS dataobject/collection.
- -s   use the size instead of the checksum value for determining
-      synchronization.
- --age age_in_minutes - The maximum age of the source copy in minutes for sync.
-      i.e., age larger than age_in_minutes will not be synced.
- 
-Also see 'irepl' for the replication and synchronization of physical
-copies (replica).
+the copy stored in iRODS. The command can be  in one of the two 
+modes: synchronization of data from the client's local file system
+to iRODS, or from iRODS to the local file system. The mode is determined
+by the type of the values for `source` and `target` (IrodsPath or str/Path).
 
-iRODS Version 4.3.0                irsync
+Source and target must be an existing local folder, and an existing 
+iRODS collection. An exception will be raised if either doesn't exist.
+
+The command compares the checksum values and file sizes of the source
+and target files to determine whether synchronization is needed. If 
+the `ignore_checksum` option is set to True, only the file size
+(instead of the the size and checksum value) is used for determining 
+whether synchronization is needed. This mode gives a potentially faster
+operation but the result is less accurate.
+ 
+The `max_level` option controls the depth up to which the file tree will
+be synchronized. With `max_level` set to None (default), there is no limit
+(full recursive synchronization). A max level of 1 synchronizes only the
+source's root, max level 2 also includes the first set of 
+subfolders/subcollections and their contents, etc.
+
+The `copy_empty_folders` option controls whether folders/collections that
+contain no files or subfolders/subcollections will b synchronized (default
+False).
+
+The `dry_run` option lists all the source files and folders that need to
+be synchronized without actually doing the synchronization.
+
+The `verify_checksum` option will calculate and verify the checksum on the
+data after up- or downloading. A checksum mismatch will generate an error,
+but will not abort the synchronization process (default True).
+
+Lastly, `session` requires an authorized instance of `ibridges.Session`.
 
 """
 
@@ -159,17 +99,6 @@ class FolderObject:
     def __hash__(self):
         return hash(self.path)
 
-"""
-    session             ibridges Session
-    source              folder or a iRODS collection (not individual files, which is different from irsync)
-    target              iRODS collection or folder
-    max_level           -r  recursive - store the whole subdirectory (max_level=None)
-    dry_run             -l  lists all the source files that needs to be synchronized without actually doing the synchronization.
-    ignore_checksum     -s  use the size instead of the checksum value for determining synchronization.
-    verify_checksum     -K  verify checksum - calculate and verify the checksum on the data
-    copy_empty_folders  
-"""
-
 log=logging.getLogger()
 log.setLevel(logging.INFO)
 
@@ -180,7 +109,7 @@ def sync(session,
          dry_run=False,
          ignore_checksum=False,
          copy_empty_folders=False,
-         verify_checksum=False) -> None:  
+         verify_checksum=True) -> None:  
 
     assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), "Either source or target should be an iRODS path."
     assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), "iRODS to iRODS copying is not supported."
@@ -193,15 +122,13 @@ def sync(session,
         src_files, src_folders=_get_irods_tree(
             coll=get_collection(session=session, path=source),
             max_level=max_level,
-            ignore_checksum=ignore_checksum
-            )
+            ignore_checksum=ignore_checksum)
     else:
         assert Path(source).is_dir(), "Source folder '%s' does not exist" % source
         src_files, src_folders=_get_local_tree(
             path=source,
             max_level=max_level,
-            ignore_checksum=ignore_checksum
-            )
+            ignore_checksum=ignore_checksum)
 
     if isinstance(target, IrodsPath):
         assert target.collection_exists(), \
@@ -209,15 +136,13 @@ def sync(session,
         tgt_files, tgt_folders=_get_irods_tree(
             coll=get_collection(session=session, path=target),
             max_level=max_level,
-            ignore_checksum=ignore_checksum
-            )
+            ignore_checksum=ignore_checksum)
     else:
         assert Path(target).is_dir(), "Target folder '%s' does not exist" % target
         tgt_files, tgt_folders=_get_local_tree(
             path=target,
             max_level=max_level,
-            ignore_checksum=ignore_checksum
-            )
+            ignore_checksum=ignore_checksum)
 
     # compares the relative paths
     folders_diff=set(src_folders).difference(set(tgt_folders))

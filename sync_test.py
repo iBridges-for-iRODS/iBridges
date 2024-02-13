@@ -15,15 +15,8 @@ target_path='research-test-christine/books'
 
 source_path='research-test-christine/books'
 
-
 # extend the home path with a new sub collection
 target = IrodsPath(session, "~", target_path)
-# source = IrodsPath(session, "~", source_path)
-
-# source='/data/ibridges'
-# target='/data/ibridges'
-
-
 
 source, target=target, source
 
@@ -38,8 +31,6 @@ ignore_checksum=False
 copy_empty_folders=True
 verify_checksum=True
 
-
-
 sync(
     source=source,
     target=target,
@@ -51,32 +42,10 @@ sync(
     copy_empty_folders=copy_empty_folders)
 
 
+# now just doing folder --> collection (and vv), not files, --> collection. do that too?
 
-exit()
+# not doing:
+#   --link - ignore symlink --> can we make that default?
+#   -a   synchronize to all replicas if the target is an iRODS dataobject/collection.
+#   --age age_in_minutes - The maximum age of the source copy in minutes for sync.
 
-files, folders=ibs.get_irods_tree(path=ibs.target)
-
-for folder in folders:
-    print(folder.path)
-
-
-print()
-
-for file in files:
-    print(file.name, file.path, file.size, file.checksum)
-
-print()
-
-files, folders=ibs.get_filesystem_tree(path=source)
-
-for file in files:
-    print(file.name, file.path, file.size, file.checksum)
-
-for folder in folders:
-    print(folder.path)
-
-
-
-"""
-    max_level: 1 for not-recursive, None for (fully) recursive. test with dry_run
-"""
