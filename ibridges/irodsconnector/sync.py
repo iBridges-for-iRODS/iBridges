@@ -333,9 +333,6 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
         else:
             _=create_collection(session, str(full_path))
 
-    if dry_run:
-        print()
-
 def _create_local_folders(target, folders, dry_run, copy_empty_folders):
     if dry_run:
         print("will create folder(s):")
@@ -350,9 +347,6 @@ def _create_local_folders(target, folders, dry_run, copy_empty_folders):
             print(f"  {full_path}")
         else:
             full_path.mkdir(parents=True, exist_ok=True)
-
-    if dry_run:
-        print()
 
 def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksum):
     if dry_run:
@@ -374,6 +368,9 @@ def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksu
                 logging.error(f"Error uploading '{source_path}': {repr(e)}")
 
 def _copy_irods_to_local(session, source, target, objects, dry_run, verify_checksum):
+    if dry_run:
+        print(f"Will copy from '{source}' to '{target}':")
+
     for object in objects:
         target_path=Path(target) / object.path
         source_path=str(source / object.path)

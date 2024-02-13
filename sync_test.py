@@ -25,7 +25,7 @@ target = IrodsPath(session, "~", target_path)
 
 
 
-# source, target=target, source
+source, target=target, source
 
 # None = recursive
 max_level=1
