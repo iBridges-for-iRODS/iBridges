@@ -1,7 +1,7 @@
 import os
 from ibridges import Session
 from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.sync import IBridgesSync
+from ibridges.irodsconnector.sync import sync
 
 session = Session(irods_env_path=os.path.expanduser("~/.irods/irods_environment.json"))
 
@@ -14,10 +14,6 @@ target_path='research-test-christine/books'
 
 
 source_path='research-test-christine/books'
-
-#TODO
-# does it need to create the remote root folder(s) it's syncing to?
-
 
 
 # extend the home path with a new sub collection
@@ -34,23 +30,25 @@ source, target=target, source
 # None = recursive
 max_level=1
 max_level=None
-dry_run=True
+
 dry_run=False
 ignore_checksum=True
-ignore_checksum=False
-copy_empty_folders=False
-# copy_empty_folders=True
+copy_empty_folders=True
+verify_checksum=True
 
 
 
-ibs=IBridgesSync(
-       source=source,
-       target=target,
-       session=session,
-       max_level=max_level,      
-       dry_run=dry_run,
-       ignore_checksum=ignore_checksum,
-       copy_empty_folders=copy_empty_folders)
+sync(
+    source=source,
+    target=target,
+    session=session,
+    max_level=max_level,      
+    dry_run=dry_run,
+    ignore_checksum=ignore_checksum,
+    verify_checksum=verify_checksum,
+    copy_empty_folders=copy_empty_folders)
+
+
 
 exit()
 
