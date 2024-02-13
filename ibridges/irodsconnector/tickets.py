@@ -1,6 +1,8 @@
 """ ticket operations
 """
-from typing import Optional
+from collections import namedtuple
+from datetime import date, datetime
+from typing import Iterable, Optional, Union
 
 import irods.ticket
 from irods.models import TicketQuery
@@ -8,6 +10,7 @@ from irods.models import TicketQuery
 import ibridges.irodsconnector.keywords as kw
 from ibridges.irodsconnector.session import Session
 
+TicketData = namedtuple('TicketData', ["name", "type", "path", "expiration_date"])
 
 class Tickets():
     """Irods Ticket operations """
@@ -22,11 +25,11 @@ class Tickets():
 
         """
         self.session = session
-        self._all_tickets = self.all_tickets(update = True)
+        self._all_tickets = self.update_tickets()
 
     def create_ticket(self, obj_path: str,
                       ticket_type: Optional[str] = 'read',
-                      expiry_string: Optional[str] = None) -> tuple:
+                      expiry_date: Optional[Union[str, datetime, date]] = None) -> tuple:
         """Create an iRODS ticket to allow read access to the object
         referenced by `obj_path`.
 
@@ -49,19 +52,30 @@ class Tickets():
         ticket = irods.ticket.Ticket(self.session.irods_session)
         ticket.issue(ticket_type, obj_path)
         expiration_set = False
-        if expiry_string is not None:
+        if expiry_date is not None:
+            if isinstance(expiry_date, date):
+                expiry_date = datetime.combine(expiry_date, datetime.min.time())
+            if isinstance(expiry_date, datetime):
+                expiry_date = expiry_date.strftime('%Y-%m-%d.%H:%M:%S')
+            if not isinstance(expiry_date, str):
+                raise ValueError("Expecting datetime, date or string type for 'expiry_date' "
+                                 f"argument, got {type(expiry_date)}")
             try:
-                expiration_set = ticket.modify('expire', expiry_string) == ticket
+                expiration_set = ticket.modify('expire', expiry_date) == ticket
             except Exception as error:
                 self.delete_ticket(ticket)
                 raise ValueError('Could not set expiration date') from error
-        self.all_tickets(update=True)
+        self.update_tickets()
         return ticket.ticket, expiration_set
+
+    def __iter__(self) -> Iterable[TicketData]:
+        for tick_data in self.update_tickets():
+            yield tick_data
 
     @property
     def all_ticket_strings(self) -> list[str]:
         """Get the names of all tickets."""
-        return [name for name, _, _, _ in self.all_tickets()]
+        return [tick_data.name for tick_data in self._all_tickets]
 
     def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
         """Obtain a ticket using its string identifier."""
@@ -74,11 +88,11 @@ class Tickets():
         """Delete irods ticket."""
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
-            self.all_tickets(update=True)
-        if check:
+            self.update_tickets()
+        elif check:
             raise KeyError(f"Cannot delete ticket: ticket '{ticket}' does not exist (anymore).")
 
-    def all_tickets(self, update: bool = False) -> list[tuple[str, str, str, str]]:
+    def update_tickets(self) -> list[TicketData]:
         """retrieves all tickets and their metadata belonging to the user.
 
         Parameters
@@ -92,25 +106,24 @@ class Tickets():
             [(ticket string, ticket type, irods obj/coll path, expiry data in epoche)]
         """
         user = self.session.username
-        if update or self._all_tickets is None:
-            self._all_tickets = []
-            for row in self.session.irods_session.query(TicketQuery.Ticket).filter(
-                    TicketQuery.Owner.name == user):
-                self._all_tickets.append((row[TicketQuery.Ticket.string],
-                                          row[TicketQuery.Ticket.type],
-                                          self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
-                                          row[TicketQuery.Ticket.expiry_ts]
-                                          ))
+        self._all_tickets = []
+        for row in self.session.irods_session.query(TicketQuery.Ticket).filter(
+                TicketQuery.Owner.name == user):
+            self._all_tickets.append(
+                TicketData(row[TicketQuery.Ticket.string],
+                           row[TicketQuery.Ticket.type],
+                           self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
+                           datetime.fromtimestamp(int(row[TicketQuery.Ticket.expiry_ts]))
+                ))
         return self._all_tickets
 
     def clear(self):
         """Delete all tickets.
         """
-        self.all_tickets(update=True)
-        for tick_data in self._all_tickets:
-            tick_str = tick_data[0]
-            tick = self.get_ticket(tick_str)
+        for tick_data in self.update_tickets():
+            tick = self.get_ticket(tick_data.name)
             self.delete_ticket(tick)
+        self.update_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
         """
