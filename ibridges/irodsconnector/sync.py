@@ -31,11 +31,11 @@ source's root, max level 2 also includes the first set of
 subfolders/subcollections and their contents, etc.
 
 The `copy_empty_folders` option controls whether folders/collections that
-contain no files or subfolders/subcollections will b synchronized (default
+contain no files or subfolders/subcollections will be synchronized (default
 False).
 
 The `dry_run` option lists all the source files and folders that need to
-be synchronized without actually doing the synchronization.
+be synchronized without actually performing the synchronization.
 
 The `verify_checksum` option will calculate and verify the checksum on the
 data after up- or downloading. A checksum mismatch will generate an error,
@@ -265,7 +265,7 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
         full_path=target / collection.path
 
         if dry_run:
-            print(f"  {full_path}")
+            print(f"  {full_path} {collection.n_files}/{collection.n_folder}")
         else:
             _=create_collection(session, str(full_path))
             pbar.update(1)
