@@ -1,0 +1,18 @@
+{
+"irods_host": "provider.yoda",
+"irods_port": 8247,
+"irods_user_name": "technicaladmin",
+"irods_password": "test",
+"irods_home": "/tempZone/home/rods",
+"irods_cwd": "/tempZone/home/rods",
+"irods_zone_name": "tempZone",
+"irods_client_server_negotiation": "request_server_negotiation",
+"irods_client_server_policy": "CS_NEG_REQUIRE",
+"irods_default_hash_scheme": "SHA256",
+"irods_default_resource": "irodsResc",
+"irods_encryption_algorithm": "AES-256-CBC",
+"irods_encryption_key_size": 32,
+"irods_encryption_num_hash_rounds": 16,
+"irods_encryption_salt_size": 8,
+"irods_ssl_verify_server": "none"
+}

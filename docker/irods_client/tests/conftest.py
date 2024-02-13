@@ -45,7 +45,8 @@ def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
     ipath = IrodsPath(session, "~")
     perm = Permissions(session, get_collection(session, ipath))
-    perm.set("own")
+    if config.get("set_home_perm", True):
+        perm.set("own")
     yield session
     del session
 
