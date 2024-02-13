@@ -272,7 +272,7 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
 
 def _create_local_folders(target, folders, dry_run, copy_empty_folders):
     if dry_run:
-        print("will create folder(s):")
+        print("Will create folder(s):")
     else:
         pbar=tqdm(desc='Creating folders', total=len([x for x in folders if copy_empty_folders or not x.is_empty()]))
 
