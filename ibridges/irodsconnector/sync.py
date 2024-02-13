@@ -145,9 +145,14 @@ def sync(session,
             ignore_checksum=ignore_checksum)
 
     # compares the relative paths
-    folders_diff=set(src_folders).difference(set(tgt_folders))
+    folders_diff=sorted(
+        set(src_folders).difference(set(tgt_folders)), 
+        key=lambda x: (x.path.count('/'), x.path))
+
     # compares the checksum, file size, file name & relative path
-    files_diff=set(src_files).difference(set(tgt_files))
+    files_diff=sorted(
+        set(src_files).difference(set(tgt_files)), 
+        key=lambda x: (x.path.count('/'), x.path))
 
     if isinstance(target, IrodsPath):
         _create_irods_collections(
@@ -196,7 +201,7 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
     for root, dirs, files in os.walk(path):
         for file in files:
             full_path=Path(f"{root}{os.sep}{file}")
-            rel_path=str(full_path)[len(path):].lstrip(os.sep)
+            rel_path=str(full_path)[len(str(path)):].lstrip(os.sep)
             if max_level is None or rel_path.count(os.sep)<max_level:
                 objects.append(FileObject(
                     name=file, 
@@ -206,14 +211,13 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
                     ignore_checksum=ignore_checksum))
 
         collections.extend([FolderObject(
-                fix_local_path(f"{root}{os.sep}{dir}"[len(path):].lstrip(os.sep)),
+                fix_local_path(f"{root}{os.sep}{dir}"[len(str(path)):].lstrip(os.sep)),
                 len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_file()]),
                 len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_dir()])
             )
             for dir in dirs if max_level is None or dir.count(os.sep)<max_level-1])
 
-    return sorted(objects, key=lambda x: (str(x.path).count(os.sep), str(x))), \
-        sorted(collections, key=lambda x: (str(x.path).count(os.sep), str(x)))
+    return objects, collections
 
 def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=False):
     
@@ -246,8 +250,7 @@ def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=Fa
     else:
         collections=[]
 
-    return sorted(objects, key=lambda x: (x.path.count('/'), x.path)), \
-        sorted(collections, key=lambda x: (x.path.count('/'), x.path))
+    return objects, collections
 
 def _create_irods_collections(session, target, collections, dry_run, copy_empty_folders):
     if dry_run:
