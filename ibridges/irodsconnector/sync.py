@@ -69,8 +69,8 @@ class FolderObject:
     def __hash__(self):
         return hash(self.path)
 
-log=logging.getLogger()
-log.setLevel(logging.INFO)
+# log=logging.getLogger()
+# log.setLevel(logging.INFO)
 
 def sync(session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
@@ -123,7 +123,7 @@ def sync(session,   #pylint: disable=too-many-arguments
     assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), \
         "iRODS to iRODS copying is not supported."
 
-    log.info("Syncing '%s' --> '%s'%s", source, target, ' (dry run)' if dry_run else '')
+    # log.info("Syncing '%s' --> '%s'%s", source, target, ' (dry run)' if dry_run else '')
 
     if isinstance(source, IrodsPath):
         assert source.collection_exists(), \
@@ -269,7 +269,11 @@ def _get_irods_tree(coll: iRODSCollection,
 
     return objects, collections
 
-def _create_irods_collections(session, target, collections, dry_run, copy_empty_folders):
+def _create_irods_collections(session: Session,
+                              target: IrodsPath,
+                              collections: list[FolderObject],
+                              dry_run: bool,
+                              copy_empty_folders: bool):
     if dry_run:
         print("Will create collection(s):")
 
@@ -284,7 +288,10 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
         else:
             _=create_collection(session, str(full_path))
 
-def _create_local_folders(target, folders, dry_run, copy_empty_folders):
+def _create_local_folders(target: Path,
+                          folders: list[FolderObject],
+                          dry_run: bool,
+                          copy_empty_folders: bool):
     if dry_run:
         print("Will create folder(s):")
 
@@ -325,10 +332,13 @@ def _copy_local_to_irods(session: Session,
                     obj=get_dataobject(session, target_path)
                     if file.checksum != \
                             (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
-                        log.warning("Checksum mismatch after upload: '%s'", target_path)
+                        # log.warning("Checksum mismatch after upload: '%s'", target_path)
+                        print("WARNING: Checksum mismatch after upload: '%s'", target_path)
+                        pass
                 pbar.update(file.size)
             except Exception as err:
-                log.error("Error uploading '%s': %s", source_path, repr(err))
+                # log.error("Error uploading '%s': %s", source_path, repr(err))
+                print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
 
 def _copy_irods_to_local(session: Session,
                          source: IrodsPath,
@@ -353,7 +363,9 @@ def _copy_irods_to_local(session: Session,
                          local_path=target_path,
                          overwrite=True)
                 if verify_checksum and obj.checksum != _calc_checksum(target_path):
-                    log.warning("Checksum mismatch after download: '%s'", target_path)
+                    # log.warning("Checksum mismatch after download: '%s'", target_path)
+                    print("WARNING: Checksum mismatch after upload: '%s'", target_path)
                 pbar.update(obj.size)
             except Exception as err:
-                log.error("Error downloading from '%s': %s", source_path, repr(err))
+                # log.error("Error downloading '%s': %s", source_path, repr(err))
+                print("ERROR: Downloading '%s' failed: %s", source_path, repr(err))
