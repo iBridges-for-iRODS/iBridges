@@ -5,10 +5,10 @@ local file system to iRODS, or from iRODS to the local file system. It broadly m
 behaviour of the irsync module of the icommands command line tool.
 """
 
+from __future__ import annotations
 import os
 import base64
 import logging
-from __future__ import annotations
 from typing import Union
 from pathlib import Path
 from hashlib import sha256
@@ -238,7 +238,7 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
 
     for root, dirs, files in os.walk(path):
         for file in files:
-            full_path=Path(f"{root}{os.sep}{file}")
+            full_path=Path(root) / file
             rel_path=str(full_path)[len(str(path)):].lstrip(os.sep)
             if max_level is None or rel_path.count(os.sep)<max_level:
                 objects.append(FileObject(
@@ -249,7 +249,7 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
                     ignore_checksum=ignore_checksum))
 
         collections.extend([FolderObject(
-                fix_local_path(f"{root}{os.sep}{dir}"[len(str(path)):].lstrip(os.sep)),
+                fix_local_path(str(Path(root) / dir)[len(str(path)):].lstrip(os.sep)),
                 len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_file()]),
                 len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_dir()])
             )
