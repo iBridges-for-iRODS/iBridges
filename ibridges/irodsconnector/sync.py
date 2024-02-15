@@ -8,6 +8,8 @@ behaviour of the irsync module of the icommands command line tool.
 import os
 import base64
 import logging
+from __future__ import annotations
+from typing import Union
 from pathlib import Path
 from hashlib import sha256
 from tqdm import tqdm
@@ -17,7 +19,19 @@ from ibridges.irodsconnector.data_operations import get_collection, get_dataobje
 
 class FileObject:
     """ Object to store attributes from local and remote files. """
-    def __init__(self, name, path, size, checksum, ignore_checksum=False) -> None:  #pylint: disable=too-many-arguments
+
+    name=None
+    path=None
+    size=0
+    checksum=None
+    ignore_checksum=False
+
+    def __init__(self, 
+                 name: str,
+                 path: str, 
+                 size: int, 
+                 checksum: str, 
+                 ignore_checksum: bool=False) -> None:  #pylint: disable=too-many-arguments
         self.name=name
         self.path=path
         self.size=size
@@ -28,7 +42,7 @@ class FileObject:
         return f"{self.__class__.__name__}(name='{self.name}', path='{self.path}', \
             size={self.size}, checksum='{self.checksum}, ignore_checksum={self.ignore_checksum})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object):
         """
         Allows comparing with other instances, including or ignoring the
         checksum depending on the configuration of the object.
@@ -54,7 +68,15 @@ class FileObject:
 
 class FolderObject:
     """ Object to store attributes from local and remote folders/collections. """
-    def __init__(self, path, n_files, n_folders) -> None:
+
+    path=None
+    n_files=0
+    n_folders=0
+
+    def __init__(self,
+                 path: str,
+                 n_files: int,
+                 n_folders: int) -> None:
         self.path=path            # path (relative to source or target root)
         self.n_files=n_files      # number of files in folder
         self.n_folders=n_folders  # number of subfolders in folder
@@ -67,7 +89,7 @@ class FolderObject:
         return f"{self.__class__.__name__}(path='{self.path}', n_files={self.n_files}, \
             n_folders={self.n_folders})"
 
-    def __eq__(self, other):
+    def __eq__(self, other: object):
         if not isinstance(self,type(other)):
             return False
 
@@ -80,13 +102,13 @@ log=logging.getLogger()
 log.setLevel(logging.INFO)
 
 def sync(session,   #pylint: disable=too-many-arguments
-         source,
-         target,
-         max_level=None,
-         dry_run=False,
-         ignore_checksum=False,
-         copy_empty_folders=False,
-         verify_checksum=True) -> None:
+         source: Union[str|IrodsPath|Path],
+         target: Union[str|IrodsPath|Path],
+         max_level:int = None,
+         dry_run:bool = False,
+         ignore_checksum:bool = False,
+         copy_empty_folders:bool = False,
+         verify_checksum:bool = True) -> None:
 
     """
     Synchronize the data between a local copy (local file system) and
