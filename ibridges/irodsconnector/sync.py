@@ -47,7 +47,7 @@ class FileObject:
         Allows comparing with other instances, including or ignoring the
         checksum depending on the configuration of the object.
         """
-        if not  isinstance(other, FileObject):
+        if not isinstance(other, FileObject):
             return False
 
         if self.ignore_checksum:
@@ -90,7 +90,7 @@ class FolderObject:
             n_folders={self.n_folders})"
 
     def __eq__(self, other: object):
-        if not isinstance(self,type(other)):
+        if not isinstance(other, FolderObject):
             return False
 
         return self.path==other.path
@@ -354,7 +354,12 @@ def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksu
             except Exception as err:
                 log.error("Error uploading '%s': %s", source_path, repr(err))
 
-def _copy_irods_to_local(session, source, target, objects, dry_run, verify_checksum):  #pylint: disable=too-many-arguments
+def _copy_irods_to_local(session,
+                         source: Path,
+                         target: IrodsPath,
+                         objects: list[FileObject],
+                         dry_run: bool,
+                         verify_checksum: bool):  #pylint: disable=too-many-arguments
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
     else:
