@@ -1,0 +1,97 @@
+name: Run integration tests against Yoda
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    if: |
+      ${{ ! contains(github.event.head_commit.message, '#nointegrationtests') &&
+            ( github.event_name == 'push' ||
+              github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+            )
+       }}
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.9
+
+    - name: Install API test dependencies
+      run: |
+        pip3 install --user pytest
+        pip3 install --user ./
+        sudo apt install -y docker-compose
+
+    - name: Clone Yoda repo for Docker Setup
+      run: |
+        git clone -b development --single-branch https://github.com/UtrechtUniversity/yoda.git
+
+    - name: Prepare hosts file for integration tests
+      run: |
+        sudo echo "127.0.0.1 provider.yoda portal.yoda" | sudo tee -a /etc/hosts
+
+    - name: Start Dockerized Yoda
+      run: |
+        cd yoda/docker/compose
+        docker-compose pull
+        ../up.sh -d
+
+    - name: Wait until Dockerized setup is ready
+      shell: bash
+      run: |
+        until $(curl -k --output /dev/null --silent --head --fail https://portal.yoda:8443 ); do printf '.' ; sleep 1; done
+        cd yoda/docker/compose
+        docker exec provider.yoda sh -c 'while ! pgrep irodsServer > /dev/null  ; do echo Waiting for iRODS to start ...  ; sleep 1; done'
+
+    - name: Pull and install latest version of ruleset
+      shell: bash
+      run: |
+        cd yoda/docker/compose
+        docker exec provider.yoda sh -c 'set -x ; cd /etc/irods/yoda-ruleset && sudo chown irods:irods -R /etc/irods/yoda-ruleset && sudo -u irods git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" && sudo -u irods git pull && sudo -u irods git status'
+        docker exec provider.yoda sh -c "set -x ; cd /etc/irods/yoda-ruleset && sudo -u irods git checkout development && sudo -u irods python -m pip --no-cache-dir install --user -r /etc/irods/yoda-ruleset/requirements.txt && sudo -u irods make && sudo -u irods make install"
+        docker exec provider.yoda sh -c "set -x ; sudo -u irods /var/lib/irods/irodsctl restart"
+
+    - name: Pull and install latest version of portal
+      shell: bash
+      run: |
+        cd yoda/docker/compose
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git config remote.origin.fetch  "+refs/heads/*:refs/remotes/origin/*" && git pull'
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout development || git checkout development'
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git status'
+        docker exec portal.yoda sh -c 'set -x ; touch /var/www/yoda/*.wsgi'
+
+    - name: Configure permissions for integration tests
+      shell: bash
+      run: |
+        cd yoda/docker/compose
+        docker exec provider.yoda sh -c 'set -x ; sudo -u irods ichmod own technicaladmin /tempZone/home/rods'
+
+    - name: Run integration tests
+      shell: bash
+      run: |
+        cd docker/irods_client
+        mkdir environment
+        cp environments/yoda/* environment
+        cp -R testdata /tmp
+        python3 -m pytest
+
+    - name: Output rodsLogs
+      if: failure()
+      run: |
+        docker exec provider.yoda sh -c 'set -x ; cat /var/lib/irods/log/rodsLog*'
+
+# Uncomment section below when needed for debugging.
+#
+#    - name: Setup tmate session for debugging
+#      uses: mxschmitt/action-tmate@v3
+#      if: ${{ failure() }}
+#      with:
+#        limit-access-to-actor: true
