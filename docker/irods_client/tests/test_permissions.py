@@ -22,14 +22,14 @@ def test_permissions(session, item_name, request, tmpdir):
         upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
     perm.set("own")
 
-    # Testing access for another user
-
-    assert len(list(perm)) == 1 # only one acl for rods
-    ipath = IrodsPath(session, item.path)
-    perm.set("read", user="testuser", zone=session.zone)
-    assert "testuser" in [p.user_name for p in perm]
-    assert ("testuser", "read_object") in [(p.user_name, p.access_name) for p in perm]
-    perm.set("write", user="testuser", zone=session.zone)
-    assert ("testuser", "modify_object") in [(p.user_name, p.access_name) for p in perm]
-    perm.set("null", user="testuser", zone=session.zone)
-    assert "testuser" not in [p.user_name for p in perm]
+    # Testing access for another user, only on plain irods
+    if not "set_home_perm" in config:
+        assert len(list(perm)) == 1 # only one acl for rods
+        ipath = IrodsPath(session, item.path)
+        perm.set("read", user="testuser", zone=session.zone)
+        assert "testuser" in [p.user_name for p in perm]
+        assert ("testuser", "read_object") in [(p.user_name, p.access_name) for p in perm]
+        perm.set("write", user="testuser", zone=session.zone)
+        assert ("testuser", "modify_object") in [(p.user_name, p.access_name) for p in perm]
+        perm.set("null", user="testuser", zone=session.zone)
+        assert "testuser" not in [p.user_name for p in perm]
