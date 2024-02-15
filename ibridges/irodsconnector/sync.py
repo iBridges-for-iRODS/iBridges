@@ -13,6 +13,7 @@ from typing import Union, NamedTuple
 from pathlib import Path
 from hashlib import sha256
 from tqdm import tqdm
+from ibridges import Session
 from ibridges.utils.path import IrodsPath
 from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, \
     create_collection, upload, download
@@ -286,7 +287,12 @@ def _create_local_folders(target, folders, dry_run, copy_empty_folders):
         else:
             full_path.mkdir(parents=True, exist_ok=True)
 
-def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksum):  #pylint: disable=too-many-arguments
+def _copy_local_to_irods(session: Session,
+                         source: Path,
+                         target: IrodsPath,
+                         files: list[FileObject],
+                         dry_run: bool,
+                         verify_checksum: bool) -> None:  #pylint: disable=too-many-arguments
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
     else:
@@ -312,12 +318,12 @@ def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksu
             except Exception as err:
                 log.error("Error uploading '%s': %s", source_path, repr(err))
 
-def _copy_irods_to_local(session,
-                         source: Path,
-                         target: IrodsPath,
+def _copy_irods_to_local(session: Session,
+                         source: IrodsPath,
+                         target: Path,
                          objects: list[FileObject],
                          dry_run: bool,
-                         verify_checksum: bool):  #pylint: disable=too-many-arguments
+                         verify_checksum: bool) -> None:  #pylint: disable=too-many-arguments
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
     else:
