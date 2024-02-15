@@ -16,7 +16,7 @@ from ibridges.irodsconnector.data_operations import get_collection, get_dataobje
     create_collection, upload, download
 
 class FileObject:
-    """ Object to store data from local and remote files. """
+    """ Object to store attributes from local and remote files. """
     def __init__(self, name, path, size, checksum, ignore_checksum=False) -> None:  #pylint: disable=too-many-arguments
         self.name=name
         self.path=path
@@ -53,7 +53,7 @@ class FileObject:
         return hash((self.name, self.path, self.size, self.checksum))
 
 class FolderObject:
-    """ Object to store data from local and remote folders/collections. """
+    """ Object to store attributes from local and remote folders/collections. """
     def __init__(self, path, n_files, n_folders) -> None:
         self.path=path            # path (relative to source or target root)
         self.n_files=n_files      # number of files in folder
