@@ -8,7 +8,7 @@ from ibridges.utils.path import IrodsPath
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_permissions(session, item_name, request, tmpdir):
+def test_permissions(session, item_name, request, tmpdir, config):
     item = request.getfixturevalue(item_name)
     perm = Permissions(session, item)
     ipath = IrodsPath(session, item.path)
@@ -30,6 +30,6 @@ def test_permissions(session, item_name, request, tmpdir):
         assert "testuser" in [p.user_name for p in perm]
         assert ("testuser", "read_object") in [(p.user_name, p.access_name) for p in perm]
         perm.set("write", user="testuser", zone=session.zone)
-        assert ("testuser", "modify_object") in [(p.user_name, p.access_name) for p in perm]
+        assert ("testuser", "modify_object") in [(p.user_name, p.access_name.replace(" ", "_")) for p in perm]
         perm.set("null", user="testuser", zone=session.zone)
         assert "testuser" not in [p.user_name for p in perm]
