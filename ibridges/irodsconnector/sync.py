@@ -118,10 +118,11 @@ def sync(session,   #pylint: disable=too-many-arguments
     Lastly, `session` requires an authorized instance of `ibridges.Session`.
     """
 
-    assert isinstance(source, IrodsPath) or isinstance(target, IrodsPath), \
-        "Either source or target should be an iRODS path."
-    assert not (isinstance(source, IrodsPath) and isinstance(target, IrodsPath)), \
-        "iRODS to iRODS copying is not supported."
+    if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
+        raise TypeError("Either source or target should be an iRODS path.")
+
+    if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
+        raise TypeError("iRODS to iRODS copying is not supported.")
 
     # log.info("Syncing '%s' --> '%s'%s", source, target, ' (dry run)' if dry_run else '')
 
