@@ -293,9 +293,6 @@ def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=Fa
 def _create_irods_collections(session, target, collections, dry_run, copy_empty_folders):
     if dry_run:
         print("Will create collection(s):")
-    else:
-        pbar=tqdm(desc='Creating collections',
-                  total=len([x for x in collections if copy_empty_folders or not x.is_empty()]))
 
     for collection in collections:
         if collection.is_empty() and not copy_empty_folders:
@@ -307,14 +304,10 @@ def _create_irods_collections(session, target, collections, dry_run, copy_empty_
             print(f"  {full_path} {collection.n_files}/{collection.n_folder}")
         else:
             _=create_collection(session, str(full_path))
-            pbar.update(1)
 
 def _create_local_folders(target, folders, dry_run, copy_empty_folders):
     if dry_run:
         print("Will create folder(s):")
-    else:
-        pbar=tqdm(desc='Creating folders',
-                  total=len([x for x in folders if copy_empty_folders or not x.is_empty()]))
 
     for folder in folders:
         if folder.is_empty() and not copy_empty_folders:
@@ -326,7 +319,6 @@ def _create_local_folders(target, folders, dry_run, copy_empty_folders):
             print(f"  {full_path}")
         else:
             full_path.mkdir(parents=True, exist_ok=True)
-            pbar.update(1)
 
 def _copy_local_to_irods(session, source, target, files, dry_run, verify_checksum):  #pylint: disable=too-many-arguments
     if dry_run:
