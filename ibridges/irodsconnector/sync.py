@@ -47,7 +47,7 @@ class FileObject:
         Allows comparing with other instances, including or ignoring the
         checksum depending on the configuration of the object.
         """
-        if not isinstance(self,type(other)):
+        if not  isinstance(other, FileObject):
             return False
 
         if self.ignore_checksum:
