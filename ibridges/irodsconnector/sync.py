@@ -72,8 +72,8 @@ log=logging.getLogger()
 log.setLevel(logging.INFO)
 
 def sync(session,   #pylint: disable=too-many-arguments
-         source: Union[str|IrodsPath|Path],
-         target: Union[str|IrodsPath|Path],
+         source: Union[str|Path|IrodsPath],
+         target: Union[str|Path|IrodsPath],
          max_level:int = None,
          dry_run:bool = False,
          ignore_checksum:bool = False,
@@ -132,7 +132,9 @@ def sync(session,   #pylint: disable=too-many-arguments
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        assert Path(source).is_dir(), f"Source folder '{source}' does not exist"
+        if isinstance(source, str):
+            source=Path(source)
+        assert source.is_dir(), f"Source folder '{source}' does not exist"
         src_files, src_folders=_get_local_tree(
             path=source,
             max_level=max_level,
@@ -146,7 +148,9 @@ def sync(session,   #pylint: disable=too-many-arguments
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        assert Path(target).is_dir(), f"Target folder '{target}' does not exist"
+        if isinstance(target, str):
+            target=Path(target)
+        assert target.is_dir(), f"Target folder '{target}' does not exist"
         tgt_files, tgt_folders=_get_local_tree(
             path=target,
             max_level=max_level,
