@@ -25,6 +25,7 @@ echo "iRODS is ready"
 cat ~/.irods/irods_environment.json
 echo 'rods' | iinit
 echo 'Authenticated as rods'
+iadmin mkuser testuser rodsuser
 
 cd /ibridges/integration_test
 pytest .

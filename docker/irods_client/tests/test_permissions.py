@@ -22,20 +22,14 @@ def test_permissions(session, item_name, request, tmpdir):
         upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
     perm.set("own")
 
-    # TODO: Add more tests with other users.
+    # Testing access for another user
 
-    # assert len(list(perm)) == 0
-    # ipath = IrodsPath(session, item.path)
-    # with pytest.raises(CAT_NO_ACCESS_PERMISSION):
-    #     download(session, ipath, tmpdir/"bunny.rt.copy", overwrite=True)
-    # perm.set("read", user=session.username, zone=session.zone)
-    # download(session, ipath, tmpdir/"bunny.rt.copy", overwrite=True)
-    # assert (tmpdir/"bunny.rt.copy").is_file
-    # with pytest.raises(ValueError):
-    #     upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
-    # perm.set("write", user=session.username, zone=session.zone)
-    # # if item_name == "dataobject":
-    # upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
-    # # else:
-    #     # upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
-    # assert ipath.is_dataobject()
+    assert len(list(perm)) == 1 # only one acl for rods
+    ipath = IrodsPath(session, item.path)
+    perm.set("read", user="testuser", zone=session.zone)
+    assert "testuser" in [p.user_name for p in perm]
+    assert ("testuser", "read_object") in [(p.user_name, p.access_name) for p in perm]
+    perm.set("write", user="testuser", zone=session.zone)
+    assert ("testuser", "modify_object") in [(p.user_name, p.access_name) for p in perm]
+    perm.set("null", user="testuser", zone=session.zone)
+    assert "testuser" not in [p.user_name for p in perm]
