@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import base64
 import logging
-from typing import Union
+from typing import Union, NamedTuple
 from pathlib import Path
 from hashlib import sha256
 from tqdm import tqdm
@@ -17,54 +17,12 @@ from ibridges.utils.path import IrodsPath
 from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, \
     create_collection, upload, download
 
-class FileObject:
+class FileObject(NamedTuple):
     """ Object to store attributes from local and remote files. """
-
-    name=None
-    path=None
-    size=0
-    checksum=None
-    ignore_checksum=False
-
-    def __init__(self, 
-                 name: str,
-                 path: str, 
-                 size: int, 
-                 checksum: str, 
-                 ignore_checksum: bool=False) -> None:  #pylint: disable=too-many-arguments
-        self.name=name
-        self.path=path
-        self.size=size
-        self.checksum=checksum
-        self.ignore_checksum=ignore_checksum
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(name='{self.name}', path='{self.path}', \
-            size={self.size}, checksum='{self.checksum}, ignore_checksum={self.ignore_checksum})"
-
-    def __eq__(self, other: object):
-        """
-        Allows comparing with other instances, including or ignoring the
-        checksum depending on the configuration of the object.
-        """
-        if not isinstance(other, FileObject):
-            return False
-
-        if self.ignore_checksum:
-            return self.name==other.name \
-                and self.path==other.path \
-                and self.size==other.size
-
-        return self.name==other.name \
-            and self.path==other.path \
-            and self.size==other.size \
-            and self.checksum==other.checksum
-
-    def __hash__(self):
-        if self.ignore_checksum:
-            return hash((self.name, self.path, self.size))
-
-        return hash((self.name, self.path, self.size, self.checksum))
+    name: str
+    path: str
+    size: int
+    checksum: str
 
 class FolderObject:
     """ Object to store attributes from local and remote folders/collections. """
@@ -245,8 +203,7 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
                     name=file,
                     path=fix_local_path(rel_path),
                     size=full_path.stat().st_size,
-                    checksum=_calc_checksum(full_path),
-                    ignore_checksum=ignore_checksum))
+                    checksum=None if ignore_checksum else _calc_checksum(full_path)))
 
         collections.extend([FolderObject(
                 fix_local_path(str(Path(root) / dir)[len(str(path)):].lstrip(os.sep)),
@@ -266,8 +223,8 @@ def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=Fa
         x.name,
         x.path[len(root):].lstrip('/'),
         x.size,
-        x.checksum if len(x.checksum)>0 else x.chksum(),
-        ignore_checksum) for x in coll.data_objects]
+        None if ignore_checksum else (x.checksum if len(x.checksum)>0 else x.chksum())) 
+        for x in coll.data_objects]
 
     if max_level is None or level<max_level-1:
         collections=[FolderObject(
