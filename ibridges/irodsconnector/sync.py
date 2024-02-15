@@ -15,6 +15,7 @@ from hashlib import sha256
 from tqdm import tqdm
 from ibridges import Session
 from ibridges.utils.path import IrodsPath
+from irods.collection import iRODSCollection
 from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, \
     create_collection, upload, download
 
@@ -72,13 +73,13 @@ log=logging.getLogger()
 log.setLevel(logging.INFO)
 
 def sync(session,   #pylint: disable=too-many-arguments
-         source: Union[str|Path|IrodsPath],
-         target: Union[str|Path|IrodsPath],
-         max_level:int = None,
-         dry_run:bool = False,
-         ignore_checksum:bool = False,
-         copy_empty_folders:bool = False,
-         verify_checksum:bool = True) -> None:
+         source: Union[str, Path, IrodsPath],
+         target: Union[str, Path, IrodsPath],
+         max_level: int = None,
+         dry_run: bool = False,
+         ignore_checksum: bool = False,
+         copy_empty_folders: bool = False,
+         verify_checksum: bool = True) -> None:
 
     """
     Synchronize the data between a local copy (local file system) and
@@ -200,9 +201,12 @@ def _calc_checksum(filepath):
             f_hash.update(memv[:item])
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
-def _get_local_tree(path, max_level=None, ignore_checksum=False):
+def _get_local_tree(path: Path, 
+                    max_level: int = None,
+                    ignore_checksum: bool = False):
 
-    def fix_local_path(path):
+    # change all sep into /, regardless of platform, for easier comparison
+    def fix_local_path(path: str):
         return "/".join(path.split(os.sep))
 
     objects=[]
@@ -228,7 +232,11 @@ def _get_local_tree(path, max_level=None, ignore_checksum=False):
 
     return objects, collections
 
-def _get_irods_tree(coll, root=None, level=0, max_level=None, ignore_checksum=False):
+def _get_irods_tree(coll: iRODSCollection,
+                    root:str = None,
+                    level: int = 0,
+                    max_level: int = None,
+                    ignore_checksum: bool = False):
 
     root=coll.path if root is None else root
 
