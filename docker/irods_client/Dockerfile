@@ -29,6 +29,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN mkdir -p /root/.irods
+COPY docker/irods_client/environments/plain-irods/irods_environment.json /root/.irods
 
 RUN mkdir -p /tmp
 ADD docker/irods_client/testdata /tmp/testdata/
