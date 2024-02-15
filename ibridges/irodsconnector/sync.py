@@ -25,7 +25,18 @@ class FileObject(NamedTuple):
     checksum: str
 
 class FolderObject:
-    """ Object to store attributes from local and remote folders/collections. """
+    """ 
+    Object to store attributes from local and remote folders/collections. 
+
+    Parameters
+    ----------
+        path : str
+            path, relative to source or target root
+        n_files : int
+            number of files in folder
+        n_folders : int
+            number of subfolders in folder    
+    """
 
     path=None
     n_files=0
@@ -35,9 +46,9 @@ class FolderObject:
                  path: str,
                  n_files: int,
                  n_folders: int) -> None:
-        self.path=path            # path (relative to source or target root)
-        self.n_files=n_files      # number of files in folder
-        self.n_folders=n_folders  # number of subfolders in folder
+        self.path=path
+        self.n_files=n_files
+        self.n_folders=n_folders
 
     def is_empty(self):
         """ Check to see if folder has anything in it. """
@@ -49,7 +60,7 @@ class FolderObject:
 
     def __eq__(self, other: object):
         if not isinstance(other, FolderObject):
-            return False
+            return NotImplemented
 
         return self.path==other.path
 
@@ -140,12 +151,10 @@ def sync(session,   #pylint: disable=too-many-arguments
             max_level=max_level,
             ignore_checksum=ignore_checksum)
 
-    # compares the relative paths
     folders_diff=sorted(
         set(src_folders).difference(set(tgt_folders)),
         key=lambda x: (x.path.count('/'), x.path))
 
-    # compares the checksum, file size, file name & relative path
     files_diff=sorted(
         set(src_files).difference(set(tgt_files)),
         key=lambda x: (x.path.count('/'), x.path))
