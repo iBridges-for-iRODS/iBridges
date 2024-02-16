@@ -20,7 +20,9 @@ from ibridges.irodsconnector.data_operations import get_collection, get_dataobje
     create_collection, upload, download
 
 class FileObject(NamedTuple):
-    """ Object to store attributes from local and remote files. """
+    """ 
+    Object to hold attributes from local and remote files.
+    """
     name: str
     path: str
     size: int
@@ -28,16 +30,23 @@ class FileObject(NamedTuple):
 
 class FolderObject:
     """ 
-    Object to store attributes from local and remote folders/collections. 
-
-    Parameters
+    Object to hold attributes from local and remote folders/collections.
+    
+    ...
+    
+    Attributes
     ----------
-        path : str
-            path, relative to source or target root
-        n_files : int
-            number of files in folder
-        n_folders : int
-            number of subfolders in folder    
+    path : str
+        Path, relative to source or target root
+    n_files : int
+        Number of files in folder
+    n_folders : int
+        Number of subfolders in folder    
+
+    Methods
+    -------
+    is_empty()
+        Check whether folder is empty.
     """
 
     path=''
@@ -53,7 +62,7 @@ class FolderObject:
         self.n_folders=n_folders
 
     def is_empty(self):
-        """ Check to see if folder has anything in it. """
+        """ Check to see if folder has anything (files or subfolders) in it. """
         return (self.n_files+self.n_folders)==0
 
     def __repr__(self):
@@ -72,7 +81,7 @@ class FolderObject:
 # log=logging.getLogger()
 # log.setLevel(logging.INFO)
 
-def sync(session,   #pylint: disable=too-many-arguments
+def sync(session: Session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
          max_level: Union[int, None] = None,
@@ -81,41 +90,39 @@ def sync(session,   #pylint: disable=too-many-arguments
          copy_empty_folders: bool = False,
          verify_checksum: bool = True) -> None:
 
-    """
-    Synchronize the data between a local copy (local file system) and
-    the copy stored in iRODS. The command can be  in one of the two
-    modes: synchronization of data from the client's local file system
-    to iRODS, or from iRODS to the local file system. The mode is determined
-    by the type of the values for `source` and `target` (IrodsPath or str/Path).
+    """  
+    Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
+    command can be in one of the two modes: synchronization of data from the client's local file
+    system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
+    the values for `source` and `target` (IrodsPath or str/Path).
 
-    Source and target must be an existing local folder, and an existing
-    iRODS collection. An exception will be raised if either doesn't exist.
-
-    The command compares the checksum values and file sizes of the source
-    and target files to determine whether synchronization is needed. If
-    the `ignore_checksum` option is set to True, only the file size
-    (instead of the the size and checksum value) is used for determining
-    whether synchronization is needed. This mode gives a potentially faster
-    operation but the result is less accurate.
-
-    The `max_level` option controls the depth up to which the file tree will
-    be synchronized. With `max_level` set to None (default), there is no limit
-    (full recursive synchronization). A max level of 1 synchronizes only the
-    source's root, max level 2 also includes the first set of
-    subfolders/subcollections and their contents, etc.
-
-    The `copy_empty_folders` option controls whether folders/collections that
-    contain no files or subfolders/subcollections will be synchronized (default
-    False).
-
-    The `dry_run` option lists all the source files and folders that need to
-    be synchronized without actually performing the synchronization.
-
-    The `verify_checksum` option will calculate and verify the checksum on the
-    data after up- or downloading. A checksum mismatch will generate an error,
-    but will not abort the synchronization process (default True).
-
-    Lastly, `session` requires an authorized instance of `ibridges.Session`.
+    
+    Parameters
+    ----------
+    session : ibridges.Session
+        An authorized iBridges session.
+    source : str or Path or IrodsPath
+        Existing local folder or iRODS collection. An exception will be raised if it doesn't exist.
+    target : str or Path or IrodsPath
+        Existing local folder or iRODS collection. An exception will be raised if it doesn't exist.
+    max_level : int, default None
+        Controls the depth up to which the file tree will be synchronized. A max level of 1
+        synchronizes only the source's root, max level 2 also includes the first set of
+        subfolders/subcollections and their contents, etc. Set to None, there is no limit
+        (full recursive synchronization).
+    dry_run : bool, default False
+        List all source files and folders that need to be synchronized without actually
+        performing synchronization.
+    ignore_checksum : bool, default False
+        If set to True, only the file size is used for determining whether synchronization is
+        needed, rather than size and checksum value. This mode gives a potentially faster
+        operation but the result is less accurate.
+    copy_empty_folders : bool, default False
+        Controls whether folders/collections that contain no files or  subfolders/subcollections
+        will be synchronized.
+    verify_checksum : bool, default True
+        Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
+        will generate an error, but will not abort the  synchronization process.
     """
 
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
