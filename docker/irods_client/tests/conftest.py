@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import os
 
 import pytest
 import tomli
@@ -22,8 +23,8 @@ def config_dir(request):
 
 
 @pytest.fixture(scope="session")
-def irods_env_file(config_dir):
-    return config_dir / "irods_environment.json"
+def irods_env_file(config):
+    return config["env_path"]
 
 
 @pytest.fixture(scope="session")
@@ -43,6 +44,7 @@ def config(config_dir):
 @pytest.fixture(scope="session")
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
+    session._write_pam_password()
     ipath = IrodsPath(session, "~")
     perm = Permissions(session, get_collection(session, ipath))
     if config.get("set_home_perm", True):
