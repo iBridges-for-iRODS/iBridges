@@ -18,7 +18,6 @@ from ibridges.utils.path import IrodsPath
 
 @pytest.fixture(scope="session")
 def config_dir(request):
-
     return Path("environment")
 
 
@@ -50,8 +49,6 @@ def session(irods_env, config):
         perm.set("own")
     yield session
     del session
-
-
 
 
 @pytest.fixture(scope="session")
