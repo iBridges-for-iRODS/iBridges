@@ -127,28 +127,30 @@ def sync(session,   #pylint: disable=too-many-arguments
     # log.info("Syncing '%s' --> '%s'%s", source, target, ' (dry run)' if dry_run else '')
 
     if isinstance(source, IrodsPath):
-        assert source.collection_exists(), \
-            f"Source collection '{source.absolute_path()}' does not exist"
+        if not source.collection_exists():
+            raise ValueError(f"Source collection '{source.absolute_path()}' does not exist")
         src_files, src_folders=_get_irods_tree(
             coll=get_collection(session=session, path=source),
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        assert Path(source).is_dir(), f"Source folder '{source}' does not exist"
+        if not Path(source).is_dir():
+            raise ValueError(f"Source folder '{source}' does not exist")
         src_files, src_folders=_get_local_tree(
             path=Path(source),
             max_level=max_level,
             ignore_checksum=ignore_checksum)
 
     if isinstance(target, IrodsPath):
-        assert target.collection_exists(), \
-            f"Target collection '{target.absolute_path()}' does not exist"
+        if not target.collection_exists():
+            raise ValueError(f"Target collection '{target.absolute_path()}' does not exist")
         tgt_files, tgt_folders=_get_irods_tree(
             coll=get_collection(session=session, path=target),
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        assert Path(target).is_dir(), f"Target folder '{target}' does not exist"
+        if not Path(target).is_dir():
+            raise ValueError(f"Target folder '{target}' does not exist")
         tgt_files, tgt_folders=_get_local_tree(
             path=Path(target),
             max_level=max_level,
@@ -172,7 +174,7 @@ def sync(session,   #pylint: disable=too-many-arguments
         _copy_local_to_irods(
             session=session,
             source=Path(source),
-            target=IrodsPath(target),
+            target=target,
             files=files_diff,
             dry_run=dry_run,
             verify_checksum=verify_checksum)
@@ -184,7 +186,7 @@ def sync(session,   #pylint: disable=too-many-arguments
             copy_empty_folders=copy_empty_folders)
         _copy_irods_to_local(
             session=session,
-            source=IrodsPath(source),
+            source=source,
             target=Path(target),
             objects=files_diff,
             dry_run=dry_run,
