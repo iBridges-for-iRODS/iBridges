@@ -8,14 +8,14 @@ behaviour of the irsync module of the icommands command line tool.
 from __future__ import annotations
 import os
 import base64
-import logging
+# import logging
 from typing import Union, NamedTuple
 from pathlib import Path
 from hashlib import sha256
 from tqdm import tqdm
+from irods.collection import iRODSCollection
 from ibridges import Session
 from ibridges.utils.path import IrodsPath
-from irods.collection import iRODSCollection
 from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, \
     create_collection, upload, download
 
@@ -198,7 +198,7 @@ def _calc_checksum(filepath):
             f_hash.update(memv[:item])
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
-def _get_local_tree(path: Path, 
+def _get_local_tree(path: Path,
                     max_level: Union[int, None] = None,
                     ignore_checksum: bool = False):
 
@@ -242,7 +242,7 @@ def _get_irods_tree(coll: iRODSCollection,
         x.name,
         x.path[len(root):].lstrip('/'),
         x.size,
-        None if ignore_checksum else (x.checksum if len(x.checksum)>0 else x.chksum())) 
+        None if ignore_checksum else (x.checksum if len(x.checksum)>0 else x.chksum()))
         for x in coll.data_objects]
 
     if max_level is None or level<max_level-1:
@@ -331,7 +331,6 @@ def _copy_local_to_irods(session: Session,
                             (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
                         # log.warning("Checksum mismatch after upload: '%s'", target_path)
                         print("WARNING: Checksum mismatch after upload: '%s'", target_path)
-                        pass
                 pbar.update(file.size)
             except Exception as err:
                 # log.error("Error uploading '%s': %s", source_path, repr(err))
