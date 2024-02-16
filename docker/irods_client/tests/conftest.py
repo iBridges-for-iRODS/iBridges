@@ -44,13 +44,14 @@ def config(config_dir):
 @pytest.fixture(scope="session")
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
-    session._write_pam_password()
     ipath = IrodsPath(session, "~")
     perm = Permissions(session, get_collection(session, ipath))
     if config.get("set_home_perm", True):
         perm.set("own")
     yield session
     del session
+
+
 
 
 @pytest.fixture(scope="session")

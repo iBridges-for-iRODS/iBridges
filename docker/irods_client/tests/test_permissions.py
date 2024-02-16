@@ -8,7 +8,7 @@ from ibridges.utils.path import IrodsPath
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_permissions(session, item_name, request, tmpdir, config):
+def test_perm_own(session, item_name, request, tmpdir, config):
     item = request.getfixturevalue(item_name)
     perm = Permissions(session, item)
     ipath = IrodsPath(session, item.path)
@@ -22,14 +22,18 @@ def test_permissions(session, item_name, request, tmpdir, config):
         upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
     perm.set("own")
 
-    # Testing access for another user, only on plain irods
-    if not "set_home_perm" in config:
-        assert len(list(perm)) == 1 # only one acl for rods
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_perm_user(session, item_name, request, tmpdir, config):
+    # Testing access for another user if defined in config.toml
+    testuser = config.get("test_user", None)
+    item = request.getfixturevalue(item_name)
+    perm = Permissions(session, item)
+    if testuser:
         ipath = IrodsPath(session, item.path)
-        perm.set("read", user="testuser", zone=session.zone)
-        assert "testuser" in [p.user_name for p in perm]
-        assert ("testuser", "read_object") in [(p.user_name, p.access_name) for p in perm]
-        perm.set("write", user="testuser", zone=session.zone)
-        assert ("testuser", "modify_object") in [(p.user_name, p.access_name.replace(" ", "_")) for p in perm]
-        perm.set("null", user="testuser", zone=session.zone)
-        assert "testuser" not in [p.user_name for p in perm]
+        perm.set("read", user=testuser, zone=session.zone)
+        assert testuser in [p.user_name for p in perm]
+        assert (testuser, 1050) in [(p.user_name, p.to_int(p.access_name)) for p in perm]
+        perm.set("write", user=testuser, zone=session.zone)
+        assert (testuser, 1120) in [(p.user_name, p.to_int(p.access_name)) for p in perm]
+        perm.set("null", user=testuser, zone=session.zone)
+        assert testuser not in [p.user_name for p in perm]
