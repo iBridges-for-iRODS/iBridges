@@ -24,7 +24,7 @@ class FileObject(NamedTuple):
     name: str
     path: str
     size: int
-    checksum: str
+    checksum: Union[str, None]
 
 class FolderObject:
     """ 
@@ -40,7 +40,7 @@ class FolderObject:
             number of subfolders in folder    
     """
 
-    path=None
+    path=''
     n_files=0
     n_folders=0
 
@@ -75,7 +75,7 @@ class FolderObject:
 def sync(session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
-         max_level: int = None,
+         max_level: Union[int, None] = None,
          dry_run: bool = False,
          ignore_checksum: bool = False,
          copy_empty_folders: bool = False,
@@ -134,11 +134,9 @@ def sync(session,   #pylint: disable=too-many-arguments
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        if isinstance(source, str):
-            source=Path(source)
-        assert source.is_dir(), f"Source folder '{source}' does not exist"
+        assert Path(source).is_dir(), f"Source folder '{source}' does not exist"
         src_files, src_folders=_get_local_tree(
-            path=source,
+            path=Path(source),
             max_level=max_level,
             ignore_checksum=ignore_checksum)
 
@@ -150,11 +148,9 @@ def sync(session,   #pylint: disable=too-many-arguments
             max_level=max_level,
             ignore_checksum=ignore_checksum)
     else:
-        if isinstance(target, str):
-            target=Path(target)
-        assert target.is_dir(), f"Target folder '{target}' does not exist"
+        assert Path(target).is_dir(), f"Target folder '{target}' does not exist"
         tgt_files, tgt_folders=_get_local_tree(
-            path=target,
+            path=Path(target),
             max_level=max_level,
             ignore_checksum=ignore_checksum)
 
@@ -175,21 +171,21 @@ def sync(session,   #pylint: disable=too-many-arguments
             copy_empty_folders=copy_empty_folders)
         _copy_local_to_irods(
             session=session,
-            source=source,
-            target=target,
+            source=Path(source),
+            target=IrodsPath(target),
             files=files_diff,
             dry_run=dry_run,
             verify_checksum=verify_checksum)
     else:
         _create_local_folders(
-            target=target,
+            target=Path(target),
             folders=folders_diff,
             dry_run=dry_run,
             copy_empty_folders=copy_empty_folders)
         _copy_irods_to_local(
             session=session,
-            source=source,
-            target=target,
+            source=IrodsPath(source),
+            target=Path(target),
             objects=files_diff,
             dry_run=dry_run,
             verify_checksum=verify_checksum)
@@ -203,7 +199,7 @@ def _calc_checksum(filepath):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def _get_local_tree(path: Path, 
-                    max_level: int = None,
+                    max_level: Union[int, None] = None,
                     ignore_checksum: bool = False):
 
     # change all sep into /, regardless of platform, for easier comparison
@@ -234,12 +230,12 @@ def _get_local_tree(path: Path,
     return objects, collections
 
 def _get_irods_tree(coll: iRODSCollection,
-                    root:str = None,
+                    root: str = '',
                     level: int = 0,
-                    max_level: int = None,
+                    max_level: Union[int, None] = None,
                     ignore_checksum: bool = False):
 
-    root=coll.path if root is None else root
+    root=coll.path if len(root)==0 else root
 
     # chksum() (re)calculates checksum, call only when checksum is empty
     objects=[FileObject(
@@ -285,7 +281,7 @@ def _create_irods_collections(session: Session,
         full_path=target / collection.path
 
         if dry_run:
-            print(f"  {full_path} {collection.n_files}/{collection.n_folder}")
+            print(f"  {full_path} {collection.n_files}/{collection.n_folders}")
         else:
             _=create_collection(session, str(full_path))
 
@@ -300,7 +296,7 @@ def _create_local_folders(target: Path,
         if folder.is_empty() and not copy_empty_folders:
             continue
 
-        full_path=Path(target) / Path(folder.path)
+        full_path=target / Path(folder.path)
 
         if dry_run:
             print(f"  {full_path}")
