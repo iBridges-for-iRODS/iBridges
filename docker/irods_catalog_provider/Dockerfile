@@ -1,10 +1,12 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
+ARG ubuntu_name=focal
 
 RUN apt-get update && \
     apt-get install -y \
         apt-transport-https \
+	lsb-release \
         gnupg \
         wget \
     && \
@@ -12,7 +14,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add - && \
-    echo "deb [arch=amd64] https://packages.irods.org/apt/ bionic main" | tee /etc/apt/sources.list.d/renci-irods.list
+    echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/renci-irods.list
 
 RUN apt-get update && \
     apt-get install -y \
@@ -30,7 +32,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 ARG irods_version=4.3.0
-ARG irods_package_version_suffix=-1~bionic
+ARG irods_package_version_suffix=-1~${ubuntu_name}
 ARG irods_package_version=${irods_version}${irods_package_version_suffix}
 ARG irods_resource_plugin_version=${irods_version}.0${irods_package_version_suffix}
 
