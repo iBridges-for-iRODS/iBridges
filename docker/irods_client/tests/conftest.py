@@ -22,8 +22,8 @@ def config_dir(request):
 
 
 @pytest.fixture(scope="session")
-def irods_env_file(config):
-    return config["env_path"]
+def irods_env_file(config, config_dir):
+    return config.get("env_path", config_dir / "irods_environment.json")
 
 
 @pytest.fixture(scope="session")
