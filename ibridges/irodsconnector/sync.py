@@ -20,7 +20,7 @@ from ibridges.irodsconnector.data_operations import get_collection, get_dataobje
     create_collection, upload, download
 
 class FileObject(NamedTuple):
-    """ 
+    """
     Object to hold attributes from local and remote files.
     """
     name: str
@@ -29,11 +29,11 @@ class FileObject(NamedTuple):
     checksum: Union[str, None]
 
 class FolderObject:
-    """ 
+    """
     Object to hold attributes from local and remote folders/collections.
-    
+
     ...
-    
+
     Attributes
     ----------
     path : str
@@ -41,7 +41,7 @@ class FolderObject:
     n_files : int
         Number of files in folder
     n_folders : int
-        Number of subfolders in folder    
+        Number of subfolders in folder
 
     Methods
     -------
@@ -90,13 +90,13 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
          copy_empty_folders: bool = False,
          verify_checksum: bool = True) -> None:
 
-    """  
+    """
     Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
     command can be in one of the two modes: synchronization of data from the client's local file
     system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
     the values for `source` and `target` (IrodsPath or str/Path).
 
-    
+
     Parameters
     ----------
     session : ibridges.Session
@@ -312,12 +312,12 @@ def _create_local_folders(target: Path,
         else:
             full_path.mkdir(parents=True, exist_ok=True)
 
-def _copy_local_to_irods(session: Session,
+def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                          source: Path,
                          target: IrodsPath,
                          files: list[FileObject],
                          dry_run: bool,
-                         verify_checksum: bool) -> None:  #pylint: disable=too-many-arguments
+                         verify_checksum: bool) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
     else:
@@ -345,12 +345,12 @@ def _copy_local_to_irods(session: Session,
                 # log.error("Error uploading '%s': %s", source_path, repr(err))
                 print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
 
-def _copy_irods_to_local(session: Session,
+def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-arguments
                          source: IrodsPath,
                          target: Path,
                          objects: list[FileObject],
                          dry_run: bool,
-                         verify_checksum: bool) -> None:  #pylint: disable=too-many-arguments
+                         verify_checksum: bool) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
     else:
