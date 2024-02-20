@@ -6,3 +6,4 @@ free_resources = [false, false]
 env_path = "/root/.irods/irods_environment.json"
 test_user = "testuser"
 test_user_pw = "testuser"
+ticket_date_only = true
