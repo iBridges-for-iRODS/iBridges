@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import os
 
 import pytest
 import tomli
@@ -17,13 +18,12 @@ from ibridges.utils.path import IrodsPath
 
 @pytest.fixture(scope="session")
 def config_dir(request):
-
     return Path("environment")
 
 
 @pytest.fixture(scope="session")
-def irods_env_file(config_dir):
-    return config_dir / "irods_environment.json"
+def irods_env_file(config, config_dir):
+    return config.get("env_path", config_dir / "irods_environment.json")
 
 
 @pytest.fixture(scope="session")

@@ -28,6 +28,11 @@ Clean up
 1. `docker image prune`
 2. `docker container prune`
 
+Enter the irods-client
+1. Bring the images up
+2. `docker ps`
+3. `docker exec -it <IMAGE> /bin/bash`
+
 ## Example output:
 
 ```

@@ -22,10 +22,13 @@ done
 echo "iRODS is ready"
 
 # pre-authenticate the user so the iCommands are ready to use
-# echo 'rods' | iinit
-# echo 'Authenticated as rods'
+echo 'rods' | iinit
+echo 'Authenticated as rods'
+iadmin mkuser testuser rodsuser
+iadmin moduser testuser password testuser
+echo 'testuser created'
+echo $(iadmin lu testuser)
 
 cd /ibridges/integration_test
 pytest .
-
-bash -c "until false; do sleep 2147483647d; done"
+/bin/bash
