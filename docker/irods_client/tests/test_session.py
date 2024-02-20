@@ -4,7 +4,8 @@ from ibridges import Session
 
 def test_session_from_cached_pw(config, irods_env):
     # test only for plain irods
-    if not "set_home_perm" in config:
+    environment = config.get("environment", "irods")
+    if environment != "yoda":
         session = Session(irods_env_path=config["env_path"])
         assert session.has_valid_irods_session()
         assert ".".join(str(x) for x in session.server_version) == config["server_version"]

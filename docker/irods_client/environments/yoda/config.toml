@@ -1,6 +1,7 @@
 password = "test"
 server_version = "4.2.12"
 can_write_pam_pass = false
+environment = "yoda"
 set_home_perm = false
 resources = ["bundleResc", "demoResc", "dev001", "dev001_1", "dev001_2", "dev001_p1", "dev001_p2", "dev002", "dev002_1", "dev002_p1", "dev003", "dev003_1", "dev003_p1", "irodsResc", "irodsRescRepl", "irodsRescReplS3"]
 free_resources = [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
