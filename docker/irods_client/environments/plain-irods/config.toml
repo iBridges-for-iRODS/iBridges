@@ -5,4 +5,4 @@ resources = ["bundleResc", "demoResc"]
 free_resources = [false, false]
 env_path = "/root/.irods/irods_environment.json"
 test_user = "testuser"
-environment = "irods"
+test_user_pw = "testuser"

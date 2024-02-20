@@ -22,10 +22,12 @@ done
 echo "iRODS is ready"
 
 # pre-authenticate the user so the iCommands are ready to use
-cat ~/.irods/irods_environment.json
 echo 'rods' | iinit
 echo 'Authenticated as rods'
 iadmin mkuser testuser rodsuser
+iadmin moduser testuser password testuser
+echo 'testuser created'
+echo $(iadmin lu testuser)
 
 cd /ibridges/integration_test
 pytest .
