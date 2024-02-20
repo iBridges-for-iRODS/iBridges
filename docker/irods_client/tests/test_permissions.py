@@ -23,7 +23,7 @@ def test_perm_own(session, item_name, request, tmpdir, config):
     perm.set("own")
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_perm_user(session, item_name, request, tmpdir, config):
+def test_perm_user(session, item_name, request, config):
     # Testing access for another user if defined in config.toml
     testuser = config.get("test_user", None)
     item = request.getfixturevalue(item_name)
