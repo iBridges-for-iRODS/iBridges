@@ -8,7 +8,6 @@ behaviour of the irsync module of the icommands command line tool.
 from __future__ import annotations
 import os
 import base64
-# import logging
 from typing import Union, NamedTuple
 from pathlib import Path
 from hashlib import sha256
@@ -77,9 +76,6 @@ class FolderObject:
 
     def __hash__(self):
         return hash(self.path)
-
-# log=logging.getLogger()
-# log.setLevel(logging.INFO)
 
 def sync(session: Session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
