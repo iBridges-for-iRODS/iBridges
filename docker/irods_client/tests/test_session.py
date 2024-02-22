@@ -31,7 +31,7 @@ def test_session(session, config, irods_env):
 def test_pam_password(session, config, irods_env):
     if not config["can_write_pam_pass"]:
         pytest.xfail("This iRods client environment cannot write pam passwords.")
-    session._write_pam_password()
+    session.write_pam_password()
     test_session = Session(irods_env)
     assert test_session.has_valid_irods_session()
 
