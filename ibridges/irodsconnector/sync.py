@@ -287,37 +287,23 @@ def _create_irods_collections(session: Session,
                               collections: list[FolderObject],
                               dry_run: bool,
                               copy_empty_folders: bool):
+    new_colls=[str(target / x.path) for x in collections if not x.is_empty() or copy_empty_folders]
     if dry_run:
         print("Will create collection(s):")
-
-    for collection in collections:
-        if collection.is_empty() and not copy_empty_folders:
-            continue
-
-        full_path=target / collection.path
-
-        if dry_run:
-            print(f"  {full_path}")
-        else:
-            create_collection(session, str(full_path))
+        print(*new_colls, sep='\n')
+        return
+    [create_collection(session, x) for x in new_colls]
 
 def _create_local_folders(target: Path,
                           folders: list[FolderObject],
                           dry_run: bool,
                           copy_empty_folders: bool):
+    new_folders=[target / Path(x.path) for x in folders if not x.is_empty() or copy_empty_folders]
     if dry_run:
         print("Will create folder(s):")
-
-    for folder in folders:
-        if folder.is_empty() and not copy_empty_folders:
-            continue
-
-        full_path=target / Path(folder.path)
-
-        if dry_run:
-            print(f"  {full_path}")
-        else:
-            full_path.mkdir(parents=True, exist_ok=True)
+        print(*[f"  {x}" for x in new_folders], sep='\n')
+        return
+    [x.mkdir(parents=True, exist_ok=True) for x in new_folders]
 
 def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                          source: Path,
@@ -328,35 +314,33 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                          on_checksum_fail: str) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
-    else:
-        pbar=tqdm(desc='Uploading', total=sum(x.size for x in files))
+        print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
+        return
 
+    pbar=tqdm(desc='Uploading', total=sum(x.size for x in files))
     for file in files:
         source_path=Path(source) / file.path
         target_path=str(target / file.path)
-        if dry_run:
-            print(f"  {file.path}  {file.size}")
-        else:
-            try:
-                upload(session=session,
-                       local_path=source_path,
-                       irods_path=target_path,
-                       overwrite=True)
-                if verify_checksum:
-                    obj=get_dataobject(session, target_path)
-                    if file.checksum != \
-                            (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
-                        msg=f"Checksum mismatch after upload: '{target_path}'" 
-                        if on_checksum_fail=='fail':
-                            raise ValueError(msg)
-                        elif not on_checksum_fail=='ignore':
-                            print(f"WARNING: {msg}")
-                        if on_checksum_fail=='delete':
-                            obj.unlink()
+        try:
+            upload(session=session,
+                    local_path=source_path,
+                    irods_path=target_path,
+                    overwrite=True)
+            if verify_checksum:
+                obj=get_dataobject(session, target_path)
+                if file.checksum != \
+                        (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
+                    msg=f"Checksum mismatch after upload: '{target_path}'" 
+                    if on_checksum_fail=='fail':
+                        raise ValueError(msg)
+                    elif not on_checksum_fail=='ignore':
+                        print(f"WARNING: {msg}")
+                    if on_checksum_fail=='delete':
+                        obj.unlink()
 
-                pbar.update(file.size)
-            except Exception as err:
-                print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
+            pbar.update(file.size)
+        except Exception as err:
+            print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
 
 def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-arguments
                          source: IrodsPath,
@@ -367,29 +351,27 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                          on_checksum_fail: str) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
-    else:
-        pbar=tqdm(desc='Downloading', total=sum(x.size for x in objects))
+        print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
+        return
 
+    pbar=tqdm(desc='Downloading', total=sum(x.size for x in objects))
     for obj in objects:
         target_path=Path(target) / obj.path
         source_path=str(source / obj.path)
-        if dry_run:
-            print(f"  {obj.path}  {obj.size}")
-        else:
-            try:
-                download(session=session,
-                         irods_path=source_path,
-                         local_path=target_path,
-                         overwrite=True)
-                if verify_checksum and obj.checksum != _calc_checksum(target_path):
-                    msg=f"Checksum mismatch after download: '{source_path}'" 
-                    if on_checksum_fail=='fail':
-                        raise ValueError(msg)
-                    elif not on_checksum_fail=='ignore':
-                        print(f"WARNING: {msg}")
-                    if on_checksum_fail=='delete':
-                        target_path.unlink()
+        try:
+            download(session=session,
+                        irods_path=source_path,
+                        local_path=target_path,
+                        overwrite=True)
+            if verify_checksum and obj.checksum != _calc_checksum(target_path):
+                msg=f"Checksum mismatch after download: '{source_path}'" 
+                if on_checksum_fail=='fail':
+                    raise ValueError(msg)
+                elif not on_checksum_fail=='ignore':
+                    print(f"WARNING: {msg}")
+                if on_checksum_fail=='delete':
+                    target_path.unlink()
 
-                pbar.update(obj.size)
-            except Exception as err:
-                print("ERROR: Downloading '%s' failed: %s", source_path, repr(err))
+            pbar.update(obj.size)
+        except Exception as err:
+            print("ERROR: Downloading '%s' failed: %s", source_path, repr(err))
