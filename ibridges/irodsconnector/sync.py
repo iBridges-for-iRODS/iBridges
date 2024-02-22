@@ -299,7 +299,7 @@ def _create_irods_collections(session: Session,
         if dry_run:
             print(f"  {full_path}")
         else:
-            _=create_collection(session, str(full_path))
+            create_collection(session, str(full_path))
 
 def _create_local_folders(target: Path,
                           folders: list[FolderObject],
@@ -347,11 +347,11 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                     if file.checksum != \
                             (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
                         msg=f"Checksum mismatch after upload: '{target_path}'" 
-                        if on_checksum_fail=="fail":
+                        if on_checksum_fail=='fail':
                             raise ValueError(msg)
-                        elif not on_checksum_fail=="ignore":
+                        elif not on_checksum_fail=='ignore':
                             print(f"WARNING: {msg}")
-                        if on_checksum_fail=="delete":
+                        if on_checksum_fail=='delete':
                             obj.unlink()
 
                 pbar.update(file.size)
@@ -383,11 +383,11 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                          overwrite=True)
                 if verify_checksum and obj.checksum != _calc_checksum(target_path):
                     msg=f"Checksum mismatch after download: '{source_path}'" 
-                    if on_checksum_fail=="fail":
+                    if on_checksum_fail=='fail':
                         raise ValueError(msg)
-                    elif not on_checksum_fail=="ignore":
+                    elif not on_checksum_fail=='ignore':
                         print(f"WARNING: {msg}")
-                    if on_checksum_fail=="delete":
+                    if on_checksum_fail=='delete':
                         target_path.unlink()
 
                 pbar.update(obj.size)
