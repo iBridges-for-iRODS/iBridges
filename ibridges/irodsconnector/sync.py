@@ -85,7 +85,7 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
          ignore_checksum: bool = False,
          copy_empty_folders: bool = False,
          verify_checksum: bool = True,
-         on_checksum_fail: str = "warn") -> None:
+         on_checksum_fail: str = 'fail') -> None:
 
     """
     Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
@@ -120,7 +120,7 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
     verify_checksum : bool, default True
         Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
         will generate an error, but will not abort the  synchronization process.
-    on_checksum_fail : { 'warn', 'fail', 'delete' }
+    on_checksum_fail : {'warn', 'fail', 'delete'}
         Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'fail'
         terminates the program with an exception; and 'delete' prints an error, deletes the faulty
         file and procedes. To ignore checksum verification errors, set `verify_checksum` to False.
