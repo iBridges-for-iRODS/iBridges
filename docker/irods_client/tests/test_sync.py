@@ -34,7 +34,7 @@ def _get_irods_tree(coll, root, level, max_level):
         collections=[]
     return objects, collections
 
-def test_sync_upload_download(session, testdata):
+def test_sync_upload_download(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "empty")
     coll = create_collection(session=session, coll_path=ipath)
 
@@ -58,18 +58,17 @@ def test_sync_upload_download(session, testdata):
     assert set(local_coll)==set(irods_coll), "Collection upload failed"
     assert set(local_obj)==set(irods_obj), "Object upload failed"
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        # download
-        sync(session=session,
-            source=ipath,
-            target=tmpdir,
-            max_level=None,
-            dry_run=False,
-            ignore_checksum=False,
-            copy_empty_folders=True,
-            verify_checksum=True)
+    # download
+    sync(session=session,
+        source=ipath,
+        target=tmpdir,
+        max_level=None,
+        dry_run=False,
+        ignore_checksum=False,
+        copy_empty_folders=True,
+        verify_checksum=True)
 
-        local_obj, local_coll = _get_local_tree(tmpdir, None)
+    local_obj, local_coll = _get_local_tree(tmpdir, None)
 
-        assert set(local_coll)==set(irods_coll), "Collection download failed"
-        assert set(local_obj)==set(irods_obj), "Object download failed"
+    assert set(local_coll)==set(irods_coll), "Collection download failed"
+    assert set(local_obj)==set(irods_obj), "Object download failed"
