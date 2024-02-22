@@ -32,7 +32,7 @@ def authenticate(password: Optional[str] = None, irods_env_path: Optional[Union[
 
     with open(irods_env_path, "r", encoding="utf-8") as f:
         ienv = json.load(f)
-    if password:
+    if password is not None:
         try:
             session = Session(irods_env=ienv, password=password)
             session.write_pam_password()
