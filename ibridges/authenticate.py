@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 from typing import Optional, Union
-#from irods.session import NonAnonymousLoginWithoutPassword
 from getpass import getpass
 
 from ibridges.irodsconnector.session import Session
