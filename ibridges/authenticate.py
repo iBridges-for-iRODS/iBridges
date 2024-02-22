@@ -11,8 +11,8 @@ from ibridges.irodsconnector.session import Session
 
 def authenticate(password: Optional[str] = None, irods_env_path: Optional[Union[str, Path]] =
                  os.path.expanduser("~/.irods/irods_environment.json")) -> Session:
-    """
-    Interactive authentication with iRODS server. 
+    """Interactive authentication with iRODS server.
+
     Stores the password in ~/.irods/.irodsA upon success.
     """
     if not os.path.exists(irods_env_path):
