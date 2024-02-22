@@ -290,7 +290,7 @@ def _create_irods_collections(session: Session,
         full_path=target / collection.path
 
         if dry_run:
-            print(f"  {full_path} {collection.n_files}/{collection.n_folders}")
+            print(f"  {full_path}")
         else:
             _=create_collection(session, str(full_path))
 
