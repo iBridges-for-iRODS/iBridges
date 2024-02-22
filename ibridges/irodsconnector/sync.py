@@ -340,7 +340,7 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
 
             pbar.update(file.size)
         except Exception as err:
-            print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
+            raise ValueError("Uploading '%s' failed: %s", source_path, repr(err)) from err
 
 def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-arguments
                          source: IrodsPath,
@@ -374,4 +374,4 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
 
             pbar.update(obj.size)
         except Exception as err:
-            print("ERROR: Downloading '%s' failed: %s", source_path, repr(err))
+            raise ValueError("Downloading '%s' failed: %s", source_path, repr(err)) from err
