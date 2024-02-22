@@ -84,7 +84,8 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
          dry_run: bool = False,
          ignore_checksum: bool = False,
          copy_empty_folders: bool = False,
-         verify_checksum: bool = True) -> None:
+         verify_checksum: bool = True,
+         on_checksum_fail: str = "warn") -> None:
 
     """
     Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
@@ -126,6 +127,10 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
 
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
+
+    fail_opt=["warn", "fail", "ignore", "delete"]
+    if on_checksum_fail not in fail_opt:
+        raise TypeError("on_checksum_fail must be on of: %s" % ", ".join(fail_opt))
 
     # log.info("Syncing '%s' --> '%s'%s", source, target, ' (dry run)' if dry_run else '')
 
@@ -180,7 +185,8 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
             target=target,
             files=files_diff,
             dry_run=dry_run,
-            verify_checksum=verify_checksum)
+            verify_checksum=verify_checksum,
+            on_checksum_fail=on_checksum_fail)
     else:
         _create_local_folders(
             target=Path(target),
@@ -193,7 +199,8 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
             target=Path(target),
             objects=files_diff,
             dry_run=dry_run,
-            verify_checksum=verify_checksum)
+            verify_checksum=verify_checksum,
+            on_checksum_fail=on_checksum_fail)
 
 def _calc_checksum(filepath):
     f_hash=sha256()
@@ -313,7 +320,8 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                          target: IrodsPath,
                          files: list[FileObject],
                          dry_run: bool,
-                         verify_checksum: bool) -> None:
+                         verify_checksum: bool,
+                         on_checksum_fail: str) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
     else:
@@ -334,11 +342,16 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                     obj=get_dataobject(session, target_path)
                     if file.checksum != \
                             (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
-                        # log.warning("Checksum mismatch after upload: '%s'", target_path)
-                        print("WARNING: Checksum mismatch after upload: '%s'", target_path)
+                        msg=f"Checksum mismatch after upload: '{target_path}'" 
+                        if on_checksum_fail=="warn":
+                            print(f"WARNING: {msg}")
+                        elif on_checksum_fail=="fail":
+                            raise ValueError(msg)
+                        elif on_checksum_fail=="delete":
+                            obj.unlink()
+
                 pbar.update(file.size)
             except Exception as err:
-                # log.error("Error uploading '%s': %s", source_path, repr(err))
                 print("ERROR: Uploading '%s' failed: %s", source_path, repr(err))
 
 def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-arguments
@@ -346,7 +359,8 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                          target: Path,
                          objects: list[FileObject],
                          dry_run: bool,
-                         verify_checksum: bool) -> None:
+                         verify_checksum: bool,
+                         on_checksum_fail: str) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
     else:
@@ -364,9 +378,14 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                          local_path=target_path,
                          overwrite=True)
                 if verify_checksum and obj.checksum != _calc_checksum(target_path):
-                    # log.warning("Checksum mismatch after download: '%s'", target_path)
-                    print("WARNING: Checksum mismatch after upload: '%s'", target_path)
+                    msg=f"Checksum mismatch after download: '{source_path}'" 
+                    if on_checksum_fail=="warn":
+                        print(f"WARNING: {msg}")
+                    elif on_checksum_fail=="fail":
+                        raise ValueError(msg)
+                    elif on_checksum_fail=="delete":
+                        target_path.unlink()
+
                 pbar.update(obj.size)
             except Exception as err:
-                # log.error("Error downloading '%s': %s", source_path, repr(err))
                 print("ERROR: Downloading '%s' failed: %s", source_path, repr(err))
