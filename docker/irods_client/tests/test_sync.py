@@ -1,5 +1,4 @@
 import os
-import tempfile
 from pathlib import Path
 from ibridges.irodsconnector.sync import sync
 from ibridges.utils.path import IrodsPath
