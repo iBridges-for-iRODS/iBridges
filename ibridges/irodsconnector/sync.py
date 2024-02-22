@@ -120,6 +120,10 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
     verify_checksum : bool, default True
         Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
         will generate an error, but will not abort the  synchronization process.
+    on_checksum_fail : { 'warn', 'fail', 'delete' }
+        Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'fail'
+        terminates the program with an exception; and 'delete' prints an error, deletes the faulty
+        file and procedes. To ignore checksum verification errors, set `verify_checksum` to False.
     """
 
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
@@ -343,11 +347,11 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                     if file.checksum != \
                             (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
                         msg=f"Checksum mismatch after upload: '{target_path}'" 
-                        if on_checksum_fail=="warn":
-                            print(f"WARNING: {msg}")
-                        elif on_checksum_fail=="fail":
+                        if on_checksum_fail=="fail":
                             raise ValueError(msg)
-                        elif on_checksum_fail=="delete":
+                        elif not on_checksum_fail=="ignore":
+                            print(f"WARNING: {msg}")
+                        if on_checksum_fail=="delete":
                             obj.unlink()
 
                 pbar.update(file.size)
@@ -379,11 +383,11 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                          overwrite=True)
                 if verify_checksum and obj.checksum != _calc_checksum(target_path):
                     msg=f"Checksum mismatch after download: '{source_path}'" 
-                    if on_checksum_fail=="warn":
-                        print(f"WARNING: {msg}")
-                    elif on_checksum_fail=="fail":
+                    if on_checksum_fail=="fail":
                         raise ValueError(msg)
-                    elif on_checksum_fail=="delete":
+                    elif not on_checksum_fail=="ignore":
+                        print(f"WARNING: {msg}")
+                    if on_checksum_fail=="delete":
                         target_path.unlink()
 
                 pbar.update(obj.size)
