@@ -172,7 +172,7 @@ class Session:
                 raise ValueError(exceptions[repr(e)]+"; "+repr(e)) from e
             raise e
 
-    def _write_pam_password(self):
+    def write_pam_password(self):
         """Store the password in the iRODS
         authentication file in obfuscated form.
 
