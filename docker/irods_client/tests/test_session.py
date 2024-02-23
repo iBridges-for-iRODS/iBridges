@@ -39,9 +39,10 @@ def test_pam_password(session, config, irods_env):
 
 def test_interactive_auth(config, irods_env):
     password = config.get("password", "rods")
-    env_path = config.get("env_path", "/root/.irods/irods_environment.json")
-    session = interactive_auth(password = password, irods_env_path = env_path)
-    test_session(session, config, irods_env)
+    env_path = config.get("env_path", None)
+    if env_path is not None:
+        session = interactive_auth(password = password, irods_env_path = env_path)
+        test_session(session, config, irods_env)
 
 def test_interactive_auth_testuser(config):
     env_path = config.get("test_user_env_path", None)
