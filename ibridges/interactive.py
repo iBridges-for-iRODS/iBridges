@@ -21,7 +21,7 @@ def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Un
 
     if os.path.exists(os.path.expanduser("~/.irods/.irodsA")):
         try:
-            session = Session(irods_env_path=os.path.expanduser("~/.irods/irods_environment.json"))
+            session = Session(irods_env_path=irods_env_path)
             return session
         except IndexError:
             # .irodsA file was tempered with and does not have right formatting anylonger

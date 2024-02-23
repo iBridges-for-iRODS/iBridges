@@ -1,4 +1,5 @@
 import pytest
+import json
 
 from ibridges import Session
 from ibridges.interactive import interactive_auth
@@ -37,7 +38,7 @@ def test_pam_password(session, config, irods_env):
     assert test_session.has_valid_irods_session()
 
 def test_interactive_auth(config, irods_env):
-    password = config.get("password", rods)
+    password = config.get("password", "rods")
     env_path = config.get("env_path", "/root/.irods/irods_environment.json")
     session = interactive_auth(password = password, irods_env_path = env_path)
     test_session(session, config, irods_env)
@@ -46,5 +47,7 @@ def test_interactive_auth_testuser(config):
     env_path = config.get("test_user_env_path", None)
     password = config.get("test_user_pw", None)
     if env_path is not None and password is not None:
+        with open(env_path, 'r', encoding="utf-8") as f:
+            ienv = json.load(f)
         session = interactive_auth(password = password, irods_env_path = env_path)
-        
+        test_session(session, config, ienv)
