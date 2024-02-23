@@ -256,7 +256,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     for source, dest in source_to_dest:
         # ensure local folder exists
         if not dest.parent.is_dir():
-            os.makedirs(dest)
+            os.makedirs(dest.parent)
         try:
             _obj_get(session, source, dest, overwrite, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
