@@ -9,7 +9,7 @@ from getpass import getpass
 
 from ibridges.irodsconnector.session import Session
 
-def authenticate(password: Optional[str] = None, irods_env_path: Optional[Union[str, Path]] =
+def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Union[str, Path]] =
                  os.path.expanduser("~/.irods/irods_environment.json")) -> Session:
     """Interactive authentication with iRODS server.
 
@@ -25,9 +25,11 @@ def authenticate(password: Optional[str] = None, irods_env_path: Optional[Union[
             return session
         except IndexError:
             # .irodsA file was tempered with and does not have right formatting anylonger
+            print(f'INFO: The cached password in ~/.irods/.irodsA has been corrupted')
             pass
         except ValueError:
             # cached password is wrong
+            print(f'INFO: The cached password in ~/.irods/.irodsA is wrong.')
             pass
 
     with open(irods_env_path, "r", encoding="utf-8") as f:
@@ -39,6 +41,7 @@ def authenticate(password: Optional[str] = None, irods_env_path: Optional[Union[
             return session
         except ValueError:
             #wrong password provided
+            print(f'INFO: The provided password is wrong.')
             pass
 
     password = getpass("Your iRODS password: ")
