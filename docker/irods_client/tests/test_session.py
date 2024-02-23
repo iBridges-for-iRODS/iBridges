@@ -1,6 +1,7 @@
 import pytest
 
 from ibridges import Session
+from ibridges.interactive import interactive_auth
 
 def test_session_from_cached_pw(config, irods_env):
     # test only for plain irods
@@ -35,3 +36,15 @@ def test_pam_password(session, config, irods_env):
     test_session = Session(irods_env)
     assert test_session.has_valid_irods_session()
 
+def test_interactive_auth(config, irods_env):
+    password = config.get("password", rods)
+    env_path = config.get("env_path", "/root/.irods/irods_environment.json")
+    session = interactive_auth(password = password, irods_env_path = env_path)
+    test_session(session, config, irods_env)
+
+def test_interactive_auth_testuser(config):
+    env_path = config.get("test_user_env_path", None)
+    password = config.get("test_user_pw", None)
+    if env_path is not None and password is not None:
+        session = interactive_auth(password = password, irods_env_path = env_path)
+        
