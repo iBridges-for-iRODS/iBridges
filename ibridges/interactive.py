@@ -25,12 +25,10 @@ def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Un
             return session
         except IndexError:
             # .irodsA file was tempered with and does not have right formatting anylonger
-            print(f'INFO: The cached password in ~/.irods/.irodsA has been corrupted')
-            pass
+            print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
         except ValueError:
             # cached password is wrong
-            print(f'INFO: The cached password in ~/.irods/.irodsA is wrong.')
-            pass
+            print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
 
     with open(irods_env_path, "r", encoding="utf-8") as f:
         ienv = json.load(f)
@@ -41,8 +39,7 @@ def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Un
             return session
         except ValueError:
             #wrong password provided
-            print(f'INFO: The provided password is wrong.')
-            pass
+            print('INFO: The provided password is wrong.')
 
     password = getpass("Your iRODS password: ")
     session = Session(irods_env=ienv, password=password)
