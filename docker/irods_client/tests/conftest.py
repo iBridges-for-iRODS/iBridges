@@ -12,7 +12,6 @@ from ibridges.irodsconnector.data_operations import (
     get_dataobject,
     upload,
 )
-from ibridges.irodsconnector.permissions import Permissions
 from ibridges.utils.path import IrodsPath
 
 
@@ -44,9 +43,6 @@ def config(config_dir):
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
     ipath = IrodsPath(session, "~")
-    perm = Permissions(session, get_collection(session, ipath))
-    if config.get("set_home_perm", True):
-        perm.set("own")
     yield session
     del session
 
@@ -66,7 +62,5 @@ def dataobject(session, testdata):
     ipath = IrodsPath(session, "~", "bunny.rtf")
     upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
     data_obj = get_dataobject(session, ipath)
-    perm = Permissions(session, data_obj)
-    perm.set("own")
     yield data_obj
     ipath.remove()
