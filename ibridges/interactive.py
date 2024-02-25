@@ -11,7 +11,7 @@ from ibridges.irodsconnector.session import Session
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
-def interactive_auth(password: Optional[str] = None, 
+def interactive_auth(password: Optional[str] = None,
                      irods_env_path: Optional[Union[str, Path]] = DEFAULT_IENV_PATH) -> Session:
     """Interactive authentication with iRODS server.
 
@@ -50,8 +50,9 @@ def interactive_auth(password: Optional[str] = None,
             try:
                 session = Session(irods_env=ienv, password=password)
                 session.write_pam_password()
-                success == True
+                success = True
                 return session
-            except:
+            except ValueError:
                 print('INFO: The provided password is wrong.')
                 n_tries+=1
+    raise Exception("Connection to iRODS could not be established.")
