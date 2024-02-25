@@ -40,15 +40,17 @@ def test_pam_password(session, config, irods_env):
 def test_interactive_auth(config, irods_env):
     password = config.get("password", "rods")
     env_path = config.get("env_path", None)
-    if env_path is not None:
-        session = interactive_auth(password = password, irods_env_path = env_path)
-        test_session(session, config, irods_env)
+    if env_path is None:
+        pytest.xfail("No path to the irods_enviroment.json explicitly configured.")
+    session = interactive_auth(password = password, irods_env_path = env_path)
+    test_session(session, config, irods_env)
 
 def test_interactive_auth_testuser(config):
     env_path = config.get("test_user_env_path", None)
     password = config.get("test_user_pw", None)
-    if env_path is not None and password is not None:
-        with open(env_path, 'r', encoding="utf-8") as f:
-            ienv = json.load(f)
-        session = interactive_auth(password = password, irods_env_path = env_path)
-        test_session(session, config, ienv)
+    if env_path is None or password is None:
+        pytest.xfail("No second user provided for authentication test.")
+    with open(env_path, 'r', encoding="utf-8") as f:
+        ienv = json.load(f)
+    session = interactive_auth(password = password, irods_env_path = env_path)
+    test_session(session, config, ienv)
