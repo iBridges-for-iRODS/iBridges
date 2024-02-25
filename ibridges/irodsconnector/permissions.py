@@ -47,8 +47,9 @@ class Permissions():
             user = self.session.username
         if zone is None:
             zone = self.session.zone
-        if perm == "null" and user == self.session.username and zone == self.session.zone:
-            raise ValueError("Cannot set your own permissions to null, because you would lose "
+        if perm not in ["inherit", "noinherit"] and user == self.session.username and \
+                zone == self.session.zone:
+            raise ValueError("Cannot set your own permissions, because you would lose "
                              "access to the object/collection.")
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
         self.session.irods_session.acls.set(acl, recursive=recursive, admin=admin)

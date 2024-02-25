@@ -17,6 +17,10 @@ def test_perm_own(session, item_name, request, tmpdir, config):
     assert isinstance(perm.available_permissions, dict)
     with pytest.raises(ValueError):
         perm.set("null", user=session.username, zone=session.zone)
+    with pytest.raises(ValueError):
+        perm.set("read", user=session.username, zone=session.zone)
+    with pytest.raises(ValueError):
+        perm.set("own", user=session.username, zone=session.zone)
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_perm_user(session, item_name, request, config):
