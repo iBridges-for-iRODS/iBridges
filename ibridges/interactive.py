@@ -55,4 +55,4 @@ def interactive_auth(password: Optional[str] = None,
             except ValueError:
                 print('INFO: The provided password is wrong.')
                 n_tries+=1
-    raise Exception("Connection to iRODS could not be established.")
+    raise ValueError("Connection to iRODS could not be established.")
