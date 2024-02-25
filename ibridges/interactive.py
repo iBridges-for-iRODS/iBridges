@@ -9,8 +9,10 @@ from getpass import getpass
 
 from ibridges.irodsconnector.session import Session
 
-def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Union[str, Path]] =
-                 os.path.expanduser("~/.irods/irods_environment.json")) -> Session:
+DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
+
+def interactive_auth(password: Optional[str] = None, 
+                     irods_env_path: Optional[Union[str, Path]] = DEFAULT_IENV_PATH) -> Session:
     """Interactive authentication with iRODS server.
 
     Stores the password in ~/.irods/.irodsA upon success.
@@ -19,7 +21,7 @@ def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Un
         print(f'File not found: {irods_env_path}')
         raise FileNotFoundError
 
-    if os.path.exists(os.path.expanduser("~/.irods/.irodsA")):
+    if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")):
         try:
             session = Session(irods_env_path=irods_env_path)
             return session
@@ -40,8 +42,16 @@ def interactive_auth(password: Optional[str] = None, irods_env_path: Optional[Un
         except ValueError:
             #wrong password provided
             print('INFO: The provided password is wrong.')
-
-    password = getpass("Your iRODS password: ")
-    session = Session(irods_env=ienv, password=password)
-    session.write_pam_password()
-    return session
+    else:
+        n_tries = 0
+        success = False
+        while not success and n_tries < 3:
+            password = getpass("Your iRODS password: ")
+            try:
+                session = Session(irods_env=ienv, password=password)
+                session.write_pam_password()
+                success == True
+                return session
+            except:
+                print('INFO: The provided password is wrong.')
+                n_tries+=1
