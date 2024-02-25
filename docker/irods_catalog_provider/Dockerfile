@@ -1,49 +1,33 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
+ARG os_name=jammy
 
 ENV DEBIAN_FRONTEND=noninteractive
 ARG ubuntu_name=focal
 
-RUN apt-get update && \
-    apt-get install -y \
-        apt-transport-https \
-	lsb-release \
-        gnupg \
-        wget \
-    && \
-    apt-get clean && \
+RUN apt-get update
+RUN apt-get install -y lsb-release gnupg wget sudo
+RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
-RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | apt-key add - && \
-    echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" | tee /etc/apt/sources.list.d/renci-irods.list
+# IRODS SERVER PACKAGES
+RUN wget -qO - https://packages.irods.org/irods-signing-key.asc | sudo apt-key add -
+RUN sudo rm -rf /etc/apt/sources.list.d/renci-irods.list
+RUN sudo echo "deb [arch=amd64] https://packages.irods.org/apt/ $(lsb_release -sc) main" |sudo tee /etc/apt/sources.list.d/renci-irods.list
 
-RUN apt-get update && \
-    apt-get install -y \
-        libcurl4-gnutls-dev \
-        python3 \
-        python3-distro \
-        python3-jsonschema \
-        python3-pip \
-        python3-psutil \
-        python3-requests \
-        rsyslog \
-        unixodbc \
-    && \
-    apt-get clean && \
+RUN apt-get update
+RUN apt-get install -y python3 unixodbc
+RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
-ARG irods_version=4.3.0
-ARG irods_package_version_suffix=-1~${ubuntu_name}
+ARG irods_version=4.3.1
+ARG irods_package_version_suffix=-0~${os_name}
 ARG irods_package_version=${irods_version}${irods_package_version_suffix}
-ARG irods_resource_plugin_version=${irods_version}.0${irods_package_version_suffix}
+#ARG irods_resource_plugin_version=${irods_version}.0${irods_package_version_suffix}
 
 RUN apt-get update && \
-    apt-get install -y \
-        irods-database-plugin-postgres=${irods_package_version} \
-        irods-runtime=${irods_package_version} \
-        irods-server=${irods_package_version} \
-        irods-resource-plugin-s3=${irods_resource_plugin_version} \
-    && \
-    apt-get clean && \
+    apt-get install -y irods-database-plugin-postgres=$irods_package_version
+RUN apt-get install irods-server=$irods_package_version
+RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/*
 
 COPY setup-${irods_version}.input /

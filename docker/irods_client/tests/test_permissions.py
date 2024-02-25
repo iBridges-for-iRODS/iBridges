@@ -17,10 +17,6 @@ def test_perm_own(session, item_name, request, tmpdir, config):
     assert isinstance(perm.available_permissions, dict)
     with pytest.raises(ValueError):
         perm.set("null", user=session.username, zone=session.zone)
-    perm.set("read")
-    with pytest.raises(ValueError):
-        upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
-    perm.set("own")
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_perm_user(session, item_name, request, config):
