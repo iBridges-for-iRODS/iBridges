@@ -77,18 +77,6 @@ class FolderObject:
     def __hash__(self):
         return hash(self.path)
 
-def _checks(source, target, on_checksum_fail):
-    if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
-        raise TypeError("Either source or target should be an iRODS path.")
-
-    if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
-        raise TypeError("iRODS to iRODS copying is not supported.")
-
-    fail_opt=["warn", "fail", "ignore", "delete"]
-    if on_checksum_fail not in fail_opt:
-        raise TypeError(f"on_checksum_fail must be on of: {", ".join(fail_opt)}")
-
-
 def sync(session: Session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
@@ -138,7 +126,7 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
         file and procedes. To ignore checksum verification errors, set `verify_checksum` to False.
     """
 
-    _checks(source, target, on_checksum_fail)
+    _param_checks(source, target, on_checksum_fail)
 
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
@@ -207,6 +195,17 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
             dry_run=dry_run,
             verify_checksum=verify_checksum,
             on_checksum_fail=on_checksum_fail)
+
+def _param_checks(source, target, on_checksum_fail):
+    if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
+        raise TypeError("Either source or target should be an iRODS path.")
+
+    if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
+        raise TypeError("iRODS to iRODS copying is not supported.")
+
+    fail_opt=["warn", "fail", "ignore", "delete"]
+    if on_checksum_fail not in fail_opt:
+        raise TypeError(f"on_checksum_fail must be on of: {", ".join(fail_opt)}")
 
 def _calc_checksum(filepath):
     f_hash=sha256()
