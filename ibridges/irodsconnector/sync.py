@@ -78,7 +78,7 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
          ignore_checksum: bool = False,
          copy_empty_folders: bool = False,
          verify_checksum: bool = True,
-         on_checksum_fail: str = 'fail') -> None:
+         on_checksum_fail: str = 'error') -> None:
 
     """
     Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
@@ -113,10 +113,10 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
     verify_checksum : bool, default True
         Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
         will generate an error, but will not abort the  synchronization process.
-    on_checksum_fail : {'warn', 'fail', 'delete'}
-        Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'fail'
-        terminates the program with an exception; and 'delete' prints an error, deletes the faulty
-        file and procedes. To ignore checksum verification errors, set `verify_checksum` to False.
+    on_checksum_fail : {'warn', 'error'}
+        Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'error'
+        terminates the program with an exception (default). To ignore checksum verification errors,
+        set `verify_checksum` to False.
     """
 
     _param_checks(source, target, on_checksum_fail)
@@ -196,7 +196,7 @@ def _param_checks(source, target, on_checksum_fail):
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
-    fail_opt=["warn", "fail", "ignore", "delete"]
+    fail_opt=["warn", "error"]
     if on_checksum_fail not in fail_opt:
         raise TypeError(f"on_checksum_fail must be on of: {", ".join(fail_opt)}")
 
@@ -325,12 +325,10 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                 if file.checksum != \
                         (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
                     msg=f"Checksum mismatch after upload: '{target_path}'"
-                    if on_checksum_fail=='fail':
+                    if on_checksum_fail=='error':
                         raise ValueError(msg)
-                    if not on_checksum_fail=='ignore':
+                    if on_checksum_fail=='warn':
                         print(f"WARNING: {msg}")
-                    if on_checksum_fail=='delete':
-                        obj.unlink()
 
             pbar.update(file.size)
         except Exception as err:
@@ -359,12 +357,10 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                         overwrite=True)
             if verify_checksum and obj.checksum != _calc_checksum(target_path):
                 msg=f"Checksum mismatch after download: '{source_path}'"
-                if on_checksum_fail=='fail':
+                if on_checksum_fail=='error':
                     raise ValueError(msg)
-                if not on_checksum_fail=='ignore':
+                if on_checksum_fail=='warn':
                     print(f"WARNING: {msg}")
-                if on_checksum_fail=='delete':
-                    target_path.unlink()
 
             pbar.update(obj.size)
         except Exception as err:
