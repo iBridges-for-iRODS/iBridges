@@ -3,7 +3,6 @@
 import json
 import os
 import warnings
-from typing import Optional
 
 import irods.session
 from irods.exception import NetworkException
@@ -39,7 +38,7 @@ class Session:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
         if irods_env_path is not None:
             if os.path.isfile(irods_env_path):
-                with open(env_fp, "r", encoding="utf-8") as f:
+                with open(irods_env_path, "r", encoding="utf-8") as f:
                     irods_env = json.load(f)
             else:
                 raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
