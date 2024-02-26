@@ -26,7 +26,6 @@ def interactive_auth(password: str = None,
             session = Session(irods_env_path=irods_env_path)
             return session
         except IndexError:
-            # .irodsA file was tempered with and does not have right formatting anylonger
             print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
         except ValueError:
             # cached password is wrong
