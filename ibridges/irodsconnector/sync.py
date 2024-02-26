@@ -28,10 +28,7 @@ class FileObject(NamedTuple):
     checksum: Union[str, None]
 
 class FolderObject:
-    """
-    Object to hold attributes from local and remote folders/collections.
-
-    ...
+    """Object to hold attributes from local and remote folders/collections.
 
     Attributes
     ----------
