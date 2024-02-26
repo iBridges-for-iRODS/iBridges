@@ -11,8 +11,8 @@ from ibridges.irodsconnector.session import Session
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
-def interactive_auth(password: Optional[str] = None,
-                     irods_env_path: Optional[Union[str, Path]] = DEFAULT_IENV_PATH) -> Session:
+def interactive_auth(password: str = None,
+                     irods_env_path: Union[str, Path] = DEFAULT_IENV_PATH) -> Session:
     """Interactive authentication with iRODS server.
 
     Stores the password in ~/.irods/.irodsA upon success.
