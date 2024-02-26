@@ -8,7 +8,7 @@ behaviour of the irsync module of the icommands command line tool.
 from __future__ import annotations
 import os
 import base64
-from typing import Union, NamedTuple
+from typing import Union, NamedTuple, Optional
 from pathlib import Path
 from hashlib import sha256
 from tqdm import tqdm
@@ -25,7 +25,7 @@ class FileObject(NamedTuple):
     name: str
     path: str
     size: int
-    checksum: Union[str, None]
+    checksum: Optional[str]
 
 class FolderObject:
     """Object to hold attributes from local and remote folders/collections.
@@ -73,7 +73,7 @@ class FolderObject:
 def sync(session: Session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
-         max_level: Union[int, None] = None,
+         max_level: Optional[int] = None,
          dry_run: bool = False,
          ignore_checksum: bool = False,
          copy_empty_folders: bool = False,
@@ -209,7 +209,7 @@ def _calc_checksum(filepath):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def _get_local_tree(path: Path,
-                    max_level: Union[int, None] = None,
+                    max_level: Optional[int] = None,
                     ignore_checksum: bool = False):
 
     # change all sep into /, regardless of platform, for easier comparison
@@ -242,7 +242,7 @@ def _get_local_tree(path: Path,
 def _get_irods_tree(coll: iRODSCollection,
                     root: str = '',
                     level: int = 0,
-                    max_level: Union[int, None] = None,
+                    max_level: Optional[int] = None,
                     ignore_checksum: bool = False):
 
     root=coll.path if len(root)==0 else root
