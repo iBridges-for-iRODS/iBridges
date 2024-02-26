@@ -39,7 +39,6 @@ def interactive_auth(password: str = None,
             session.write_pam_password()
             return session
         except ValueError:
-            #wrong password provided
             print('INFO: The provided password is wrong.')
     else:
         n_tries = 0
