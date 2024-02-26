@@ -1,0 +1,8 @@
+{
+"irods_host": "irods-catalog-provider",
+"irods_port": 1247,
+"irods_user_name": "testuser",
+"irods_default_resource": "demoResc",
+"irods_home": "/tempZone/home/testuser",
+"irods_zone_name": "tempZone"
+}

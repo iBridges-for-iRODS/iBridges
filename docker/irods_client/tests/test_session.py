@@ -1,6 +1,8 @@
 import pytest
+import json
 
 from ibridges import Session
+from ibridges.interactive import interactive_auth
 
 def test_session_from_cached_pw(config, irods_env):
     # test only for plain irods
@@ -31,7 +33,24 @@ def test_session(session, config, irods_env):
 def test_pam_password(session, config, irods_env):
     if not config["can_write_pam_pass"]:
         pytest.xfail("This iRods client environment cannot write pam passwords.")
-    session._write_pam_password()
+    session.write_pam_password()
     test_session = Session(irods_env)
     assert test_session.has_valid_irods_session()
 
+def test_interactive_auth(config, irods_env):
+    password = config.get("password", "rods")
+    env_path = config.get("env_path", None)
+    if env_path is None:
+        pytest.xfail("No path to the irods_enviroment.json explicitly configured.")
+    session = interactive_auth(password = password, irods_env_path = env_path)
+    test_session(session, config, irods_env)
+
+def test_interactive_auth_testuser(config):
+    env_path = config.get("test_user_env_path", None)
+    password = config.get("test_user_pw", None)
+    if env_path is None or password is None:
+        pytest.xfail("No second user provided for authentication test.")
+    with open(env_path, 'r', encoding="utf-8") as f:
+        ienv = json.load(f)
+    session = interactive_auth(password = password, irods_env_path = env_path)
+    test_session(session, config, ienv)

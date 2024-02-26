@@ -1,9 +1,10 @@
 password = "rods"
-server_version = "4.3.0"
+server_version = "4.3.1"
 can_write_pam_pass = false
 resources = ["bundleResc", "demoResc"]
 free_resources = [false, false]
 env_path = "/root/.irods/irods_environment.json"
 test_user = "testuser"
 test_user_pw = "testuser"
+test_user_env_path = "/root/.irods/irods_environment_testuser.json"
 ticket_date_only = true

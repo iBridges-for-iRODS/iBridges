@@ -17,10 +17,10 @@ def test_perm_own(session, item_name, request, tmpdir, config):
     assert isinstance(perm.available_permissions, dict)
     with pytest.raises(ValueError):
         perm.set("null", user=session.username, zone=session.zone)
-    perm.set("read")
     with pytest.raises(ValueError):
-        upload(session, tmpdir/"bunny.rt.copy", ipath, overwrite=True)
-    perm.set("own")
+        perm.set("read", user=session.username, zone=session.zone)
+    with pytest.raises(ValueError):
+        perm.set("own", user=session.username, zone=session.zone)
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_perm_user(session, item_name, request, config):
@@ -32,8 +32,10 @@ def test_perm_user(session, item_name, request, config):
         ipath = IrodsPath(session, item.path)
         perm.set("read", user=testuser, zone=session.zone)
         assert testuser in [p.user_name for p in perm]
-        assert (testuser, 1050) in [(p.user_name, p.to_int(p.access_name)) for p in perm]
+        assert (testuser, 1050) in [(p.user_name, p.to_int(
+            p.access_name.replace(" ", "_"))) for p in perm]
         perm.set("write", user=testuser, zone=session.zone)
-        assert (testuser, 1120) in [(p.user_name, p.to_int(p.access_name)) for p in perm]
+        assert (testuser, 1120) in [(p.user_name, p.to_int(
+            p.access_name.replace(" ", "_"))) for p in perm]
         perm.set("null", user=testuser, zone=session.zone)
         assert testuser not in [p.user_name for p in perm]
