@@ -198,7 +198,7 @@ def _param_checks(source, target, on_checksum_fail):
 
     fail_opt=["warn", "error"]
     if on_checksum_fail not in fail_opt:
-        raise TypeError(f"on_checksum_fail must be on of: {", ".join(fail_opt)}")
+        raise TypeError(f"on_checksum_fail must be on of: {', '.join(fail_opt)}")
 
 def _calc_checksum(filepath):
     f_hash=sha256()
@@ -284,7 +284,7 @@ def _create_irods_collections(session: Session,
     new_colls=[str(target / x.path) for x in collections if not x.is_empty() or copy_empty_folders]
     if dry_run:
         print("Will create collection(s):")
-        print(*new_colls, sep='\n')
+        print(*[f"  {x}" for x in new_colls], sep='\n')
         return
     for coll in new_colls:
         create_collection(session, coll)
