@@ -286,7 +286,8 @@ def _create_irods_collections(session: Session,
         print("Will create collection(s):")
         print(*new_colls, sep='\n')
         return
-    _=[create_collection(session, x) for x in new_colls]
+    for coll in new_colls:
+        create_collection(session, coll)
 
 def _create_local_folders(target: Path,
                           folders: list[FolderObject],
@@ -297,7 +298,8 @@ def _create_local_folders(target: Path,
         print("Will create folder(s):")
         print(*[f"  {x}" for x in new_folders], sep='\n')
         return
-    _=[x.mkdir(parents=True, exist_ok=True) for x in new_folders]
+    for folder in new_folders:
+        folder.mkdir(parents=True, exist_ok=True)
 
 def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                          source: Path,
