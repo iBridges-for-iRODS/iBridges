@@ -4,7 +4,7 @@
 import json
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 from getpass import getpass
 
 from ibridges.irodsconnector.session import Session
