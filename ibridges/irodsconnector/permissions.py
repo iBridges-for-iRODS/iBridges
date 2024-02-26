@@ -47,7 +47,7 @@ class Permissions():
             user = self.session.username
         if zone is None:
             zone = self.session.zone
-        # forbid that users can chang their own ACLs, 
+        # forbid that users can change their own ACLs,
         # does not apply to no/inherit, a setting  on collections which is independent of the user
         if perm not in ["inherit", "noinherit"] and user == self.session.username and \
                 zone == self.session.zone:
