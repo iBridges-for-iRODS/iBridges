@@ -28,7 +28,6 @@ def interactive_auth(password: str = None,
         except IndexError:
             print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
         except ValueError:
-            # cached password is wrong
             print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
 
     with open(irods_env_path, "r", encoding="utf-8") as f:
