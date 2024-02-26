@@ -45,14 +45,10 @@ class FolderObject:
         Check whether folder is empty.
     """
 
-    path=''
-    n_files=0
-    n_folders=0
-
     def __init__(self,
-                 path: str,
-                 n_files: int,
-                 n_folders: int) -> None:
+                 path: str = '',
+                 n_files: int = 0,
+                 n_folders: int = 0) -> None:
         self.path=path
         self.n_files=n_files
         self.n_folders=n_folders
