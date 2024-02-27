@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from ibridges.irodsconnector.data_operations import (
+from ibridges.data_operations import (
     download,
     get_collection,
     get_dataobject,
@@ -11,7 +11,7 @@ from ibridges.irodsconnector.data_operations import (
     is_dataobject,
     upload,
 )
-from ibridges.utils.path import IrodsPath
+from ibridges.path import IrodsPath
 
 
 def _get_digest(obj_or_file):

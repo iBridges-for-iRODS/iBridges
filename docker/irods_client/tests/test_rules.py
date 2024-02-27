@@ -1,4 +1,4 @@
-from ibridges.irodsconnector.rules import execute_rule
+from ibridges.rules import execute_rule
 
 
 def test_rules(session, testdata):

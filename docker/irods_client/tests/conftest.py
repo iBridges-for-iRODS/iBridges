@@ -6,13 +6,13 @@ import pytest
 import tomli
 
 from ibridges import Session
-from ibridges.irodsconnector.data_operations import (
+from ibridges.data_operations import (
     create_collection,
     get_collection,
     get_dataobject,
     upload,
 )
-from ibridges.utils.path import IrodsPath
+from ibridges.path import IrodsPath
 
 
 @pytest.fixture(scope="session")

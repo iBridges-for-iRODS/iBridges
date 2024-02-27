@@ -1,6 +1,6 @@
-from ibridges.irodsconnector.sync import sync, _calc_checksum
-from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.data_operations import create_collection, get_dataobject
+from ibridges.sync import sync, _calc_checksum
+from ibridges.path import IrodsPath
+from ibridges.data_operations import create_collection, get_dataobject
 
 def test_sync_dry_run(session, testdata, capsys):
 

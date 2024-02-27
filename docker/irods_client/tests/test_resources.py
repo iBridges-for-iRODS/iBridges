@@ -1,6 +1,6 @@
 import irods
 
-from ibridges.irodsconnector.resources import Resources
+from ibridges.resources import Resources
 
 
 def test_resources(session, config):

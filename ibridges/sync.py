@@ -1,4 +1,5 @@
-"""
+"""Synchronize data between local and remote copies.
+
 'sync' synchronizes the data between a local copy (local file system) and the copy stored in
 iRODS. The command can be in one of the two modes: synchronization of data from the client's
 local file system to iRODS, or from iRODS to the local file system. It broadly mirros the
@@ -6,68 +7,81 @@ behaviour of the irsync module of the icommands command line tool.
 """
 
 from __future__ import annotations
-import os
+
 import base64
-from typing import Union, NamedTuple, Optional
-from pathlib import Path
+import os
 from hashlib import sha256
-from tqdm import tqdm
+from pathlib import Path
+from typing import NamedTuple, Optional, Union
+
 from irods.collection import iRODSCollection
+from tqdm import tqdm
+
 from ibridges import Session
-from ibridges.utils.path import IrodsPath
-from ibridges.irodsconnector.data_operations import get_collection, get_dataobject, \
-    create_collection, upload, download
+from ibridges.data_operations import (
+    create_collection,
+    download,
+    get_collection,
+    get_dataobject,
+    upload,
+)
+from ibridges.path import IrodsPath
+
 
 class FileObject(NamedTuple):
-    """
-    Object to hold attributes from local and remote files.
-    """
+    """Object to hold attributes from local and remote files."""
+
     name: str
     path: str
     size: int
     checksum: Optional[str]
 
 class FolderObject:
-    """Object to hold attributes from local and remote folders/collections.
-
-    Attributes
-    ----------
-    path : str
-        Path, relative to source or target root
-    n_files : int
-        Number of files in folder
-    n_folders : int
-        Number of subfolders in folder
-
-    Methods
-    -------
-    is_empty()
-        Check whether folder is empty.
-    """
+    """Object to hold attributes from local and remote folders/collections."""
 
     def __init__(self,
                  path: str = '',
                  n_files: int = 0,
                  n_folders: int = 0) -> None:
+        """Initialize FolderObject.
+
+        Attributes
+        ----------
+        path : str
+            Path, relative to source or target root
+        n_files : int
+            Number of files in folder
+        n_folders : int
+            Number of subfolders in folder
+
+        Methods
+        -------
+        is_empty()
+            Check whether folder is empty.
+
+        """
         self.path=path
         self.n_files=n_files
         self.n_folders=n_folders
 
     def is_empty(self):
-        """ Check to see if folder has anything (files or subfolders) in it. """
+        """Check to see if folder has anything (files or subfolders) in it."""
         return (self.n_files+self.n_folders)==0
 
     def __repr__(self):
+        """Give a nicer representation for debug purposes."""
         return f"{self.__class__.__name__}(path='{self.path}', n_files={self.n_files}, \
             n_folders={self.n_folders})"
 
     def __eq__(self, other: object):
+        """Check whether two folders (paths) are the same."""
         if not isinstance(other, FolderObject):
             return NotImplemented
 
         return self.path==other.path
 
     def __hash__(self):
+        """Hash the path as a hash for the folder."""
         return hash(self.path)
 
 def sync(session: Session,   #pylint: disable=too-many-arguments
@@ -79,10 +93,9 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
          copy_empty_folders: bool = False,
          verify_checksum: bool = True,
          on_checksum_fail: str = 'error') -> None:
+    """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
-    """
-    Synchronize the data between a local copy (local file system) and the copy stored in iRODS. The
-    command can be in one of the two modes: synchronization of data from the client's local file
+    The command can be in one of the two modes: synchronization of data from the client's local file
     system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
     the values for `source` and `target` (IrodsPath or str/Path).
 
@@ -117,8 +130,8 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
         Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'error'
         terminates the program with an exception (default). To ignore checksum verification errors,
         set `verify_checksum` to False.
-    """
 
+    """
     _param_checks(source, target, on_checksum_fail)
 
     if isinstance(source, IrodsPath):
@@ -182,7 +195,7 @@ def sync(session: Session,   #pylint: disable=too-many-arguments
             copy_empty_folders=copy_empty_folders)
         _copy_irods_to_local(
             session=session,
-            source=source,
+            source=source,  # type: ignore
             target=Path(target),
             objects=files_diff,
             dry_run=dry_run,

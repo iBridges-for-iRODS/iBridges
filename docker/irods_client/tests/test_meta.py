@@ -1,7 +1,7 @@
 import pytest
 from pytest import mark
 
-from ibridges.irodsconnector.meta import MetaData
+from ibridges.meta import MetaData
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])

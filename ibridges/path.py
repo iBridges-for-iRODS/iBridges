@@ -1,6 +1,4 @@
-"""
-A classes to handle iRODS and local (Win, linux) paths.
-"""
+"""A class to handle iRODS and local (Win, linux) paths."""
 from __future__ import annotations
 
 from pathlib import PurePosixPath
@@ -14,6 +12,18 @@ class IrodsPath():
     _current_working_path = ""
 
     def __init__(self, session, *args):
+        """Initialize IrodsPath object similar to the Path object.
+
+        It does take an extra argument in session.
+
+        Parameters
+        ----------
+        session:
+            Session that is used for the ipath.
+        args:
+            Specification of the path. For example: "x/z" or "x", "z".
+
+        """
         self.session = session
         assert hasattr(session, "irods_session")
         # We don't want recursive IrodsPaths, so we take the
@@ -24,10 +34,7 @@ class IrodsPath():
         super().__init__()
 
     def absolute_path(self) -> str:
-        """
-        Return the path if the path starts with '/zone/home', otherwise
-        concatenate the '/zone/home' prefix to the current path.
-        """
+        """Return the path if the absolute irods path."""
         # absolute path
         if len(self._path.parts) == 0:
             return self.session.home
@@ -41,15 +48,19 @@ class IrodsPath():
 
 
     def __str__(self) -> str:
+        """Get the absolute path if converting to string."""
         return self.absolute_path()
 
     def __repr__(self) -> str:
+        """Representation of the IrodsPath object in line with a Path object."""
         return f"IrodsPath({', '.join(self._path.parts)})"
 
     def __truediv__(self, other) -> IrodsPath:
+        """Ensure that we can append just like the Path object."""
         return self.__class__(self.session, self._path, other)
 
     def __getattribute__(self, attr):
+        """Make the IrodsPath transparent so that some Path functionality is available."""
         if attr in ["name", "parts"]:
             return self._path.__getattribute__(attr)
         return super().__getattribute__(attr)
@@ -60,22 +71,23 @@ class IrodsPath():
         Returns
         -------
             The concatenated path.
+
         """
         return IrodsPath(self.session, self._path, *args)
 
     @property
     def parent(self):
-        """Return the parent directory of the current directory
+        """Return the parent directory of the current directory.
 
         Returns
         -------
             The parent just above the current directory
+
         """
         return IrodsPath(self.session, self._path.parent)
 
     def remove(self):
-        """Removes the data behind an iRODS path
-        """
+        """Remove the data behind an iRODS path."""
         try:
             if self.collection_exists():
                 coll = self.session.irods_session.collections.get(str(self))
@@ -89,13 +101,13 @@ class IrodsPath():
 
     @staticmethod
     def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
-        """Create a collection and all collections in its path. Return he collection. If the
-        collection already exists, return ir.
+        """Create a collection and all collections in its path.
 
-        Return
+        Return:
         ------
         irods.collection.iRODSCollection
-            The
+            The newly created collection.
+
         """
         try:
             return session.irods_session.collections.create(str(coll_path))
@@ -104,36 +116,28 @@ class IrodsPath():
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
     def rename(self):
-        """
-        Rename the collection or data object
-        """
+        """Rename the collection or data object."""
         raise NotImplementedError("Rename not implemented yet.")
 
     def collection_exists(self) -> bool:
-        """
-        Check if the path points to an iRODS collection
-        """
+        """Check if the path points to an iRODS collection."""
         return self.session.irods_session.collections.exists(str(self))
 
     def dataobject_exists(self) -> bool:
-        """
-        Check if the path points to an iRODS data object
-        """
+        """Check if the path points to an iRODS data object."""
         return self.session.irods_session.data_objects.exists(str(self))
 
     def exists(self) -> bool:
-        """
-        Check if the path already exists on the iRODS server
-        """
+        """Check if the path already exists on the iRODS server."""
         return self.dataobject_exists() or self.collection_exists()
 
     def walk(self, depth: int):
-        """
-        Walk on a collection.
+        """Walk on a collection.
 
         Parameters
         ----------
         depth : int
             Stops after depth many iterations, even if the tree is deeper.
+
         """
         raise NotImplementedError("Walk method not implemented yet.")

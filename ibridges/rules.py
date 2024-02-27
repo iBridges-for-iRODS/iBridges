@@ -1,11 +1,10 @@
-""" rule operations
-"""
+"""Rule operations."""
 import logging
 
 import irods.exception
 import irods.rule
 
-from ibridges.irodsconnector.session import Session
+from ibridges.session import Session
 
 
 def execute_rule(session: Session, rule_file: str, params: dict,

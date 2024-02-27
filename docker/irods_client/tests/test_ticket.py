@@ -4,7 +4,7 @@ import irods
 import pytest
 from pytest import mark
 
-from ibridges.irodsconnector.tickets import Tickets
+from ibridges.tickets import Tickets
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])

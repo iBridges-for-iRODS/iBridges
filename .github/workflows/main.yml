@@ -43,6 +43,10 @@ jobs:
       run: |
         pylint ibridges
 
+    - name: Check types with MyPy
+      run: |
+        mypy ibridges
+
     - name: Test with pytest
       run: |
         pip install pytest
