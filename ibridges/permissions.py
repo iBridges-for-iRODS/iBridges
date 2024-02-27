@@ -27,8 +27,7 @@ class Permissions():
 
     def __iter__(self) -> Iterator:
         """Iterate over all ACLs."""
-        for perm in self.session.irods_session.acls.get(self.item):
-            yield perm
+        yield from self.session.irods_session.acls.get(self.item)
 
     def __str__(self) -> str:
         """Create a string table of all currently set permissions."""

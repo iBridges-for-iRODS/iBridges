@@ -70,8 +70,7 @@ class Tickets():
 
     def __iter__(self) -> Iterable[TicketData]:
         """Iterate over all ticket data."""
-        for tick_data in self.update_tickets():
-            yield tick_data
+        yield from self.update_tickets()
 
     @property
     def all_ticket_strings(self) -> list[str]:

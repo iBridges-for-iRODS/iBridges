@@ -21,8 +21,7 @@ class MetaData():
 
     def __iter__(self) -> Iterator:
         """Iterate over all metadata key/value/units pairs."""
-        for m in self.item.metadata.items():
-            yield m
+        yield from self.item.metadata.items()
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
         """Check whether a key, key/val, key/val/units pairs are in the metadata."""
