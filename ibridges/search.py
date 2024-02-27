@@ -6,7 +6,7 @@ from ibridges.path import IrodsPath
 from ibridges.session import Session
 
 
-def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
+def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
            checksum: Optional[str] = None, key_vals: Optional[dict] = None) -> list[dict]:
     """Retrieve all collections and data objects.
 
