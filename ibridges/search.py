@@ -54,10 +54,16 @@ def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     if checksum:
         data_query = data_query.filter(kw.LIKE(kw.DATA_CHECKSUM, checksum))
     # gather results
-    results = [{key.icat_key: val} for res in data_query.get_results()
-                                   for key, val in res.items()]
+    results = list(data_query.get_results())
     if checksum is None:
-        results.extend([{key.icat_key: val} for res in coll_query.get_results()
-                                            for key, val in res.items()])
+        coll_res = coll_query.get_results()
+        if len(list(coll_res)) > 0:
+            results.append(coll_res)
+
+    for item in results:
+        if isinstance(item, dict):
+            new_keys = [k.icat_key for k in item.keys()]
+            for n_key, o_key in zip(new_keys, item.keys()):
+                item[n_key] = item.pop(o_key)
 
     return results

@@ -3,7 +3,6 @@
 import json
 import os
 import warnings
-from typing import Optional
 
 import irods.session
 from irods.exception import NetworkException
@@ -16,8 +15,8 @@ class Session:
 
     """
 
-    def __init__(self, irods_env: Optional[dict] = None, irods_env_path: Optional[str] = None,
-                 password: Optional[str] = None, irods_home: Optional[str] = None):
+    def __init__(self, irods_env: dict = None, irods_env_path: str = None,
+                 password: str = None, irods_home: str = None):
         """ iRODS authentication with Python client.
 
         Parameters
@@ -35,13 +34,14 @@ class Session:
         """
         if irods_env is None and irods_env_path is None:
             raise ValueError("CONNECTION ERROR: no irods environment given.")
-        if irods_env and irods_env_path:
+        if irods_env is not None and irods_env_path is not None:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
-        if irods_env_path:
-            env_fp = os.path.expanduser("~/.irods/irods_environment.json")
-            with open(env_fp, "r", encoding="utf-8") as f:
-                irods_env = json.load(f)
-
+        if irods_env_path is not None:
+            if os.path.isfile(irods_env_path):
+                with open(irods_env_path, "r", encoding="utf-8") as f:
+                    irods_env = json.load(f)
+            else:
+                raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
 
         self._password = password
         self._irods_env = irods_env
