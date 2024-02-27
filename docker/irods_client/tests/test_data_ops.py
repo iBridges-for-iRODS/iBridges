@@ -57,8 +57,9 @@ def test_upload_download_collection(session, testdata, tmpdir):
     for cur_file in files:
         copy_file = Path(tmpdir, "test", cur_file)
         orig_file = Path(testdata, cur_file)
-        with open(orig_file, "r") as handle:
-            orig_data = handle.read()
-        with open(copy_file, "r") as handle:
-            copy_data = handle.read()
-        assert copy_data == orig_data
+        if orig_file.is_file():
+            with open(orig_file, "r") as handle:
+                orig_data = handle.read()
+            with open(copy_file, "r") as handle:
+                copy_data = handle.read()
+            assert copy_data == orig_data
