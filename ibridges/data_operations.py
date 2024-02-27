@@ -135,12 +135,15 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
                            irods_path / local_path.name).dataobject_exists() \
                  or irods_path.dataobject_exists()
 
-    options = {
+    if options is None:
+        options = {}
+    options.update({
         kw.ALL_KW: '',
         kw.NUM_THREADS_KW: kw.NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
-    }
+    })
+
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
