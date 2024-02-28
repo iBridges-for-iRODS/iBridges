@@ -8,7 +8,7 @@ def test_sync_dry_run(session, testdata, capsys):
     coll = create_collection(session=session, coll_path=ipath)
 
     # upload
-    sync(session=session,
+    sync_data(session=session,
          source=testdata,
          target=ipath,
          max_level=None,
