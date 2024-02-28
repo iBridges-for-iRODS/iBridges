@@ -1,24 +1,24 @@
-""" resource operations
-"""
+"""resource operations."""
 from typing import Optional
 
 import irods.exception
 import irods.resource
 
-from ibridges.irodsconnector import keywords as kw
-from ibridges.irodsconnector.session import Session
+from ibridges import keywords as kw
+from ibridges.session import Session
 
 
 class Resources():
-    """Irods Resource operations """
+    """Irods Resource operations."""
 
     def __init__(self, session: Session):
-        """ iRODS resource initialization
+        """IRODS resource initialization.
 
-            Parameters
-            ----------
-            session : Session
-                instance of the Session class
+        Parameters
+        ----------
+        session : Session
+            Instance of the Session class
+
         """
         self._resources: Optional[dict] = None
         self.session = session
@@ -36,7 +36,8 @@ class Resources():
         iRODSResource
             Instance of the resource with `resc_name`.
 
-        Raises:
+        Raises
+        ------
             irods.exception.ResourceDoesNotExist
 
         """
@@ -102,7 +103,7 @@ class Resources():
         return resc.children + children
 
     def resources(self, update: bool = False) -> dict:
-        """iRODS resources and their metadata.
+        """IRODS resources and their metadata.
 
         Parameters
         ----------
@@ -142,13 +143,16 @@ class Resources():
         return self._resources
 
     @property
-    def root_resources(self) -> list:
-        """
-        Filter resources for all root resources (data can only be written to root resources).
+    def root_resources(self) -> list[tuple]:
+        """Filter resources for all root resources.
+
+        Data can only be written to root resources.
         Return their names, their status and their free space.
 
-        Returns:
+        Returns
+        -------
         List [(resource_name, status, free_space, context)]
+
         """
         parents = [(key, val) for key, val in self.resources().items() if not val['parent']]
         return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"])

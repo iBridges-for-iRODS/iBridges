@@ -1,5 +1,4 @@
-""" collections and data objects
-"""
+"""Collections and data objects."""
 import os
 import warnings
 from pathlib import Path
@@ -10,9 +9,9 @@ import irods.data_object
 import irods.exception
 from irods.models import DataObject
 
-from ibridges.irodsconnector import keywords as kw
-from ibridges.irodsconnector.session import Session
-from ibridges.utils.path import IrodsPath
+from ibridges import keywords as kw
+from ibridges.path import IrodsPath
+from ibridges.session import Session
 
 
 def get_dataobject(session: Session,
@@ -21,6 +20,8 @@ def get_dataobject(session: Session,
 
     Parameters
     ----------
+    session :
+        Session with connection to the server to get the data object from.
     path : str
         Name of an iRODS data object.
 
@@ -40,8 +41,9 @@ def get_dataobject(session: Session,
     raise irods.exception.DataObjectDoesNotExist(path)
 
 def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
-    """Retrieves information about replicas (copies of the file on different resources)
-    of the data object in the iRODS system.
+    """Retrieve information about replicas (copies of the file on different resources).
+
+    It does so for a data object in the iRODS system.
 
     Parameters
     ----------
@@ -50,10 +52,11 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
 
     Returns
     -------
-    list(tuple(int, str, str, int, str))
+    list(tuple(int, str, str, int, str)):
         List with tuple where each tuple contains replica index/number, resource name on which
         the replica is stored about one replica, replica checksum, replica size,
         replica status of the replica
+
     """
     #replicas = []
     repl_states = {
@@ -74,6 +77,8 @@ def get_collection(session: Session,
 
     Parameters
     ----------
+    session :
+        Session to get the collection from.
     path : str
         Name of an iRODS collection.
 
@@ -92,13 +97,11 @@ def get_collection(session: Session,
     raise irods.exception.CollectionDoesNotExist(path)
 
 def is_dataobject(item) -> bool:
-    """Determine if item is an iRODS data object
-    """
+    """Determine if item is an iRODS data object."""
     return isinstance(item, irods.data_object.iRODSDataObject)
 
 def is_collection(item) -> bool:
-    """Determine if item is an iRODS collection
-    """
+    """Determine if item is an iRODS collection."""
     return isinstance(item, irods.collection.iRODSCollection)
 
 def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
@@ -107,12 +110,18 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
 
     Parameters
     ----------
+    session :
+        Session to upload the object.
     local_path : str or Path
         Path of local file.
     irods_path : str or IrodsPath
         Path of iRODS data object or collection.
     resc_name : str
         Optional resource name.
+    overwrite :
+        Whether to overwrite the object if it exists.
+    options :
+        TODO: this seems currently unused?
 
     """
     local_path = Path(local_path)
@@ -126,12 +135,15 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
                            irods_path / local_path.name).dataobject_exists() \
                  or irods_path.dataobject_exists()
 
-    options = {
+    if options is None:
+        options = {}
+    options.update({
         kw.ALL_KW: '',
         kw.NUM_THREADS_KW: kw.NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
-    }
+    })
+
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
@@ -145,10 +157,14 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
     Parameters
     ----------
+    session :
+        Session to get the object from.
     irods_path : str or IrodsPath
         Path of iRODS data object.
     local_path : str or Path
         Path of local file or directory/folder.
+    overwrite :
+        Whether to overwrite the local file if it exists.
     options : dict
         iRODS transfer options.
 
@@ -168,9 +184,7 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
-    """ Assmbles the irods destination paths for upload of a folder
-    """
-
+    """Assembles the irods destination paths for upload of a folder."""
     upload_path = irods_path.joinpath(local_path.name)
     paths = [(root.removeprefix(str(local_path)), f)
              for root, _, files in os.walk(local_path) for f in files]
@@ -185,10 +199,12 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
                        overwrite: bool = False, resc_name: str = '',
                        options: Optional[dict] = None):
-    """Upload a local directory to iRODS
+    """Upload a local directory to iRODS.
 
     Parameters
     ----------
+    session :
+        Session to upload the collection to.
     local_path : Path
         Absolute path to the directory to upload
     irods_path : IrodsPath
@@ -199,6 +215,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
         More options for the upload
+
     """
     local_path = Path(local_path)
     irods_path = IrodsPath(session, irods_path)
@@ -215,8 +232,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
 
 def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path):
-    """Assmbles the local destination paths for download of a collection
-    """
+    """Assembles the local destination paths for download of a collection."""
     # get all data objects
     coll = get_collection(session, irods_path)
     all_objs = _get_data_objects(session, coll)
@@ -233,10 +249,12 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, options: Optional[dict] = None):
-    """Download a collection to the local filesystem
+    """Download a collection to the local filesystem.
 
     Parameters
     ----------
+    session :
+        Session to download the collection from.
     irods_path : IrodsPath
         Absolute irods source path pointing to a collection
     local_path : Path
@@ -245,8 +263,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         Overwrite existing local data
     options : dict
         More options for the download
-    """
 
+    """
     irods_path = IrodsPath(session, irods_path)
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
@@ -264,10 +282,12 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
-    """Upload a local directory  or file to iRODS
+    """Upload a local directory or file to iRODS.
 
     Parameters
     ----------
+    session :
+        Session to upload the data to.
     local_path : Path
         Absolute path to the directory to upload
     irods_path : IrodsPath
@@ -278,8 +298,8 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
         More options for the upload
-    """
 
+    """
     local_path = Path(local_path)
     try:
         if local_path.is_dir():
@@ -292,10 +312,12 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, _resc_name: str = '', options: Optional[dict] = None):
-    """Download a collection or data object to the local filesystem
+    """Download a collection or data object to the local filesystem.
 
     Parameters
     ----------
+    session :
+        Session to download the collection from.
     irods_path : IrodsPath
         Absolute irods source path pointing to a collection
     local_path : Path
@@ -304,6 +326,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         Overwrite existing local data
     options : dict
         More options for the download
+
     """
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
@@ -319,17 +342,18 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
 def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
                                irods.collection.iRODSCollection]) -> int:
-    """Collect the sizes of a data object or a
-    collection.
+    """Collect the sizes of a data object or a collection.
 
     Parameters
     ----------
+    session :
+        Session with the connection to the item.
     item : iRODSDataObject or iRODSCollection
-
+        Collection or data object to get the size of.
 
     Returns
     -------
-    int
+    int :
         Total size [bytes] of the iRODS object or all iRODS objects in the collection.
 
     """
@@ -339,20 +363,22 @@ def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
     return sum(size for _, _, size, _ in all_objs)
 
 def _get_data_objects(session: Session,
-                      coll: irods.collection.iRODSCollection) -> list[str, str, int, str]:
+                      coll: irods.collection.iRODSCollection) -> list[tuple[str, str, int, str]]:
     """Retrieve all data objects in a collection and all its subcollections.
 
     Parameters
     ----------
+    session:
+        Session to get the data objects with.
     coll : irods.collection.iRODSCollection
-        The collection to search for all data pbjects
+        The collection to search for all data objects
 
     Returns
     -------
     list of all data objects
-        [(cllection path, name, size, checksum)]
-    """
+        [(collection path, name, size, checksum)]
 
+    """
     # all objects in the collection
     objs = [(obj.collection.path, obj.name, obj.size, obj.checksum)
             for obj in coll.data_objects]
@@ -373,8 +399,11 @@ def create_collection(session: Session,
 
     Parameters
     ----------
+    session:
+        Session to create the collection for.
     coll_path: IrodsPath
         Collection path
+
     """
     try:
         return session.irods_session.collections.create(str(coll_path))

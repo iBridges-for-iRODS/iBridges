@@ -1,4 +1,4 @@
-""" permission operations """
+"""permission operations."""
 from collections import defaultdict
 from typing import Iterator, Optional
 
@@ -9,17 +9,28 @@ import irods.session
 
 
 class Permissions():
-    """Irods permissions operations"""
+    """Irods permissions operations."""
 
     def __init__(self, session, item) -> None:
+        """Initialize the permissions object.
+
+        Parameters
+        ----------
+        session
+            Session that contains the item.
+        item
+            Data object or collection to create adjust the permissions for.
+
+        """
         self.session = session
         self.item = item
 
     def __iter__(self) -> Iterator:
-        for perm in self.session.irods_session.acls.get(self.item):
-            yield perm
+        """Iterate over all ACLs."""
+        yield from self.session.irods_session.acls.get(self.item)
 
     def __str__(self) -> str:
+        """Create a string table of all currently set permissions."""
         acl_dict = defaultdict(list)
         for perm in self:
             acl_dict[f'{perm.user_name}#{perm.user_zone}'].append(
@@ -37,7 +48,7 @@ class Permissions():
 
     @property
     def available_permissions(self) -> dict:
-        """Get available permissions"""
+        """Get available permissions."""
         return self.session.irods_session.available_permissions.codes
 
     def set(self, perm: str, user: Optional[str] = None, zone: Optional[str] = None,

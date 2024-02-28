@@ -1,5 +1,4 @@
-""" metadata operations
-"""
+"""metadata operations."""
 from typing import Iterator, Optional, Sequence, Union
 
 import irods.exception
@@ -7,16 +6,25 @@ import irods.meta
 
 
 class MetaData():
-    """Irods metadata operations """
+    """Irods metadata operations."""
 
     def __init__(self, item):
+        """Initialize the metadata object.
+
+        Parameters
+        ----------
+        item
+            The data object or collection to attach the metadata object to.
+
+        """
         self.item = item
 
     def __iter__(self) -> Iterator:
-        for m in self.item.metadata.items():
-            yield m
+        """Iterate over all metadata key/value/units pairs."""
+        yield from self.item.metadata.items()
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
+        """Check whether a key, key/val, key/val/units pairs are in the metadata."""
         if isinstance(val, str):
             val = [val]
         all_attrs = ["name", "value", "units"][:len(val)]
@@ -32,8 +40,12 @@ class MetaData():
         return False
 
     def __repr__(self) -> str:
-        """Create a sorted representation of the metadata"""
+        """Create a sorted representation of the metadata."""
+        return f"MetaData<{self.item.path}>"
 
+
+    def __str__(self) -> str:
+        """Return a string showing all metadata entries."""
         # Sort the list of items name -> value -> units, where None is the lowest
         meta_list = list(self)
         meta_list = sorted(meta_list, key=lambda m: (m.units is None, m.units))
@@ -44,22 +56,23 @@ class MetaData():
             meta_str += f" - {{name: {m.name}, value: {m.value}, units: {m.units}}}\n"
         return meta_str
 
-    def __str__(self) -> str:
-        return self.__repr__()
-
     def add(self, key: str, value: str, units: Optional[str] = None):
-        """
-        Adds metadata to all items
+        """Add metadata to an item.
+
+        This will never overwrite an existing entry.
 
         Parameters
         ----------
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string
+        key:
+            Key of the new entry to add to the item.
+        value:
+            Value of the new entry to add to the item.
+        units:
+            The units of the new entry.
 
         Throws:
             CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+
         """
         try:
             if (key, value, units) in self:
@@ -80,29 +93,34 @@ class MetaData():
 
         Parameters
         ----------
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string
+        key:
+            Key of the new entry to add to the item.
+        value:
+            Value of the new entry to add to the item.
+        units:
+            The units of the new entry.
 
         Throws: CAT_NO_ACCESS_PERMISSION
+
         """
         self.delete(key, None)
         self.add(key, value, units)
 
     def delete(self, key: str, value: Optional[str], units: Optional[str] = None):
-        """
-        Deletes a metadata entry of all items
+        """Delete a metadata entry of an item.
 
         Parameters
         ----------
-        items: list of iRODS data objects or iRODS collections
-        key: string
-        value: string
-        units: (optional) string
+        key:
+            Key of the new entry to add to the item.
+        value:
+            Value of the new entry to add to the item.
+        units:
+            The units of the new entry.
 
         Throws:
             CAT_SUCCESS_BUT_WITH_NO_INFO: metadata did not exist
+
         """
         try:
             if value is None:
@@ -121,7 +139,6 @@ class MetaData():
                              "path '{item.path}'.") from error
 
     def clear(self):
-        """Delete all metadata belonging to the item.
-        """
+        """Delete all metadata belonging to the item."""
         for meta in self:
             self.item.metadata.remove(meta)

@@ -1,5 +1,4 @@
-""" ticket operations
-"""
+"""Ticket operations."""
 from collections import namedtuple
 from datetime import date, datetime
 from typing import Iterable, Optional, Union
@@ -7,21 +6,21 @@ from typing import Iterable, Optional, Union
 import irods.ticket
 from irods.models import TicketQuery
 
-import ibridges.irodsconnector.keywords as kw
-from ibridges.irodsconnector.session import Session
+import ibridges.keywords as kw
+from ibridges.session import Session
 
 TicketData = namedtuple('TicketData', ["name", "type", "path", "expiration_date"])
 
 class Tickets():
-    """Irods Ticket operations """
+    """Irods Ticket operations."""
 
     def __init__(self, session: Session):
-        """ iRODS data operations initialization
+        """IRODS data operations initialization.
 
-            Parameters
-            ----------
-            session : session.Session
-                instance of the Session class
+        Parameters
+        ----------
+        session : session.Session
+            instance of the Session class
 
         """
         self.session = session
@@ -30,8 +29,9 @@ class Tickets():
     def create_ticket(self, obj_path: str,
                       ticket_type: Optional[str] = 'read',
                       expiry_date: Optional[Union[str, datetime, date]] = None) -> tuple:
-        """Create an iRODS ticket to allow read access to the object
-        referenced by `obj_path`.
+        """Create an iRODS ticket.
+
+        This allows read access to the object referenced by `obj_path`.
 
         Parameters
         ----------
@@ -39,7 +39,7 @@ class Tickets():
             Collection or data object path to create a ticket for.
         ticket_type: str
             read or write, default read
-        expiry_string : str
+        expiry_date : str
             Optional expiration date in the form: strftime('%Y-%m-%d.%H:%M:%S')
 
         Returns
@@ -69,8 +69,8 @@ class Tickets():
         return ticket.ticket, expiration_set
 
     def __iter__(self) -> Iterable[TicketData]:
-        for tick_data in self.update_tickets():
-            yield tick_data
+        """Iterate over all ticket data."""
+        yield from self.update_tickets()
 
     @property
     def all_ticket_strings(self) -> list[str]:
@@ -93,7 +93,7 @@ class Tickets():
             raise KeyError(f"Cannot delete ticket: ticket '{ticket}' does not exist (anymore).")
 
     def update_tickets(self) -> list[TicketData]:
-        """retrieves all tickets and their metadata belonging to the user.
+        """Retrieve all tickets and their metadata belonging to the user.
 
         Parameters
         ----------
@@ -104,6 +104,7 @@ class Tickets():
         -------
         list
             [(ticket string, ticket type, irods obj/coll path, expiry data in epoche)]
+
         """
         user = self.session.username
         self._all_tickets = []
@@ -118,18 +119,17 @@ class Tickets():
         return self._all_tickets
 
     def clear(self):
-        """Delete all tickets.
-        """
+        """Delete all tickets."""
         for tick_data in self.update_tickets():
             tick = self.get_ticket(tick_data.name)
             self.delete_ticket(tick)
         self.update_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
-        """
-        Given an iRODS item id (data object or collection) from the
-        TicketQuery.Ticket.object_id this function retrieves the corresponding
-        iRODS path.
+        """Get IRODS path from a given an iRODS item id.
+
+        The item (data object or collection) id should come from the
+        TicketQuery.Ticket.object_id.
 
         Parameters
         ----------
@@ -142,6 +142,7 @@ class Tickets():
         str
             collection or data object path
             returns '' if the identifier does not exist any longer
+
         """
         data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME)
         data_query = data_query.filter(kw.DATA_ID == itemid)

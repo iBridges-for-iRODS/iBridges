@@ -1,36 +1,37 @@
-""" session operations
-"""
+"""session operations."""
 import json
 import os
 import warnings
+from pathlib import Path
+from typing import Optional, Union
 
 import irods.session
 from irods.exception import NetworkException
 
-from ibridges.irodsconnector.keywords import exceptions
+from ibridges.keywords import exceptions
 
 
 class Session:
-    """Irods session authentication.
+    """Irods session authentication."""
 
-    """
-
-    def __init__(self, irods_env: dict = None, irods_env_path: str = None,
-                 password: str = None, irods_home: str = None):
-        """ iRODS authentication with Python client.
+    def __init__(self, irods_env: Optional[dict] = None,
+                 irods_env_path: Optional[Union[str, Path]] = None,
+                 password: Optional[str] = None, irods_home: Optional[str] = None):
+        """IRODS authentication with Python client.
 
         Parameters
         ----------
-        irods_conf: dict
+        irods_env: dict
             Dictionary from irods_environment.json
         irods_env_path:
-            File to read the dictionary from if irods_conf is not supplied.
+            File to read the dictionary from if irods_env is not supplied.
         password : str
             Plain text password.
         irods_home:
             Override the home directory of irods. Otherwise attempt to retrive the value
             from the irods environment dictionary. If it is not there either, then use
             /{zone}/home/{username}.
+
         """
         if irods_env is None and irods_env_path is None:
             raise ValueError("CONNECTION ERROR: no irods environment given.")
@@ -40,11 +41,14 @@ class Session:
             if os.path.isfile(irods_env_path):
                 with open(irods_env_path, "r", encoding="utf-8") as f:
                     irods_env = json.load(f)
+                if not isinstance(irods_env, dict):
+                    raise TypeError(f"Error reading environment file '{irods_env_path}': "
+                                    f"expected dictionary, got {type(irods_env)}.")
             else:
                 raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
 
         self._password = password
-        self._irods_env = irods_env
+        self._irods_env: dict = irods_env  # type: ignore
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
         if irods_home is not None:
@@ -62,6 +66,7 @@ class Session:
         Returns
         -------
             The current working directory in the current session.
+
         """
         return self._irods_env["irods_home"]
 
@@ -70,11 +75,12 @@ class Session:
         self._irods_env["irods_home"] = value
 
     def __del__(self):
+        """Clean up the irods session as well."""
         del self.irods_session
 
     @property
     def irods_session(self) -> irods.session.iRODSSession:
-        """iRODS session creation.
+        """IRODS session creation.
 
         Returns
         -------
@@ -86,8 +92,7 @@ class Session:
 
     @irods_session.deleter
     def irods_session(self):
-        """Properly delete iRODS session.
-        """
+        """Properly delete iRODS session."""
         if self._irods_session is not None:
             # In case the iRODS session is not fully there.
             try:
@@ -100,8 +105,6 @@ class Session:
             self._irods_session = None
 
     # Authentication workflow methods
-    #
-
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
 
@@ -114,9 +117,7 @@ class Session:
         return self.server_version != ()
 
     def connect(self):
-        """Establish an iRODS session.
-
-        """
+        """Establish an iRODS session."""
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
@@ -173,10 +174,7 @@ class Session:
             raise e
 
     def write_pam_password(self):
-        """Store the password in the iRODS
-        authentication file in obfuscated form.
-
-        """
+        """Store the password in the iRODS authentication file in obfuscated form."""
         connection = self._irods_session.pool.get_connection()
         pam_passwords = self._irods_session.pam_pw_negotiated
         if len(pam_passwords):
@@ -235,7 +233,7 @@ class Session:
 
     @property
     def server_version(self) -> tuple:
-        """Retrieve version of the iRODS server
+        """Retrieve version of the iRODS server.
 
         Returns
         -------

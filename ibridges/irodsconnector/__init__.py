@@ -1,2 +1,0 @@
-""" irodsConnector irods modules
-"""

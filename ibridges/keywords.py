@@ -1,4 +1,4 @@
-"""Keywords and definitions"""
+"""Keywords and definitions."""
 import irods.column as cm
 import irods.keywords as kw
 import irods.models as imodels

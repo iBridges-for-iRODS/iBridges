@@ -1,20 +1,24 @@
-""" Data query
-"""
+"""Data query."""
 from typing import Optional, Union
 
-from ibridges.irodsconnector import keywords as kw
-from ibridges.irodsconnector.session import Session
-from ibridges.utils.path import IrodsPath
+from ibridges import keywords as kw
+from ibridges.path import IrodsPath
+from ibridges.session import Session
 
-def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
+
+def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
            checksum: Optional[str] = None, key_vals: Optional[dict] = None) -> list[dict]:
-    """Retrieves all collections and data objects (the absolute collection path,
+    """Retrieve all collections and data objects.
+
+    (the absolute collection path,
     data object or collection name) to the given user-defined and system metadata.
     By Default all accessible collections and data objects will be returned.
     Wildcard: %
 
     Parameters
     ----------
+    session:
+        Session to search with.
     path: str
         (Partial) path or IrodsPath
     checksum: str
@@ -26,7 +30,7 @@ def search(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     -------
     list: [dict]
         List of dictionaries with keys: COLL_NAME (absolute path of the collection),
-                                        DATA_NAME (name of the data object), 
+                                        DATA_NAME (name of the data object),
                                         D_DATA_CHECKSUM (checksum of the data object)
         The latter two keys are only present of the found item is a data object.
 

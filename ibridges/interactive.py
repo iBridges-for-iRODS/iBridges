@@ -1,17 +1,16 @@
-"""Interactive authentication with iRODS server.
-"""
+"""Interactive authentication with iRODS server."""
 
 import json
 import os
-from pathlib import Path
-from typing import Union
 from getpass import getpass
+from pathlib import Path
+from typing import Optional, Union
 
-from ibridges.irodsconnector.session import Session
+from ibridges.session import Session
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
-def interactive_auth(password: str = None,
+def interactive_auth(password: Optional[str] = None,
                      irods_env_path: Union[str, Path] = DEFAULT_IENV_PATH) -> Session:
     """Interactive authentication with iRODS server.
 

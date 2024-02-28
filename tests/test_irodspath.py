@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 from ibridges import IrodsPath
-from ibridges.irodsconnector.data_operations import _create_irods_dest
+from ibridges.data_operations import _create_irods_dest
 
 class MockIrodsSession:
     zone = "testzone"
