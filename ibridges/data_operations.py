@@ -293,7 +293,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     irods_path : IrodsPath
         Absolute irods destination path
     overwrite : bool
-        If data_description_ already exists on iRODS, overwrite
+        If data object or collection already exists on iRODS, overwrite
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
