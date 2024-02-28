@@ -101,7 +101,8 @@ class IrodsPath():
                 f"While removing {self}: iRODS server forbids action.") from exc
 
     @staticmethod
-    def create_collection(session,  coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
+    def create_collection(session,
+                          coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
 
         Parameters
