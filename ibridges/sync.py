@@ -17,7 +17,6 @@ from typing import NamedTuple, Optional, Union
 from irods.collection import iRODSCollection
 from tqdm import tqdm
 
-from ibridges import Session
 from ibridges.data_operations import (
     create_collection,
     download,
@@ -26,6 +25,7 @@ from ibridges.data_operations import (
     upload,
 )
 from ibridges.path import IrodsPath
+from ibridges.session import Session
 
 
 class FileObject(NamedTuple):
