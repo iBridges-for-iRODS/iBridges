@@ -84,7 +84,7 @@ class FolderObject:
         """Hash the path as a hash for the folder."""
         return hash(self.path)
 
-def sync(session: Session,   #pylint: disable=too-many-arguments
+def sync_data(session: Session,   #pylint: disable=too-many-arguments
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
          max_level: Optional[int] = None,
