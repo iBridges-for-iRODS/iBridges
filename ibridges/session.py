@@ -42,8 +42,8 @@ class Session:
                 with open(irods_env_path, "r", encoding="utf-8") as f:
                     irods_env = json.load(f)
                 if not isinstance(irods_env, dict):
-                    raise ValueError(f"Error reading environment file '{irods_env_path}': "
-                                      "expected dictionary, got {irods_env}.")
+                    raise TypeError(f"Error reading environment file '{irods_env_path}': "
+                                    f"expected dictionary, got {type(irods_env)}.")
             else:
                 raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
 
