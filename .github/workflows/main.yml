@@ -47,6 +47,10 @@ jobs:
       run: |
         mypy ibridges
 
+    - name: Check if documentation builds.
+      run: |
+        cd docs; make html SPHINXOPTS="-W --keep-going"
+
     - name: Test with pytest
       run: |
         pip install pytest
