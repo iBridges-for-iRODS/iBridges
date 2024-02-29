@@ -24,3 +24,5 @@ services:
         depends_on:
             - irods-catalog-provider
         tty: true
+        environment:
+          - CI=${CI}

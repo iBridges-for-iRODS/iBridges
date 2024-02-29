@@ -31,4 +31,9 @@ echo $(iadmin lu testuser)
 
 cd /ibridges/integration_test
 pytest .
-/bin/bash
+result=$?
+if [[ -z "$CI" ]]; then
+  /bin/bash
+else
+  exit $result
+fi
