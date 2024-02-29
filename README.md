@@ -1,8 +1,10 @@
 # iBridges
 
 ## Development status
-[![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) [![Run integration tests against Yoda](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml)
-![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
+|    | |
+| -------- | ------- |
+| [![Run integration tests against iRODS](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml)  | [![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml)    |
+| [![Run integration tests against Yoda](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml) | ![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)     |
 
 
 ## About
@@ -13,25 +15,6 @@ Since iBridges is solely based on python it works on all operating systems.
 
 ### Documenation
 [ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)
-
-## Authors
-
-**Christine Staiger (Maintainer) [ORCID](https://orcid.org/0000-0002-6754-7647)**
-
-- *Wageningen University & Research* 2021 - 2022
-- *Utrecht University* 2022
-
-**Tim van Daalen**, *Wageningen University & Research* 2021
-
-**Maarten Schermer (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6770-3155)**, *Utrecht University* 2023
-
-**Raoul Schramm (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6616-230X)**. 
-*Utrecht University* 2024
-
-## Contributors
-
-**J.P. Mc Farland**,
-*University of Groningen, Center for Information Technology*, 2022
 
 ## Dependencies
 
@@ -85,22 +68,35 @@ download(session, "/irods/path", "/other/local/path")
 
 ## Tutorials
 ### Guides
-[QuickStart](Tutorials/QuickStart.ipynb)
-
-[iRODS Paths](Tutorials/iRODS_paths.ipynb)
-
-[Data synchronisation](Tutorials/Data_sync.ipynb)
+- [QuickStart](Tutorials/QuickStart.ipynb)
+- [iRODS Paths](Tutorials/iRODS_paths.ipynb)
+- [Data synchronisation](Tutorials/Data_sync.ipynb)
 
 ### Beginners tutorials
-[Setup client configuration](Tutorials/01-Setup-and-connect.ipynb)
+- [Setup client configuration](Tutorials/01-Setup-and-connect.ipynb)
+- [Working with data](Tutorials/02-Working-with-data.ipynb)
+- [iRODS and local Paths](Tutorials/03-iRODS-Paths.ipynb)
+- [Metadata](Tutorials/04-Metadata.ipynb)
+- [Sharing data](Tutorials/05-Data-Sharing.ipynb)
 
-[Working with data](Tutorials/02-Working-with-data.ipynb)
+## Authors
 
-[iRODS and local Paths](Tutorials/03-iRODS-Paths.ipynb)
+**Christine Staiger (Maintainer) [ORCID](https://orcid.org/0000-0002-6754-7647)**
 
-[Metadata](Tutorials/04-Metadata.ipynb)
+- *Wageningen University & Research* 2021 - 2022
+- *Utrecht University* 2022
 
-[Sharing data](Tutorials/05-Data-Sharing.ipynb)
+**Tim van Daalen**, *Wageningen University & Research* 2021
+
+**Maarten Schermer (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6770-3155)**, *Utrecht University* 2023
+
+**Raoul Schramm (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6616-230X)**. 
+*Utrecht University* 2024
+
+## Contributors
+
+**J.P. Mc Farland**,
+*University of Groningen, Center for Information Technology*, 2022
 
 ## License
 This project is licensed under the GPL-v3 license.
