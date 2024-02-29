@@ -1,0 +1,26 @@
+name: Run integration tests against iRODS
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    if: |
+      ${{ ! contains(github.event.head_commit.message, '#nointegrationtests') &&
+            ( github.event_name == 'push' ||
+              github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
+            )
+       }}
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install dependencies
+      run: |
+        sudo apt install -y docker-compose
+    - name: Build docker images
+      run: docker-compose build
+    - name: Run tests using docker-compose
+      run: docker-compose up --exit-code-from irods-client
