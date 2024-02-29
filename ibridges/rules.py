@@ -11,11 +11,19 @@ def execute_rule(session: Session, rule_file: str, params: dict,
                  output: str = 'ruleExecOut') -> tuple:
     """Execute an iRODS rule.
 
+    params format example:
+    >>> # Notice extra quotes for string literals
+    >>> params = {
+    >>>     '*obj': '"/zone/home/user"',
+    >>>     '*name': '"attr_name"',
+    >>>     '*value': '"attr_value"'
+    >>> }
+
     Parameters
     ----------
     session : ibridges.session
         The irods session
-    rule_file : str, file-like
+    rule_file : str
         Name of the iRODS rule file, or a file-like object representing it.
     params : dict
         Rule arguments.
@@ -26,13 +34,6 @@ def execute_rule(session: Session, rule_file: str, params: dict,
     -------
     tuple
         (stdout, stderr)
-
-    `params` format example:
-    params = {  # extra quotes for string literals
-        '*obj': '"/zone/home/user"',
-        '*name': '"attr_name"',
-        '*value': '"attr_value"'
-    }
 
     """
     try:
