@@ -2,7 +2,7 @@
 
 ## Development status
 [![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) [![Run integration tests against Yoda](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml)
-![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=plastic)
+![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
 
 
 ## About
