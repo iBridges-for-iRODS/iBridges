@@ -1,12 +1,18 @@
 # iBridges
+
 ## Development status
 [![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) [![Run integration tests against Yoda](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml)
+![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=plastic)
+
 
 ## About
 
 iBridges is library for scientific programmers who are working with data in iRODS. We provide a wrapper arount the [python-irodsclient] to facilitate easy interaction with the iRODS server.
 
 Since iBridges is solely based on python it works on all operating systems.
+
+### Documenation
+[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)
 
 ## Authors
 
