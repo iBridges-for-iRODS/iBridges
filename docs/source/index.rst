@@ -23,9 +23,9 @@ that do not have any technical knowledge of iRods.
    :maxdepth: 2
    :caption: Contents:
 
-   ibridges
    quickstart
    faq
+   api
 
 
 Indices and tables
