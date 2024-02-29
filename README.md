@@ -9,11 +9,8 @@ iBridges is library for scientific programmers who are working with data in iROD
 
 Since iBridges is solely based on python it works on all operating systems.
 
-Runs on Python 3.8 or higher.
-Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher
-
-
-
+- Runs on Python 3.8 or higher.
+- Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher.
 
 ## Installation
 ### From Github repository
