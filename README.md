@@ -1,45 +1,26 @@
 # iBridges
-
-## Development status
-|    | |
-| -------- | ------- |
-| [![Run integration tests against iRODS](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml)  | [![Python package](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml)    |
-| [![Run integration tests against Yoda](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml) | ![Docs](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)     |
+[![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml) [![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) 
+[![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml) ![](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
 
 
 ## About
 
-iBridges is library for scientific programmers who are working with data in iRODS. We provide a wrapper arount the [python-irodsclient] to facilitate easy interaction with the iRODS server.
+iBridges is library for scientific programmers who are working with data in iRODS. We provide a wrapper around the [python-irodsclient](https://pypi.org/project/python-irodsclient/) to facilitate easy interaction with the iRODS server.
 
 Since iBridges is solely based on python it works on all operating systems.
 
-### Documenation
-[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)
+Runs on Python 3.8 or higher.
+Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher
 
-## Dependencies
 
-### Supported iRODS versions
 
-- 4.2.11, 4.2.12
-- 4.3.0, 4.3.1
-
-### Python
-
-- Python 3 (>= 3.9)
-  - Tested with python versions 3.11 on Windows, Ubuntu20.22 and MacOS
-- Python packages
-	- python-irodsclient>=1.1.6
-	- tqdm	
-
-### icommands (optional)
-If the icommands are installed, the users can choose them as backend for up and downloads.
 
 ## Installation
 ### From Github repository
 ```
 git clone git@github.com:UtrechtUniversity/iBridges.git
 cd iBridges
-pip install pip install .
+pip install .
 ```
 
 ### Pypi install
@@ -67,6 +48,9 @@ download(session, "/irods/path", "/other/local/path")
 ```
 
 ## Tutorials
+### Documentation
+- **[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)**
+
 ### Guides
 - [QuickStart](Tutorials/QuickStart.ipynb)
 - [iRODS Paths](Tutorials/iRODS_paths.ipynb)
@@ -90,8 +74,8 @@ download(session, "/irods/path", "/other/local/path")
 
 **Maarten Schermer (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6770-3155)**, *Utrecht University* 2023
 
-**Raoul Schramm (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6616-230X)**. 
-*Utrecht University* 2024
+**Raoul Schram (Maintainer) [ORCID](https://orcid.org/my-orcid?orcid=0000-0001-6616-230X)**. 
+*Utrecht University* 2023
 
 ## Contributors
 
