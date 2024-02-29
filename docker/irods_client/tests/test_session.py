@@ -54,3 +54,6 @@ def test_interactive_auth_testuser(config):
         ienv = json.load(f)
     session = interactive_auth(password = password, irods_env_path = env_path)
     test_session(session, config, ienv)
+
+def test(config):
+    assert False
