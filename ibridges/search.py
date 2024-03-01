@@ -60,9 +60,9 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     # gather results
     results = list(data_query.get_results())
     if checksum is None:
-        coll_res = coll_query.get_results()
-        if len(list(coll_res)) > 0:
-            results.append(coll_res)
+        coll_res = list(coll_query.get_results())
+        if len(coll_res) > 0:
+            results.extend(coll_res)
 
     for item in results:
         if isinstance(item, dict):

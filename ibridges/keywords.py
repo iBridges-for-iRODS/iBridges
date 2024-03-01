@@ -18,6 +18,7 @@ REG_CHKSUM_KW = kw.REG_CHKSUM_KW
 COLL_NAME = imodels.Collection.name
 COLL_ID = imodels.Collection.id
 DATA_NAME = imodels.DataObject.name
+DATA_PATH = imodels.DataObject.path
 DATA_ID = imodels.DataObject.id
 DATA_CHECKSUM = imodels.DataObject.checksum
 META_COLL_ATTR_NAME = imodels.CollectionMeta.name

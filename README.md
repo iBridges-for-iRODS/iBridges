@@ -12,6 +12,19 @@ Since iBridges is solely based on python it works on all operating systems.
 - Runs on Python 3.8 or higher.
 - Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher.
 
+ <p align="center">
+    <a href="https://github.com/UtrechtUniversity/iBridges/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=%5BBUG%5D">Report Bug</a>
+    .
+    <a href="https://github.com/UtrechtUniversity/iBridges/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=%5BFEATURE%5D">Request Feature</a>
+    .
+    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/ideas">Share an idea</a>
+    .
+    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/general">Leave some feedback</a>
+    .
+    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/q-a">Ask a question</a>
+  </p>
+</p>
+
 ## Installation
 ### From Github repository
 ```
