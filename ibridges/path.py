@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import PurePosixPath
+from typing import Union
 
 import irods
 
@@ -100,12 +101,20 @@ class IrodsPath():
                 f"While removing {self}: iRODS server forbids action.") from exc
 
     @staticmethod
-    def create_collection(session,  coll_path: str) -> irods.collection.iRODSCollection:
+    def create_collection(session,
+                          coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
         """Create a collection and all collections in its path.
 
-        Return:
-        ------
-        irods.collection.iRODSCollection
+        Parameters
+        ----------
+        session:
+            Session for which the collection is created.
+        coll_path:
+            Irods path to the collection to be created.
+
+        Returns
+        -------
+        collection:
             The newly created collection.
 
         """

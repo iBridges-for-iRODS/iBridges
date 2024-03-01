@@ -29,9 +29,10 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     Returns
     -------
     list: [dict]
-        List of dictionaries with keys: COLL_NAME (absolute path of the collection),
-                                        DATA_NAME (name of the data object),
-                                        D_DATA_CHECKSUM (checksum of the data object)
+        List of dictionaries with keys:
+        COLL_NAME (absolute path of the collection),
+        DATA_NAME (name of the data object),
+        D_DATA_CHECKSUM (checksum of the data object)
         The latter two keys are only present of the found item is a data object.
 
     """
