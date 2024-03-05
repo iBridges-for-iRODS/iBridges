@@ -2,6 +2,7 @@ version: '3'
 
 services:
     irods-catalog:
+        image: irods-catalog
         build:
             context: ./docker/irods_catalog
         # 5432 is exposed by default and can conflict with other postgres containers.
@@ -12,15 +13,19 @@ services:
             - POSTGRES_PASSWORD=testpassword
 
     irods-catalog-provider:
+        image: irods-catalog-provider
         build:
             context: ./docker/irods_catalog_provider
         depends_on:
             - irods-catalog
 
     irods-client:
+        image: irods-client
         build:
             context: .
             dockerfile: ./docker/irods_client/Dockerfile
         depends_on:
             - irods-catalog-provider
         tty: true
+        environment:
+          - CI=${CI}
