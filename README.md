@@ -61,16 +61,16 @@ download(session, "/irods/path", "/other/local/path")
 - **[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)**
 
 ### Guides
-- [QuickStart](Tutorials/QuickStart.ipynb)
-- [iRODS Paths](Tutorials/iRODS_paths.ipynb)
-- [Data synchronisation](Tutorials/Data_sync.ipynb)
+- [QuickStart](tutorials/QuickStart.ipynb)
+- [iRODS Paths](tutorials/iRODS_paths.ipynb)
+- [Data synchronisation](tutorials/Data_sync.ipynb)
 
 ### Beginners tutorials
-- [Setup client configuration](Tutorials/01-Setup-and-connect.ipynb)
-- [Working with data](Tutorials/02-Working-with-data.ipynb)
-- [iRODS and local Paths](Tutorials/03-iRODS-Paths.ipynb)
-- [Metadata](Tutorials/04-Metadata.ipynb)
-- [Sharing data](Tutorials/05-Data-Sharing.ipynb)
+- [Setup client configuration](tutorials/01-Setup-and-connect.ipynb)
+- [Working with data](tutorials/02-Working-with-data.ipynb)
+- [iRODS and local Paths](tutorials/03-iRODS-Paths.ipynb)
+- [Metadata](tutorials/04-Metadata.ipynb)
+- [Sharing data](tutorials/05-Data-Sharing.ipynb)
 
 ## Authors
 
