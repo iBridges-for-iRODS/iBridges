@@ -51,7 +51,7 @@ class Session:
         self._irods_env: dict = irods_env  # type: ignore
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
-        self._irods_session.connection_timeout= 10000
+        self._irods_session.connection_timeout = 10000
         if irods_home is not None:
             self.home = irods_home
         if "irods_home" not in self._irods_env:
