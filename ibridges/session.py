@@ -1,6 +1,5 @@
 """session operations."""
 import json
-import os
 import warnings
 from pathlib import Path
 from typing import Optional, Union
@@ -38,9 +37,10 @@ class Session:
         if irods_env is not None and irods_env_path is not None:
             warnings.warn("Environment dictionary will be overwritten with irods environment file")
         if irods_env_path is not None:
-            if os.path.isfile(irods_env_path):
-                with open(irods_env_path, "r", encoding="utf-8") as f:
-                    irods_env = json.load(f)
+            irods_env_path = Path(irods_env_path).expanduser()
+            if irods_env_path.is_file():
+                with irods_env_path.open("r", encoding="utf-8") as envfd:
+                    irods_env = json.load(envfd)
                 if not isinstance(irods_env, dict):
                     raise TypeError(f"Error reading environment file '{irods_env_path}': "
                                     f"expected dictionary, got {type(irods_env)}.")
