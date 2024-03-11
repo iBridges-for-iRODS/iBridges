@@ -1,4 +1,6 @@
 """Collections and data objects."""
+from __future__ import annotations
+
 import os
 import warnings
 from pathlib import Path
