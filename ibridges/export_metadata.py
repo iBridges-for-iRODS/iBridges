@@ -70,13 +70,13 @@ def get_subcolls(session, coll, root: Optional[IrodsPath] = None):
     objects = [{'name': o.name, 'irods_id': o.id,
                 'rel_path': '/'.join(IrodsPath(session, 
                                                o.path).parts[len(coll_path.parts):]),
-                'metadata': MetaData(o).to_dict()}
+                'metadata': MetaData(o).to_dict()['metadata']}
                 for o in coll.data_objects
                ]
     collections = [{'name': c.name, 'irods_id': c.id,
                     'rel_path': '/'.join(IrodsPath(session,
                                                c.path).parts[len(coll_path.parts):]),
-                    'metadata': MetaData(c).to_dict()}
+                    'metadata': MetaData(c).to_dict()['metadata']}
                     for c in coll.subcollections]
     if len(coll.subcollections) > 0:
         for subcoll in coll.subcollections:
