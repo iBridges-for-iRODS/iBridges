@@ -3,8 +3,7 @@ from typing import Iterator, Optional, Sequence, Union
 
 import irods.exception
 import irods.meta
-
-from ibridges.data_operations import is_collection, is_dataobject
+from ibridges.data_operations import is_dataobject
 
 class MetaData():
     """Irods metadata operations."""
@@ -53,8 +52,8 @@ class MetaData():
         meta_list = sorted(meta_list, key=lambda m: (m.value is None, m.value))
         meta_list = sorted(meta_list, key=lambda m: (m.name is None, m.name))
         meta_str = ""
-        for m in meta_list:
-            meta_str += f" - {{name: {m.name}, value: {m.value}, units: {m.units}}}\n"
+        for meta in meta_list:
+            meta_str += f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}\n"
         return meta_str
 
     def add(self, key: str, value: str, units: Optional[str] = None):
@@ -144,7 +143,22 @@ class MetaData():
         for meta in self:
             self.item.metadata.remove(meta)
 
-    def to_dict(self, keys: Optional[list] = None):
+    def to_dict(self, keys: Optional[list] = None) -> dict:
+        """Converts iRODS metadata (AVUs) and system information to a python dictionary.
+        {
+            "name": item.name,
+            "irods_id": item.id, #iCAT database ID
+             "checksum": item.checksum if the item is a data object
+             "metadata": [(m.name, m.value, m.units)]
+        }
+
+        Parameters
+        ----------
+        keys:
+            List of Attribute names which should be exported to "metadata". 
+            By default all will be exported.
+           
+        """
         meta_dict = {}
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
@@ -154,5 +168,4 @@ class MetaData():
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
         else:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
-        
         return meta_dict
