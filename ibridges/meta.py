@@ -4,6 +4,7 @@ from typing import Iterator, Optional, Sequence, Union
 import irods.exception
 import irods.meta
 
+from ibridges.data_operations import is_collection, is_dataobject
 
 class MetaData():
     """Irods metadata operations."""
@@ -142,3 +143,16 @@ class MetaData():
         """Delete all metadata belonging to the item."""
         for meta in self:
             self.item.metadata.remove(meta)
+
+    def to_dict(self, keys: Optional[list] = None):
+        meta_dict = {}
+        meta_dict["name"] = self.item.name
+        meta_dict["irods_id"] = self.item.id
+        if is_dataobject(self.item):
+            meta_dict["checksum"] = self.item.checksum
+        if keys is None:
+            meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
+        else:
+            meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
+        
+        return meta_dict

@@ -1,38 +1,13 @@
 from ibridges.data_operations import is_collection, is_dataobject
 from ibridges.data_operations import get_collection, get_dataobject
-from ibridges.data_operations import _get_data_objects
 from ibridges.meta import MetaData
+from ibridges.path import IrodsPath
 
 from ibridges import keywords as kw
 from ibridges.session import Session
+from typing import Optional
 
-def obj_meta_to_dict(meta: MetaData, keys: Optional[list] = None) -> dict:
-    """Returns the metadata of an object as a dictionary. Adds the checksum
-    {"checksum": <checksum>
-     "metadata": [(key1, value1, units1), (key2, value2, units2) ...]
-    }
-    """
-    meta = {}
-    meta["checksum"] = self.item.checksum
-    if keys is None:
-        meta["Metadata"] = [(m.name, m.value, m.units) for m in self]
-    else:
-        meta["Metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
-    return meta
-
-def coll_meta_to_dict(meta: MetaData, keys: Optional[list] = None) -> dict:
-    """Returns the metadata of an object as a dictionary.
-    {
-     "metadata": [(key1, value1, units1), (key2, value2, units2) ...]
-    }
-    """
-    meta = {}
-    if keys is None:
-        meta["Metadata"] = [(m.name, m.value, m.units) for m in self]
-    else:
-        meta["Metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
-    return meta
-def to_dict(meta: MetaData, session: Session, 
+def export_metadata_to_dict(meta: MetaData, session: Session, 
             recursive: bool = True, keys: Optional[list] = None) -> dict:
     """Retrieves the metadata of the item and brings it into dict form.
     If the item is a collection all metadata from all subcollections
@@ -68,19 +43,43 @@ def to_dict(meta: MetaData, session: Session,
         ]
     }
     """
-    meta_dict = {"rel_path": self.item.name}
-    if is_dataobject(self.item):
-        meta_dict.update(self.obj_meta_to_dict(keys = keys))
-        return meta_dict
-    elif is_collection(self.item):
-        meta_dict.update(self.coll_meta_to_dict(keys = keys))
+    if is_dataobject(meta.item):
+        return meta.to_dict(keys = keys)
+    elif is_collection(meta.item):
+        metadata_dict = meta.to_dict(keys = keys)
         if recursive == True:
-            # get all data objects and their metadata
-            objs = [get_dataobject(session, path+'/'+name)
-                    for path, name, _, _ in _get_data_objects(session, coll)]
-
-            print("collection")
+            objects, collections = get_subcolls(session, meta.item, root = meta.item.path) 
+            metadata_dict["subcollections"] = collections
+            metadata_dict["dataobjects"] = objects
+            return metadata_dict
         else:
-            return meta_dict
+            return metadata_dict
     else:
         raise ValueError("Not a data collection or data object: {item}")
+
+def get_subcolls(session, coll, root: Optional[IrodsPath] = None):
+    if root is not None:
+        coll_path = IrodsPath(session, root)
+    else:
+        coll_path = IrodsPath(session, coll.path)
+    objects = [{'name': o.name, 'irods_id': o.id,
+                'rel_path': '/'.join(IrodsPath(session, 
+                                               o.path).parts[len(coll_path.parts):]),
+                'metadata': MetaData(o).to_dict()}
+                for o in coll.data_objects
+               ]
+    collections = [{'name': c.name, 'irods_id': c.id,
+                    'rel_path': '/'.join(IrodsPath(session,
+                                               c.path).parts[len(coll_path.parts):]),
+                    'metadata': MetaData(c).to_dict()}
+                    for c in coll.subcollections]
+    if len(coll.subcollections) > 0:
+        for subcoll in coll.subcollections:
+            subobjects, subcollections = get_subcolls(session, subcoll, coll_path)
+            objects.extend(subobjects)
+            collections.extend(subcollections)
+    else:
+        collections = []
+
+    return objects, collections
+
