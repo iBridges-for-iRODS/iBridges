@@ -160,6 +160,7 @@ class MetaData():
            
         """
         meta_dict = {}
+        meta_dict["ibridges_metadata_version"] = "1.0"
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
         if is_dataobject(self.item):
