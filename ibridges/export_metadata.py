@@ -1,7 +1,8 @@
 """Exporting metadata.
 """
 
-from typing import Optional
+from typing import Optional, Union
+from irods.collection import iRODSCollection
 
 from ibridges.data_operations import is_collection, is_dataobject
 from ibridges.meta import MetaData
@@ -53,34 +54,37 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
     if is_collection(meta.item):
         metadata_dict = meta.to_dict(keys = keys)
         if recursive is True:
-            objects, collections = get_subcolls(session, meta.item, root = meta.item.path)
+            objects, collections = get_meta_from_irods_tree(session, meta.item,
+                                                            root = meta.item.path)
             metadata_dict["subcollections"] = collections
             metadata_dict["dataobjects"] = objects
             return metadata_dict
         return metadata_dict
     raise ValueError("Not a data collection or data object: {item}")
 
-def get_subcolls(session, coll, root: Optional[IrodsPath] = None):
+def get_meta_from_irods_tree(session: Session, coll: iRODSCollection,
+                             root: Optional[Union[str, IrodsPath]] = None):
     """Recursively gather the metadata for all subcollections and data objects.
     """
     if root is not None:
-        coll_path = IrodsPath(session, root)
+        root_path = IrodsPath(session, root)
     else:
-        coll_path = IrodsPath(session, coll.path)
-    objects = [{'name': o.name, 'irods_id': o.id,
+        root_path = IrodsPath(session, coll.path)
+
+    objects = [{'name': o.name, 'irods_id': o.id, 'checksum': o.checksum,
                 'rel_path': '/'.join(IrodsPath(session, 
-                                               o.path).parts[len(coll_path.parts):]),
+                                               o.path).parts[len(root_path.parts):]),
                 'metadata': MetaData(o).to_dict()['metadata']}
                 for o in coll.data_objects
                ]
     collections = [{'name': c.name, 'irods_id': c.id,
                     'rel_path': '/'.join(IrodsPath(session,
-                                               c.path).parts[len(coll_path.parts):]),
+                                               c.path).parts[len(root_path.parts):]),
                     'metadata': MetaData(c).to_dict()['metadata']}
                     for c in coll.subcollections]
     if len(coll.subcollections) > 0:
         for subcoll in coll.subcollections:
-            subobjects, subcollections = get_subcolls(session, subcoll, coll_path)
+            subobjects, subcollections = get_meta_from_irods_tree(session, subcoll, root_path)
             objects.extend(subobjects)
             collections.extend(subcollections)
     else:
