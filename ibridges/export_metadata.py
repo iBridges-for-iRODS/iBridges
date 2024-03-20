@@ -49,12 +49,12 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
         ]
     }
     """
+    version = {"ibridges_metadata_version": 1.0}
     if is_dataobject(meta.item):
-        return meta.to_dict(keys = keys)
+        return version | meta.to_dict(keys = keys)
     if is_collection(meta.item):
-        metadata_dict = meta.to_dict(keys = keys)
+        metadata_dict = version | meta.to_dict(keys = keys)
         if recursive is True:
-            metadata_dict["ibridges_metadata_version"] = "1.0"
             objects, collections = get_meta_from_irods_tree(session, meta.item,
                                                             root = meta.item.path)
             metadata_dict["subcollections"] = collections
