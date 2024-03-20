@@ -1,9 +1,11 @@
 """metadata operations."""
-from typing import Iterator, Optional, Sequence, Union
+from typing import Any, Iterator, Optional, Sequence, Union
 
 import irods.exception
 import irods.meta
+
 from ibridges.data_operations import is_dataobject
+
 
 class MetaData():
     """Irods metadata operations."""
@@ -144,7 +146,8 @@ class MetaData():
             self.item.metadata.remove(meta)
 
     def to_dict(self, keys: Optional[list] = None) -> dict:
-        """Converts iRODS metadata (AVUs) and system information to a python dictionary.
+        """Convert iRODS metadata (AVUs) and system information to a python dictionary.
+
         {
             "name": item.name,
             "irods_id": item.id, #iCAT database ID
@@ -157,9 +160,9 @@ class MetaData():
         keys:
             List of Attribute names which should be exported to "metadata". 
             By default all will be exported.
-           
+
         """
-        meta_dict = {}
+        meta_dict: dict[str, Any] = {}
         meta_dict["ibridges_metadata_version"] = "1.0"
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
