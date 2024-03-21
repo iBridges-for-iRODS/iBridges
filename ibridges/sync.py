@@ -241,7 +241,7 @@ def _get_irods_tree(coll: iRODSCollection,
                     root: str = '',
                     level: int = 0,
                     max_level: Optional[int] = None,
-                    get_checksum: bool = False):
+                    get_checksum: bool = True):
 
     root=coll.path if len(root)==0 else root
 
