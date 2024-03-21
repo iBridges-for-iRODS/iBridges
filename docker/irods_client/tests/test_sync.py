@@ -13,7 +13,8 @@ def test_sync_dry_run(session, testdata, capsys):
          target=ipath,
          max_level=None,
          dry_run=True,
-         copy_empty_folders=True)
+         copy_empty_folders=True,
+         verify_checksum=True)
 
     captured = capsys.readouterr()
     lines=sorted([x.strip() for x in captured.out.split("\n") if len(x.strip())>0])
@@ -43,7 +44,6 @@ def test_sync_upload_download(session, testdata, tmpdir):
          target=ipath,
          max_level=None,
          dry_run=False,
-         ignore_checksum=False,
          copy_empty_folders=True,
          verify_checksum=True)
 
@@ -71,7 +71,6 @@ def test_sync_upload_download(session, testdata, tmpdir):
         target=tmpdir,
         max_level=None,
         dry_run=False,
-        ignore_checksum=False,
         copy_empty_folders=True,
         verify_checksum=True)
 
