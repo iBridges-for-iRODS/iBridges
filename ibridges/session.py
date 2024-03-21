@@ -12,7 +12,7 @@ from irods.exception import (
     PAM_AUTH_PASSWORD_FAILED,
     NetworkException,
 )
-from irods.session import NonAnonymousLoginWithoutPassword
+from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 
 class Session:
@@ -27,15 +27,23 @@ class Session:
         Parameters
         ----------
         irods_env: dict
-            Dictionary from irods_environment.json
-        irods_env_path:
-            File to read the dictionary from if irods_env is not supplied.
+            Dictionary from irods_environment.json or file to read the 
+            dictionary from if irods_env is not supplied.
         password : str
             Plain text password.
         irods_home:
             Override the home directory of irods. Otherwise attempt to retrive the value
             from the irods environment dictionary. If it is not there either, then use
             /{zone}/home/{username}.
+
+        Raises
+        ------
+        FileNotFoundError:
+            If the irods_env parameter is interpreted as a file name and not found.
+        TypeError:
+            If the irods_env parameter is not a dict, str or Path.
+        LoginError:
+            If the connection to the iRods server fails to establish.
 
         """
         irods_env_path = None
@@ -98,7 +106,7 @@ class Session:
         """
         return self.irods_session is not None and self.server_version != ()
 
-    def connect(self):
+    def connect(self) -> iRODSSession:
         """Establish an iRODS session."""
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
@@ -130,29 +138,29 @@ class Session:
             self.irods_session.cleanup()
             self.irods_session = None
 
-    def authenticate_using_password(self) -> None:
+    def authenticate_using_password(self) -> iRODSSession:
         """Authenticate with the iRods server using a password."""
         try:
-            self.irods_session = irods.session.iRODSSession(password=self._password,
+            irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
         except Exception as e:
             raise _translate_irods_error(e) from e
-        if self.irods_session.server_version == ():
+        if irods_session.server_version == ():
             raise LoginError("iRodsServer does not return a server version.")
-        return self.irods_session
+        return irods_session
 
-    def authenticate_using_auth_file(self):
+    def authenticate_using_auth_file(self) -> iRODSSession:
         """Authenticate with an authentication file."""
         try:
-            self.irods_session = irods.session.iRODSSession(
-                    irods_env_file=self._irods_env_path)
+            irods_session = irods.session.iRODSSession(
+                irods_env_file=self._irods_env_path)
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
             raise _translate_irods_error(e) from e
-        if self.irods_session.server_version == ():
+        if irods_session.server_version == ():
             raise LoginError("iRodsServer does not return a server version.")
-        return self.irods_session
+        return irods_session
 
 
     def write_pam_password(self):
