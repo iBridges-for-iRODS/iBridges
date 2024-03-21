@@ -9,9 +9,9 @@ from typing import Optional, Union
 import irods.collection
 import irods.data_object
 import irods.exception
-from irods.models import DataObject
+import irods.keywords as kw
 
-from ibridges import keywords as kw
+import ibridges.icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 
@@ -386,9 +386,9 @@ def _get_data_objects(session: Session,
             for obj in coll.data_objects]
 
     # all objects in subcollections
-    data_query = session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
                                                   DataObject.size, DataObject.checksum)
-    data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, coll.path+"/%"))
+    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
     for res in data_query.get_results():
         path, name, size, checksum = res.values()
         objs.append((path, name, size, checksum))
