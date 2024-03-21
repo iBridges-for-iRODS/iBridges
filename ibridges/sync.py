@@ -34,7 +34,7 @@ class FileObject(NamedTuple):
     name: str
     path: str
     size: int
-    checksum: Optional[str]
+    checksum: str
 
 class FolderObject:
     """Object to hold attributes from local and remote folders/collections."""
@@ -89,15 +89,17 @@ def sync_data(session: Session,
          target: Union[str, Path, IrodsPath],
          max_level: Optional[int] = None,
          dry_run: bool = False,
-         copy_empty_folders: bool = False,
-         verify_checksum: bool = True) -> None:
+         copy_empty_folders: bool = False) -> None:
     """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
     system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
     the values for `source` and `target` (IrodsPath or str/Path).
 
+    The command considers the file size and the checksum to determine whether a file should be
+    synchronized.
 
+    
     Parameters
     ----------
     session : ibridges.Session
@@ -117,11 +119,6 @@ def sync_data(session: Session,
     copy_empty_folders : bool, default False
         Controls whether folders/collections that contain no files or  subfolders/subcollections
         will be synchronized.
-    verify_checksum : bool, default True
-        Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
-        will generate an error, aborting the synchronization process.
-        Additionally, if set to True, checksum will also be considered when determining whether
-        synchronization is needed for a file. If set to False, only file size will be considered.
     """
     _param_checks(source, target)
 
@@ -130,30 +127,26 @@ def sync_data(session: Session,
             raise ValueError(f"Source collection '{source.absolute_path()}' does not exist")
         src_files, src_folders=_get_irods_tree(
             coll=get_collection(session=session, path=source),
-            max_level=max_level,
-            get_checksum=verify_checksum)
+            max_level=max_level)
     else:
         if not Path(source).is_dir():
             raise ValueError(f"Source folder '{source}' does not exist")
         src_files, src_folders=_get_local_tree(
             path=Path(source),
-            max_level=max_level,
-            get_checksum=verify_checksum)
+            max_level=max_level)
 
     if isinstance(target, IrodsPath):
         if not target.collection_exists():
             raise ValueError(f"Target collection '{target.absolute_path()}' does not exist")
         tgt_files, tgt_folders=_get_irods_tree(
             coll=get_collection(session=session, path=target),
-            max_level=max_level,
-            get_checksum=verify_checksum)
+            max_level=max_level)
     else:
         if not Path(target).is_dir():
             raise ValueError(f"Target folder '{target}' does not exist")
         tgt_files, tgt_folders=_get_local_tree(
             path=Path(target),
-            max_level=max_level,
-            get_checksum=verify_checksum)
+            max_level=max_level)
 
     folders_diff=sorted(
         set(src_folders).difference(set(tgt_folders)),
@@ -175,8 +168,7 @@ def sync_data(session: Session,
             source=Path(source),
             target=target,
             files=files_diff,
-            dry_run=dry_run,
-            verify_checksum=verify_checksum)
+            dry_run=dry_run)
     else:
         _create_local_folders(
             target=Path(target),
@@ -188,8 +180,7 @@ def sync_data(session: Session,
             source=source,  # type: ignore
             target=Path(target),
             objects=files_diff,
-            dry_run=dry_run,
-            verify_checksum=verify_checksum)
+            dry_run=dry_run)
 
 def _param_checks(source, target):
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
@@ -207,8 +198,7 @@ def _calc_checksum(filepath):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def _get_local_tree(path: Path,
-                    max_level: Optional[int] = None,
-                    get_checksum: bool = True):
+                    max_level: Optional[int] = None):
 
     # change all sep into /, regardless of platform, for easier comparison
     def fix_local_path(path: str):
@@ -226,7 +216,7 @@ def _get_local_tree(path: Path,
                     name=file,
                     path=fix_local_path(rel_path),
                     size=full_path.stat().st_size,
-                    checksum=_calc_checksum(full_path) if get_checksum else None))
+                    checksum=_calc_checksum(full_path)))
 
         collections.extend([FolderObject(
                 fix_local_path(str(Path(root) / dir)[len(str(path)):].lstrip(os.sep)),
@@ -240,8 +230,7 @@ def _get_local_tree(path: Path,
 def _get_irods_tree(coll: iRODSCollection,
                     root: str = '',
                     level: int = 0,
-                    max_level: Optional[int] = None,
-                    get_checksum: bool = True):
+                    max_level: Optional[int] = None):
 
     root=coll.path if len(root)==0 else root
 
@@ -250,7 +239,7 @@ def _get_irods_tree(coll: iRODSCollection,
         x.name,
         x.path[len(root):].lstrip('/'),
         x.size,
-        (x.checksum if len(x.checksum)>0 else x.chksum()) if get_checksum else None)
+        x.checksum if len(x.checksum)>0 else x.chksum())
         for x in coll.data_objects]
 
     if max_level is None or level<max_level-1:
@@ -264,9 +253,7 @@ def _get_irods_tree(coll: iRODSCollection,
                 coll=subcoll,
                 root=root,
                 level=level+1,
-                max_level=max_level,
-                get_checksum=get_checksum
-                )
+                max_level=max_level)
             objects.extend(subobjects)
             collections.extend(subcollections)
     else:
@@ -303,8 +290,7 @@ def _copy_local_to_irods(session: Session,
                          source: Path,
                          target: IrodsPath,
                          files: list[FileObject],
-                         dry_run: bool,
-                         verify_checksum: bool) -> None:
+                         dry_run: bool) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
@@ -322,11 +308,10 @@ def _copy_local_to_irods(session: Session,
                     local_path=source_path,
                     irods_path=target_path,
                     overwrite=True)
-            if verify_checksum:
-                obj=get_dataobject(session, target_path)
-                if file.checksum != \
-                        (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
-                    raise ValueError(f"Checksum mismatch after upload: '{target_path}'")
+            obj=get_dataobject(session, target_path)
+            if file.checksum != \
+                    (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
+                raise ValueError(f"Checksum mismatch after upload: '{target_path}'")
 
             pbar.update(file.size)
         except Exception as err:
@@ -336,8 +321,7 @@ def _copy_irods_to_local(session: Session,
                          source: IrodsPath,
                          target: Path,
                          objects: list[FileObject],
-                         dry_run: bool,
-                         verify_checksum: bool) -> None:
+                         dry_run: bool) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
@@ -355,7 +339,7 @@ def _copy_irods_to_local(session: Session,
                         irods_path=source_path,
                         local_path=target_path,
                         overwrite=True)
-            if verify_checksum and obj.checksum != _calc_checksum(target_path):
+            if obj.checksum != _calc_checksum(target_path):
                 raise ValueError(f"Checksum mismatch after download: '{source_path}'")
 
             pbar.update(obj.size)
