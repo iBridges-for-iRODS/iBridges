@@ -310,6 +310,9 @@ def _copy_local_to_irods(session: Session,
         print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
         return
 
+    if len(files)==0:
+        return
+
     pbar=tqdm(desc='Uploading', total=sum(x.size for x in files))
     for file in files:
         source_path=Path(source) / file.path
@@ -338,6 +341,9 @@ def _copy_irods_to_local(session: Session,
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
+        return
+
+    if len(objects)==0:
         return
 
     pbar=tqdm(desc='Downloading', total=sum(x.size for x in objects))
