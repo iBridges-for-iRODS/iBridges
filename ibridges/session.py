@@ -5,18 +5,15 @@ from pathlib import Path
 from typing import Optional, Union
 
 import irods.session
+from irods.exception import (
+    CAT_INVALID_AUTHENTICATION,
+    CAT_INVALID_USER,
+    CAT_PASSWORD_EXPIRED,
+    PAM_AUTH_PASSWORD_FAILED,
+    NetworkException,
+)
 from irods.session import NonAnonymousLoginWithoutPassword
 
-LoginFail = {
-    "NetworkException('Client-Server negotiation failure: CS_NEG_REFUSE,CS_NEG_REQUIRE')":
-                          "Host, port, irods_client_server_policy or " + \
-                          "irods_client_server_negotiation not set correctly in "+\
-                          "irods_environment.json",
-    "CAT_INVALID_USER(None,)": "User credentials are not accepted",
-    "PAM_AUTH_PASSWORD_FAILED(None,)": "Wrong password",
-    "CAT_PASSWORD_EXPIRED(None,)": "Cached password is expired",
-    "CAT_INVALID_AUTHENTICATION(None,)": "Cached password is wrong"
-    }
 
 class Session:
     """Irods session authentication."""
@@ -143,9 +140,7 @@ class Session:
         except ValueError as e:
             raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
         except Exception as e:
-            if repr(e) in LoginFail:
-                raise ValueError(LoginFail[repr(e)]+"; "+repr(e)) from e
-            raise e
+            _handle_irods_error(e)
 
     def authenticate_using_auth_file(self):
         """Authenticate with an authentication file."""
@@ -159,9 +154,7 @@ class Session:
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
-            if repr(e) in LoginFail:
-                raise ValueError(LoginFail[repr(e)]+", "+repr(e)) from e
-            raise e
+            _handle_irods_error(e)
 
     def write_pam_password(self):
         """Store the password in the iRODS authentication file in obfuscated form."""
@@ -193,33 +186,12 @@ class Session:
                 pass
         raise ValueError("'irods_default_resource' not set in iRODS configuration.")
 
-    @property
-    def host(self) -> str:
-        """Retrieve hostname of the iRODS server.
-
-        Returns
-        -------
-        str
-            Hostname.
-
-        """
-        if self.irods_session:
-            return self.irods_session.host
-        return ''
-
-    @property
-    def port(self) -> str:
-        """Retrieve port of the iRODS server.
-
-        Returns
-        -------
-        str
-            Port.
-
-        """
-        if self.irods_session:
-            return self.irods_session.port
-        return ''
+    def __getattr__(self, item):
+        if item in ["host", "port", "username", "zone"]:
+            if self.irods_session is None:
+                raise AttributeError("Need a valid iRods session to get '{item}'.")
+            return getattr(self.irods_session, item)
+        super().__getattribute__(item)
 
     @property
     def server_version(self) -> tuple:
@@ -234,34 +206,27 @@ class Session:
         try:
             return self.irods_session.server_version
         except Exception as e:
-            if repr(e) in LoginFail:
-                raise ValueError(LoginFail[repr(e)]) from e
-            raise e
+            _handle_irods_error(e)
+        return ()
 
-    @property
-    def username(self) -> str:
-        """Retrieve username.
 
-        Returns
-        -------
-        str
-            Username.
+class LoginError(ValueError):
+    """Error indicating a failure to log into the iRods server."""
 
-        """
-        if self.irods_session:
-            return self.irods_session.username
-        return ''
+    pass
 
-    @property
-    def zone(self) -> str:
-        """Retrieve the zone name.
 
-        Returns
-        -------
-        str
-            Zone.
-
-        """
-        if self.irods_session:
-            return self.irods_session.zone
-        return ''
+def _handle_irods_error(exc):
+    if isinstance(exc, NetworkException) and exc.msg.startswith('Client-Server negotiation failure'):
+        raise LoginError("Host, port, irods_client_server_policy or "
+                          "irods_client_server_negotiation not set correctly in "
+                          "irods_environment.json") from exc
+    elif isinstance(exc, CAT_INVALID_USER):
+        raise LoginError("User credentials are not accepted") from exc
+    elif isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
+        raise LoginError("Wrong password") from exc
+    elif isinstance(exc, CAT_PASSWORD_EXPIRED):
+        raise LoginError("Cached password is expired") from exc
+    elif isinstance(exc, CAT_INVALID_AUTHENTICATION):
+        raise LoginError("Cached password is wrong") from exc
+    raise LoginError("Unknown problem creating irods session.")
