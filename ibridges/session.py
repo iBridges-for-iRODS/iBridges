@@ -55,7 +55,7 @@ class Session:
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
-        self._irods_session = self.connect()
+        self.irods_session = self.connect()
         if irods_home is not None:
             self.home = irods_home
         if "irods_home" not in self._irods_env:
@@ -70,11 +70,6 @@ class Session:
     def __exit__(self, exc_type, exc_value, exc_trace_back):
         """Disconnect from the iRods server."""
         self.close()
-
-    @property
-    def irods_session(self):
-        """Get irods session."""
-        return self._irods_session
 
     @property
     def home(self) -> str:
@@ -104,14 +99,14 @@ class Session:
             Is the session valid?
 
         """
-        return self._irods_session is not None and self.server_version != ()
+        return self.irods_session is not None and self.server_version != ()
 
     def connect(self):
         """Establish an iRODS session."""
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
-            # self._irods_session = iRODSSession(user='anonymous',
+            # self.irods_session = iRODSSession(user='anonymous',
             #                        password='',
             #                        zone=zone,
             #                        port=1247,
@@ -133,18 +128,18 @@ class Session:
         This closes the connection, and makes the session available for
         reconnection with `connect`.
         """
-        if self._irods_session is not None:
-            self._irods_session.do_configure = {}
-            self._irods_session.cleanup()
-            self._irods_session = None
+        if self.irods_session is not None:
+            self.irods_session.do_configure = {}
+            self.irods_session.cleanup()
+            self.irods_session = None
 
     def authenticate_using_password(self) -> None:
         """Authenticate with the iRods server using a password."""
         try:
-            self._irods_session = irods.session.iRODSSession(password=self._password,
+            self.irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
-            assert self._irods_session.server_version != ()
-            return self._irods_session
+            assert self.irods_session.server_version != ()
+            return self.irods_session
         except ValueError as e:
             raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
         except Exception as e:
@@ -155,10 +150,10 @@ class Session:
     def authenticate_using_auth_file(self):
         """Authenticate with an authentication file."""
         try:
-            self._irods_session = irods.session.iRODSSession(
+            self.irods_session = irods.session.iRODSSession(
                     irods_env_file=self._irods_env_path)
-            assert self._irods_session.server_version != ()
-            return self._irods_session
+            assert self.irods_session.server_version != ()
+            return self.irods_session
         except ValueError as e:
             raise ValueError("Unexpected value in irods_environment.json; ") from e
         except NonAnonymousLoginWithoutPassword as e:
@@ -170,10 +165,10 @@ class Session:
 
     def write_pam_password(self):
         """Store the password in the iRODS authentication file in obfuscated form."""
-        connection = self._irods_session.pool.get_connection()
-        pam_passwords = self._irods_session.pam_pw_negotiated
+        connection = self.irods_session.pool.get_connection()
+        pam_passwords = self.irods_session.pam_pw_negotiated
         if len(pam_passwords):
-            irods_auth_file = self._irods_session.get_irods_password_file()
+            irods_auth_file = self.irods_session.get_irods_password_file()
             with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
                 authfd.write(
                     irods.password_obfuscation.encode(pam_passwords[0]))
@@ -191,9 +186,9 @@ class Session:
             Resource name.
 
         """
-        if self._irods_session:
+        if self.irods_session:
             try:
-                return self._irods_session.default_resource
+                return self.irods_session.default_resource
             except AttributeError:
                 pass
         raise ValueError("'irods_default_resource' not set in iRODS configuration.")
@@ -208,8 +203,8 @@ class Session:
             Hostname.
 
         """
-        if self._irods_session:
-            return self._irods_session.host
+        if self.irods_session:
+            return self.irods_session.host
         return ''
 
     @property
@@ -222,8 +217,8 @@ class Session:
             Port.
 
         """
-        if self._irods_session:
-            return self._irods_session.port
+        if self.irods_session:
+            return self.irods_session.port
         return ''
 
     @property
@@ -237,7 +232,7 @@ class Session:
 
         """
         try:
-            return self._irods_session.server_version
+            return self.irods_session.server_version
         except Exception as e:
             if repr(e) in LoginFail:
                 raise ValueError(LoginFail[repr(e)]) from e
@@ -253,8 +248,8 @@ class Session:
             Username.
 
         """
-        if self._irods_session:
-            return self._irods_session.username
+        if self.irods_session:
+            return self.irods_session.username
         return ''
 
     @property
@@ -267,6 +262,6 @@ class Session:
             Zone.
 
         """
-        if self._irods_session:
-            return self._irods_session.zone
+        if self.irods_session:
+            return self.irods_session.zone
         return ''
