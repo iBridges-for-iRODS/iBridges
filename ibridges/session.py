@@ -135,26 +135,25 @@ class Session:
         try:
             self.irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
-            assert self.irods_session.server_version != ()
-            return self.irods_session
-        except ValueError as e:
-            raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
         except Exception as e:
             raise _translate_irods_error(e) from e
+        if self.irods_session.server_version == ():
+            raise LoginError("iRodsServer does not return a server version.")
+        return self.irods_session
 
     def authenticate_using_auth_file(self):
         """Authenticate with an authentication file."""
         try:
             self.irods_session = irods.session.iRODSSession(
                     irods_env_file=self._irods_env_path)
-            assert self.irods_session.server_version != ()
-            return self.irods_session
-        except ValueError as e:
-            raise ValueError("Unexpected value in irods_environment.json; ") from e
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
             raise _translate_irods_error(e) from e
+        if self.irods_session.server_version == ():
+            raise LoginError("iRodsServer does not return a server version.")
+        return self.irods_session
+
 
     def write_pam_password(self):
         """Store the password in the iRODS authentication file in obfuscated form."""
@@ -187,6 +186,7 @@ class Session:
         raise ValueError("'irods_default_resource' not set in iRODS configuration.")
 
     def __getattr__(self, item):
+        """Pass through a few attributes from irods_session."""
         if item in ["host", "port", "username", "zone"]:
             if self.irods_session is None:
                 raise AttributeError("Need a valid iRods session to get '{item}'.")
@@ -228,4 +228,6 @@ def _translate_irods_error(exc) -> Exception:
         return LoginError("Cached password is expired")
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
         return LoginError("Cached password is wrong")
+    if isinstance(exc, ValueError):
+        return LoginError("Unexpected value in irods_environment; ")
     return LoginError("Unknown problem creating irods session.")
