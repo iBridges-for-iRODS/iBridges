@@ -237,7 +237,6 @@ class Session:
             Server version: (major, minor, patch).
 
         """
-        print(self._irods_session)
         try:
             return self._irods_session.server_version
         except Exception as e:
