@@ -5,11 +5,22 @@ from pathlib import Path
 from typing import Optional, Union
 
 import irods.session
-from irods.exception import NetworkException, CAT_INVALID_USER, PAM_AUTH_PASSWORD_FAILED, 
-                            CAT_PASSWORD_EXPIRED, CAT_INVALID_AUTHENTICATION
+from irods.session import NonAnonymousLoginWithoutPassword
+
+LoginFail = {
+    "NetworkException('Client-Server negotiation failure: CS_NEG_REFUSE,CS_NEG_REQUIRE')":
+                          "Host, port, irods_client_server_policy or " + \
+                          "irods_client_server_negotiation not set correctly in "+\
+                          "irods_environment.json",
+    "CAT_INVALID_USER(None,)": "User credentials are not accepted",
+    "PAM_AUTH_PASSWORD_FAILED(None,)": "Wrong password",
+    "CAT_PASSWORD_EXPIRED(None,)": "Cached password is expired",
+    "CAT_INVALID_AUTHENTICATION(None,)": "Cached password is wrong"
+}
 
 class Session:
     """Irods session authentication."""
+
 
     def __init__(self, irods_env: Optional[dict] = None,
                  irods_env_path: Optional[Union[str, Path]] = None,
@@ -44,7 +55,6 @@ class Session:
                                     f"expected dictionary, got {type(irods_env)}.")
             else:
                 raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
-
         self._password = password
         self._irods_env: dict = irods_env  # type: ignore
         self._irods_env_path = irods_env_path
@@ -69,11 +79,6 @@ class Session:
         """Get irods session."""
         return self._irods_session
 
-    @property
-    def loginExceptions(self) -> dict:
-        exceptions = {NetworkException: 
-                "'irods_client_server_policy' not set (correctly) in irods_environment.json"}
-    
     @property
     def home(self) -> str:
         """Current working directory for irods.
@@ -144,14 +149,10 @@ class Session:
             assert self._irods_session.server_version != ()
             return self._irods_session
         except ValueError as e:
-            raise ValueError("Unexpected value in irods_environment.json; ") from e
-        except NetworkException as e:
-            raise ValueError(
-                "Host, port, irods_client_server_policy or irods_client_server_negotiation not set"
-                " correctly in irods_environment.json; ") from e
+            raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
         except Exception as e:
-            if repr(e) in exceptions:
-                raise ValueError(exceptions[repr(e)]+"; ") from e
+            if repr(e) in LoginFail:
+                raise ValueError(LoginFail[repr(e)]+"; "+repr(e)) from e
             raise e
 
     def authenticate_using_auth_file(self):
@@ -162,17 +163,12 @@ class Session:
             assert self._irods_session.server_version != ()
             return self._irods_session
         except ValueError as e:
-            raise ValueError("Unexpected value in irods_environment.json; ") from e
-        except NetworkException as e:
-            raise ValueError(
-                "Host, port or irods_client_server_negotiation not set correctly in "
-                "irods_environment.json; ") from e
-        except CAT_INVALID_USERi as e:
-            raise ValueError("User credentials are not accepted.") from e
-
+            raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
+        except NonAnonymousLoginWithoutPassword as e:
+            raise FileNotFoundError("No cached password found; ") from e
         except Exception as e:
-            if repr(e) in exceptions:
-                raise ValueError(exceptions[repr(e)]+"; "+repr(e)) from e
+            if repr(e) in LoginFail:
+                raise ValueError(LoginFail[repr(e)]+", "+repr(e)) from e
             raise e
 
     def write_pam_password(self):
@@ -246,8 +242,8 @@ class Session:
         try:
             return self._irods_session.server_version
         except Exception as e:
-            if repr(e) in exceptions:
-                raise ValueError(exceptions[repr(e)]) from e
+            if repr(e) in LoginFail:
+                raise ValueError(LoginFail[repr(e)]) from e
             raise e
 
     @property

@@ -10,11 +10,13 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
+from irods.models import DataObject
 
 import ibridges.icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 
+NUM_THREADS = 4
 
 def get_dataobject(session: Session,
                    path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
@@ -141,7 +143,7 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         options = {}
     options.update({
         kw.ALL_KW: '',
-        kw.NUM_THREADS_KW: kw.NUM_THREADS,
+        kw.NUM_THREADS_KW: NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
     })
@@ -177,7 +179,7 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     if options is None:
         options = {}
     options.update({
-        kw.NUM_THREADS_KW: kw.NUM_THREADS,
+        kw.NUM_THREADS_KW: NUM_THREADS,
         kw.VERIFY_CHKSUM_KW: '',
         })
     if overwrite:
