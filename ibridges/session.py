@@ -56,6 +56,14 @@ class Session:
         if "irods_home" not in self._irods_env:
             self.home = '/'+self.zone+'/home/'+self.username
 
+    def __enter__(self):
+        if not self.has_valid_irods_session():
+            self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_trace_back):
+        self.close()
+
     @property
     def home(self) -> str:
         """Current working directory for irods.
@@ -73,10 +81,6 @@ class Session:
     @home.setter
     def home(self, value):
         self._irods_env["irods_home"] = value
-
-    def __del__(self):
-        """Clean up the irods session as well."""
-        del self.irods_session
 
     @property
     def irods_session(self) -> irods.session.iRODSSession:
@@ -114,7 +118,7 @@ class Session:
             Is the session valid?
 
         """
-        return self.server_version != ()
+        return self._irods_session is not None and self.server_version != ()
 
     def connect(self):
         """Establish an iRODS session."""
@@ -137,7 +141,15 @@ class Session:
         print("Auth with password")
         return self.authenticate_using_password()
 
-    def authenticate_using_password(self):
+    def close(self) -> None:
+        """Disconnect the irods session.
+
+        This closes the connection, and makes the session available for
+        reconnection with `connect`.
+        """
+        del self.irods_session
+
+    def authenticate_using_password(self) -> None:
         """Authenticate with the iRods server using a password."""
         try:
             self._irods_session = irods.session.iRODSSession(password=self._password,
@@ -241,6 +253,7 @@ class Session:
             Server version: (major, minor, patch).
 
         """
+        print(self._irods_session)
         try:
             return self._irods_session.server_version
         except Exception as e:
