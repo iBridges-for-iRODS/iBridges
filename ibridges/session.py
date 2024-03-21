@@ -67,6 +67,11 @@ class Session:
         self.close()
 
     @property
+    def irods_session(self):
+        """Get irods session."""
+        return self._irods_session
+
+    @property
     def home(self) -> str:
         """Current working directory for irods.
 
