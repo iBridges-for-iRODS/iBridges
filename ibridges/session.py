@@ -16,7 +16,7 @@ LoginFail = {
     "PAM_AUTH_PASSWORD_FAILED(None,)": "Wrong password",
     "CAT_PASSWORD_EXPIRED(None,)": "Cached password is expired",
     "CAT_INVALID_AUTHENTICATION(None,)": "Cached password is wrong"
-}
+    }
 
 class Session:
     """Irods session authentication."""
@@ -163,9 +163,9 @@ class Session:
             assert self._irods_session.server_version != ()
             return self._irods_session
         except ValueError as e:
-            raise FileNotFoundError("Unexpected value in irods_environment.json; ") from e
+            raise ValueError("Unexpected value in irods_environment.json; ") from e
         except NonAnonymousLoginWithoutPassword as e:
-            raise FileNotFoundError("No cached password found; ") from e
+            raise ValueError("No cached password found.") from e
         except Exception as e:
             if repr(e) in LoginFail:
                 raise ValueError(LoginFail[repr(e)]+", "+repr(e)) from e
