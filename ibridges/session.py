@@ -5,10 +5,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 import irods.session
-from irods.exception import NetworkException
-
-from ibridges.keywords import exceptions
-
+from irods.exception import NetworkException, CAT_INVALID_USER, PAM_AUTH_PASSWORD_FAILED, 
+                            CAT_PASSWORD_EXPIRED, CAT_INVALID_AUTHENTICATION
 
 class Session:
     """Irods session authentication."""
@@ -71,6 +69,11 @@ class Session:
         """Get irods session."""
         return self._irods_session
 
+    @property
+    def loginExceptions(self) -> dict:
+        exceptions = {NetworkException: 
+                "'irods_client_server_policy' not set (correctly) in irods_environment.json"}
+    
     @property
     def home(self) -> str:
         """Current working directory for irods.
@@ -164,6 +167,9 @@ class Session:
             raise ValueError(
                 "Host, port or irods_client_server_negotiation not set correctly in "
                 "irods_environment.json; ") from e
+        except CAT_INVALID_USERi as e:
+            raise ValueError("User credentials are not accepted.") from e
+
         except Exception as e:
             if repr(e) in exceptions:
                 raise ValueError(exceptions[repr(e)]+"; "+repr(e)) from e

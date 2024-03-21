@@ -8,7 +8,7 @@ from typing import Iterable, Optional, Union
 import irods.ticket
 from irods.models import TicketQuery
 
-import ibridges.keywords as kw
+import ibridges.icat_columns as icat
 from ibridges.session import Session
 
 TicketData = namedtuple('TicketData', ["name", "type", "path", "expiration_date"])
@@ -146,14 +146,14 @@ class Tickets():
             returns '' if the identifier does not exist any longer
 
         """
-        data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME)
-        data_query = data_query.filter(kw.DATA_ID == itemid)
+        data_query = self.session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
+        data_query = data_query.filter(icat.DATA_ID == itemid)
 
         if len(list(data_query)) > 0:
             res = next(data_query.get_results())
             return list(res.values())[0] + "/" + list(res.values())[1]
-        coll_query = self.session.irods_session.query(kw.COLL_NAME)
-        coll_query = coll_query.filter(kw.COLL_ID == itemid)
+        coll_query = self.session.irods_session.query(icat.COLL_NAME)
+        coll_query = coll_query.filter(icat.COLL_ID == itemid)
         if len(list(coll_query)) > 0:
             res = next(coll_query.get_results())
             return list(res.values())[0]
