@@ -57,11 +57,13 @@ class Session:
             self.home = '/'+self.zone+'/home/'+self.username
 
     def __enter__(self):
+        """Connect to the iRods server if not already connected."""
         if not self.has_valid_irods_session():
             self.connect()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_trace_back):
+        """Disconnect from the iRods server."""
         self.close()
 
     @property
