@@ -84,32 +84,6 @@ class Session:
     def home(self, value):
         self._irods_env["irods_home"] = value
 
-    @property
-    def irods_session(self) -> irods.session.iRODSSession:
-        """IRODS session creation.
-
-        Returns
-        -------
-        iRODSSession
-            iRODS connection based on the current environment and password.
-
-        """
-        return self._irods_session
-
-    @irods_session.deleter
-    def irods_session(self):
-        """Properly delete iRODS session."""
-        if self._irods_session is not None:
-            # In case the iRODS session is not fully there.
-            try:
-                self._irods_session.cleanup()
-            except NameError:
-                pass
-            except AttributeError:
-                pass
-            del self._irods_session
-            self._irods_session = None
-
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
@@ -149,7 +123,10 @@ class Session:
         This closes the connection, and makes the session available for
         reconnection with `connect`.
         """
-        del self.irods_session
+        if self._irods_session is not None:
+            self._irods_session.do_configure = {}
+            self._irods_session.cleanup()
+            self._irods_session = None
 
     def authenticate_using_password(self) -> None:
         """Authenticate with the iRods server using a password."""
