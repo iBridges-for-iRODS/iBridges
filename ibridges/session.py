@@ -21,10 +21,10 @@ LoginFail = {
 class Session:
     """Irods session authentication."""
 
-
-    def __init__(self, irods_env: Optional[dict] = None,
-                 irods_env_path: Optional[Union[str, Path]] = None,
-                 password: Optional[str] = None, irods_home: Optional[str] = None):
+    def __init__(self,
+                 irods_env: Union[dict, str, Path],
+                 password: Optional[str] = None,
+                 irods_home: Optional[str] = None):
         """IRODS authentication with Python client.
 
         Parameters
@@ -41,22 +41,19 @@ class Session:
             /{zone}/home/{username}.
 
         """
-        if irods_env is None and irods_env_path is None:
-            raise ValueError("CONNECTION ERROR: no irods environment given.")
-        if irods_env is not None and irods_env_path is not None:
-            warnings.warn("Environment dictionary will be overwritten with irods environment file")
-        if irods_env_path is not None:
-            irods_env_path = Path(irods_env_path).expanduser()
-            if irods_env_path.is_file():
-                with irods_env_path.open("r", encoding="utf-8") as envfd:
-                    irods_env = json.load(envfd)
-                if not isinstance(irods_env, dict):
-                    raise TypeError(f"Error reading environment file '{irods_env_path}': "
-                                    f"expected dictionary, got {type(irods_env)}.")
-            else:
-                raise ValueError(f"CONNECTION ERROR: {irods_env_path} path does not exist.")
+        irods_env_path = None
+        if isinstance(irods_env, (str, Path)):
+            irods_env_path = Path(irods_env)
+            if not irods_env_path.is_file():
+                raise FileNotFoundError(f"Cannot find irods environment file '{irods_env}'")
+            with irods_env_path.open("r", encoding="utf-8") as envfd:
+                irods_env = json.load(envfd)
+        if not isinstance(irods_env, dict):
+            raise TypeError(f"Error reading environment file '{irods_env_path}': "
+                            f"expected dictionary, got {type(irods_env)}.")
+
         self._password = password
-        self._irods_env: dict = irods_env  # type: ignore
+        self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
         self._irods_session = self.connect()
         if irods_home is not None:

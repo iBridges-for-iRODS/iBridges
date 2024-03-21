@@ -22,7 +22,7 @@ def interactive_auth(password: Optional[str] = None,
 
     if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")):
         try:
-            session = Session(irods_env_path=irods_env_path)
+            session = Session(irods_env_path)
             return session
         except IndexError:
             print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
@@ -33,7 +33,7 @@ def interactive_auth(password: Optional[str] = None,
         ienv = json.load(f)
     if password is not None:
         try:
-            session = Session(irods_env=ienv, password=password)
+            session = Session(ienv, password=password)
             session.write_pam_password()
             return session
         except ValueError:
