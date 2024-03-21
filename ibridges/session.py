@@ -56,6 +56,21 @@ class Session:
         if "irods_home" not in self._irods_env:
             self.home = '/'+self.zone+'/home/'+self.username
 
+    def __enter__(self):
+        """Connect to the iRods server if not already connected."""
+        if not self.has_valid_irods_session():
+            self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, exc_trace_back):
+        """Disconnect from the iRods server."""
+        self.close()
+
+    @property
+    def irods_session(self):
+        """Get irods session."""
+        return self._irods_session
+
     @property
     def home(self) -> str:
         """Current working directory for irods.
@@ -74,36 +89,6 @@ class Session:
     def home(self, value):
         self._irods_env["irods_home"] = value
 
-    def __del__(self):
-        """Clean up the irods session as well."""
-        del self.irods_session
-
-    @property
-    def irods_session(self) -> irods.session.iRODSSession:
-        """IRODS session creation.
-
-        Returns
-        -------
-        iRODSSession
-            iRODS connection based on the current environment and password.
-
-        """
-        return self._irods_session
-
-    @irods_session.deleter
-    def irods_session(self):
-        """Properly delete iRODS session."""
-        if self._irods_session is not None:
-            # In case the iRODS session is not fully there.
-            try:
-                self._irods_session.cleanup()
-            except NameError:
-                pass
-            except AttributeError:
-                pass
-            del self._irods_session
-            self._irods_session = None
-
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
@@ -114,7 +99,7 @@ class Session:
             Is the session valid?
 
         """
-        return self.server_version != ()
+        return self._irods_session is not None and self.server_version != ()
 
     def connect(self):
         """Establish an iRODS session."""
@@ -137,7 +122,18 @@ class Session:
         print("Auth with password")
         return self.authenticate_using_password()
 
-    def authenticate_using_password(self):
+    def close(self) -> None:
+        """Disconnect the irods session.
+
+        This closes the connection, and makes the session available for
+        reconnection with `connect`.
+        """
+        if self._irods_session is not None:
+            self._irods_session.do_configure = {}
+            self._irods_session.cleanup()
+            self._irods_session = None
+
+    def authenticate_using_password(self) -> None:
         """Authenticate with the iRods server using a password."""
         try:
             self._irods_session = irods.session.iRODSSession(password=self._password,
