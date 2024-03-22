@@ -1,4 +1,6 @@
 """metadata operations."""
+from __future__ import annotations
+
 from typing import Any, Iterator, Optional, Sequence, Union
 
 import irods.exception
