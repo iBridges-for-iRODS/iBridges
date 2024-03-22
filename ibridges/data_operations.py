@@ -190,7 +190,7 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
     """Assembles the irods destination paths for upload of a folder."""
     upload_path = irods_path.joinpath(local_path.name)
-    paths = [(root.removeprefix(str(local_path)), f)
+    paths = [(str(local_path.relative_to(root)), f)
              for root, _, files in os.walk(local_path) for f in files]
 
     source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
@@ -245,7 +245,7 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
     source_to_dest: list[tuple[IrodsPath, Path]] = []
     for subcoll_path, obj_name, _, _ in all_objs:
         cur_ipath = IrodsPath(session, subcoll_path, obj_name)
-        cur_lpath = download_path / IrodsPath(subcoll_path).relative_to(irods_path)
+        cur_lpath = download_path / IrodsPath(session, subcoll_path).relative_to(irods_path)
         source_to_dest.append((cur_ipath, cur_lpath))
     # source_to_dest = [(IrodsPath(session, subcoll_path, obj_name),
                     #   Path(download_path,
