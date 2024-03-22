@@ -15,6 +15,25 @@ def interactive_auth(password: Optional[str] = None,
     """Interactive authentication with iRODS server.
 
     Stores the password in ~/.irods/.irodsA upon success.
+
+    Parameters
+    ----------
+    password:
+        Password to make the connection with. If not supplied, you will be asked interactively.
+    irods_env_path:
+        Path to the irods environment.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If the irods_env_path does not exist.
+    ValueError:
+        If the connection to the iRods server cannot be established.
+
+    Returns
+    -------
+        A connected session to the server.
+
     """
     if not os.path.exists(irods_env_path):
         print(f'File not found: {irods_env_path}')

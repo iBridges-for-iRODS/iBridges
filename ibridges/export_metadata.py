@@ -81,7 +81,7 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
         return metadata_dict
     if is_collection(meta.item):
         if recursive is True:
-            objects, collections = get_meta_from_irods_tree(session, meta.item,
+            objects, collections = _get_meta_from_irods_tree(session, meta.item,
                                                             root = meta.item.path)
             metadata_dict["subcollections"] = collections
             metadata_dict["dataobjects"] = objects
@@ -89,7 +89,7 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
         return metadata_dict
     raise ValueError("Not a data collection or data object: {item}")
 
-def get_meta_from_irods_tree(session: Session, coll: iRODSCollection,
+def _get_meta_from_irods_tree(session: Session, coll: iRODSCollection,
                              root: Optional[Union[str, IrodsPath]] = None
                              ) -> tuple[list[dict], list[dict]]:
     """Recursively gather the metadata for all subcollections and data objects."""
@@ -111,7 +111,7 @@ def get_meta_from_irods_tree(session: Session, coll: iRODSCollection,
                     for c in coll.subcollections]
     if len(coll.subcollections) > 0:
         for subcoll in coll.subcollections:
-            subobjects, subcollections = get_meta_from_irods_tree(session, subcoll, root_path)
+            subobjects, subcollections = _get_meta_from_irods_tree(session, subcoll, root_path)
             objects.extend(subobjects)
             collections.extend(subcollections)
     else:
