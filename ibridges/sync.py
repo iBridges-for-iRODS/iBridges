@@ -131,6 +131,14 @@ def sync_data(session: Session,   #pylint: disable=too-many-arguments
         terminates the program with an exception (default). To ignore checksum verification errors,
         set `verify_checksum` to False.
 
+    Raises
+    ------
+    ValueError:
+        If the local or remote files/folders do not exist and they are expected to.
+    TypeError:
+        If the types of the local/remote paths are wrong. For example trying to copy
+        from the local file system to the same local file system.
+
     """
     _param_checks(source, target, on_checksum_fail)
 
