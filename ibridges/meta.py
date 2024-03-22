@@ -160,7 +160,7 @@ class MetaData():
         Parameters
         ----------
         keys:
-            List of Attribute names which should be exported to "metadata". 
+            List of Attribute names which should be exported to "metadata".
             By default all will be exported.
 
         """

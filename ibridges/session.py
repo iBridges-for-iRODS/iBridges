@@ -27,7 +27,7 @@ class Session:
         Parameters
         ----------
         irods_env: dict
-            Dictionary from irods_environment.json or file to read the 
+            Dictionary from irods_environment.json or file to read the
             dictionary from if irods_env is not supplied.
         password : str
             Plain text password.
@@ -222,7 +222,7 @@ class LoginError(ValueError):
 
 
 
-def _translate_irods_error(exc) -> Exception:
+def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return-statements
     if isinstance(exc, NetworkException) and exc.msg.startswith(
             'Client-Server negotiation failure'):
         return LoginError("Host, port, irods_client_server_policy or "
