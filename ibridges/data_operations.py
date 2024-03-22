@@ -319,7 +319,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     ------
     ValueError:
         If the local_path is not a valid filename of directory.
-    CUT_ACTION_PROCESSED_ERR:
+    PermissionError:
         If the iRods server does not allow the collection or data object to be created.
 
     """
@@ -330,7 +330,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         else:
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
@@ -352,7 +352,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
     Raises
     ------
-    CUT_ACTION_PROCESSED_ERR:
+    PermissionError:
         If the iRods server (for whatever reason) forbids downloading the file or
         (part of the) collection.
     ValueError:
@@ -367,7 +367,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         else:
             _obj_get(session, irods_path, local_path, overwrite, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
 
@@ -437,13 +437,13 @@ def create_collection(session: Session,
 
     Raises
     ------
-    CUT_ACTION_PROCESSED_ERR:
+    PermissionError:
         If creating a collection is not allowed by the server.
 
     """
     try:
         return session.irods_session.collections.create(str(coll_path))
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
                 f"While creating collection at '{coll_path}': iRODS server forbids action."
               ) from exc
