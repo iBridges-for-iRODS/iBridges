@@ -245,7 +245,8 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
     source_to_dest: list[tuple[IrodsPath, Path]] = []
     for subcoll_path, obj_name, _, _ in all_objs:
         cur_ipath = IrodsPath(session, subcoll_path, obj_name)
-        cur_lpath = download_path / IrodsPath(session, subcoll_path).relative_to(irods_path)
+        cur_lpath = (download_path / IrodsPath(session, subcoll_path).relative_to(irods_path)
+                                   / obj_name)
         source_to_dest.append((cur_ipath, cur_lpath))
     print(source_to_dest)
     # source_to_dest = [(IrodsPath(session, subcoll_path, obj_name),
