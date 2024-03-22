@@ -242,11 +242,16 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
     all_objs = _get_data_objects(session, coll)
 
     download_path = local_path.joinpath(irods_path.name.lstrip('/'))
-    source_to_dest = [(IrodsPath(session, subcoll_path, obj_name),
-                      Path(download_path,
-                           subcoll_path.removeprefix(str(irods_path)).lstrip('/'),
-                           obj_name))
-                      for subcoll_path, obj_name, _, _ in all_objs]
+    source_to_dest: list[tuple[IrodsPath, Path]] = []
+    for subcoll_path, obj_name, _, _ in all_objs:
+        cur_ipath = IrodsPath(session, subcoll_path, obj_name)
+        cur_lpath = download_path / IrodsPath(subcoll_path).relative_to(irods_path)
+        source_to_dest.append((cur_ipath, cur_lpath))
+    # source_to_dest = [(IrodsPath(session, subcoll_path, obj_name),
+                    #   Path(download_path,
+                        #    subcoll_path.removeprefix(str(irods_path)).lstrip('/'),
+                        #    obj_name))
+                    #   for subcoll_path, obj_name, _, _ in all_objs]
 
     return source_to_dest
 
