@@ -1,5 +1,6 @@
 """Exporting metadata.
 """
+from __future__ import annotations
 
 from typing import Optional, Union
 from irods.collection import iRODSCollection
@@ -49,11 +50,11 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
         ]
     }
     """
-    version = {"ibridges_metadata_version": 1.0}
+    metadata_dict = {"ibridges_metadata_version": 1.0}
+    metadata_dict.update(meta.to_dict(keys = keys))
     if is_dataobject(meta.item):
-        return version | meta.to_dict(keys = keys)
+        return metadata_dict
     if is_collection(meta.item):
-        metadata_dict = version | meta.to_dict(keys = keys)
         if recursive is True:
             objects, collections = get_meta_from_irods_tree(session, meta.item,
                                                             root = meta.item.path)
