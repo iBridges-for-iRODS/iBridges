@@ -30,8 +30,6 @@ jobs:
             irods-catalog.cache-from=type=gha
             irods-catalog.cache-to=type=gha
             irods-catalog.tags=irods-catalog
-            irods-catalog-provider.cache-from=type=gha
-            irods-catalog-provider.cache-to=type=gha
             irods-catalog-provider.tags=irods-catalog-provider
             irods-client.cache-from=type=gha
             irods-client.cache-to=type=gha
