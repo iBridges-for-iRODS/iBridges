@@ -143,6 +143,7 @@ class Session:
         try:
             irods_session = irods.session.iRODSSession(password=self._password,
                                                              **self._irods_env)
+            _ = irods_session.server_version
         except Exception as e:
             raise _translate_irods_error(e) from e
         if irods_session.server_version == ():
@@ -154,6 +155,7 @@ class Session:
         try:
             irods_session = irods.session.iRODSSession(
                 irods_env_file=self._irods_env_path)
+            _ = irods_session.server_version
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
