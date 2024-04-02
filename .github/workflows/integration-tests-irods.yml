@@ -20,19 +20,6 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt install -y docker-compose
-      - uses: docker/setup-buildx-action@v3
-      - name: Build utilizing cache
-        uses: docker/bake-action@v4
-        with:
-          load: true
-          push: false
-          set: |
-            irods-catalog.cache-from=type=gha
-            irods-catalog.cache-to=type=gha
-            irods-catalog.tags=irods-catalog
-            irods-catalog-provider.tags=irods-catalog-provider
-            irods-client.cache-from=type=gha
-            irods-client.cache-to=type=gha
-            irods-client.tags=irods-client
+      - run: docker-compose build
       - name: Run tests using docker-compose
         run: docker-compose up --no-build --exit-code-from irods-client
