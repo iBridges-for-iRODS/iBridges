@@ -34,6 +34,7 @@ jobs:
             irods-client.cache-from=type=gha
             irods-client.cache-to=type=gha
             irods-client.tags=irods-client
+      - name: Debug: try removing build context manually
+        run: docker-compose rm -f
       - name: Run tests using docker-compose
-        run: docker-compose rm -f 
         run: docker-compose up --no-build --exit-code-from irods-client
