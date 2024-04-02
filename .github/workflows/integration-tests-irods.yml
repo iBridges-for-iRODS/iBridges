@@ -35,5 +35,4 @@ jobs:
             irods-client.cache-to=type=gha
             irods-client.tags=irods-client
       - name: Run tests using docker-compose
-        run: docker-compose rm -f 
         run: docker-compose up --no-build --exit-code-from irods-client
