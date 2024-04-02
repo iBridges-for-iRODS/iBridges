@@ -89,7 +89,7 @@ def sync_data(session: Session,
          target: Union[str, Path, IrodsPath],
          max_level: Optional[int] = None,
          dry_run: bool = False,
-         copy_empty_folders: bool = False) -> None:
+         copy_empty_folders: bool = False) -> dict:
     """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
@@ -119,6 +119,13 @@ def sync_data(session: Session,
     copy_empty_folders : bool, default False
         Controls whether folders/collections that contain no files or  subfolders/subcollections
         will be synchronized.
+
+
+    Returns
+    -------
+        A dict object containing two keys: 'changed_folders' and 'changed_files'.
+        These contain lists of changed folders and files, respectively
+        (or of to-be-changed folders and files, when in dry-run mode).
     """
     _param_checks(source, target)
 
@@ -181,6 +188,7 @@ def sync_data(session: Session,
             target=Path(target),
             objects=files_diff,
             dry_run=dry_run)
+    return {'changed_folders': folders_diff, 'changed_files': files_diff}
 
 def _param_checks(source, target):
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
