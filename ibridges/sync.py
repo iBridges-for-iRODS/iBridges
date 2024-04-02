@@ -34,7 +34,7 @@ class FileObject(NamedTuple):
     name: str
     path: str
     size: int
-    checksum: Optional[str]
+    checksum: str
 
 class FolderObject:
     """Object to hold attributes from local and remote folders/collections."""
@@ -84,22 +84,22 @@ class FolderObject:
         """Hash the path as a hash for the folder."""
         return hash(self.path)
 
-def sync_data(session: Session,   #pylint: disable=too-many-arguments
+def sync_data(session: Session,
          source: Union[str, Path, IrodsPath],
          target: Union[str, Path, IrodsPath],
          max_level: Optional[int] = None,
          dry_run: bool = False,
-         ignore_checksum: bool = False,
-         copy_empty_folders: bool = False,
-         verify_checksum: bool = True,
-         on_checksum_fail: str = 'error') -> None:
+         copy_empty_folders: bool = False) -> None:
     """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
     system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
     the values for `source` and `target` (IrodsPath or str/Path).
 
+    The command considers the file size and the checksum to determine whether a file should be
+    synchronized.
 
+    
     Parameters
     ----------
     session : ibridges.Session
@@ -116,61 +116,37 @@ def sync_data(session: Session,   #pylint: disable=too-many-arguments
     dry_run : bool, default False
         List all source files and folders that need to be synchronized without actually
         performing synchronization.
-    ignore_checksum : bool, default False
-        If set to True, only the file size is used for determining whether synchronization is
-        needed, rather than size and checksum value. This mode gives a potentially faster
-        operation but the result is less accurate.
     copy_empty_folders : bool, default False
         Controls whether folders/collections that contain no files or  subfolders/subcollections
         will be synchronized.
-    verify_checksum : bool, default True
-        Calculate and verify the checksum on files after up- or downloading. A checksum mismatch
-        will generate an error, but will not abort the  synchronization process.
-    on_checksum_fail : {'warn', 'error'}
-        Behaviour when a checksum verification fails. 'warn' prints an error and procedes; 'error'
-        terminates the program with an exception (default). To ignore checksum verification errors,
-        set `verify_checksum` to False.
-
-    Raises
-    ------
-    ValueError:
-        If the local or remote files/folders do not exist and they are expected to.
-    TypeError:
-        If the types of the local/remote paths are wrong. For example trying to copy
-        from the local file system to the same local file system.
-
     """
-    _param_checks(source, target, on_checksum_fail)
+    _param_checks(source, target)
 
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
             raise ValueError(f"Source collection '{source.absolute_path()}' does not exist")
         src_files, src_folders=_get_irods_tree(
             coll=get_collection(session=session, path=source),
-            max_level=max_level,
-            ignore_checksum=ignore_checksum)
+            max_level=max_level)
     else:
         if not Path(source).is_dir():
             raise ValueError(f"Source folder '{source}' does not exist")
         src_files, src_folders=_get_local_tree(
             path=Path(source),
-            max_level=max_level,
-            ignore_checksum=ignore_checksum)
+            max_level=max_level)
 
     if isinstance(target, IrodsPath):
         if not target.collection_exists():
             raise ValueError(f"Target collection '{target.absolute_path()}' does not exist")
         tgt_files, tgt_folders=_get_irods_tree(
             coll=get_collection(session=session, path=target),
-            max_level=max_level,
-            ignore_checksum=ignore_checksum)
+            max_level=max_level)
     else:
         if not Path(target).is_dir():
             raise ValueError(f"Target folder '{target}' does not exist")
         tgt_files, tgt_folders=_get_local_tree(
             path=Path(target),
-            max_level=max_level,
-            ignore_checksum=ignore_checksum)
+            max_level=max_level)
 
     folders_diff=sorted(
         set(src_folders).difference(set(tgt_folders)),
@@ -192,9 +168,7 @@ def sync_data(session: Session,   #pylint: disable=too-many-arguments
             source=Path(source),
             target=target,
             files=files_diff,
-            dry_run=dry_run,
-            verify_checksum=verify_checksum,
-            on_checksum_fail=on_checksum_fail)
+            dry_run=dry_run)
     else:
         _create_local_folders(
             target=Path(target),
@@ -206,20 +180,14 @@ def sync_data(session: Session,   #pylint: disable=too-many-arguments
             source=source,  # type: ignore
             target=Path(target),
             objects=files_diff,
-            dry_run=dry_run,
-            verify_checksum=verify_checksum,
-            on_checksum_fail=on_checksum_fail)
+            dry_run=dry_run)
 
-def _param_checks(source, target, on_checksum_fail):
+def _param_checks(source, target):
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
         raise TypeError("Either source or target should be an iRODS path.")
 
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
-
-    fail_opt=["warn", "error"]
-    if on_checksum_fail not in fail_opt:
-        raise TypeError(f"on_checksum_fail must be on of: {', '.join(fail_opt)}")
 
 def _calc_checksum(filepath):
     f_hash=sha256()
@@ -230,8 +198,7 @@ def _calc_checksum(filepath):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def _get_local_tree(path: Path,
-                    max_level: Optional[int] = None,
-                    ignore_checksum: bool = False):
+                    max_level: Optional[int] = None):
 
     # change all sep into /, regardless of platform, for easier comparison
     def fix_local_path(path: str):
@@ -249,7 +216,7 @@ def _get_local_tree(path: Path,
                     name=file,
                     path=fix_local_path(rel_path),
                     size=full_path.stat().st_size,
-                    checksum=None if ignore_checksum else _calc_checksum(full_path)))
+                    checksum=_calc_checksum(full_path)))
 
         collections.extend([FolderObject(
                 fix_local_path(str(Path(root) / dir)[len(str(path)):].lstrip(os.sep)),
@@ -263,8 +230,7 @@ def _get_local_tree(path: Path,
 def _get_irods_tree(coll: iRODSCollection,
                     root: str = '',
                     level: int = 0,
-                    max_level: Optional[int] = None,
-                    ignore_checksum: bool = False):
+                    max_level: Optional[int] = None):
 
     root=coll.path if len(root)==0 else root
 
@@ -273,7 +239,7 @@ def _get_irods_tree(coll: iRODSCollection,
         x.name,
         x.path[len(root):].lstrip('/'),
         x.size,
-        None if ignore_checksum else (x.checksum if len(x.checksum)>0 else x.chksum()))
+        x.checksum if len(x.checksum)>0 else x.chksum())
         for x in coll.data_objects]
 
     if max_level is None or level<max_level-1:
@@ -287,9 +253,7 @@ def _get_irods_tree(coll: iRODSCollection,
                 coll=subcoll,
                 root=root,
                 level=level+1,
-                max_level=max_level,
-                ignore_checksum=ignore_checksum
-                )
+                max_level=max_level)
             objects.extend(subobjects)
             collections.extend(subcollections)
     else:
@@ -322,16 +286,17 @@ def _create_local_folders(target: Path,
     for folder in new_folders:
         folder.mkdir(parents=True, exist_ok=True)
 
-def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
+def _copy_local_to_irods(session: Session,
                          source: Path,
                          target: IrodsPath,
                          files: list[FileObject],
-                         dry_run: bool,
-                         verify_checksum: bool,
-                         on_checksum_fail: str) -> None:
+                         dry_run: bool) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
+        return
+
+    if len(files)==0:
         return
 
     pbar=tqdm(desc='Uploading', total=sum(x.size for x in files))
@@ -343,30 +308,26 @@ def _copy_local_to_irods(session: Session,   #pylint: disable=too-many-arguments
                     local_path=source_path,
                     irods_path=target_path,
                     overwrite=True)
-            if verify_checksum:
-                obj=get_dataobject(session, target_path)
-                if file.checksum != \
-                        (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
-                    msg=f"Checksum mismatch after upload: '{target_path}'"
-                    if on_checksum_fail=='error':
-                        raise ValueError(msg)
-                    if on_checksum_fail=='warn':
-                        print(f"WARNING: {msg}")
+            obj=get_dataobject(session, target_path)
+            if file.checksum != \
+                    (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
+                raise ValueError(f"Checksum mismatch after upload: '{target_path}'")
 
             pbar.update(file.size)
         except Exception as err:
             raise ValueError(f"Uploading '{source_path}' failed: {repr(err)}") from err
 
-def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-arguments
+def _copy_irods_to_local(session: Session,
                          source: IrodsPath,
                          target: Path,
                          objects: list[FileObject],
-                         dry_run: bool,
-                         verify_checksum: bool,
-                         on_checksum_fail: str) -> None:
+                         dry_run: bool) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
+        return
+
+    if len(objects)==0:
         return
 
     pbar=tqdm(desc='Downloading', total=sum(x.size for x in objects))
@@ -378,12 +339,8 @@ def _copy_irods_to_local(session: Session,     #pylint: disable=too-many-argumen
                         irods_path=source_path,
                         local_path=target_path,
                         overwrite=True)
-            if verify_checksum and obj.checksum != _calc_checksum(target_path):
-                msg=f"Checksum mismatch after download: '{source_path}'"
-                if on_checksum_fail=='error':
-                    raise ValueError(msg)
-                if on_checksum_fail=='warn':
-                    print(f"WARNING: {msg}")
+            if obj.checksum != _calc_checksum(target_path):
+                raise ValueError(f"Checksum mismatch after download: '{source_path}'")
 
             pbar.update(obj.size)
         except Exception as err:
