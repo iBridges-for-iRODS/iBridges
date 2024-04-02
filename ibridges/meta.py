@@ -74,8 +74,12 @@ class MetaData():
         units:
             The units of the new entry.
 
-        Throws:
-            CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+        Raises
+        ------
+        ValueError:
+            If the metadata already exists.
+        PermissionError:
+            If the metadata cannot be updated because the user does not have sufficient permissions.
 
         """
         try:
@@ -85,7 +89,7 @@ class MetaData():
         except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
             raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise ValueError("UPDATE META: no permissions") from error
+            raise PermissionError("UPDATE META: no permissions") from error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
         """Set the metadata entry.
@@ -104,7 +108,10 @@ class MetaData():
         units:
             The units of the new entry.
 
-        Throws: CAT_NO_ACCESS_PERMISSION
+        Raises
+        ------
+        PermissionError:
+            If the user does not have sufficient permissions to set the metadata.
 
         """
         self.delete(key, None)
@@ -122,8 +129,12 @@ class MetaData():
         units:
             The units of the new entry.
 
-        Throws:
-            CAT_SUCCESS_BUT_WITH_NO_INFO: metadata did not exist
+        Raises
+        ------
+        KeyError:
+            If the to be deleted key cannot be found.
+        PermissionError:
+            If the user has insufficient permissions to delete the metadata.
 
         """
         try:
@@ -143,7 +154,14 @@ class MetaData():
                              "path '{item.path}'.") from error
 
     def clear(self):
-        """Delete all metadata belonging to the item."""
+        """Delete all metadata belonging to the item.
+
+        Raises
+        ------
+        PermissionError:
+            If the user has insufficient permissions to delete the metadata.
+
+        """
         for meta in self:
             self.item.metadata.remove(meta)
 
@@ -160,8 +178,12 @@ class MetaData():
         Parameters
         ----------
         keys:
-            List of Attribute names which should be exported to "metadata". 
+            List of Attribute names which should be exported to "metadata".
             By default all will be exported.
+
+        Returns
+        -------
+            Dictionary containing the metadata.
 
         """
         meta_dict: dict[str, Any] = {}

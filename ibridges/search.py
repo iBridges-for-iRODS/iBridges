@@ -28,6 +28,11 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     key_vals : dict
         Attribute name mapping to values.
 
+    Raises
+    ------
+    ValueError:
+        If no search criterium is supplied.
+
     Returns
     -------
     list: [dict]

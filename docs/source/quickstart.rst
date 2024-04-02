@@ -104,5 +104,5 @@ When you are done with your session, you should generally close it:
 
 .. code:: python
 
-    del session
+    session.close()
 

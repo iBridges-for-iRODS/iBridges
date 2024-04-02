@@ -40,7 +40,8 @@ class Resources():
 
         Raises
         ------
-            irods.exception.ResourceDoesNotExist
+        irods.exception.ResourceDoesNotExist:
+            If the resource does not exist.
 
         """
         try:

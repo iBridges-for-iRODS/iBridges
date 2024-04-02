@@ -29,6 +29,11 @@ def get_dataobject(session: Session,
     path : str
         Name of an iRODS data object.
 
+    Raises
+    ------
+    ValueError:
+        If the path is pointing to a collection and not a data object.
+
     Returns
     -------
     iRODSDataObject
@@ -43,6 +48,36 @@ def get_dataobject(session: Session,
                          " Use get_collection instead to retrieve the collection.")
 
     raise irods.exception.DataObjectDoesNotExist(path)
+
+def get_collection(session: Session,
+                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
+    """Instantiate an iRODS collection.
+
+    Parameters
+    ----------
+    session :
+        Session to get the collection from.
+    path : str
+        Name of an iRODS collection.
+
+    Raises
+    ------
+    ValueError:
+        If the path points to a dataobject and not a collection.
+
+    Returns
+    -------
+    iRODSCollection
+        Instance of the collection with `path`.
+
+    """
+    path = IrodsPath(session, path)
+    if path.collection_exists():
+        return session.irods_session.collections.get(str(path))
+    if path.dataobject_exists():
+        raise ValueError("Error retrieving collection, path is linked to a data object."
+                         " Use get_dataobject instead to retrieve the data object.")
+    raise irods.exception.CollectionDoesNotExist(path)
 
 def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
     """Retrieve information about replicas (copies of the file on different resources).
@@ -74,31 +109,6 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
                  r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
 
     return replicas
-
-def get_collection(session: Session,
-                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
-    """Instantiate an iRODS collection.
-
-    Parameters
-    ----------
-    session :
-        Session to get the collection from.
-    path : str
-        Name of an iRODS collection.
-
-    Returns
-    -------
-    iRODSCollection
-        Instance of the collection with `path`.
-
-    """
-    path = IrodsPath(session, path)
-    if path.collection_exists():
-        return session.irods_session.collections.get(str(path))
-    if path.dataobject_exists():
-        raise ValueError("Error retrieving collection, path is linked to a data object."
-                         " Use get_dataobject instead to retrieve the data object.")
-    raise irods.exception.CollectionDoesNotExist(path)
 
 def is_dataobject(item) -> bool:
     """Determine if item is an iRODS data object."""
@@ -187,7 +197,8 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
-def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
+def _create_irods_dest(local_path: Path, irods_path: IrodsPath
+                       ) -> list[tuple[Path, IrodsPath]]:
     """Assembles the irods destination paths for upload of a folder."""
     upload_path = irods_path.joinpath(local_path.name)
     paths = [(str(Path(root).relative_to(local_path)), f)
@@ -235,7 +246,8 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
             warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
 
-def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path):
+def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
+                       ) -> list[tuple[IrodsPath, Path]]:
     """Assembles the local destination paths for download of a collection."""
     # get all data objects
     coll = get_collection(session, irods_path)
@@ -303,6 +315,13 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     options : dict
         More options for the upload
 
+    Raises
+    ------
+    ValueError:
+        If the local_path is not a valid filename of directory.
+    PermissionError:
+        If the iRods server does not allow the collection or data object to be created.
+
     """
     local_path = Path(local_path)
     try:
@@ -311,7 +330,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         else:
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
@@ -331,6 +350,14 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     options : dict
         More options for the download
 
+    Raises
+    ------
+    PermissionError:
+        If the iRods server (for whatever reason) forbids downloading the file or
+        (part of the) collection.
+    ValueError:
+        If the irods_path is not pointing to either a collection or a data object.
+
     """
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
@@ -340,7 +367,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         else:
             _obj_get(session, irods_path, local_path, overwrite, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
 
@@ -408,10 +435,15 @@ def create_collection(session: Session,
     coll_path: IrodsPath
         Collection path
 
+    Raises
+    ------
+    PermissionError:
+        If creating a collection is not allowed by the server.
+
     """
     try:
         return session.irods_session.collections.create(str(coll_path))
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
                 f"While creating collection at '{coll_path}': iRODS server forbids action."
               ) from exc
