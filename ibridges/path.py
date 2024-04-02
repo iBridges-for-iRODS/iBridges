@@ -150,3 +150,7 @@ class IrodsPath():
 
         """
         raise NotImplementedError("Walk method not implemented yet.")
+
+    def relative_to(self, other: IrodsPath) -> PurePosixPath:
+        """Calculate the relative path compared to our path."""
+        return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
