@@ -12,8 +12,8 @@ iBridges is library for scientific programmers who are working with data in iROD
 - Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher.
 - **Interactive connection** to your iRods server.
 - **Upload** and **Download** your data.
-- Manuipulate the **metadata** on the iRods server.
-- **Synchronize** your data between your local computer and the iRods server.
+- Manipulate the **metadata** on the iRODS server.
+- **Synchronize** your data between your local computer and the iRODS server.
 - Create and manipulate **Tickets** to temporarily grant access to outside users.
 - **Search** through all metadata for your dataset or collection.
 - Small number of dependencies (`python-irodsclient` and `tqdm`)
