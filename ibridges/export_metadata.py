@@ -2,7 +2,7 @@
 """Exporting metadata."""
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from irods.collection import iRODSCollection
 
@@ -75,7 +75,7 @@ def export_metadata_to_dict(meta: MetaData, session: Session,
         Dictionary containing the requested metadata items.
 
     """
-    metadata_dict = {"ibridges_metadata_version": 1.0}
+    metadata_dict: dict[str, Any] = {"ibridges_metadata_version": 1.0}
     metadata_dict.update(meta.to_dict(keys = keys))
     if is_dataobject(meta.item):
         return metadata_dict
