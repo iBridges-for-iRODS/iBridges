@@ -245,6 +245,9 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             _obj_put(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
             warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
+        except Exception as e:
+            warnings.warn(f'Upload failed: {source}')
+            raise e
 
 def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
                        ) -> list[tuple[IrodsPath, Path]]:
@@ -295,6 +298,9 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
             _obj_get(session, source, dest, overwrite, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
             warnings.warn(f'Download: File already exists\n\tSkipping {source}')
+        except Exception as e:
+            warnings.warn(f'Download failed: {source}')
+            raise e
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
