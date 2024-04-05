@@ -247,7 +247,7 @@ def _get_irods_tree(coll: iRODSCollection,
         x.name,
         x.path[len(root):].lstrip('/'),
         x.size,
-        x.checksum if len(x.checksum)>0 else x.chksum())
+        x.checksum if x.checksum is not None and len(x.checksum)>0 else x.chksum())
         for x in coll.data_objects]
 
     if max_level is None or level<max_level-1:
@@ -318,7 +318,8 @@ def _copy_local_to_irods(session: Session,
                     overwrite=True)
             obj=get_dataobject(session, target_path)
             if file.checksum != \
-                    (obj.checksum if len(obj.checksum)>0 else obj.chksum()):
+                    (obj.checksum if obj.checksum is not None and len(obj.checksum)>0
+                     else obj.chksum()):
                 raise ValueError(f"Checksum mismatch after upload: '{target_path}'")
 
             pbar.update(file.size)
