@@ -253,8 +253,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             if ignore_err is True:
                 warnings.warn(f'Upload failed: {source}\n'+repr(e))
             else:
-                print(f'Upload failed: {source}')
-                raise e
+                raise ValueError(f'Upload failed: {source}: '+repr(e)) from e
 
 def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
                        ) -> list[tuple[IrodsPath, Path]]:
@@ -290,7 +289,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         Overwrite existing local data
     ignore_err : bool
         If an error occurs during download, and ignore_err is set to True, any errors encountered
-        will be transformed into warnings and iBridges will continue to download the remaining files.
+        will be transformed into warnings and iBridges will continue to download the remaining
+        files.
         By default all errors will stop the process of uploading.
     options : dict
         More options for the download
@@ -314,8 +314,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
             if ignore_err is True:
                 warnings.warn(f'Download failed: {source}i\n'+repr(e))
             else:
-                print(f'Download failed: {source}')
-                raise e
+                raise ValueError(f'Download failed: {source}: '+repr(e)) from e
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, ignore_err: bool = False,
@@ -374,7 +373,8 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         Absolute path to the destination directory
     overwrite : bool
         If an error occurs during download, and ignore_err is set to True, any errors encountered
-        will be transformed into warnings and iBridges will continue to download the remaining files.
+        will be transformed into warnings and iBridges will continue to download the remaining
+        files.
         By default all errors will stop the process of downloading.
     ignore_err : bool
         Collections: If download of an item fails print error and continue with next item.
