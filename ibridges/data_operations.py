@@ -227,7 +227,9 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     overwrite : bool
         If data already exists on iRODS, overwrite
     ignore_err : bool
-        If an error occurs during upload, and ignore_err is set to True, any errors encountered will be transformed into warnings and iBridges will continue to upload the remaining files. By default all errors will stop the process of uploading.
+        If an error occurs during upload, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to upload the remaining files.
+        By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
@@ -287,7 +289,9 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     overwrite : bool
         Overwrite existing local data
     ignore_err : bool
-        Ignore failure on current item and continue to next one
+        If an error occurs during download, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to download the remaining files.
+        By default all errors will stop the process of uploading.
     options : dict
         More options for the download
 
@@ -329,7 +333,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     overwrite : bool
         If data object or collection already exists on iRODS, overwrite
     ignore_err : bool
-        Collections: If upload of an item fails print error and continue with next item.
+        If an error occurs during upload, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to upload the remaining files.
+        By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
@@ -367,7 +373,9 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     local_path : Path
         Absolute path to the destination directory
     overwrite : bool
-        Overwrite existing local data
+        If an error occurs during download, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to download the remaining files.
+        By default all errors will stop the process of downloading.
     ignore_err : bool
         Collections: If download of an item fails print error and continue with next item.
     options : dict
