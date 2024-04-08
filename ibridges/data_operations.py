@@ -251,6 +251,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             if ignore_err is True:
                 warnings.warn(f'Upload failed: {source}\n'+repr(e))
             else:
+                print(f'Upload failed: {source}')
                 raise e
 
 def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
@@ -309,6 +310,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
             if ignore_err is True:
                 warnings.warn(f'Download failed: {source}i\n'+repr(e))
             else:
+                print(f'Download failed: {source}')
                 raise e
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
