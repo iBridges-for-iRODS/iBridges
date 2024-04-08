@@ -315,7 +315,8 @@ def _copy_local_to_irods(session: Session,
             upload(session=session,
                     local_path=source_path,
                     irods_path=target_path,
-                    overwrite=True)
+                    overwrite=True,
+                    ignore_err=True)
             obj=get_dataobject(session, target_path)
             if file.checksum != \
                     (obj.checksum if obj.checksum is not None and len(obj.checksum)>0
@@ -347,7 +348,8 @@ def _copy_irods_to_local(session: Session,
             download(session=session,
                         irods_path=source_path,
                         local_path=target_path,
-                        overwrite=True)
+                        overwrite=True,
+                        ignore_err=True)
             if obj.checksum != _calc_checksum(target_path):
                 raise ValueError(f"Checksum mismatch after download: '{source_path}'")
 
