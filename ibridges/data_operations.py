@@ -227,7 +227,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     overwrite : bool
         If data already exists on iRODS, overwrite
     ignore_err : bool
-        ignore failure on current item and continue to next one     
+        If an error occurs during upload, and ignore_err is set to True, any errors encountered will be transformed into warnings and iBridges will continue to upload the remaining files. By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
