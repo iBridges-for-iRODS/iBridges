@@ -89,6 +89,7 @@ def sync_data(session: Session,
          target: Union[str, Path, IrodsPath],
          max_level: Optional[int] = None,
          dry_run: bool = False,
+         ignore_err: bool = False,
          copy_empty_folders: bool = False) -> dict:
     """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
@@ -116,6 +117,9 @@ def sync_data(session: Session,
     dry_run : bool, default False
         List all source files and folders that need to be synchronized without actually
         performing synchronization.
+    ignore_err : If an error occurs during the transfer, and ignore_err is set to True, 
+        any errors encountered will be transformed into warnings and iBridges will continue
+        to transfer the remaining files.
     copy_empty_folders : bool, default False
         Controls whether folders/collections that contain no files or  subfolders/subcollections
         will be synchronized.
@@ -175,7 +179,8 @@ def sync_data(session: Session,
             source=Path(source),
             target=target,
             files=files_diff,
-            dry_run=dry_run)
+            dry_run=dry_run,
+            ignore_err=ignore_err)
     else:
         _create_local_folders(
             target=Path(target),
@@ -187,7 +192,8 @@ def sync_data(session: Session,
             source=source,  # type: ignore
             target=Path(target),
             objects=files_diff,
-            dry_run=dry_run)
+            dry_run=dry_run,
+            ignore_err=ignore_err)
     return {'changed_folders': folders_diff, 'changed_files': files_diff}
 
 def _param_checks(source, target):
@@ -298,7 +304,8 @@ def _copy_local_to_irods(session: Session,
                          source: Path,
                          target: IrodsPath,
                          files: list[FileObject],
-                         dry_run: bool) -> None:
+                         dry_run: bool,
+                         ignore_err: bool) -> None:
     if dry_run:
         print(f"Will upload from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
@@ -316,7 +323,7 @@ def _copy_local_to_irods(session: Session,
                     local_path=source_path,
                     irods_path=target_path,
                     overwrite=True,
-                    ignore_err=True)
+                    ignore_err=ignore_err)
             obj=get_dataobject(session, target_path)
             if file.checksum != \
                     (obj.checksum if obj.checksum is not None and len(obj.checksum)>0
@@ -331,7 +338,8 @@ def _copy_irods_to_local(session: Session,
                          source: IrodsPath,
                          target: Path,
                          objects: list[FileObject],
-                         dry_run: bool) -> None:
+                         dry_run: bool,
+                         ignore_err: bool) -> None:
     if dry_run:
         print(f"Will download from '{source}' to '{target}':")
         print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
@@ -349,7 +357,7 @@ def _copy_irods_to_local(session: Session,
                         irods_path=source_path,
                         local_path=target_path,
                         overwrite=True,
-                        ignore_err=True)
+                        ignore_err=ignore_err)
             if obj.checksum != _calc_checksum(target_path):
                 raise ValueError(f"Checksum mismatch after download: '{source_path}'")
 
