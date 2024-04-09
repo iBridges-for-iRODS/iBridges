@@ -43,9 +43,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
          target=ipath,
          max_level=None,
          dry_run=False,
-         ignore_checksum=False,
-         copy_empty_folders=True,
-         verify_checksum=True)
+         copy_empty_folders=True)
 
     for cur_file in list(testdata.glob("*")):
         s_ipath = IrodsPath(session, "~", "empty", cur_file.name)
@@ -71,9 +69,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
         target=tmpdir,
         max_level=None,
         dry_run=False,
-        ignore_checksum=False,
-        copy_empty_folders=True,
-        verify_checksum=True)
+        copy_empty_folders=True)
 
     for cur_file in list(testdata.glob("*")):
         if cur_file.is_file():

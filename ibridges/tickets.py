@@ -1,4 +1,6 @@
 """Ticket operations."""
+from __future__ import annotations
+
 from collections import namedtuple
 from datetime import date, datetime
 from typing import Iterable, Optional, Union
@@ -6,7 +8,7 @@ from typing import Iterable, Optional, Union
 import irods.ticket
 from irods.models import TicketQuery
 
-import ibridges.keywords as kw
+import ibridges.icat_columns as icat
 from ibridges.session import Session
 
 TicketData = namedtuple('TicketData', ["name", "type", "path", "expiration_date"])
@@ -27,7 +29,7 @@ class Tickets():
         self._all_tickets = self.update_tickets()
 
     def create_ticket(self, obj_path: str,
-                      ticket_type: Optional[str] = 'read',
+                      ticket_type: str = 'read',
                       expiry_date: Optional[Union[str, datetime, date]] = None) -> tuple:
         """Create an iRODS ticket.
 
@@ -35,12 +37,19 @@ class Tickets():
 
         Parameters
         ----------
-        obj_path : str
+        obj_path:
             Collection or data object path to create a ticket for.
-        ticket_type: str
+        ticket_type, optional:
             read or write, default read
-        expiry_date : str
-            Optional expiration date in the form: strftime('%Y-%m-%d.%H:%M:%S')
+        expiry_date, optional:
+            Expiration date as a datetime, date or string in the form strftime('%Y-%m-%d.%H:%M:%S').
+
+        Raises
+        ------
+        TypeError:
+            If the expiry_date has the wrong type.
+        ValueError:
+            If the expiration date cannot be set for whatever reason.
 
         Returns
         -------
@@ -58,7 +67,7 @@ class Tickets():
             if isinstance(expiry_date, datetime):
                 expiry_date = expiry_date.strftime('%Y-%m-%d.%H:%M:%S')
             if not isinstance(expiry_date, str):
-                raise ValueError("Expecting datetime, date or string type for 'expiry_date' "
+                raise TypeError("Expecting datetime, date or string type for 'expiry_date' "
                                  f"argument, got {type(expiry_date)}")
             try:
                 expiration_set = ticket.modify('expire', expiry_date) == ticket
@@ -77,15 +86,48 @@ class Tickets():
         """Get the names of all tickets."""
         return [tick_data.name for tick_data in self._all_tickets]
 
-    def get_ticket(self, ticket_str: str) -> Optional[irods.ticket.Ticket]:
-        """Obtain a ticket using its string identifier."""
+    def get_ticket(self, ticket_str: str) -> irods.ticket.Ticket:
+        """Obtain a ticket using its string identifier.
+
+        Parameters
+        ----------
+        ticket_str:
+            Unique string identifier with which the ticket can be retrieved.
+
+        Raises
+        ------
+        KeyError:
+            If the ticket cannot be found.
+
+        Returns
+        -------
+            Ticket with the correct identifier.
+
+        """
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
         raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' "
                        "does not exist.")
 
-    def delete_ticket(self, ticket: irods.ticket.Ticket, check: bool = False):
-        """Delete irods ticket."""
+    def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket],
+                      check: bool = False):
+        """Delete irods ticket.
+
+        Parameters
+        ----------
+        ticket:
+            Ticket or ticket string identifier to be deleted.
+        check:
+            Whether to check whether the ticket actually exists.
+
+        Raises
+        ------
+        KeyError:
+            If check == True and the ticket does not exist.
+
+        """
+        if isinstance(ticket, str):
+            ticket = self.get_ticket(ticket)
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
             self.update_tickets()
@@ -121,8 +163,7 @@ class Tickets():
     def clear(self):
         """Delete all tickets."""
         for tick_data in self.update_tickets():
-            tick = self.get_ticket(tick_data.name)
-            self.delete_ticket(tick)
+            self.delete_ticket(tick_data.name)
         self.update_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
@@ -144,14 +185,14 @@ class Tickets():
             returns '' if the identifier does not exist any longer
 
         """
-        data_query = self.session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME)
-        data_query = data_query.filter(kw.DATA_ID == itemid)
+        data_query = self.session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
+        data_query = data_query.filter(icat.DATA_ID == itemid)
 
         if len(list(data_query)) > 0:
             res = next(data_query.get_results())
             return list(res.values())[0] + "/" + list(res.values())[1]
-        coll_query = self.session.irods_session.query(kw.COLL_NAME)
-        coll_query = coll_query.filter(kw.COLL_ID == itemid)
+        coll_query = self.session.irods_session.query(icat.COLL_NAME)
+        coll_query = coll_query.filter(icat.COLL_ID == itemid)
         if len(list(coll_query)) > 0:
             res = next(coll_query.get_results())
             return list(res.values())[0]

@@ -88,7 +88,14 @@ class IrodsPath():
         return IrodsPath(self.session, self._path.parent)
 
     def remove(self):
-        """Remove the data behind an iRODS path."""
+        """Remove the data behind an iRODS path.
+
+        Raises
+        ------
+        PermissionError:
+            If the user has insufficient permission to remove the data.
+
+        """
         try:
             if self.collection_exists():
                 coll = self.session.irods_session.collections.get(str(self))
@@ -97,7 +104,7 @@ class IrodsPath():
                 obj = self.session.irods_session.data_objects.get(str(self))
                 obj.unlink()
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+            raise PermissionError(
                 f"While removing {self}: iRODS server forbids action.") from exc
 
     @staticmethod
@@ -112,6 +119,11 @@ class IrodsPath():
         coll_path:
             Irods path to the collection to be created.
 
+        Raises
+        ------
+        PermissionError:
+            If the collection cannot be created due to insufficient permissions.
+
         Returns
         -------
         collection:
@@ -121,7 +133,7 @@ class IrodsPath():
         try:
             return session.irods_session.collections.create(str(coll_path))
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-            raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+            raise PermissionError(
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
     def rename(self):
@@ -150,3 +162,7 @@ class IrodsPath():
 
         """
         raise NotImplementedError("Walk method not implemented yet.")
+
+    def relative_to(self, other: IrodsPath) -> PurePosixPath:
+        """Calculate the relative path compared to our path."""
+        return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))

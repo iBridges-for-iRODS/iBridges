@@ -1,8 +1,9 @@
 import pytest
 from pytest import mark
+import irods
 
 from ibridges.meta import MetaData
-
+from ibridges.export_metadata import export_metadata_to_dict
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_meta(item_name, request):
@@ -61,3 +62,29 @@ def test_meta(item_name, request):
     assert "x" in meta
     assert ("y", "z") not in meta
     assert ("y", "x") in meta
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_export_metadata(item_name, request):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+    
+    # test against:
+    test_dict = {
+            'name': item.name,
+            'irods_id': item.id,
+            'metadata': [('x', 'z', 'm')]
+            }
+
+    if isinstance(item, irods.data_object.iRODSDataObject):
+        test_dict['checksum'] = item.checksum
+    
+    # Add some metadata
+    meta.add("x", "z", "m")
+    assert "x" in meta
+    result = meta.to_dict()
+
+    for key in result.keys():
+        assert key in test_dict
+    for value in result.values():
+        assert value in test_dict.values()

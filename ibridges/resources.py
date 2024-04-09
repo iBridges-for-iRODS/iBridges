@@ -1,10 +1,12 @@
 """resource operations."""
+from __future__ import annotations
+
 from typing import Optional
 
 import irods.exception
 import irods.resource
 
-from ibridges import keywords as kw
+from ibridges import icat_columns as icat
 from ibridges.session import Session
 
 
@@ -38,7 +40,8 @@ class Resources():
 
         Raises
         ------
-            irods.exception.ResourceDoesNotExist
+        irods.exception.ResourceDoesNotExist:
+            If the resource does not exist.
 
         """
         try:
@@ -123,7 +126,7 @@ class Resources():
         """
         if self._resources is None or update:
             query = self.session.irods_session.query(
-                kw.RESC_NAME, kw.RESC_PARENT, kw.RESC_STATUS, kw.RESC_CONTEXT)
+                icat.RESC_NAME, icat.RESC_PARENT, icat.RESC_STATUS, icat.RESC_CONTEXT)
             resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()

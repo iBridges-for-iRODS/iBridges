@@ -16,15 +16,7 @@ jobs:
   build:
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-        include:
-          - os: windows-latest
-            python-version: "3.11"
-          - os: macos-latest
-            python-version: "3.11"
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -39,15 +31,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[test]
 
-    - name: Check types with MyPy
+    - name: Lint with PyLint
       run: |
-        mypy ibridges
-
-    - name: Check if documentation builds.
-      run: |
-        cd docs; make html SPHINXOPTS="--keep-going"
-
-    - name: Test with pytest
-      run: |
-        pip install pytest
-        pytest tests
+        pylint ibridges

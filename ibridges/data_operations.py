@@ -1,4 +1,6 @@
 """Collections and data objects."""
+from __future__ import annotations
+
 import os
 import warnings
 from pathlib import Path
@@ -7,12 +9,14 @@ from typing import Optional, Union
 import irods.collection
 import irods.data_object
 import irods.exception
+import irods.keywords as kw
 from irods.models import DataObject
 
-from ibridges import keywords as kw
+import ibridges.icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 
+NUM_THREADS = 4
 
 def get_dataobject(session: Session,
                    path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
@@ -24,6 +28,11 @@ def get_dataobject(session: Session,
         Session with connection to the server to get the data object from.
     path : str
         Name of an iRODS data object.
+
+    Raises
+    ------
+    ValueError:
+        If the path is pointing to a collection and not a data object.
 
     Returns
     -------
@@ -39,6 +48,36 @@ def get_dataobject(session: Session,
                          " Use get_collection instead to retrieve the collection.")
 
     raise irods.exception.DataObjectDoesNotExist(path)
+
+def get_collection(session: Session,
+                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
+    """Instantiate an iRODS collection.
+
+    Parameters
+    ----------
+    session :
+        Session to get the collection from.
+    path : str
+        Name of an iRODS collection.
+
+    Raises
+    ------
+    ValueError:
+        If the path points to a dataobject and not a collection.
+
+    Returns
+    -------
+    iRODSCollection
+        Instance of the collection with `path`.
+
+    """
+    path = IrodsPath(session, path)
+    if path.collection_exists():
+        return session.irods_session.collections.get(str(path))
+    if path.dataobject_exists():
+        raise ValueError("Error retrieving collection, path is linked to a data object."
+                         " Use get_dataobject instead to retrieve the data object.")
+    raise irods.exception.CollectionDoesNotExist(path)
 
 def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
     """Retrieve information about replicas (copies of the file on different resources).
@@ -70,31 +109,6 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
                  r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
 
     return replicas
-
-def get_collection(session: Session,
-                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
-    """Instantiate an iRODS collection.
-
-    Parameters
-    ----------
-    session :
-        Session to get the collection from.
-    path : str
-        Name of an iRODS collection.
-
-    Returns
-    -------
-    iRODSCollection
-        Instance of the collection with `path`.
-
-    """
-    path = IrodsPath(session, path)
-    if path.collection_exists():
-        return session.irods_session.collections.get(str(path))
-    if path.dataobject_exists():
-        raise ValueError("Error retrieving collection, path is linked to a data object."
-                         " Use get_dataobject instead to retrieve the data object.")
-    raise irods.exception.CollectionDoesNotExist(path)
 
 def is_dataobject(item) -> bool:
     """Determine if item is an iRODS data object."""
@@ -139,7 +153,7 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         options = {}
     options.update({
         kw.ALL_KW: '',
-        kw.NUM_THREADS_KW: kw.NUM_THREADS,
+        kw.NUM_THREADS_KW: NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
     })
@@ -175,7 +189,7 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     if options is None:
         options = {}
     options.update({
-        kw.NUM_THREADS_KW: kw.NUM_THREADS,
+        kw.NUM_THREADS_KW: NUM_THREADS,
         kw.VERIFY_CHKSUM_KW: '',
         })
     if overwrite:
@@ -183,10 +197,11 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
-def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
+def _create_irods_dest(local_path: Path, irods_path: IrodsPath
+                       ) -> list[tuple[Path, IrodsPath]]:
     """Assembles the irods destination paths for upload of a folder."""
     upload_path = irods_path.joinpath(local_path.name)
-    paths = [(root.removeprefix(str(local_path)), f)
+    paths = [(str(Path(root).relative_to(local_path)), f)
              for root, _, files in os.walk(local_path) for f in files]
 
     source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
@@ -197,7 +212,7 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath):
 
 def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
-                       overwrite: bool = False, resc_name: str = '',
+                       overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
                        options: Optional[dict] = None):
     """Upload a local directory to iRODS.
 
@@ -211,6 +226,10 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         Absolute irods destination path
     overwrite : bool
         If data already exists on iRODS, overwrite
+    ignore_err : bool
+        If an error occurs during upload, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to upload the remaining files.
+        By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
@@ -229,26 +248,33 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         try:
             _obj_put(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
+            warnings.warn(f'Object already exists\tSkipping {source}')
+        except KeyError as e:
+            if ignore_err is True:
+                warnings.warn(f'Upload failed: {source}\n'+repr(e))
+            else:
+                raise ValueError(f'Upload failed: {source}: '+repr(e)) from e
 
-def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path):
+def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
+                       ) -> list[tuple[IrodsPath, Path]]:
     """Assembles the local destination paths for download of a collection."""
     # get all data objects
     coll = get_collection(session, irods_path)
     all_objs = _get_data_objects(session, coll)
 
     download_path = local_path.joinpath(irods_path.name.lstrip('/'))
-    source_to_dest = [(IrodsPath(session, subcoll_path, obj_name),
-                      Path(download_path,
-                           subcoll_path.removeprefix(str(irods_path)).lstrip('/'),
-                           obj_name))
-                      for subcoll_path, obj_name, _, _ in all_objs]
-
+    source_to_dest: list[tuple[IrodsPath, Path]] = []
+    for subcoll_path, obj_name, _, _ in all_objs:
+        cur_ipath = IrodsPath(session, subcoll_path, obj_name)
+        cur_lpath = (download_path / IrodsPath(session, subcoll_path).relative_to(irods_path)
+                                   / obj_name)
+        source_to_dest.append((cur_ipath, cur_lpath))
     return source_to_dest
 
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
-                         overwrite: bool = False, options: Optional[dict] = None):
+                         overwrite: bool = False, ignore_err: bool = False,
+                         options: Optional[dict] = None):
     """Download a collection to the local filesystem.
 
     Parameters
@@ -261,6 +287,11 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         Absolute path to the destination directory
     overwrite : bool
         Overwrite existing local data
+    ignore_err : bool
+        If an error occurs during download, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to download the remaining
+        files.
+        By default all errors will stop the process of uploading.
     options : dict
         More options for the download
 
@@ -278,10 +309,16 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         try:
             _obj_get(session, source, dest, overwrite, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            warnings.warn(f'Download: File already exists\n\tSkipping {source}')
+            warnings.warn(f'File already exists\tSkipping {source}')
+        except KeyError as e:
+            if ignore_err is True:
+                warnings.warn(f'Download failed: {source}i\n'+repr(e))
+            else:
+                raise ValueError(f'Download failed: {source}: '+repr(e)) from e
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
-           overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
+           overwrite: bool = False, ignore_err: bool = False,
+           resc_name: str = '', options: Optional[dict] = None):
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -294,24 +331,36 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         Absolute irods destination path
     overwrite : bool
         If data object or collection already exists on iRODS, overwrite
+    ignore_err : bool
+        If an error occurs during upload, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to upload the remaining files.
+        By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
     options : dict
         More options for the upload
 
+    Raises
+    ------
+    ValueError:
+        If the local_path is not a valid filename of directory.
+    PermissionError:
+        If the iRods server does not allow the collection or data object to be created.
+
     """
     local_path = Path(local_path)
     try:
         if local_path.is_dir():
-            _upload_collection(session, local_path, irods_path, overwrite, resc_name, options)
+            _upload_collection(session, local_path, irods_path, overwrite, ignore_err,
+                               resc_name, options)
         else:
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-             overwrite: bool = False, _resc_name: str = '', options: Optional[dict] = None):
+             overwrite: bool = False, ignore_err: bool = False, options: Optional[dict] = None):
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -323,20 +372,33 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     local_path : Path
         Absolute path to the destination directory
     overwrite : bool
-        Overwrite existing local data
+        If an error occurs during download, and ignore_err is set to True, any errors encountered
+        will be transformed into warnings and iBridges will continue to download the remaining
+        files.
+        By default all errors will stop the process of downloading.
+    ignore_err : bool
+        Collections: If download of an item fails print error and continue with next item.
     options : dict
         More options for the download
+
+    Raises
+    ------
+    PermissionError:
+        If the iRods server (for whatever reason) forbids downloading the file or
+        (part of the) collection.
+    ValueError:
+        If the irods_path is not pointing to either a collection or a data object.
 
     """
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
     try:
         if irods_path.collection_exists():
-            _download_collection(session, irods_path, local_path, overwrite, options)
+            _download_collection(session, irods_path, local_path, overwrite, ignore_err, options)
         else:
             _obj_get(session, irods_path, local_path, overwrite, options)
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
 
@@ -384,9 +446,9 @@ def _get_data_objects(session: Session,
             for obj in coll.data_objects]
 
     # all objects in subcollections
-    data_query = session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
                                                   DataObject.size, DataObject.checksum)
-    data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, coll.path+"/%"))
+    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
     for res in data_query.get_results():
         path, name, size, checksum = res.values()
         objs.append((path, name, size, checksum))
@@ -404,10 +466,15 @@ def create_collection(session: Session,
     coll_path: IrodsPath
         Collection path
 
+    Raises
+    ------
+    PermissionError:
+        If creating a collection is not allowed by the server.
+
     """
     try:
         return session.irods_session.collections.create(str(coll_path))
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise irods.exception.CUT_ACTION_PROCESSED_ERR(
+        raise PermissionError(
                 f"While creating collection at '{coll_path}': iRODS server forbids action."
               ) from exc

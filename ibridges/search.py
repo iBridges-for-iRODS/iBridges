@@ -1,7 +1,9 @@
 """Data query."""
+from __future__ import annotations
+
 from typing import Optional, Union
 
-from ibridges import keywords as kw
+from ibridges import icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 
@@ -26,6 +28,11 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     key_vals : dict
         Attribute name mapping to values.
 
+    Raises
+    ------
+    ValueError:
+        If no search criterium is supplied.
+
     Returns
     -------
     list: [dict]
@@ -42,22 +49,22 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
                         + " Please supply either a path, checksum or key_vals.")
 
     # create the query for collections; we only want to return the collection name
-    coll_query = session.irods_session.query(kw.COLL_NAME)
+    coll_query = session.irods_session.query(icat.COLL_NAME)
     # create the query for data objects; we need the collection name, the data name and its checksum
-    data_query = session.irods_session.query(kw.COLL_NAME, kw.DATA_NAME,
-                                             kw.DATA_CHECKSUM)
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
+                                             icat.DATA_CHECKSUM)
     if path:
-        coll_query = coll_query.filter(kw.LIKE(kw.COLL_NAME, str(path)))
-        data_query = data_query.filter(kw.LIKE(kw.COLL_NAME, str(path)))
+        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, str(path)))
+        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, str(path)))
     if key_vals:
         for key in key_vals:
-            data_query.filter(kw.LIKE(kw.META_DATA_ATTR_NAME, key))
-            coll_query.filter(kw.LIKE(kw.META_COLL_ATTR_NAME, key))
+            data_query.filter(icat.LIKE(icat.META_DATA_ATTR_NAME, key))
+            coll_query.filter(icat.LIKE(icat.META_COLL_ATTR_NAME, key))
             if key_vals[key]:
-                data_query.filter(kw.LIKE(kw.META_DATA_ATTR_VALUE, key_vals[key]))
-                coll_query.filter(kw.LIKE(kw.META_COLL_ATTR_VALUE, key_vals[key]))
+                data_query.filter(icat.LIKE(icat.META_DATA_ATTR_VALUE, key_vals[key]))
+                coll_query.filter(icat.LIKE(icat.META_COLL_ATTR_VALUE, key_vals[key]))
     if checksum:
-        data_query = data_query.filter(kw.LIKE(kw.DATA_CHECKSUM, checksum))
+        data_query = data_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
     # gather results
     results = list(data_query.get_results())
     if checksum is None:

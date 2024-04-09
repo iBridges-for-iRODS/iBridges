@@ -7,7 +7,7 @@ from ibridges.interactive import interactive_auth
 def test_session_from_cached_pw(config, irods_env):
     # test only for plain irods
     if config.get("create_session_from_cached_pw", True):
-        session = Session(irods_env_path=config["env_path"])
+        session = Session(config["env_path"])
         assert session.has_valid_irods_session()
         assert ".".join(str(x) for x in session.server_version) == config["server_version"]
         assert session.home == irods_env["irods_home"]
