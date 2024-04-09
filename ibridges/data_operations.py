@@ -248,7 +248,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         try:
             _obj_put(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            warnings.warn(f'Upload: Object already exists\n\tSkipping {source}')
+            warnings.warn(f'Object already exists\tSkipping {source}')
         except KeyError as e:
             if ignore_err is True:
                 warnings.warn(f'Upload failed: {source}\n'+repr(e))
@@ -309,7 +309,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         try:
             _obj_get(session, source, dest, overwrite, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
-            warnings.warn(f'Download: File already exists\n\tSkipping {source}')
+            warnings.warn(f'File already exists\tSkipping {source}')
         except KeyError as e:
             if ignore_err is True:
                 warnings.warn(f'Download failed: {source}i\n'+repr(e))
