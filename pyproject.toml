@@ -23,7 +23,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "python-irodsclient==1.1.6",
+    "python-irodsclient>=1.1.6",
     "tqdm",
 ]
 
