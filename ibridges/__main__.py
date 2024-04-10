@@ -11,7 +11,7 @@ from ibridges.session import Session
 from ibridges.sync import sync_data
 
 try:  # Python < 3.10 (backport)
-    from importlib_metadata import version
+    from importlib_metadata import version  # type: ignore
 except ImportError:
     from importlib.metadata import version  # type: ignore [assignment]
 
