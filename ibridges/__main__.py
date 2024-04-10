@@ -33,7 +33,7 @@ WARNING: For the best results it is recommended to use the Python API.
 
 Example usage:
 
-ibridges download "remote:~/test.txt"
+ibridges download "irods:~/test.txt"
 ibridges upload ~/test.txt
 ibridges init
 ibridges sync ~/collection "remote:~/collection"
