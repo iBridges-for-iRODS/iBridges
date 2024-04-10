@@ -36,7 +36,7 @@ Example usage:
 ibridges download "irods:~/test.txt"
 ibridges upload ~/test.txt
 ibridges init
-ibridges sync ~/collection "remote:~/collection"
+ibridges sync ~/collection "irods:~/collection"
 
 Program information:
     -v, --version - display CLI version and exit
