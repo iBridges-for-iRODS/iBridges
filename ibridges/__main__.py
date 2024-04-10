@@ -90,7 +90,7 @@ def ibridges_init():
 def _convert_path(remote_or_local: Union[str, Path]) -> Union[Path, str]:
     if isinstance(remote_or_local, Path):
         return remote_or_local
-    if remote_or_local.startswith("remote:"):
+    if remote_or_local.startswith("irods:"):
         return remote_or_local[7:]
     return Path(remote_or_local)
 
@@ -99,8 +99,8 @@ def _parse_local(local_path: Union[None, str, Path]) -> Path:
     if local_path is None:
         return Path.cwd()
     if isinstance(local_path, str):
-        if local_path.startswith("remote:"):
-            raise ValueError("Please provide a local path (not starting with 'remote:')")
+        if local_path.startswith("irods:"):
+            raise ValueError("Please provide a local path (not starting with 'irods:')")
         local_path = Path(local_path)
     return local_path
 
@@ -119,7 +119,7 @@ def ibridges_download():
     )
     parser.add_argument(
         "remote_path",
-        help="Path to remote iRods location starting with 'remote:'",
+        help="Path to remote iRods location starting with 'irods:'",
         type=str,
     )
     parser.add_argument(
