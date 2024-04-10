@@ -174,7 +174,7 @@ def ibridges_upload():
 
 
 def _parse_str(remote_or_local: str, session) -> Union[str, IrodsPath]:
-    if remote_or_local.startswith("remote:"):
+    if remote_or_local.startswith("irods:"):
         return IrodsPath(session, remote_or_local[7:])
     return remote_or_local
 
