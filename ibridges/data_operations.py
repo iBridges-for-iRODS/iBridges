@@ -353,11 +353,16 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         if local_path.is_dir():
             _upload_collection(session, local_path, irods_path, overwrite, ignore_err,
                                resc_name, options)
-        else:
+        elif local_path.is_file():
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
+        else:
+            raise FileNotFoundError(f"Cannot find local file '{local_path}', check the path.")
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
+        raise FileExistsError(f"Dataset or collection (in) {irods_path} already exists. "
+                              "Use overwrite=True to overwrite the existing file(s).")
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, ignore_err: bool = False, options: Optional[dict] = None):
@@ -395,12 +400,17 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     try:
         if irods_path.collection_exists():
             _download_collection(session, irods_path, local_path, overwrite, ignore_err, options)
-        else:
+        elif irods_path.dataobject_exists():
             _obj_get(session, irods_path, local_path, overwrite, options)
+        else:
+            raise ValueError(f"Data object or collection not found: '{irods_path}'")
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
+        raise FileExistsError(f"File or directory {local_path} already exists. "
+                              "Use overwrite=True to overwrite the existing file(s).")
 
 def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
                                irods.collection.iRODSCollection]) -> int:

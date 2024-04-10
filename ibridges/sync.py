@@ -100,7 +100,7 @@ def sync_data(session: Session,
     The command considers the file size and the checksum to determine whether a file should be
     synchronized.
 
-    
+
     Parameters
     ----------
     session : ibridges.Session
@@ -130,6 +130,7 @@ def sync_data(session: Session,
         A dict object containing two keys: 'changed_folders' and 'changed_files'.
         These contain lists of changed folders and files, respectively
         (or of to-be-changed folders and files, when in dry-run mode).
+
     """
     _param_checks(source, target)
 
