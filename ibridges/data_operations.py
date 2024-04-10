@@ -360,9 +360,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
-    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as exc:
         raise FileExistsError(f"Dataset or collection (in) {irods_path} already exists. "
-                              "Use overwrite=True to overwrite the existing file(s).")
+                              "Use overwrite=True to overwrite the existing file(s).") from exc
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, ignore_err: bool = False, options: Optional[dict] = None):
@@ -408,9 +408,9 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
-    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as exc:
         raise FileExistsError(f"File or directory {local_path} already exists. "
-                              "Use overwrite=True to overwrite the existing file(s).")
+                              "Use overwrite=True to overwrite the existing file(s).") from exc
 
 def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
                                irods.collection.iRODSCollection]) -> int:

@@ -11,9 +11,9 @@ from ibridges.session import Session
 from ibridges.sync import sync_data
 
 try:  # Python < 3.10 (backport)
-    from importlib_metadata import entry_points, version
+    from importlib_metadata import version
 except ImportError:
-    from importlib.metadata import entry_points, version  # type: ignore [assignment]
+    from importlib.metadata import version  # type: ignore [assignment]
 
 MAIN_HELP_MESSAGE = f"""
 iBridges CLI version {version("ibridges")}
@@ -100,7 +100,7 @@ def _parse_local(local_path: Union[None, str, Path]) -> Path:
         return Path.cwd()
     if isinstance(local_path, str):
         if local_path.startswith("remote:"):
-            ValueError("Please provide a local path (not starting with 'remote:')")
+            raise ValueError("Please provide a local path (not starting with 'remote:')")
         local_path = Path(local_path)
     return local_path
 
