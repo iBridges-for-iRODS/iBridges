@@ -107,7 +107,7 @@ def _parse_local(local_path: Union[None, str, Path]) -> Path:
 def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
     if remote_path is None:
         return IrodsPath(session, session.irods_home)
-    if not remote_path.startswith("remote:"):
+    if not remote_path.startswith("irods:"):
         raise ValueError("Please provide a remote path starting with 'remote:'")
     return IrodsPath(session, remote_path[7:])
 
