@@ -108,7 +108,7 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
     if remote_path is None:
         return IrodsPath(session, session.irods_home)
     if not remote_path.startswith("irods:"):
-        raise ValueError("Please provide a remote path starting with 'remote:'")
+        raise ValueError("Please provide a remote path starting with 'irods:'")
     return IrodsPath(session, remote_path[7:])
 
 def ibridges_download():
