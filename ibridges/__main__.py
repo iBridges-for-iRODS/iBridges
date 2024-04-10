@@ -155,7 +155,7 @@ def ibridges_upload():
     )
     parser.add_argument(
         "remote_path",
-        help="Path to remote iRods location starting with 'remote:'",
+        help="Path to remote iRods location starting with 'irods:'",
         type=str,
     )
     parser.add_argument(
