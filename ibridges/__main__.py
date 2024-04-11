@@ -91,7 +91,7 @@ def _convert_path(remote_or_local: Union[str, Path]) -> Union[Path, str]:
     if isinstance(remote_or_local, Path):
         return remote_or_local
     if remote_or_local.startswith("irods:"):
-        return remote_or_local[7:]
+        return remote_or_local[6:]
     return Path(remote_or_local)
 
 
@@ -109,7 +109,7 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, session.irods_home)
     if not remote_path.startswith("irods:"):
         raise ValueError("Please provide a remote path starting with 'irods:'")
-    return IrodsPath(session, remote_path[7:])
+    return IrodsPath(session, remote_path[6:])
 
 def ibridges_download():
     """Download a remote data object or collection."""
@@ -133,12 +133,20 @@ def ibridges_download():
         help="Overwrite the local file(s) if it exists.",
         action="store_true",
     )
+    parser.add_argument(
+        "--resource",
+        help="Name of the resource from which the data is to be downloaded.",
+        type=str,
+        default="",
+        required=False
+    )
     args, _ = parser.parse_known_args()
     with interactive_auth() as session:
         download(session,
                  _parse_remote(args.remote_path, session),
                  _parse_local(args.local_path),
                  overwrite=args.overwrite,
+                 resc_name=args.resources
         )
 
 
@@ -163,19 +171,27 @@ def ibridges_upload():
         help="Overwrite the remote file(s) if it exists.",
         action="store_true",
     )
+    parser.add_argument(
+        "--resource",
+        help="Name of the resource to which the data is to be uploaded.",
+        type=str,
+        default="",
+        required=False
+    )
     args, _ = parser.parse_known_args()
 
     with interactive_auth() as session:
         upload(session,
                _parse_local(args.local_path),
                _parse_remote(args.remote_path, session),
-               overwrite=args.overwrite
+               overwrite=args.overwrite,
+               resc_name=args.resource,
         )
 
 
 def _parse_str(remote_or_local: str, session) -> Union[str, IrodsPath]:
     if remote_or_local.startswith("irods:"):
-        return IrodsPath(session, remote_or_local[7:])
+        return IrodsPath(session, remote_or_local[6:])
     return remote_or_local
 
 def ibridges_sync():
