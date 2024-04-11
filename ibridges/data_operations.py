@@ -166,7 +166,8 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
 def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-             overwrite: bool = False, resc_name: Optional[str] = '', options: Optional[dict] = None):
+             overwrite: bool = False, resc_name: Optional[str] = '',
+             options: Optional[dict] = None):
     """Download `irods_path` to `local_path` following iRODS `options`.
 
     Parameters
