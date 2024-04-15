@@ -5,7 +5,6 @@ import socket
 from pathlib import Path
 from typing import Optional, Union
 
-
 import irods.session
 from irods.exception import (
     CAT_INVALID_AUTHENTICATION,
@@ -16,6 +15,7 @@ from irods.exception import (
 )
 from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
+from ibridges import icat_columns as icat
 
 class Session:
     """Irods session authentication."""
@@ -247,6 +247,31 @@ class Session:
             return self.irods_session.server_version
         except Exception as e:
             raise _translate_irods_error(e) from e
+
+
+    def get_user_info(self) -> tuple:
+        """Query for user type and groups.
+
+        Returns
+        -------
+        list
+            iRODS user type names
+        list
+            iRODS group names
+
+        """
+
+        query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
+            icat.USER_NAME, self.username))
+        user_type = [
+            list(result.values())[0] for result in query.get_results()
+        ][0]
+        query = self.irods_session.query(icat.USER_GROUP_NAME).filter(icat.LIKE(
+            icat.USER_NAME, self.username))
+        user_groups = [
+            list(result.values())[0] for result in query.get_results()
+        ]
+        return user_type, user_groups
 
 
 class LoginError(ValueError):
