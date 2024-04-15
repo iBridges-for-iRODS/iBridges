@@ -1,8 +1,10 @@
 """session operations."""
 import json
 import warnings
+import socket
 from pathlib import Path
 from typing import Optional, Union
+
 
 import irods.session
 from irods.exception import (
@@ -106,8 +108,36 @@ class Session:
         """
         return self.irods_session is not None and self.server_version != ()
 
+    def _network_check(self, hostname: str, port: int) -> bool:
+        """Check connectivity to an iRODS server.
+
+        Parameters
+        ----------
+        hostname : str
+            FQDN/IP of an iRODS server.
+
+        Returns
+        -------
+        bool
+            Connection to `hostname` possible.
+
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.settimeout(10.0)
+                sock.connect((hostname, port))
+                return True
+            except socket.error:
+                return False
+
+
     def connect(self) -> iRODSSession:
         """Establish an iRODS session."""
+        irods_host = self._irods_env.get('irods_host', '')
+        irods_port = int(self._irods_env.get('irods_port', ''))
+        network = self._network_check(irods_host, irods_port)
+        if network is False:
+            raise LoginError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
@@ -225,11 +255,11 @@ class LoginError(ValueError):
 
 
 def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return-statements
-    if isinstance(exc, NetworkException) and exc.msg.startswith(
-            'Client-Server negotiation failure'):
-        return LoginError("Host, port, irods_client_server_policy or "
-                          "irods_client_server_negotiation not set correctly in "
-                          "irods_environment.json")
+    if isinstance(exc, NetworkException):
+        if any((a.startswith('Client-Server negotiation failure') for a in exc.args)):
+            return LoginError("Host, port, irods_client_server_policy or "
+                              "irods_client_server_negotiation not set correctly in "
+                              "irods_environment.json")
     if isinstance(exc, CAT_INVALID_USER):
         return LoginError("User credentials are not accepted")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):

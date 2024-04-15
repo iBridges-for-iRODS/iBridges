@@ -6,7 +6,7 @@ from getpass import getpass
 from pathlib import Path
 from typing import Optional, Union
 
-from ibridges.session import Session
+from ibridges.session import Session, LoginError
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
@@ -43,6 +43,8 @@ def interactive_auth(password: Optional[str] = None,
         try:
             session = Session(irods_env_path)
             return session
+        except LoginError:
+            raise
         except IndexError:
             print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
         except ValueError:
