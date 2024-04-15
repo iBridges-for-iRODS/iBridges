@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Union
 
-from ibridges.data_operations import download, upload
+from ibridges.data_operations import download, upload, get_collection
 from ibridges.interactive import interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -22,9 +22,9 @@ Usage: ibridges [subcommand] [options]
 
 Available subcommands:
     download:
-        Download a data object or collection from the iRods server.
+        Download a data object or collection from the iRODS server.
     upload:
-        Upload a file or directory to the iRods server
+        Upload a file or directory to the iRODS server
         (which converts it to a data object/collection respectively).
     init:
         Generate json schema from distribution providers.
@@ -37,6 +37,7 @@ ibridges download "irods:~/test.txt"
 ibridges upload ~/test.txt
 ibridges init
 ibridges sync ~/collection "irods:~/collection"
+ibridges ls --remote_path=irods:~/collection
 
 Program information:
     -v, --version - display CLI version and exit
@@ -63,6 +64,8 @@ def main() -> None:
         ibridges_sync()
     elif subcommand == "init":
         ibridges_init()
+    elif subcommand == "ls":
+        ibridges_ls()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -72,11 +75,11 @@ def ibridges_init():
     """Create a cached password for future use."""
     parser = argparse.ArgumentParser(
         prog="ibridges init",
-        description="Cache your iRods password to be used later."
+        description="Cache your iRODS password to be used later."
     )
     parser.add_argument(
         "--irods_env_path", "-p",
-        help="The path to your iRods environment JSON file.",
+        help="The path to your iRODS environment JSON file.",
         type=Path,
         default=None,
         required=False,
@@ -85,6 +88,35 @@ def ibridges_init():
     with interactive_auth(args.irods_env_path) as session:
         assert isinstance(session, Session)
     print("ibridges init was succesful.")
+
+
+def list_coll(session: Session, remote_path: IrodsPath):
+    if remote_path.collection_exists():
+        print(str(remote_path)+':')
+        coll = get_collection(session, remote_path)
+        print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
+        print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
+    else:
+        print("Invalid iRODS path.")
+
+
+def ibridges_ls():
+    """List a collection on iRODS."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges ls",
+        description="List a collection on iRODS."
+    )
+    parser.add_argument(
+        "--remote_path",
+        help="Path to remote iRODS location starting with 'irods:'",
+        type=str,
+        default=None,
+        required=False
+    )
+
+    args, _ = parser.parse_known_args()
+    with interactive_auth() as session:
+        list_coll(session, _parse_remote(args.remote_path, session))
 
 
 def _convert_path(remote_or_local: Union[str, Path]) -> Union[Path, str]:
@@ -106,7 +138,7 @@ def _parse_local(local_path: Union[None, str, Path]) -> Path:
 
 def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
     if remote_path is None:
-        return IrodsPath(session, session.irods_home)
+        return IrodsPath(session, session.home)
     if not remote_path.startswith("irods:"):
         raise ValueError("Please provide a remote path starting with 'irods:'")
     return IrodsPath(session, remote_path[6:])
@@ -115,11 +147,11 @@ def ibridges_download():
     """Download a remote data object or collection."""
     parser = argparse.ArgumentParser(
         prog="ibridges download",
-        description="Download a data object or collection from an iRods server."
+        description="Download a data object or collection from an iRODS server."
     )
     parser.add_argument(
         "remote_path",
-        help="Path to remote iRods location starting with 'irods:'",
+        help="Path to remote iRODS location starting with 'irods:'",
         type=str,
     )
     parser.add_argument(
@@ -154,7 +186,7 @@ def ibridges_upload():
     """Upload a local file or directory to the irods server."""
     parser = argparse.ArgumentParser(
         prog="ibridges upload",
-        description="Upload a data object or collection from an iRods server."
+        description="Upload a data object or collection from an iRODS server."
     )
     parser.add_argument(
         "local_path",
@@ -163,7 +195,7 @@ def ibridges_upload():
     )
     parser.add_argument(
         "remote_path",
-        help="Path to remote iRods location starting with 'irods:'",
+        help="Path to remote iRODS location starting with 'irods:'",
         type=str,
     )
     parser.add_argument(
