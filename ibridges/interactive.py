@@ -1,6 +1,5 @@
 """Interactive authentication with iRODS server."""
 
-import json
 import os
 from getpass import getpass
 from pathlib import Path
@@ -41,35 +40,15 @@ def interactive_auth(password: Optional[str] = None,
 
     if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")) and \
             password is None:
-        try:
-            session = Session(irods_env_path)
-            return session
-        except LoginError as e:
-            print(f'INFO: {e.args}')
-            # environment.json is not setup correctly -> stop
-            if 'not set correctly in irods_environment.json' in e.args[0]:
-                raise(e)
-            # non-iRODS key found
-            if 'Unexpected value in irods_environment; ' in e.args:
-                raise(ValueError('Non-iRODS key or value found in environment.json')) from e
-        except IndexError:
-            print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
-        except ValueError:
-            print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
+        session = _from_pw_file(irods_env_path)
 
     if password is not None:
-        try:
-            session = Session(irods_env=irods_env_path, password=password)
-            session.write_pam_password()
-            return session
-        except LoginError as e:
-            print(f'INFO: {e.args}')
-            # environment.json is not setup correctly -> stop
-            if 'not set correctly in irods_environment.json' in e.args[0]:
-                raise(e)
-            if 'Unexpected value in irods_environment; ' in e.args:
-                raise(ValueError('Non-iRODS key or value found in environment.json')) from e
+        session = _from_password(irods_env_path, password)
 
+    if session is not None:
+        return session
+
+    # If provided passwords in file or on prompt were wrong
     n_tries = 0
     success = False
     while not success and n_tries < 3:
@@ -84,3 +63,35 @@ def interactive_auth(password: Optional[str] = None,
             print('INFO: The provided password is wrong.')
             n_tries+=1
     raise ValueError("Connection to iRODS could not be established.")
+
+def _from_pw_file(irods_env_path):
+    try:
+        session = Session(irods_env_path)
+        return session
+    except LoginError as e:
+        print(f'INFO: {e.args}')
+        # environment.json is not setup correctly -> stop
+        if 'not set correctly in irods_environment.json' in e.args[0]:
+            raise
+        # non-iRODS key found
+        if 'Unexpected value in irods_environment; ' in e.args:
+            raise(ValueError('Non-iRODS key or value found in environment.json')) from e
+    except IndexError:
+        print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
+    except ValueError:
+        print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
+    return None
+
+def _from_password(irods_env_path, password):
+    try:
+        session = Session(irods_env=irods_env_path, password=password)
+        session.write_pam_password()
+        return session
+    except LoginError as e:
+        print(f'INFO: {e.args}')
+        # environment.json is not setup correctly -> stop
+        if 'not set correctly in irods_environment.json' in e.args[0]:
+            raise
+        if 'Unexpected value in irods_environment; ' in e.args:
+            raise(ValueError('Non-iRODS key or value found in environment.json')) from e
+    return None
