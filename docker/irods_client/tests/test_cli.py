@@ -27,10 +27,11 @@ def _check_files_equal(*files):
     return True
 
 
-def test_upload_download_cli(session, config, testdata, tmpdir):
+def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
-    subprocess.run(["ibridges", "init"], check=False, input=config["password"].encode())
+    subprocess.run(["ibridges", "init", "--irods_env_path", irods_env_file],
+                   check=False, input=config["password"].encode())
     subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
                     "--overwrite"],
                    check=False)
