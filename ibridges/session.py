@@ -294,7 +294,8 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
         return LoginError("Cached password is wrong")
     if isinstance(exc, ValueError):
+        # PRC 2.0.0 does not make a difference between wrong password or expired pw
         if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
-            return LoginError("Cached password is expired")
+            return LoginError("Cached password is expired", "Wrong password provided")
         return LoginError("Unexpected value in irods_environment; ")
     return LoginError("Unknown problem creating irods session.")
