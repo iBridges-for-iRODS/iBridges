@@ -137,7 +137,7 @@ class Session:
         irods_port = int(self._irods_env.get('irods_port', ''))
         network = self._network_check(irods_host, irods_port)
         if network is False:
-            raise socket.error(f'No internet connection to {irods_host} and port {irods_port}')
+            raise NetworkException(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
@@ -294,5 +294,8 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
         return LoginError("Cached password is wrong")
     if isinstance(exc, ValueError):
+        print(repr(exc.args[0]))
+        if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
+            return LoginError("Cached password is expired")
         return LoginError("Unexpected value in irods_environment; ")
     return LoginError("Unknown problem creating irods session.")
