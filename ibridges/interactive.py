@@ -39,7 +39,8 @@ def interactive_auth(password: Optional[str] = None,
         print(f'File not found: {irods_env_path}')
         raise FileNotFoundError
 
-    if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")):
+    if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")) and \
+            password is None:
         try:
             session = Session(irods_env_path)
             return session
@@ -59,17 +60,17 @@ def interactive_auth(password: Optional[str] = None,
             return session
         except ValueError:
             print('INFO: The provided password is wrong.')
-    else:
-        n_tries = 0
-        success = False
-        while not success and n_tries < 3:
-            password = getpass("Your iRODS password: ")
-            try:
-                session = Session(irods_env=ienv, password=password)
-                session.write_pam_password()
-                success = True
-                return session
-            except ValueError:
-                print('INFO: The provided password is wrong.')
-                n_tries+=1
+    
+    n_tries = 0
+    success = False
+    while not success and n_tries < 3:
+        password = getpass("Your iRODS password: ")
+        try:
+            session = Session(irods_env=ienv, password=password)
+            session.write_pam_password()
+            success = True
+            return session
+        except ValueError:
+            print('INFO: The provided password is wrong.')
+            n_tries+=1
     raise ValueError("Connection to iRODS could not be established.")
