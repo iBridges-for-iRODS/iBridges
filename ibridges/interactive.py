@@ -60,7 +60,7 @@ def interactive_auth(password: Optional[str] = None,
             return session
         except ValueError:
             print('INFO: The provided password is wrong.')
-    
+
     n_tries = 0
     success = False
     while not success and n_tries < 3:
