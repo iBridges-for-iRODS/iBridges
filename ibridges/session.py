@@ -137,7 +137,7 @@ class Session:
         irods_port = int(self._irods_env.get('irods_port', ''))
         network = self._network_check(irods_host, irods_port)
         if network is False:
-            raise NetworkException(f'No internet connection to {irods_host} and port {irods_port}')
+            raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
