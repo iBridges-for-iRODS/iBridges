@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from typing import Union
 
-from ibridges.data_operations import download, upload, get_collection
+from ibridges.data_operations import download, get_collection, upload
 from ibridges.interactive import interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -95,7 +95,7 @@ def _list_coll(session: Session, remote_path: IrodsPath):
         print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
         print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
     else:
-        print("Invalid iRODS path.")
+        raise ValueError("Irods path '{remote_path}}' is not a collection.")
 
 
 def ibridges_ls():
@@ -105,11 +105,11 @@ def ibridges_ls():
         description="List a collection on iRODS."
     )
     parser.add_argument(
-        "--remote_path",
+        "remote_path",
         help="Path to remote iRODS location starting with 'irods:'",
         type=str,
         default=None,
-        required=False
+        nargs="?",
     )
 
     args, _ = parser.parse_known_args()

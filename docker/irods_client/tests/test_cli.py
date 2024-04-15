@@ -58,3 +58,9 @@ def test_upload_download_cli(session, config, testdata, tmpdir):
     subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir])
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
+
+
+def test_ls_cli(config):
+    subprocess.run(["ibridges", "init"], check=False, input=config["password"].encode())
+    subprocess.run(["ibridges", "ls"])
+    subprocess.run(["ibridges", "ls", "test"])
