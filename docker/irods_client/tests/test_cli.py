@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 
 from ibridges import IrodsPath
-from ibridges.data_operations import create_collection, get_dataobject, is_collection, is_dataobject
+from ibridges.data_operations import create_collection
 
 
 def _get_digest(obj_or_file):
@@ -34,7 +34,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir):
     subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
                     "--overwrite"],
                    check=False)
-    assert is_dataobject(get_dataobject(session, ipath))
+    assert ipath.dataobject_exists()
     subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"])
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
     (testdata/"plant2.rtf").unlink()
