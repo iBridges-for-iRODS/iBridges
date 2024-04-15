@@ -294,7 +294,6 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
         return LoginError("Cached password is wrong")
     if isinstance(exc, ValueError):
-        print(repr(exc.args[0]))
         if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
             return LoginError("Cached password is expired")
         return LoginError("Unexpected value in irods_environment; ")
