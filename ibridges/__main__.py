@@ -90,7 +90,7 @@ def ibridges_init():
     print("ibridges init was succesful.")
 
 
-def list_coll(session: Session, remote_path: IrodsPath):
+def _list_coll(session: Session, remote_path: IrodsPath):
     if remote_path.collection_exists():
         print(str(remote_path)+':')
         coll = get_collection(session, remote_path)
@@ -116,7 +116,7 @@ def ibridges_ls():
 
     args, _ = parser.parse_known_args()
     with interactive_auth() as session:
-        list_coll(session, _parse_remote(args.remote_path, session))
+        _list_coll(session, _parse_remote(args.remote_path, session))
 
 
 def _convert_path(remote_or_local: Union[str, Path]) -> Union[Path, str]:
