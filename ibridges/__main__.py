@@ -29,8 +29,6 @@ Available subcommands:
     init:
         Generate json schema from distribution providers.
 
-WARNING: For the best results it is recommended to use the Python API.
-
 Example usage:
 
 ibridges download "irods:~/test.txt"
@@ -178,8 +176,7 @@ def ibridges_download():
                  _parse_remote(args.remote_path, session),
                  _parse_local(args.local_path),
                  overwrite=args.overwrite,
-                 resc_name=args.resources
-        )
+                 resc_name=args.resource        )
 
 
 def ibridges_upload():
