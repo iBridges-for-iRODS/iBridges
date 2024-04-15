@@ -249,7 +249,7 @@ class Session:
             raise _translate_irods_error(e) from e
 
 
-    def get_user_info(self) -> tuple:
+    def get_user_info(self) -> tuple[list, list]:
         """Query for user type and groups.
 
         Returns
