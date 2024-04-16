@@ -1,5 +1,6 @@
 """Command line tools for the iBridges library."""
 import argparse
+import json
 import sys
 from pathlib import Path
 from typing import Union
@@ -42,6 +43,8 @@ Program information:
     -h, --help    - display this help file and exit
 """
 
+IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
+
 
 def main() -> None:
     """CLI pointing to different entrypoints."""
@@ -68,6 +71,34 @@ def main() -> None:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
 
+def _set_ienv_path(ienv_path: Union[None, str, Path]):
+    try:
+        with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
+            ibridges_conf = json.load(handle)
+    except FileNotFoundError:
+        if ienv_path is None:
+            return None
+        ibridges_conf = {}
+        IBRIDGES_CONFIG_FP.parent.mkdir(exist_ok=True)
+
+    if ienv_path is not None:
+        ibridges_conf["cli_last_env"] = str(ienv_path)
+    else:
+        ibridges_conf["cli_last_env"] = None
+
+    with open(IBRIDGES_CONFIG_FP, "w", encoding="utf-8") as handle:
+        json.dump(ibridges_conf, handle)
+    return ibridges_conf["cli_last_env"]
+
+
+def _get_ienv_path() -> Union[None, str]:
+    try:
+        with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
+            ibridges_conf = json.load(handle)
+            return ibridges_conf.get("cli_last_env")
+    except FileNotFoundError:
+        return None
+
 
 def ibridges_init():
     """Create a cached password for future use."""
@@ -83,7 +114,8 @@ def ibridges_init():
         required=False,
     )
     args, _ = parser.parse_known_args()
-    with interactive_auth(args.irods_env_path) as session:
+    ienv_path = _set_ienv_path(args.irods_env_path)
+    with interactive_auth(ienv_path) as session:
         assert isinstance(session, Session)
     print("ibridges init was succesful.")
 
@@ -113,7 +145,7 @@ def ibridges_ls():
     )
 
     args, _ = parser.parse_known_args()
-    with interactive_auth() as session:
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         _list_coll(session, _parse_remote(args.remote_path, session))
 
 
@@ -171,7 +203,7 @@ def ibridges_download():
         required=False
     )
     args, _ = parser.parse_known_args()
-    with interactive_auth() as session:
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         download(session,
                  _parse_remote(args.remote_path, session),
                  _parse_local(args.local_path),
@@ -209,7 +241,7 @@ def ibridges_upload():
     )
     args, _ = parser.parse_known_args()
 
-    with interactive_auth() as session:
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         upload(session,
                _parse_local(args.local_path),
                _parse_remote(args.remote_path, session),
@@ -247,7 +279,7 @@ def ibridges_sync():
     args, _ = parser.parse_known_args()
 
 
-    with interactive_auth() as session:
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         sync_data(session,
                   _parse_str(args.source, session),
                   _parse_str(args.destination, session),
