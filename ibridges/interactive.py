@@ -38,6 +38,7 @@ def interactive_auth(password: Optional[str] = None,
         print(f'File not found: {irods_env_path}')
         raise FileNotFoundError
 
+    session = None
     if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")) and \
             password is None:
         session = _from_pw_file(irods_env_path)
