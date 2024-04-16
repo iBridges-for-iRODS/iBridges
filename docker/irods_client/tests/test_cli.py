@@ -31,10 +31,10 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     subprocess.run(["ibridges", "init", irods_env_file],
-                   check=False, input=config["password"].encode())
+                   check=True, input=config["password"].encode())
     subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
                     "--overwrite"],
-                   check=False)
+                   check=True)
     assert ipath.dataobject_exists()
     subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"])
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
@@ -43,12 +43,12 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     create_collection(session, ipath)
-    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"])
+    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], check=True)
     for fname in testdata.glob("*"):
         assert ((ipath / "testdata" / fname.name).dataobject_exists()
                 or (ipath / "testdata" / fname.name).collection_exists())
 
-    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir])
+    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir], check=True)
 
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/"testdata"/fname.name)
@@ -56,12 +56,12 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
 
     print(list(testdata.glob("*")))
     print(list(Path(tmpdir).glob("*")))
-    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir])
+    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], check=True)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
 
 
 def test_ls_cli(config):
-    subprocess.run(["ibridges", "init"], check=False, input=config["password"].encode())
-    subprocess.run(["ibridges", "ls"])
-    subprocess.run(["ibridges", "ls", "test"])
+    subprocess.run(["ibridges", "init"], check=True, input=config["password"].encode())
+    subprocess.run(["ibridges", "ls"], check=True)
+    subprocess.run(["ibridges", "ls", "test"], check=True)
