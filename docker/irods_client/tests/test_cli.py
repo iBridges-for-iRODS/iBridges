@@ -2,6 +2,8 @@ import hashlib
 import subprocess
 from pathlib import Path
 
+import pytest
+
 from ibridges import IrodsPath
 from ibridges.data_operations import create_collection
 
