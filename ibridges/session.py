@@ -276,8 +276,11 @@ class Session:
         return user_type, user_groups
 
 
-class LoginError(ValueError):
-    """Error indicating a failure to log into the iRods server."""
+class LoginError(AttributeError):
+    """Error indicating a failure to log into the iRODS server due to the configuration."""
+
+class PasswordError(ValueError):
+    """Error indicating failure to log into the iRODS server due to wrong or outdated password"""
 
 
 
@@ -290,14 +293,14 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, CAT_INVALID_USER):
         return LoginError("User credentials are not accepted")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
-        return LoginError("Wrong password")
+        return PasswordError("Wrong password")
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
-        return LoginError("Cached password is expired")
+        return PasswordError("Cached password is expired")
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
-        return LoginError("Cached password is wrong")
+        return PasswordError("Cached password is wrong")
     if isinstance(exc, ValueError):
         # PRC 2.0.0 does not make a difference between wrong password or expired pw
         if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
-            return LoginError("Cached password is expired", "Wrong password provided")
+            return PasswordError("Cached password is expired", "Wrong password provided")
         return LoginError("Unexpected value in irods_environment; ")
     return LoginError("Unknown problem creating irods session.")
