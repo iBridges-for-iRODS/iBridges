@@ -82,7 +82,7 @@ def _set_ienv_path(ienv_path: Union[None, str, Path]):
         IBRIDGES_CONFIG_FP.parent.mkdir(exist_ok=True)
 
     if ienv_path is not None:
-        ibridges_conf["cli_last_env"] = str(ienv_path)
+        ibridges_conf["cli_last_env"] = str(Path(ienv_path).absolute())
     else:
         ibridges_conf["cli_last_env"] = None
 
@@ -107,14 +107,15 @@ def ibridges_init():
         description="Cache your iRODS password to be used later."
     )
     parser.add_argument(
-        "--irods_env_path", "-p",
+        "irods_env_path",
         help="The path to your iRODS environment JSON file.",
         type=Path,
         default=None,
-        required=False,
+        nargs="?",
     )
     args, _ = parser.parse_known_args()
     ienv_path = _set_ienv_path(args.irods_env_path)
+    print(ienv_path, args.irods_env_path)
     with interactive_auth(irods_env_path=ienv_path) as session:
         assert isinstance(session, Session)
     print("ibridges init was succesful.")
