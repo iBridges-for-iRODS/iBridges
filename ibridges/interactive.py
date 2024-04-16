@@ -79,6 +79,6 @@ def _from_password(irods_env_path, password):
         session = Session(irods_env=irods_env_path, password=password)
         session.write_pam_password()
         return session
-    except PasswordError as e:
+    except PasswordError:
         print('INFO: Wrong password.')
     return None
