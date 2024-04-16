@@ -1,12 +1,11 @@
 """Interactive authentication with iRODS server."""
 
-import json
 import os
 from getpass import getpass
 from pathlib import Path
 from typing import Optional, Union
 
-from ibridges.session import Session
+from ibridges.session import Session, LoginError, PasswordError
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
@@ -39,35 +38,47 @@ def interactive_auth(password: Optional[str] = None,
         print(f'File not found: {irods_env_path}')
         raise FileNotFoundError
 
-    if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")):
-        try:
-            session = Session(irods_env_path)
-            return session
-        except IndexError:
-            print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
-        except ValueError:
-            print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
+    if os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA")) and \
+            password is None:
+        session = _from_pw_file(irods_env_path)
 
-    with open(irods_env_path, "r", encoding="utf-8") as f:
-        ienv = json.load(f)
     if password is not None:
+        session = _from_password(irods_env_path, password)
+
+    if session is not None:
+        return session
+
+    # If provided passwords in file or on prompt were wrong
+    n_tries = 0
+    success = False
+    while not success and n_tries < 3:
+        password = getpass("Your iRODS password: ")
         try:
-            session = Session(ienv, password=password)
+            session = Session(irods_env=irods_env_path, password=password)
             session.write_pam_password()
+            success = True
             return session
-        except ValueError:
+        except PasswordError as e:
+            print(repr(e))
             print('INFO: The provided password is wrong.')
-    else:
-        n_tries = 0
-        success = False
-        while not success and n_tries < 3:
-            password = getpass("Your iRODS password: ")
-            try:
-                session = Session(irods_env=ienv, password=password)
-                session.write_pam_password()
-                success = True
-                return session
-            except ValueError:
-                print('INFO: The provided password is wrong.')
-                n_tries+=1
-    raise ValueError("Connection to iRODS could not be established.")
+            n_tries+=1
+    raise LoginError("Connection to iRODS could not be established.")
+
+def _from_pw_file(irods_env_path):
+    try:
+        session = Session(irods_env_path)
+        return session
+    except IndexError:
+        print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
+    except PasswordError:
+        print('INFO: The cached password in ~/.irods/.irodsA is wrong.')
+    return None
+
+def _from_password(irods_env_path, password):
+    try:
+        session = Session(irods_env=irods_env_path, password=password)
+        session.write_pam_password()
+        return session
+    except PasswordError:
+        print('INFO: Wrong password.')
+    return None

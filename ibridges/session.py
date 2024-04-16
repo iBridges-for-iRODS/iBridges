@@ -1,6 +1,9 @@
 """session operations."""
+from __future__ import annotations
+
 import json
 import warnings
+import socket
 from pathlib import Path
 from typing import Optional, Union
 
@@ -14,6 +17,7 @@ from irods.exception import (
 )
 from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
+from ibridges import icat_columns as icat
 
 class Session:
     """Irods session authentication."""
@@ -106,8 +110,36 @@ class Session:
         """
         return self.irods_session is not None and self.server_version != ()
 
+    def _network_check(self, hostname: str, port: int) -> bool:
+        """Check connectivity to an iRODS server.
+
+        Parameters
+        ----------
+        hostname : str
+            FQDN/IP of an iRODS server.
+
+        Returns
+        -------
+        bool
+            Connection to `hostname` possible.
+
+        """
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            try:
+                sock.settimeout(10.0)
+                sock.connect((hostname, port))
+                return True
+            except socket.error:
+                return False
+
+
     def connect(self) -> iRODSSession:
         """Establish an iRODS session."""
+        irods_host = self._irods_env.get('irods_host', '')
+        irods_port = int(self._irods_env.get('irods_port', ''))
+        network = self._network_check(irods_host, irods_port)
+        if network is False:
+            raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
         if user == 'anonymous':
             # TODOx: implement and test for SSL enabled iRODS
@@ -219,25 +251,56 @@ class Session:
             raise _translate_irods_error(e) from e
 
 
-class LoginError(ValueError):
-    """Error indicating a failure to log into the iRods server."""
+    def get_user_info(self) -> tuple[list, list]:
+        """Query for user type and groups.
+
+        Returns
+        -------
+        list
+            iRODS user type names
+        list
+            iRODS group names
+
+        """
+
+        query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
+            icat.USER_NAME, self.username))
+        user_type = [
+            list(result.values())[0] for result in query.get_results()
+        ][0]
+        query = self.irods_session.query(icat.USER_GROUP_NAME).filter(icat.LIKE(
+            icat.USER_NAME, self.username))
+        user_groups = [
+            list(result.values())[0] for result in query.get_results()
+        ]
+        return user_type, user_groups
+
+
+class LoginError(AttributeError):
+    """Error indicating a failure to log into the iRODS server due to the configuration."""
+
+class PasswordError(ValueError):
+    """Error indicating failure to log into the iRODS server due to wrong or outdated password"""
 
 
 
 def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return-statements
-    if isinstance(exc, NetworkException) and exc.msg.startswith(
-            'Client-Server negotiation failure'):
-        return LoginError("Host, port, irods_client_server_policy or "
-                          "irods_client_server_negotiation not set correctly in "
-                          "irods_environment.json")
+    if isinstance(exc, NetworkException):
+        if any((a.startswith('Client-Server negotiation failure') for a in exc.args)):
+            return LoginError("Host, port, irods_client_server_policy or "
+                              "irods_client_server_negotiation not set correctly in "
+                              "irods_environment.json")
     if isinstance(exc, CAT_INVALID_USER):
         return LoginError("User credentials are not accepted")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
-        return LoginError("Wrong password")
+        return PasswordError("Wrong password")
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
-        return LoginError("Cached password is expired")
+        return PasswordError("Cached password is expired")
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
-        return LoginError("Cached password is wrong")
+        return PasswordError("Cached password is wrong")
     if isinstance(exc, ValueError):
+        # PRC 2.0.0 does not make a difference between wrong password or expired pw
+        if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
+            return PasswordError("Cached password is expired", "Wrong password provided")
         return LoginError("Unexpected value in irods_environment; ")
     return LoginError("Unknown problem creating irods session.")
