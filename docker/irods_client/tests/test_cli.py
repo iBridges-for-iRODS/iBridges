@@ -38,7 +38,7 @@ def _check_files_equal(*files):
     return True
 
 
-def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
+def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, pass_opts):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     subprocess.run(["ibridges", "init", irods_env_file],
@@ -72,7 +72,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
 
 
-def test_ls_cli(config):
+def test_ls_cli(config, pass_opts):
     subprocess.run(["ibridges", "init"], check=True, **pass_opts)
     subprocess.run(["ibridges", "ls"], check=True, **pass_opts)
     subprocess.run(["ibridges", "ls", "irods:test"], check=True, **pass_opts)
