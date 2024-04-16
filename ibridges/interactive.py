@@ -10,7 +10,7 @@ from ibridges.session import Session, LoginError, PasswordError
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 
 def interactive_auth(password: Optional[str] = None,
-                     irods_env_path: Union[str, Path] = DEFAULT_IENV_PATH) -> Session:
+                     irods_env_path: Union[None, str, Path] = None) -> Session:
     """Interactive authentication with iRODS server.
 
     Stores the password in ~/.irods/.irodsA upon success.
@@ -34,6 +34,8 @@ def interactive_auth(password: Optional[str] = None,
         A connected session to the server.
 
     """
+    if irods_env_path is None:
+        irods_env_path = DEFAULT_IENV_PATH
     if not os.path.exists(irods_env_path):
         print(f'File not found: {irods_env_path}')
         raise FileNotFoundError
