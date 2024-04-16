@@ -1,6 +1,7 @@
 password = "rods"
 server_version = "4.3.1"
 can_write_pam_pass = false
+has_pam_pass = true
 resources = ["bundleResc", "demoResc"]
 free_resources = [false, false]
 env_path = "/root/.irods/irods_environment.json"

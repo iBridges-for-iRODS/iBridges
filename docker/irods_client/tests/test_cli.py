@@ -6,6 +6,15 @@ from ibridges import IrodsPath
 from ibridges.data_operations import create_collection
 
 
+@pytest.fixture(scope="module")
+def pass_opts(config):
+    if (config.get("can_write_pam_pass", True)
+            or config.get("has_pam_pass", False)):
+        pass_opts = {}
+    else:
+        pass_opts = {"input": config["password"].encode()}
+    return pass_opts
+
 def _get_digest(obj_or_file):
     with open(obj_or_file, "rb") as handle:
         digest = hashlib.sha1(handle.read()).digest()
@@ -31,24 +40,24 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     subprocess.run(["ibridges", "init", irods_env_file],
-                   check=True, input=config["password"].encode())
+                   check=True, **pass_opts)
     subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
                     "--overwrite"],
-                   check=True)
+                   check=True, **pass_opts)
     assert ipath.dataobject_exists()
-    subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"])
+    subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"], **pass_opts)
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
     (testdata/"plant2.rtf").unlink()
 
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     create_collection(session, ipath)
-    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], check=True)
+    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], check=True, **pass_opts)
     for fname in testdata.glob("*"):
         assert ((ipath / "testdata" / fname.name).dataobject_exists()
                 or (ipath / "testdata" / fname.name).collection_exists())
 
-    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir], check=True)
+    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir], check=True, **pass_opts)
 
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/"testdata"/fname.name)
@@ -56,12 +65,12 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
 
     print(list(testdata.glob("*")))
     print(list(Path(tmpdir).glob("*")))
-    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], check=True)
+    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], check=True, **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
 
 
 def test_ls_cli(config):
-    subprocess.run(["ibridges", "init"], check=True, input=config["password"].encode())
-    subprocess.run(["ibridges", "ls"], check=True)
-    subprocess.run(["ibridges", "ls", "irods:test"], check=True)
+    subprocess.run(["ibridges", "init"], check=True, **pass_opts)
+    subprocess.run(["ibridges", "ls"], check=True, **pass_opts)
+    subprocess.run(["ibridges", "ls", "irods:test"], check=True, **pass_opts)
