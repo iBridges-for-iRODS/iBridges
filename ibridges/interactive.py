@@ -75,7 +75,7 @@ def _from_pw_file(irods_env_path):
             raise
         # non-iRODS key found
         if 'Unexpected value in irods_environment; ' in e.args:
-            raise(ValueError('Non-iRODS key or value found in environment.json')) from e
+            raise ValueError('Non-iRODS key or value found in environment.json') from e
     except IndexError:
         print('INFO: The cached password in ~/.irods/.irodsA has been corrupted')
     except ValueError:
