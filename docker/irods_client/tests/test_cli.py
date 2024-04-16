@@ -65,8 +65,6 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
         assert _check_files_equal(testdata/fname.name, tmpdir/"testdata"/fname.name)
     Path(tmpdir/"testdata").unlink
 
-    print(list(testdata.glob("*")))
-    print(list(Path(tmpdir).glob("*")))
     subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], check=True, **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
