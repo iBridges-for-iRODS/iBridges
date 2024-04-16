@@ -64,4 +64,4 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file):
 def test_ls_cli(config):
     subprocess.run(["ibridges", "init"], check=True, input=config["password"].encode())
     subprocess.run(["ibridges", "ls"], check=True)
-    subprocess.run(["ibridges", "ls", "test"], check=True)
+    subprocess.run(["ibridges", "ls", "irods:test"], check=True)
