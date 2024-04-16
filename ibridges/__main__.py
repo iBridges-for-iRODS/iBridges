@@ -115,7 +115,7 @@ def ibridges_init():
     )
     args, _ = parser.parse_known_args()
     ienv_path = _set_ienv_path(args.irods_env_path)
-    with interactive_auth(ienv_path) as session:
+    with interactive_auth(irods_env_path=ienv_path) as session:
         assert isinstance(session, Session)
     print("ibridges init was succesful.")
 
