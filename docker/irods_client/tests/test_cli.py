@@ -24,7 +24,7 @@ def pass_opts(config):
 
 def _get_digest(obj_or_file):
     with open(obj_or_file, "rb") as handle:
-        digest = hashlib.sha2(handle.read()).digest()
+        digest = hashlib.sha256(handle.read()).digest()
     return digest
 
 
