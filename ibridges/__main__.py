@@ -22,21 +22,27 @@ iBridges CLI version {version("ibridges")}
 Usage: ibridges [subcommand] [options]
 
 Available subcommands:
+    init:
+        Attempt to cache the password and choose the irods_environment.json.
     download:
         Download a data object or collection from the iRODS server.
     upload:
         Upload a file or directory to the iRODS server
         (which converts it to a data object/collection respectively).
-    init:
-        Generate json schema from distribution providers.
+    sync:
+        Synchronize files/folders and data objects/collections with each other.
+        Only updated files will be downloaded/uploaded.
+
+The iBridges CLI does not implement the complete iBridges API. For example, there
+are no commands to modify metadata on the irods server.
 
 Example usage:
 
 ibridges download "irods:~/test.txt"
-ibridges upload ~/test.txt
+ibridges upload ~/test.txt "irods:/test"
 ibridges init
 ibridges sync ~/collection "irods:~/collection"
-ibridges ls --remote_path=irods:~/collection
+ibridges list irods:~/collection
 
 Program information:
     -v, --version - display CLI version and exit
@@ -65,8 +71,8 @@ def main() -> None:
         ibridges_sync()
     elif subcommand == "init":
         ibridges_init()
-    elif subcommand == "ls":
-        ibridges_ls()
+    elif subcommand == "list":
+        ibridges_list()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -131,10 +137,10 @@ def _list_coll(session: Session, remote_path: IrodsPath):
         raise ValueError("Irods path '{remote_path}}' is not a collection.")
 
 
-def ibridges_ls():
+def ibridges_list():
     """List a collection on iRODS."""
     parser = argparse.ArgumentParser(
-        prog="ibridges ls",
+        prog="ibridges list",
         description="List a collection on iRODS."
     )
     parser.add_argument(
@@ -264,12 +270,12 @@ def ibridges_sync():
     )
     parser.add_argument(
         "source",
-        help="Source path to synchronize from.",
+        help="Source path to synchronize from (collection on irods server or local directory).",
         type=str,
     )
     parser.add_argument(
         "destination",
-        help="Destination path to synchronize to.",
+        help="Destination path to synchronize to (collection on irods server or local directory).",
         type=str,
     )
     parser.add_argument(
