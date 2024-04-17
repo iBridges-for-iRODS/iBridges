@@ -1,8 +1,9 @@
 password = "rods"
 server_version = "4.3.1"
 can_write_pam_pass = false
-resources = ["bundleResc", "demoResc"]
-free_resources = [false, false]
+has_cached_pw = true
+resources = ["bundleResc", "demoResc", "resc2"]
+free_resources = [false, false, false]
 env_path = "/root/.irods/irods_environment.json"
 test_user = "testuser"
 test_user_pw = "testuser"

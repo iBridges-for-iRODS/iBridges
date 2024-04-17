@@ -166,7 +166,8 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
 def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-             overwrite: bool = False, options: Optional[dict] = None):
+             overwrite: bool = False, resc_name: Optional[str] = '',
+             options: Optional[dict] = None):
     """Download `irods_path` to `local_path` following iRODS `options`.
 
     Parameters
@@ -179,6 +180,8 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         Path of local file or directory/folder.
     overwrite :
         Whether to overwrite the local file if it exists.
+    resc_name:
+        Name of the resource to get the object from.
     options : dict
         iRODS transfer options.
 
@@ -194,7 +197,8 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         })
     if overwrite:
         options[kw.FORCE_FLAG_KW] = ''
-
+    if resc_name not in ['', None]:
+        options[kw.RESC_NAME_KW] = resc_name
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
@@ -273,7 +277,7 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
 
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
-                         overwrite: bool = False, ignore_err: bool = False,
+                         overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
                          options: Optional[dict] = None):
     """Download a collection to the local filesystem.
 
@@ -292,6 +296,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         will be transformed into warnings and iBridges will continue to download the remaining
         files.
         By default all errors will stop the process of uploading.
+    resc_name : str
+        Name of the resource from which data is downloaded, by default the server will decide
     options : dict
         More options for the download
 
@@ -307,7 +313,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         if not dest.parent.is_dir():
             os.makedirs(dest.parent)
         try:
-            _obj_get(session, source, dest, overwrite, options)
+            _obj_get(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
             warnings.warn(f'File already exists\tSkipping {source}')
         except KeyError as e:
@@ -353,14 +359,20 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         if local_path.is_dir():
             _upload_collection(session, local_path, irods_path, overwrite, ignore_err,
                                resc_name, options)
-        else:
+        elif local_path.is_file():
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
+        else:
+            raise FileNotFoundError(f"Cannot find local file '{local_path}', check the path.")
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise PermissionError(
             f"During upload operation to '{irods_path}': iRODS server forbids action.") from exc
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as exc:
+        raise FileExistsError(f"Dataset or collection (in) {irods_path} already exists. "
+                              "Use overwrite=True to overwrite the existing file(s).") from exc
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
-             overwrite: bool = False, ignore_err: bool = False, options: Optional[dict] = None):
+             overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
+             options: Optional[dict] = None):
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -378,6 +390,8 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         By default all errors will stop the process of downloading.
     ignore_err : bool
         Collections: If download of an item fails print error and continue with next item.
+    resc_name : str
+        Name of the resource from which data is downloaded, by default the server will decide.
     options : dict
         More options for the download
 
@@ -394,13 +408,19 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     local_path = Path(local_path)
     try:
         if irods_path.collection_exists():
-            _download_collection(session, irods_path, local_path, overwrite, ignore_err, options)
+            _download_collection(session, irods_path, local_path, overwrite, ignore_err, resc_name,
+                                 options)
+        elif irods_path.dataobject_exists():
+            _obj_get(session, irods_path, local_path, overwrite, resc_name, options)
         else:
-            _obj_get(session, irods_path, local_path, overwrite, options)
+            raise ValueError(f"Data object or collection not found: '{irods_path}'")
     except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
         raise PermissionError(
             f"During download operation from '{irods_path}': iRODS server forbids action."
             ) from exc
+    except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as exc:
+        raise FileExistsError(f"File or directory {local_path} already exists. "
+                              "Use overwrite=True to overwrite the existing file(s).") from exc
 
 def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
                                irods.collection.iRODSCollection]) -> int:

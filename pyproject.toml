@@ -23,8 +23,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "python-irodsclient==1.1.6",
+    "python-irodsclient>=1.1.6",
     "tqdm",
+    "importlib-metadata;python_version<'3.10'",
 ]
 
 dynamic = ["version"]
@@ -45,6 +46,9 @@ test = [
     "sphinx-autodoc-typehints", "sphinx_inline_tabs", "sphinx_copybutton",
 ]
 
+
+[project.scripts]
+ibridges = "ibridges.__main__:main"
 
 [tool.setuptools]
 packages = ["ibridges"]

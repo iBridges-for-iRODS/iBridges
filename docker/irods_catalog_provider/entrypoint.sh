@@ -19,7 +19,21 @@ if [ -e "${setup_input_file}" ]; then
     rm /irods_setup.input
 fi
 
-echo "Starting server"
+mkdir /var/lib/irods/Vault1
+chown irods:irods /var/lib/irods/Vault1
 
+#echo "Starting server"
+#su irods -c 'bash -c ./irodsctl start'
+#su irods -c 'iadmin mkresc resc2 unixfilesystem `hostname`:/var/lib/irods/Vault1'
+#echo "Stop server"
+#su irods -c 'bash -c ./irodsctl stop'
+
+echo "Creating resource"
+cd /var/lib/irods
+su irods -c 'bash -c "./irodsctl start"'
+su irods -c 'iadmin mkresc resc2 unixfilesystem `hostname`:/var/lib/irods/Vault1'
+su irods -c 'bash -c "./irodsctl stop"'
+
+echo "Starting server"
 cd /usr/sbin
 su irods -c 'bash -c "./irodsServer -u"'
