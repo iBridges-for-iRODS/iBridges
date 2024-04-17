@@ -152,11 +152,11 @@ class Session:
         # authentication with irods environment and password
         if self._password is None or self._password == '':
             # use cached password of .irodsA built into prc
-            print("Auth without password")
+            # print("Auth without password")
             return self.authenticate_using_auth_file()
 
         # irods environment and given password
-        print("Auth with password")
+        # print("Auth with password")
         return self.authenticate_using_password()
 
     def close(self) -> None:

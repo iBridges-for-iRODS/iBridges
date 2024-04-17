@@ -100,7 +100,7 @@ def sync_data(session: Session,
     The command considers the file size and the checksum to determine whether a file should be
     synchronized.
 
-    
+
     Parameters
     ----------
     session : ibridges.Session
@@ -117,7 +117,7 @@ def sync_data(session: Session,
     dry_run : bool, default False
         List all source files and folders that need to be synchronized without actually
         performing synchronization.
-    ignore_err : If an error occurs during the transfer, and ignore_err is set to True, 
+    ignore_err : If an error occurs during the transfer, and ignore_err is set to True,
         any errors encountered will be transformed into warnings and iBridges will continue
         to transfer the remaining files.
     copy_empty_folders : bool, default False
@@ -130,6 +130,7 @@ def sync_data(session: Session,
         A dict object containing two keys: 'changed_folders' and 'changed_files'.
         These contain lists of changed folders and files, respectively
         (or of to-be-changed folders and files, when in dry-run mode).
+
     """
     _param_checks(source, target)
 
