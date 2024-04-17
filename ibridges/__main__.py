@@ -134,7 +134,7 @@ def _list_coll(session: Session, remote_path: IrodsPath):
         print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
         print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
     else:
-        raise ValueError("Irods path '{remote_path}' is not a collection.")
+        raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
 
 def ibridges_list():
