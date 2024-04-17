@@ -49,13 +49,27 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     ipath.remove()
     subprocess.run(["ibridges", "init", irods_env_file],
                    check=True, **pass_opts)
-    subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
-                    "--overwrite"],
-                   check=True, **pass_opts)
+
+    if "resc2" in config["resources"]:
+        subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
+                        "--overwrite", "--resource resc2"],
+                        check=True, **pass_opts)
+    else:
+        subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
+                        "--overwrite"],
+                        check=True, **pass_opts)
     assert ipath.dataobject_exists()
 
     # Download the same file and check if they are equal.
-    subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"], **pass_opts)
+    assert isinstance(testdata, Path)
+    if "resc2" in config["resources"]:
+        subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf",
+                        "--resource resc2"], check=True, **pass_opts)
+    else:
+        subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"], 
+                        check=True, **pass_opts)
+    assert Path(testdata/"plant2.rtf").is_file()
+
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
     (testdata/"plant2.rtf").unlink()
 
