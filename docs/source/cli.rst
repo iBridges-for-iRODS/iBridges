@@ -62,7 +62,9 @@ The basic command to download a data object or collection is `ibridges download`
 
 .. code:: shell
 
-    ibridges download "irods:~/some_collection/some_object" [download_dir]
+    ibridges download "irods:~/some_collection/some_object" download_dir
+
+The download_dir aregument is optional. If it is left out, it will be put in the current working directory.
 
 There are two more options: `--overwrite` to allow the download command to overwrite a local file and
 `--resource` to set the resource to download the data from. See `ibridges download --help` for more details.
