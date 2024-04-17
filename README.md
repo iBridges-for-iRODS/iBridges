@@ -69,6 +69,46 @@ download(session, "/irods/path", "/other/local/path")
 
 ```
 
+## Commandline interface
+To simply upload or download data you do not need to write full python program, we offer a Commandline interface
+
+- Establish a connection
+
+  ```bash
+  ibridges init
+  ```
+
+- List a colletion
+  
+  ```bash
+  # list your home collection
+  ibridges list
+  
+  # list a different collection in your home
+  ibridges list irods:~/<collection>
+  
+  # list a collection on a different path than your home
+  ibridges. list irods:<full_irods_path>
+  ```
+
+- Upload data
+
+  ```bash
+  ibridges upload my_file.json irods:~/some_collection
+  ```
+
+- Download data
+
+  ```bash
+  ibridges download irods:~/some_collection/some_object download_dir
+  ```
+
+- Synchronise data
+
+  ```bash
+      ibridges sync some_local_directory irods:~/some_collection
+  ```
+
 ## Tutorials
 ### Documentation
 - **[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)**
