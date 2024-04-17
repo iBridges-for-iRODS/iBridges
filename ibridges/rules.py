@@ -7,8 +7,7 @@ import irods.rule
 from ibridges.session import Session
 
 
-def execute_rule(session: Session, rule_file: str = None, body: str = '', params: dict = None,
-                 rule_type: str = 'irods_rule_language', output: str = 'ruleExecOut') -> tuple:
+def execute_rule(session: Session, rule_file: str = None, **kwargs) -> tuple:
     """Execute an iRODS rule.
 
     params format example:
@@ -25,14 +24,16 @@ def execute_rule(session: Session, rule_file: str = None, body: str = '', params
         The irods session
     rule_file : str
         Name of the iRODS rule file, or a file-like object representing it.
-    body    : str,rulename
-        Name of the rule on the irods server.
-    params : dict
-        Rule arguments.
-    rule_type : str
-        changes between irods rule language and python rules.
-    output : str
-        Rule output variable(s).
+    kwargs : dict example keywords:
+        body    : str,rulename
+            Name of the rule on the irods server.
+        params : dict
+            Rule arguments.
+        instance_name : str
+            changes between irods rule language and python rules.
+        output : str
+            Rule output variable(s).
+
 
     Returns
     -------
@@ -40,10 +41,14 @@ def execute_rule(session: Session, rule_file: str = None, body: str = '', params
         (stdout, stderr)
 
     """
+    if 'output' not in kwargs:
+        kwargs['output'] = 'ruleExecOut'
+    if 'instance_name' not in kwargs:
+        kwargs['instance_name'] = 'irods_rule_engine_plugin-irods_rule_language-instance'
+
     try:
         rule = irods.rule.Rule(
-            session.irods_session, rule_file=rule_file, body=body, params=params, output=output,
-            instance_name=f'irods_rule_engine_plugin-{rule_type}-instance')
+            session.irods_session, rule_file=rule_file, **kwargs)
         out = rule.execute()
     except irods.exception.NetworkException as error:
         logging.info('Lost connection to iRODS server.')
