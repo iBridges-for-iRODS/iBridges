@@ -16,7 +16,7 @@ from ibridges.path import IrodsPath
 
 def _get_digest(obj_or_file):
     with open(obj_or_file, "rb") as handle:
-        digest = hashlib.sha1(handle.read()).digest()
+        digest = hashlib.sha2(handle.read()).digest()
     return digest
 
 def _check_files_equal(*files):
