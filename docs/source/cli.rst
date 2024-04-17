@@ -62,7 +62,7 @@ The basic command to download a data object or collection is `ibridges download`
 
 .. code:: shell
 
-    ibridges download "irods:~/some_collection/some_object.json" [download_dir]
+    ibridges download "irods:~/some_collection/some_object" [download_dir]
 
 There are two more options: `--overwrite` to allow the download command to overwrite a local file and
 `--resource` to set the resource to download the data from. See `ibridges download --help` for more details.
@@ -75,7 +75,7 @@ The command to upload files and directories to an iRods server is similar to the
 
 .. code:: shell
 
-    ibridges upload my_file.json "irods:~/some_collection"
+    ibridges upload my_file "irods:~/some_collection"
 
 .. note::
 
