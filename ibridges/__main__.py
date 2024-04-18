@@ -60,7 +60,7 @@ def main() -> None:
     if subcommand in ["-h", "--help"]:
         print(MAIN_HELP_MESSAGE)
     elif subcommand in ["-v", "--version"]:
-        print(f"Metasyn CLI version {version('metasyn')}")
+        print(f"iBridges version {version('ibridges')}")
 
     # find the subcommand in this module and run it!
     elif subcommand == "download":
