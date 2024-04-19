@@ -7,7 +7,7 @@ import irods.rule
 from ibridges.session import Session
 
 
-def execute_rule(session: Session, rule_file: str = None, **kwargs) -> tuple:
+def execute_rule(session: Session, rule_file: str = '', **kwargs) -> tuple:
     """Execute an iRODS rule.
 
     params format example:
