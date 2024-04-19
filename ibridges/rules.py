@@ -8,8 +8,8 @@ from ibridges.session import Session
 
 
 def execute_rule(session: Session,
-                 output: str  = 'ruleExecOut', 
-                 instance_name: str = 'irods_rule_engine_plugin-irods_rule_language-instance', 
+                 output: str = 'ruleExecOut',
+                 instance_name: str = 'irods_rule_engine_plugin-irods_rule_language-instance',
                  **kwargs) -> tuple:
     """Execute an iRODS rule.
 
