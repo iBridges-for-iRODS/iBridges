@@ -1,6 +1,6 @@
 """Rule operations."""
 import logging
-
+from typing import Optional
 import irods.exception
 import irods.rule
 
@@ -8,6 +8,8 @@ from ibridges.session import Session
 
 
 def execute_rule(session: Session,
+                 rule_file: Optional[str],
+                 params: Optional[dict],
                  output: str = 'ruleExecOut',
                  instance_name: str = 'irods_rule_engine_plugin-irods_rule_language-instance',
                  **kwargs) -> tuple:
@@ -25,10 +27,14 @@ def execute_rule(session: Session,
     ----------
     session : ibridges.session
         The irods session
-    instance_name : str
-        changes between irods rule language and python rules.
+    rule_file : str
+        Name of the iRODS rule file, or a file-like object representing it.
+    params: dict
+        Rule input variable(s).
     output : str
         Rule output variable(s).
+    instance_name : str
+        Changes between irods rule language and python rules.
     kwargs : dict
         optional irods rule parameters.
         For more information: https://github.com/irods/python-irodsclient
@@ -41,7 +47,10 @@ def execute_rule(session: Session,
     """
     try:
         rule = irods.rule.Rule(
-            session.irods_session, instance_name=instance_name,
+            session.irods_session,
+            rule_file=rule_file,
+            params=params,
+            instance_name=instance_name,
             output=output, **kwargs)
         out = rule.execute()
     except irods.exception.NetworkException as error:
