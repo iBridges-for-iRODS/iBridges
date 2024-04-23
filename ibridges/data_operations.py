@@ -152,7 +152,6 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
     if options is None:
         options = {}
     options.update({
-        kw.ALL_KW: '',
         kw.NUM_THREADS_KW: NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
@@ -351,7 +350,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     ValueError:
         If the local_path is not a valid filename of directory.
     PermissionError:
-        If the iRods server does not allow the collection or data object to be created.
+        If the iRODS server does not allow the collection or data object to be created.
 
     """
     local_path = Path(local_path)
@@ -398,7 +397,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     Raises
     ------
     PermissionError:
-        If the iRods server (for whatever reason) forbids downloading the file or
+        If the iRODS server (for whatever reason) forbids downloading the file or
         (part of the) collection.
     ValueError:
         If the irods_path is not pointing to either a collection or a data object.
