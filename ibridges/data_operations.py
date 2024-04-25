@@ -210,11 +210,11 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath
     paths = [(str(Path(root).relative_to(local_path)), f)
              for root, _, files in os.walk(local_path) for f in files]
 
-    # create all folders including empty ones
+    # create all collections from folders including empty ones
     folders = [Path(root).relative_to(local_path).joinpath(f)
                for root, folders, _ in os.walk(local_path) for f in folders]
     for folder in folders:
-        IrodsPath.create_collection(irods_path.session, 
+        IrodsPath.create_collection(irods_path.session,
                                     irods_path.joinpath(local_path.parts[-1], *folder.parts))
 
     source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
@@ -273,7 +273,14 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
     """Assembles the local destination paths for download of a collection."""
     # get all data objects
     coll = get_collection(session, irods_path)
+    subcolls = _get_subcoll_paths(session, coll)
     all_objs = _get_data_objects(session, coll)
+
+    # create all folders from collections including empty ones
+    folders = [local_path.joinpath(coll.name, *sc.relative_to(irods_path).parts)
+               for sc in subcolls]
+    for folder in folders:
+        folder.mkdir(parents=True, exist_ok=True)
 
     download_path = local_path.joinpath(irods_path.name.lstrip('/'))
     source_to_dest: list[tuple[IrodsPath, Path]] = []
@@ -483,6 +490,16 @@ def _get_data_objects(session: Session,
         objs.append((path, name, size, checksum))
 
     return objs
+
+def _get_subcoll_paths(session: Session,
+                     coll: irods.collection.iRODSCollection) -> list:
+    """
+    Retrieves all sub collections in a sub tree starting at coll and returns ther IrodsPaths.
+    """
+    coll_query = session.irods_session.query(icat.COLL_NAME)
+    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+
+    return [IrodsPath(session, p) for r in coll_query.get_results() for p in r.values()]
 
 def create_collection(session: Session,
                       coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
