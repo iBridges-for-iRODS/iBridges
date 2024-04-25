@@ -255,7 +255,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     # get all files and their relative path to local_path
     if not local_path.is_dir():
         raise ValueError("local_path must be a directory.")
-    
+
     _create_irods_subtree(local_path, irods_path)
     source_to_dest = _create_irods_dest(local_path, irods_path)
     for source, dest in source_to_dest:
@@ -275,14 +275,7 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
     """Assembles the local destination paths for download of a collection."""
     # get all data objects
     coll = get_collection(session, irods_path)
-    subcolls = _get_subcoll_paths(session, coll)
     all_objs = _get_data_objects(session, coll)
-
-    # create all folders from collections including empty ones
-    folders = [local_path.joinpath(coll.name, *sc.relative_to(irods_path).parts)
-               for sc in subcolls]
-    for folder in folders:
-        folder.mkdir(parents=True, exist_ok=True)
 
     download_path = local_path.joinpath(irods_path.name.lstrip('/'))
     source_to_dest: list[tuple[IrodsPath, Path]] = []
@@ -293,6 +286,15 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
         source_to_dest.append((cur_ipath, cur_lpath))
     return source_to_dest
 
+def _create_local_subtree(session: Session, irods_path: IrodsPath, local_path: Path):
+
+    coll = get_collection(session, irods_path)
+    subcolls = _get_subcoll_paths(session, coll)
+    # create all folders from collections including empty ones
+    folders = [local_path.joinpath(coll.name, *sc.relative_to(irods_path).parts)
+               for sc in subcolls]
+    for folder in folders:
+        folder.mkdir(parents=True, exist_ok=True)
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
@@ -324,6 +326,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
 
+    _create_local_subtree(session, irods_path, local_path)
     source_to_dest = _create_local_dest(session, irods_path, local_path)
 
     for source, dest in source_to_dest:
