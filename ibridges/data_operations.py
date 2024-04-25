@@ -198,6 +198,9 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         options[kw.FORCE_FLAG_KW] = ''
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
+    #Quick fix for #126
+    if Path(local_path).is_dir():
+        local_path = Path(local_path).joinpath(irods_path.parts[-1])
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
@@ -206,6 +209,13 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath
     upload_path = irods_path.joinpath(local_path.name)
     paths = [(str(Path(root).relative_to(local_path)), f)
              for root, _, files in os.walk(local_path) for f in files]
+
+    # create all folders including empty ones
+    folders = [Path(root).relative_to(local_path).joinpath(f)
+               for root, folders, _ in os.walk(local_path) for f in folders]
+    for folder in folders:
+        IrodsPath.create_collection(irods_path.session, 
+                                    irods_path.joinpath(local_path.parts[-1], *folder.parts))
 
     source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
                        upload_path.joinpath(folder.lstrip(os.sep), file_name))
