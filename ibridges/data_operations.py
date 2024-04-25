@@ -326,7 +326,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     irods_path = IrodsPath(session, irods_path)
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
-    
+
     if copy_empty_folders:
         _create_local_subtree(session, irods_path, local_path)
     source_to_dest = _create_local_dest(session, irods_path, local_path)
@@ -347,7 +347,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, ignore_err: bool = False,
-           resc_name: str = '', options: Optional[dict] = None):
+           resc_name: str = '', copy_empty_folders: bool = False, options: Optional[dict] = None):
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -381,7 +381,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     try:
         if local_path.is_dir():
             _upload_collection(session, local_path, irods_path, overwrite, ignore_err,
-                               resc_name, options)
+                               resc_name, copy_empty_folders, options)
         elif local_path.is_file():
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
         else:
@@ -395,7 +395,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-             options: Optional[dict] = None):
+             copy_empty_folders: bool = False, options: Optional[dict] = None):
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -432,7 +432,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     try:
         if irods_path.collection_exists():
             _download_collection(session, irods_path, local_path, overwrite, ignore_err, resc_name,
-                                 options)
+                                 copy_empty_folders, options)
         elif irods_path.dataobject_exists():
             _obj_get(session, irods_path, local_path, overwrite, resc_name, options)
         else:
