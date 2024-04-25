@@ -347,7 +347,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, ignore_err: bool = False,
-           resc_name: str = '', copy_empty_folders: bool = False, options: Optional[dict] = None):
+           resc_name: str = '', copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -395,7 +395,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-             copy_empty_folders: bool = False, options: Optional[dict] = None):
+             copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Download a collection or data object to the local filesystem.
 
     Parameters
