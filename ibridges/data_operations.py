@@ -200,7 +200,7 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         options[kw.RESC_NAME_KW] = resc_name
     #Quick fix for #126
     if Path(local_path).is_dir():
-        local_path = local_path.joinpath(irods_path.parts[-1])
+        local_path = Path(local_path).joinpath(irods_path.parts[-1])
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
