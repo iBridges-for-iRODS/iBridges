@@ -210,18 +210,19 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath
     paths = [(str(Path(root).relative_to(local_path)), f)
              for root, _, files in os.walk(local_path) for f in files]
 
+    source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
+                       upload_path.joinpath(folder.lstrip(os.sep), file_name))
+                       for folder, file_name in paths]
+
+    return source_to_dest
+
+def _create_irods_subtree(local_path: Path, irods_path: IrodsPath):
     # create all collections from folders including empty ones
     folders = [Path(root).relative_to(local_path).joinpath(f)
                for root, folders, _ in os.walk(local_path) for f in folders]
     for folder in folders:
         IrodsPath.create_collection(irods_path.session,
                                     irods_path.joinpath(local_path.parts[-1], *folder.parts))
-
-    source_to_dest = [(local_path.joinpath(folder.lstrip(os.sep), file_name),
-                       upload_path.joinpath(folder.lstrip(os.sep), file_name))
-                       for folder, file_name in paths]
-
-    return source_to_dest
 
 def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
@@ -254,7 +255,8 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     # get all files and their relative path to local_path
     if not local_path.is_dir():
         raise ValueError("local_path must be a directory.")
-
+    
+    _create_irods_subtree(local_path, irods_path)
     source_to_dest = _create_irods_dest(local_path, irods_path)
     for source, dest in source_to_dest:
         _ = create_collection(session, dest.parent)
