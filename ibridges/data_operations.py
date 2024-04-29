@@ -501,7 +501,7 @@ def _get_data_objects(session: Session,
 def _get_subcoll_paths(session: Session,
                      coll: irods.collection.iRODSCollection) -> list:
     """
-    Retrieves all sub collections in a sub tree starting at coll and returns ther IrodsPaths.
+    Retrieves all sub collections in a sub tree starting at coll and returns their IrodsPaths.
     """
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
