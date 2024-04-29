@@ -227,7 +227,7 @@ def _create_irods_subtree(local_path: Path, irods_path: IrodsPath):
 def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
                        overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-                       copy_empty_folders: bool = False, options: Optional[dict] = None):
+                       copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Upload a local directory to iRODS.
 
     Parameters
@@ -246,6 +246,8 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
+    copy_empty_folders : bool
+        Create collection even if the corresponding source folder is empty.
     options : dict
         More options for the upload
 
@@ -299,7 +301,7 @@ def _create_local_subtree(session: Session, irods_path: IrodsPath, local_path: P
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-                         copy_empty_folders: bool = False, options: Optional[dict] = None):
+                         copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Download a collection to the local filesystem.
 
     Parameters
@@ -319,6 +321,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide
+    copy_empty_folders : bool 
+        Create a respective folder for empty colletions.
     options : dict
         More options for the download
 
@@ -366,6 +370,8 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
+    copy_empty_folders : bool
+        Create respective iRODS collection for empty folders. Default: True.
     options : dict
         More options for the upload
 
@@ -415,6 +421,8 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         Collections: If download of an item fails print error and continue with next item.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide.
+    copy_empty_folders : bool
+        Create respective local directory for empty collections.
     options : dict
         More options for the download
 
