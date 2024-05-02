@@ -155,15 +155,6 @@ def ibridges_list():
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         _list_coll(session, _parse_remote(args.remote_path, session))
 
-
-def _convert_path(remote_or_local: Union[str, Path]) -> Union[Path, str]:
-    if isinstance(remote_or_local, Path):
-        return remote_or_local
-    if remote_or_local.startswith("irods:"):
-        return remote_or_local[6:]
-    return Path(remote_or_local)
-
-
 def _parse_local(local_path: Union[None, str, Path]) -> Path:
     if local_path is None:
         return Path.cwd()
@@ -177,7 +168,13 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
     if remote_path is None:
         return IrodsPath(session, session.home)
     if not remote_path.startswith("irods:"):
-        raise ValueError("Please provide a remote path starting with 'irods:'")
+        raise ValueError("Please provide a remote path starting with 'irods:'.")
+    if remote_path.startswith("irods://"):
+        remainder = remote_path[8:]
+        print(remainder)
+        if remainder.startswith("~"):
+            return IrodsPath(session, remainder)
+        return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
 def ibridges_download():
