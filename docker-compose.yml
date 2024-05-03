@@ -21,6 +21,7 @@ services:
 
     irods-client:
         image: irods-client
+        platform: linux/amd64
         build:
             context: .
             dockerfile: ./docker/irods_client/Dockerfile

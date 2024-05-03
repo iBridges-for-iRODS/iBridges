@@ -152,7 +152,6 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
     if options is None:
         options = {}
     options.update({
-        kw.ALL_KW: '',
         kw.NUM_THREADS_KW: NUM_THREADS,
         kw.REG_CHKSUM_KW: '',
         kw.VERIFY_CHKSUM_KW: ''
@@ -199,6 +198,9 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         options[kw.FORCE_FLAG_KW] = ''
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
+    #Quick fix for #126
+    if Path(local_path).is_dir():
+        local_path = Path(local_path).joinpath(irods_path.parts[-1])
     session.irods_session.data_objects.get(str(irods_path), local_path, **options)
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
@@ -214,10 +216,18 @@ def _create_irods_dest(local_path: Path, irods_path: IrodsPath
 
     return source_to_dest
 
+def _create_irods_subtree(local_path: Path, irods_path: IrodsPath):
+    # create all collections from folders including empty ones
+    folders = [Path(root).relative_to(local_path).joinpath(f)
+               for root, folders, _ in os.walk(local_path) for f in folders]
+    for folder in folders:
+        IrodsPath.create_collection(irods_path.session,
+                                    irods_path.joinpath(local_path.parts[-1], *folder.parts))
+
 def _upload_collection(session: Session, local_path: Union[str, Path],
                        irods_path: Union[str, IrodsPath],
                        overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-                       options: Optional[dict] = None):
+                       copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Upload a local directory to iRODS.
 
     Parameters
@@ -236,6 +246,8 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
+    copy_empty_folders : bool
+        Create collection even if the corresponding source folder is empty.
     options : dict
         More options for the upload
 
@@ -246,6 +258,8 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
     if not local_path.is_dir():
         raise ValueError("local_path must be a directory.")
 
+    if copy_empty_folders:
+        _create_irods_subtree(local_path, irods_path)
     source_to_dest = _create_irods_dest(local_path, irods_path)
     for source, dest in source_to_dest:
         _ = create_collection(session, dest.parent)
@@ -275,10 +289,19 @@ def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
         source_to_dest.append((cur_ipath, cur_lpath))
     return source_to_dest
 
+def _create_local_subtree(session: Session, irods_path: IrodsPath, local_path: Path):
+
+    coll = get_collection(session, irods_path)
+    subcolls = _get_subcoll_paths(session, coll)
+    # create all folders from collections including empty ones
+    folders = [local_path.joinpath(coll.name, *sc.relative_to(irods_path).parts)
+               for sc in subcolls]
+    for folder in folders:
+        folder.mkdir(parents=True, exist_ok=True)
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-                         options: Optional[dict] = None):
+                         copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Download a collection to the local filesystem.
 
     Parameters
@@ -298,6 +321,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide
+    copy_empty_folders : bool 
+        Create a respective folder for empty colletions.
     options : dict
         More options for the download
 
@@ -306,6 +331,8 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
 
+    if copy_empty_folders:
+        _create_local_subtree(session, irods_path, local_path)
     source_to_dest = _create_local_dest(session, irods_path, local_path)
 
     for source, dest in source_to_dest:
@@ -324,7 +351,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
 
 def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
            overwrite: bool = False, ignore_err: bool = False,
-           resc_name: str = '', options: Optional[dict] = None):
+           resc_name: str = '', copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -343,6 +370,8 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource to which data is uploaded, by default the server will decide
+    copy_empty_folders : bool
+        Create respective iRODS collection for empty folders. Default: True.
     options : dict
         More options for the upload
 
@@ -351,14 +380,14 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     ValueError:
         If the local_path is not a valid filename of directory.
     PermissionError:
-        If the iRods server does not allow the collection or data object to be created.
+        If the iRODS server does not allow the collection or data object to be created.
 
     """
     local_path = Path(local_path)
     try:
         if local_path.is_dir():
             _upload_collection(session, local_path, irods_path, overwrite, ignore_err,
-                               resc_name, options)
+                               resc_name, copy_empty_folders, options)
         elif local_path.is_file():
             _obj_put(session, local_path, irods_path, overwrite, resc_name, options)
         else:
@@ -372,7 +401,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
 def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Union[str, Path],
              overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
-             options: Optional[dict] = None):
+             copy_empty_folders: bool = True, options: Optional[dict] = None):
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -392,13 +421,15 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         Collections: If download of an item fails print error and continue with next item.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide.
+    copy_empty_folders : bool
+        Create respective local directory for empty collections.
     options : dict
         More options for the download
 
     Raises
     ------
     PermissionError:
-        If the iRods server (for whatever reason) forbids downloading the file or
+        If the iRODS server (for whatever reason) forbids downloading the file or
         (part of the) collection.
     ValueError:
         If the irods_path is not pointing to either a collection or a data object.
@@ -409,7 +440,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     try:
         if irods_path.collection_exists():
             _download_collection(session, irods_path, local_path, overwrite, ignore_err, resc_name,
-                                 options)
+                                 copy_empty_folders, options)
         elif irods_path.dataobject_exists():
             _obj_get(session, irods_path, local_path, overwrite, resc_name, options)
         else:
@@ -474,6 +505,16 @@ def _get_data_objects(session: Session,
         objs.append((path, name, size, checksum))
 
     return objs
+
+def _get_subcoll_paths(session: Session,
+                     coll: irods.collection.iRODSCollection) -> list:
+    """
+    Retrieves all sub collections in a sub tree starting at coll and returns their IrodsPaths.
+    """
+    coll_query = session.irods_session.query(icat.COLL_NAME)
+    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+
+    return [IrodsPath(session, p) for r in coll_query.get_results() for p in r.values()]
 
 def create_collection(session: Session,
                       coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:

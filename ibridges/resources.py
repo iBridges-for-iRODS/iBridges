@@ -130,6 +130,8 @@ class Resources():
             resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
+                if name == 'bundleResc':
+                    continue
                 free_space = 0
                 if parent is None:
                     free_space = self.get_free_space(name)

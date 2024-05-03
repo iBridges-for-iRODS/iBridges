@@ -19,6 +19,8 @@ from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 from ibridges import icat_columns as icat
 
+APP_NAME="ibridges"
+
 class Session:
     """Irods session authentication."""
 
@@ -47,7 +49,7 @@ class Session:
         TypeError:
             If the irods_env parameter is not a dict, str or Path.
         LoginError:
-            If the connection to the iRods server fails to establish.
+            If the connection to the iRODS server fails to establish.
 
         """
         irods_env_path = None
@@ -71,20 +73,20 @@ class Session:
             self.home = '/'+self.zone+'/home/'+self.username
 
     def __enter__(self):
-        """Connect to the iRods server if not already connected."""
+        """Connect to the iRODS server if not already connected."""
         if not self.has_valid_irods_session():
             self.connect()
         return self
 
     def __exit__(self, exc_type, exc_value, exc_trace_back):
-        """Disconnect from the iRods server."""
+        """Disconnect from the iRODS server."""
         self.close()
 
     @property
     def home(self) -> str:
         """Current working directory for irods.
 
-        In the iRods community this is known as 'irods_home', in file system terms
+        In the iRODS community this is known as 'irods_home', in file system terms
         it would be the current working directory.
 
         Returns
@@ -171,29 +173,30 @@ class Session:
             self.irods_session = None
 
     def authenticate_using_password(self) -> iRODSSession:
-        """Authenticate with the iRods server using a password."""
+        """Authenticate with the iRODS server using a password."""
         try:
             irods_session = irods.session.iRODSSession(password=self._password,
-                                                             **self._irods_env)
+                                                             **self._irods_env,
+                                                       application_name=APP_NAME)
             _ = irods_session.server_version
         except Exception as e:
             raise _translate_irods_error(e) from e
         if irods_session.server_version == ():
-            raise LoginError("iRodsServer does not return a server version.")
+            raise LoginError("iRODS server does not return a server version.")
         return irods_session
 
     def authenticate_using_auth_file(self) -> iRODSSession:
         """Authenticate with an authentication file."""
         try:
             irods_session = irods.session.iRODSSession(
-                irods_env_file=self._irods_env_path)
+                irods_env_file=self._irods_env_path, application_name=APP_NAME)
             _ = irods_session.server_version
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
             raise _translate_irods_error(e) from e
         if irods_session.server_version == ():
-            raise LoginError("iRodsServer does not return a server version.")
+            raise LoginError("iRODS server does not return a server version.")
         return irods_session
 
 
@@ -231,7 +234,7 @@ class Session:
         """Pass through a few attributes from irods_session."""
         if item in ["host", "port", "username", "zone"]:
             if self.irods_session is None:
-                raise AttributeError("Need a valid iRods session to get '{item}'.")
+                raise AttributeError("Need a valid iRODS session to get '{item}'.")
             return getattr(self.irods_session, item)
         return super().__getattribute__(item)
 
@@ -291,7 +294,7 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
                               "irods_client_server_negotiation not set correctly in "
                               "irods_environment.json")
     if isinstance(exc, CAT_INVALID_USER):
-        return LoginError("User credentials are not accepted")
+        return PasswordError("User credentials are not accepted")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
         return PasswordError("Wrong password")
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
