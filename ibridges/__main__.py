@@ -47,7 +47,7 @@ ibridges upload ~/test.txt "irods:/test"
 ibridges init
 ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
-ibridges mkdir irods://~/bli/bla/blubb
+ibridges mkdir "irods:~/some_collection/new_collection"
 
 Program information:
     -v, --version - display CLI version and exit
