@@ -136,7 +136,7 @@ class IrodsPath():
             raise PermissionError(
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
-    def move(self, new_name: Union[str, IrodsPath]):
+    def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
         """Change the name or the path of a data object or collection.
         New collections on the path will be created.
         
@@ -164,6 +164,7 @@ class IrodsPath():
                 self.session.irods_session.data_objects.move(str(self), str(new_path))
             else:
                 self.session.irods_session.collections.move(str(self), str(new_path))
+            return new_path
 
         except irods.exception.SAME_SRC_DEST_PATHS_ERR as err:
             raise ValueError(f'Path {new_path} already exists.') from err

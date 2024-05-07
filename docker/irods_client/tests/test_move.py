@@ -8,8 +8,10 @@ def test_move(session, item_name, request):
     old_path = IrodsPath(session, item.path)
     new_path = IrodsPath(session, '~', 'moved')
 
-    old_path.move(new_path)
+    old_path.rename(new_path)
     assert new_path.exists()
+    assert not old_path.exists()
 
-    new_path.move(old_path)
+    new_path.rename(old_path)
     assert old_path.exists()
+    assert not new_path.exists()
