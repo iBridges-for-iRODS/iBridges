@@ -47,7 +47,7 @@ ibridges upload ~/test.txt "irods:/test"
 ibridges init
 ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
-ibridges mkdir irods://~/bli/bla/blubb
+ibridges mkcoll irods://~/bli/bla/blubb
 
 Program information:
     -v, --version - display CLI version and exit
@@ -78,8 +78,8 @@ def main() -> None:
         ibridges_init()
     elif subcommand == "list":
         ibridges_list()
-    elif subcommand == "mkdir":
-        ibridges_mkdir()
+    elif subcommand == "mkcoll":
+        ibridges_mkcoll()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -167,10 +167,10 @@ def _create_coll(session: Session, remote_path: IrodsPath):
         raise ValueError(f'New collection path {remote_path} already exists.')
     remote_path.create_collection(session, remote_path)
 
-def ibridges_mkdir():
+def ibridges_mkcoll():
     """Create a collection with all its parents given the new path"""
     parser = argparse.ArgumentParser(
-        prog="ibridges mkdir",
+        prog="ibridges mkcoll",
         description="Create a new collecion with all its parent collections."
     )
     parser.add_argument(
