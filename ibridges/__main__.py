@@ -32,6 +32,10 @@ Available subcommands:
     sync:
         Synchronize files/folders and data objects/collections with each other.
         Only updated files will be downloaded/uploaded.
+    list:
+        List the content of a collections, if no path is given, the home collection will be listed.
+    midir:
+        Create the collection and all its parent collections.
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -41,8 +45,9 @@ Example usage:
 ibridges download "irods:~/test.txt"
 ibridges upload ~/test.txt "irods:/test"
 ibridges init
-ibridges sync ~/collection "irods:~/collection"
+ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
+ibridges mkdir irods://~/bli/bla/blubb
 
 Program information:
     -v, --version - display CLI version and exit
@@ -73,6 +78,8 @@ def main() -> None:
         ibridges_init()
     elif subcommand == "list":
         ibridges_list()
+    elif subcommand == "mkdir":
+        ibridges_mkdir()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -154,6 +161,28 @@ def ibridges_list():
     args, _ = parser.parse_known_args()
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         _list_coll(session, _parse_remote(args.remote_path, session))
+
+def _create_coll(session: Session, remote_path: IrodsPath):
+    if remote_path.exists():
+        raise ValueError(f'New collection path {remote_path} already exists.')
+    else:
+        remote_path.create_collection(session, remote_path)
+
+def ibridges_mkdir():
+    """Create a collection with all its parents given the new path"""
+    parser = argparse.ArgumentParser(
+        prog="ibridges mkdir",
+        description="Create a new collecion with all its parent collections."
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Create a new collection with path starting with 'irods:'",
+        type=str,
+    )
+
+    args, _ = parser.parse_known_args()
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+         _create_coll(session, _parse_remote(args.remote_path, session))
 
 def _parse_local(local_path: Union[None, str, Path]) -> Path:
     if local_path is None:
