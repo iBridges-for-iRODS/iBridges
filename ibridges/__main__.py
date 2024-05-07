@@ -171,7 +171,7 @@ def ibridges_mkdir():
     """Create a collection with all its parents given the new path"""
     parser = argparse.ArgumentParser(
         prog="ibridges mkdir",
-        description="Create a new collecion with all its parent collections."
+        description="Create a new collection with all its parent collections."
     )
     parser.add_argument(
         "remote_path",
