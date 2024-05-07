@@ -138,8 +138,10 @@ class Session:
     def connect(self) -> iRODSSession:
         """Establish an iRODS session."""
         irods_host = self._irods_env.get('irods_host', '')
-        irods_port = int(self._irods_env.get('irods_port', ''))
-        network = self._network_check(irods_host, irods_port)
+        irods_port = self._irods_env.get('irods_port', '')
+        if irods_host == '' or irods_port == '':
+            raise LoginError("No host or port set in environment file.")
+        network = self._network_check(irods_host, int(irods_port))
         if network is False:
             raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
@@ -293,6 +295,8 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
             return LoginError("Host, port, irods_client_server_policy or "
                               "irods_client_server_negotiation not set correctly in "
                               "irods_environment.json")
+    if isinstance(exc, TypeError):
+        return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
         return PasswordError("User credentials are not accepted")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
