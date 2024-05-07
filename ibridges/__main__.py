@@ -165,8 +165,7 @@ def ibridges_list():
 def _create_coll(session: Session, remote_path: IrodsPath):
     if remote_path.exists():
         raise ValueError(f'New collection path {remote_path} already exists.')
-    else:
-        remote_path.create_collection(session, remote_path)
+    remote_path.create_collection(session, remote_path)
 
 def ibridges_mkdir():
     """Create a collection with all its parents given the new path"""
@@ -182,7 +181,7 @@ def ibridges_mkdir():
 
     args, _ = parser.parse_known_args()
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-         _create_coll(session, _parse_remote(args.remote_path, session))
+        _create_coll(session, _parse_remote(args.remote_path, session))
 
 def _parse_local(local_path: Union[None, str, Path]) -> Path:
     if local_path is None:
