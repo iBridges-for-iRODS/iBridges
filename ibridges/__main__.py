@@ -175,7 +175,7 @@ def ibridges_mkdir():
     )
     parser.add_argument(
         "remote_path",
-        help="Create a new collection with path starting with 'irods:'",
+        help="Path to a new collection, should start with 'irods:'.",
         type=str,
     )
 
