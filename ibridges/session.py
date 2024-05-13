@@ -112,7 +112,8 @@ class Session:
         """
         return self.irods_session is not None and self.server_version != ()
 
-    def _network_check(self, hostname: str, port: int) -> bool:
+    @classmethod
+    def network_check(cls, hostname: str, port: int) -> bool:
         """Check connectivity to an iRODS server.
 
         Parameters
@@ -141,7 +142,7 @@ class Session:
         """Establish an iRODS session."""
         irods_host = self._irods_env.get('irods_host', None)
         irods_port = self._irods_env.get('irods_port', None)
-        network = self._network_check(irods_host, irods_port)
+        network = self.network_check(irods_host, irods_port)
         if network is False:
             raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
