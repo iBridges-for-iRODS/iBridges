@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
-import warnings
 import socket
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -120,6 +120,8 @@ class Session:
         ----------
         hostname : str
             FQDN/IP of an iRODS server.
+        port : int
+            Port to which to connect to the server
 
         Returns
         -------
@@ -256,7 +258,6 @@ class Session:
         except Exception as e:
             raise _translate_irods_error(e) from e
 
-
     def get_user_info(self) -> tuple[list, list]:
         """Query for user type and groups.
 
@@ -268,7 +269,6 @@ class Session:
             iRODS group names
 
         """
-
         query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
             icat.USER_NAME, self.username))
         user_type = [
@@ -286,7 +286,7 @@ class LoginError(AttributeError):
     """Error indicating a failure to log into the iRODS server due to the configuration."""
 
 class PasswordError(ValueError):
-    """Error indicating failure to log into the iRODS server due to wrong or outdated password"""
+    """Error indicating failure to log into the iRODS server due to wrong or outdated password."""
 
 
 
