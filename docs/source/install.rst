@@ -41,7 +41,7 @@ Below we give an example of such a file
 It is recommended to store this file in the default location `~/.irods/irods_environment.json`. 
 However, if needed you can point iBridges also to a different location.
 
-Please make sure that the file is really saved as `.json`.
+Ensure that the file is saved as `.json`.
 
 Configuration of your `home` collection
 ----------------------------------------
