@@ -149,6 +149,7 @@ class IrodsPath():
         ----------
         new_name: str or IrodsPath
             new name or a new full path
+
         """
         if not self.exists():
             raise ValueError(f'str{self} does not exist.')
@@ -193,6 +194,26 @@ class IrodsPath():
 
     @property
     def collection(self) -> irods.collection.iRODSCollection:
+        """Instantiate an iRODS collection.
+
+        Parameters
+        ----------
+        session :
+            Session to get the collection from.
+        path : str
+            Name of an iRODS collection.
+
+        Raises
+        ------
+        ValueError:
+            If the path points to a dataobject and not a collection.
+
+        Returns
+        -------
+        iRODSCollection
+            Instance of the collection with `path`.
+
+        """
         if self.collection_exists():
             return self.session.irods_session.collections.get(str(self))
         if self.dataobject_exists():
@@ -202,6 +223,19 @@ class IrodsPath():
 
     @property
     def dataobject(self) -> irods.data_object.iRODSDataObject:
+        """Instantiate an iRODS data object.
+
+        Raises
+        ------
+        ValueError:
+            If the path is pointing to a collection and not a data object.
+
+        Returns
+        -------
+        iRODSDataObject
+            Instance of the data object with `path`.
+
+        """
         if self.dataobject_exists():
             return self.session.irods_session.data_objects.get(str(self))
         if self.collection_exists():
@@ -234,6 +268,14 @@ class IrodsPath():
 
     @property
     def size(self):
+        """Collect the sizes of a data object or a collection.
+
+        Returns
+        -------
+        int :
+            Total size [bytes] of the iRODS object or all iRODS objects in the collection.
+
+        """
         if not self.exists():
             raise ValueError("Path '{str(self)}' does not exist;"
                              "it is neither a collection nor a dataobject")
@@ -296,9 +338,7 @@ def _get_data_objects(session,
 
 def _get_subcoll_paths(session,
                      coll: irods.collection.iRODSCollection) -> list:
-    """
-    Retrieves all sub collections in a sub tree starting at coll and returns their IrodsPaths.
-    """
+    """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
 
