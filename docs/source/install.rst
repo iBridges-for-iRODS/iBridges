@@ -19,6 +19,7 @@ iBridges connects to an iRODS server. To do so it needs an iRODS client configur
 It is the same file which is also used with other iRODS clients e.g. the (`icommands`).
   
 Below we give an example of such a file
+
 .. code:: json
 
     {
@@ -34,11 +35,29 @@ Below we give an example of such a file
         "irods_encryption_algorithm": "AES-256-CBC",
         "irods_encryption_key_size": 32,
         "irods_encryption_num_hash_rounds": 16,
-        "irods_encryption_salt_size": 8,
-        "irods_ssl_verify_server": "none"
+        "irods_encryption_salt_size": 8
     }
 
 It is recommended to store this file in the default location `~/.irods/irods_environment.json`. 
 However, if needed you can point iBridges also to a different location.
 
 Please make sure that the file is really saved as `.json`.
+
+Configuration of your `home` collection
+----------------------------------------
+
+iBridges makes use of the conugration item `"irods_home"`. The `"irods_home"` is your default path on the iRODS server which in iBridges you can address with `~` when creating paths.
+
+In a default iRODS instance you have a personal location on the iRODS server with the path
+
+..code:: bash
+
+    /<zone_name>/home/<username>
+
+However, this can differ. E.g. on Yoda instances you will belong to a research group and hence your iRODS home will be:
+
+..code:: bash
+    
+    /<zone_name>/home/research-<group name>
+
+Please ask your iRODS admin or service provider how to set up the `irods_environment.json` such that it matches your iRODS instance.
