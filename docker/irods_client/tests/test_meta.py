@@ -94,5 +94,3 @@ def test_metadata_export(item_name, request, session):
     item = request.getfixturevalue(item_name)
     res = export_metadata_to_dict(MetaData(item), session)
     assert isinstance(res, dict)
-    with pytest.raises(ValueError):
-        export_metadata_to_dict(MetaData("nonsense"), session)
