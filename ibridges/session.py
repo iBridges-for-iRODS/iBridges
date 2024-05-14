@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
-import warnings
 import socket
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -265,7 +265,6 @@ class Session:
             iRODS group names
 
         """
-
         query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
             icat.USER_NAME, self.username))
         user_type = [

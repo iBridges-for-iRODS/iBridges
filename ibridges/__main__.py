@@ -168,7 +168,7 @@ def _create_coll(session: Session, remote_path: IrodsPath):
     remote_path.create_collection(session, remote_path)
 
 def ibridges_mkcoll():
-    """Create a collection with all its parents given the new path"""
+    """Create a collection with all its parents given the new path."""
     parser = argparse.ArgumentParser(
         prog="ibridges mkcoll",
         description="Create a new collecion with all its parent collections."
