@@ -25,6 +25,7 @@ that do not have any technical knowledge of iRods.
 
    quickstart
    install
+   sync
    cli
    faq
    api

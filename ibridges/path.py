@@ -145,6 +145,7 @@ class IrodsPath():
         ----------
         new_name: str or IrodsPath
             new name or a new full path
+
         """
         if not self.exists():
             raise ValueError(f'str{self} does not exist.')
