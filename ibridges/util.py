@@ -83,3 +83,34 @@ def is_collection(item) -> bool:
     """Determine if item is an iRODS collection."""
     return isinstance(item, irods.collection.iRODSCollection)
 
+
+def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
+    """Retrieve information about replicas (copies of the file on different resources).
+
+    It does so for a data object in the iRODS system.
+
+    Parameters
+    ----------
+    obj : irods.data_object.iRODSDataObject
+        The data object
+
+    Returns
+    -------
+    list(tuple(int, str, str, int, str)):
+        List with tuple where each tuple contains replica index/number, resource name on which
+        the replica is stored about one replica, replica checksum, replica size,
+        replica status of the replica
+
+    """
+    #replicas = []
+    repl_states = {
+        '0': 'stale',
+        '1': 'good',
+        '2': 'intermediate',
+        '3': 'write-locked'
+    }
+
+    replicas = [(r.number, r.resource_name, r.checksum,
+                 r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
+
+    return replicas
