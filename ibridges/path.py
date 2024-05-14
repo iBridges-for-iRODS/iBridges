@@ -1,10 +1,14 @@
 """A class to handle iRODS and local (Win, linux) paths."""
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import PurePosixPath
-from typing import Union
+from typing import Iterable, Optional, Union
 
 import irods
+from irods.models import DataObject
+
+import ibridges.icat_columns as icat
 
 
 class IrodsPath():
@@ -187,7 +191,27 @@ class IrodsPath():
         """Check if the path already exists on the iRODS server."""
         return self.dataobject_exists() or self.collection_exists()
 
-    def walk(self, depth: int):
+    @property
+    def collection(self) -> irods.collection.iRODSCollection:
+        if self.collection_exists():
+            return self.session.irods_session.collections.get(str(self))
+        if self.dataobject_exists():
+            raise ValueError("Error retrieving collection, path is linked to a data object."
+                            " Use get_dataobject instead to retrieve the data object.")
+        raise irods.exception.CollectionDoesNotExist(str(self))
+
+    @property
+    def dataobject(self) -> irods.data_object.iRODSDataObject:
+        if self.dataobject_exists():
+            return self.session.irods_session.data_objects.get(str(self))
+        if self.collection_exists():
+            raise ValueError("Error retrieving data object, path is linked to a collection."
+                         " Use get_collection instead to retrieve the collection.")
+
+        raise irods.exception.DataObjectDoesNotExist(str(IrodsPath))
+
+
+    def walk(self, depth: Optional[int] = None) -> Iterable[IrodsPath]:
         """Walk on a collection.
 
         Parameters
@@ -196,8 +220,86 @@ class IrodsPath():
             Stops after depth many iterations, even if the tree is deeper.
 
         """
-        raise NotImplementedError("Walk method not implemented yet.")
+        all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
+        for path, name, _, _ in _get_data_objects(self.session, self.collection):
+            abs_path = IrodsPath(self.session, path).absolute_path()
+            all_data_objects[abs_path].append(IrodsPath(self.session, path) / name)
+        yield from _recursive_walk(self, depth, all_data_objects)
+            # for path, name, _, _ in _get_data_objects(self.session, self.collection):
+                # yield IrodsPath(self.session, path) / name
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
         return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
+
+    @property
+    def size(self):
+        if not self.exists():
+            raise ValueError("Path '{str(self)}' does not exist;"
+                             "it is neither a collection nor a dataobject")
+        if self.dataobject_exists():
+            return self.dataobject.size
+        all_objs = _get_data_objects(self.session, self.collection)
+        return sum(size for _, _, size, _ in all_objs)
+
+
+def _recursive_walk(ipath, depth, data_objects):
+    if depth is None:
+        next_depth = None
+    else:
+        next_depth = depth - 1
+    if not ipath.collection_exists():
+        if ipath.dataobject_exists():
+            yield ipath
+    else:
+        coll_ipaths = _get_subcoll_paths(ipath.session, ipath.collection)
+        coll_ipaths = sorted(coll_ipaths, key=lambda x: str(coll_ipaths))
+        for new_ipath in coll_ipaths:
+            yield new_ipath
+            if depth is None or depth > 1:
+                yield from _recursive_walk(new_ipath, next_depth, data_objects)
+        for data_path in data_objects[ipath.absolute_path()]:
+            yield data_path
+
+
+def _get_data_objects(session,
+                      coll: irods.collection.iRODSCollection) -> list[tuple[str, str, int, str]]:
+    """Retrieve all data objects in a collection and all its subcollections.
+
+    Parameters
+    ----------
+    session:
+        Session to get the data objects with.
+    coll : irods.collection.iRODSCollection
+        The collection to search for all data objects
+
+    Returns
+    -------
+    list of all data objects
+        [(collection path, name, size, checksum)]
+
+    """
+    # all objects in the collection
+    objs = [(obj.collection.path, obj.name, obj.size, obj.checksum)
+            for obj in coll.data_objects]
+
+    # all objects in subcollections
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
+                                                  DataObject.size, DataObject.checksum)
+    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+    for res in data_query.get_results():
+        path, name, size, checksum = res.values()
+        objs.append((path, name, size, checksum))
+
+    return objs
+
+
+def _get_subcoll_paths(session,
+                     coll: irods.collection.iRODSCollection) -> list:
+    """
+    Retrieves all sub collections in a sub tree starting at coll and returns their IrodsPaths.
+    """
+    coll_query = session.irods_session.query(icat.COLL_NAME)
+    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+
+    return [IrodsPath(session, p) for r in coll_query.get_results() for p in r.values()]
