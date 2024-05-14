@@ -24,6 +24,7 @@ that do not have any technical knowledge of iRods.
    :caption: Contents:
 
    quickstart
+   ipath
    cli
    faq
    api

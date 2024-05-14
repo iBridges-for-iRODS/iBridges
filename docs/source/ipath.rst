@@ -11,8 +11,7 @@ Group-based iRODS instances like Yoda will give you access to a group `home` col
 IrodsPath
 ---------
 
-iBridges offers an `IrodsPath` to conveniently work with those paths. It implements a selection of functions
-which are comparable to their counterparts in `pathlib`.
+iBridges offers an `IrodsPath` class to conveniently work with those paths. It implements a selection of functions which are comparable to their counterparts in `pathlib`.
 
 In the installation we showed you how to set a default `home`, for which we can address by `~` in `IrodsPath`.
 
@@ -22,7 +21,9 @@ In the installation we showed you how to set a default `home`, for which we can 
     home = IrodsPath(session, '~')
     print(home)
 
-This should give you the value which you set in the `irods_environment.json`. **Note**, that we still need to verify whether the path exists on the iRODS server. 
+This will give you the value which you set in the `irods_environment.json`. If you did not set any `irods_home` the home will default to `/<zone_name>/home/<user name>`.
+
+**Note**, that we still need to verify whether the path exists on the iRODS server. 
 
 .. code-block:: python
    
