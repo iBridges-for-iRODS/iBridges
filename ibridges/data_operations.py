@@ -321,7 +321,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
         By default all errors will stop the process of uploading.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide
-    copy_empty_folders : bool 
+    copy_empty_folders : bool
         Create a respective folder for empty colletions.
     options : dict
         More options for the download
@@ -508,9 +508,7 @@ def _get_data_objects(session: Session,
 
 def _get_subcoll_paths(session: Session,
                      coll: irods.collection.iRODSCollection) -> list:
-    """
-    Retrieves all sub collections in a sub tree starting at coll and returns their IrodsPaths.
-    """
+    """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
 

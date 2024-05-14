@@ -1,6 +1,7 @@
 """Rule operations."""
 import logging
 from typing import Optional
+
 import irods.exception
 import irods.rule
 
