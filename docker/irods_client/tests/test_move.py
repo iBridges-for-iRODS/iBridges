@@ -1,6 +1,7 @@
-import pytest
 from pytest import mark
+
 from ibridges.path import IrodsPath
+
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_move(session, item_name, request):

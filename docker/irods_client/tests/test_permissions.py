@@ -1,10 +1,8 @@
 import pytest
-from irods.exception import CAT_NO_ACCESS_PERMISSION
 from pytest import mark
 
-from ibridges.data_operations import download, upload
-from ibridges.permissions import Permissions
 from ibridges.path import IrodsPath
+from ibridges.permissions import Permissions
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
