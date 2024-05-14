@@ -8,5 +8,5 @@ from ibridges.session import Session
 from ibridges.sync import sync_data
 from ibridges.tickets import Tickets
 
-__all__ = ["Session", "IrodsPath", "download", "get_collection", "get_dataobject", "upload",
+__all__ = ["Session", "IrodsPath", "download", "upload",
            "MetaData", "Tickets", "search_data", "sync_data"]

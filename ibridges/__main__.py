@@ -5,11 +5,12 @@ import sys
 from pathlib import Path
 from typing import Union
 
-from ibridges.data_operations import download, get_collection, upload
+from ibridges.data_operations import download, upload
 from ibridges.interactive import interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.sync import sync_data
+from ibridges.util import get_collection
 
 try:  # Python < 3.10 (backport)
     from importlib_metadata import version  # type: ignore

@@ -17,38 +17,6 @@ from ibridges.session import Session
 NUM_THREADS = 4
 
 
-def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
-    """Retrieve information about replicas (copies of the file on different resources).
-
-    It does so for a data object in the iRODS system.
-
-    Parameters
-    ----------
-    obj : irods.data_object.iRODSDataObject
-        The data object
-
-    Returns
-    -------
-    list(tuple(int, str, str, int, str)):
-        List with tuple where each tuple contains replica index/number, resource name on which
-        the replica is stored about one replica, replica checksum, replica size,
-        replica status of the replica
-
-    """
-    #replicas = []
-    repl_states = {
-        '0': 'stale',
-        '1': 'good',
-        '2': 'intermediate',
-        '3': 'write-locked'
-    }
-
-    replicas = [(r.number, r.resource_name, r.checksum,
-                 r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
-
-    return replicas
-
-
 def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
              overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
     """Upload `local_path` to `irods_path` following iRODS `options`.
@@ -204,7 +172,7 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             else:
                 raise ValueError(f'Upload failed: {source}: '+repr(e)) from e
 
-def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path,
+def _create_local_dest(irods_path: IrodsPath, local_path: Path,
                        copy_empty_folders: bool = True
                        ) -> list[tuple[IrodsPath, Path]]:
     """Assembles the local destination paths for download of a collection."""
@@ -251,7 +219,7 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
 
-    source_to_dest = _create_local_dest(session, irods_path, local_path, copy_empty_folders)
+    source_to_dest = _create_local_dest(irods_path, local_path, copy_empty_folders)
 
     for source, dest in source_to_dest:
         try:

@@ -300,8 +300,7 @@ def _recursive_walk(ipath, depth, data_objects):
             yield new_ipath
             if depth is None or depth > 1:
                 yield from _recursive_walk(new_ipath, next_depth, data_objects)
-        for data_path in data_objects[ipath.absolute_path()]:
-            yield data_path
+        yield from data_objects[ipath.absolute_path()]
 
 
 def _get_data_objects(session,
