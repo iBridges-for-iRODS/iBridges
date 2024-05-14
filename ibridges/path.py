@@ -136,9 +136,44 @@ class IrodsPath():
             raise PermissionError(
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
-    def rename(self):
-        """Rename the collection or data object."""
-        raise NotImplementedError("Rename not implemented yet.")
+    def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
+        """Change the name or the path of a data object or collection.
+        New collections on the path will be created.
+        
+        Parameters
+        ----------
+        new_name: str or IrodsPath
+            new name or a new full path
+        """
+
+        if not self.exists():
+            raise ValueError(f'str{self} does not exist.')
+
+        # Build new path
+        if str(new_name).startswith('/'+self.session.zone):
+            new_path = IrodsPath(self.session, new_name)
+        else:
+            new_path = self.parent.joinpath(new_name)
+
+        try:
+            # Make sure new path exists on iRODS server
+            if not new_path.parent.exists():
+                self.create_collection(self.session, new_path.parent)
+
+            if self.dataobject_exists():
+                self.session.irods_session.data_objects.move(str(self), str(new_path))
+            else:
+                self.session.irods_session.collections.move(str(self), str(new_path))
+            return new_path
+
+        except irods.exception.SAME_SRC_DEST_PATHS_ERR as err:
+            raise ValueError(f'Path {new_path} already exists.') from err
+        except irods.exception.SYS_CROSS_ZONE_MV_NOT_SUPPORTED as err:
+            raise ValueError(
+                    f'Path {new_path} needs to start with /{self.session.zone}/home') from err
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as err:
+            raise PermissionError(f'Not allowed to move data to {new_path}') from err
+
 
     def collection_exists(self) -> bool:
         """Check if the path points to an iRODS collection."""
