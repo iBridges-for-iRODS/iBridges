@@ -5,7 +5,7 @@ from getpass import getpass
 from pathlib import Path
 from typing import Optional, Union
 
-from ibridges.session import Session, LoginError, PasswordError
+from ibridges.session import LoginError, PasswordError, Session
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
 

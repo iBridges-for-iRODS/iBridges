@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import json
-import warnings
 import socket
+import warnings
 from pathlib import Path
 from typing import Optional, Union
 
@@ -112,13 +112,16 @@ class Session:
         """
         return self.irods_session is not None and self.server_version != ()
 
-    def _network_check(self, hostname: str, port: int) -> bool:
+    @classmethod
+    def network_check(cls, hostname: str, port: int) -> bool:
         """Check connectivity to an iRODS server.
 
         Parameters
         ----------
         hostname : str
             FQDN/IP of an iRODS server.
+        port : int
+            Port to which to connect to the server
 
         Returns
         -------
@@ -141,7 +144,7 @@ class Session:
         """Establish an iRODS session."""
         irods_host = self._irods_env.get('irods_host', None)
         irods_port = self._irods_env.get('irods_port', None)
-        network = self._network_check(irods_host, irods_port)
+        network = self.network_check(irods_host, irods_port)
         if network is False:
             raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
         user = self._irods_env.get('irods_user_name', '')
@@ -255,7 +258,6 @@ class Session:
         except Exception as e:
             raise _translate_irods_error(e) from e
 
-
     def get_user_info(self) -> tuple[list, list]:
         """Query for user type and groups.
 
@@ -267,7 +269,6 @@ class Session:
             iRODS group names
 
         """
-
         query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
             icat.USER_NAME, self.username))
         user_type = [
@@ -285,7 +286,7 @@ class LoginError(AttributeError):
     """Error indicating a failure to log into the iRODS server due to the configuration."""
 
 class PasswordError(ValueError):
-    """Error indicating failure to log into the iRODS server due to wrong or outdated password"""
+    """Error indicating failure to log into the iRODS server due to wrong or outdated password."""
 
 
 
