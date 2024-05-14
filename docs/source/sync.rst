@@ -29,7 +29,7 @@ the local file system, `changes["changed_files"]` contains the updated or added 
 Update your local data
 ----------------------
 
-the code below shows hot to synchronise from your iRODS instance to your local file system. Your local data will beupdated.
+the code below shows hot to synchronise from your iRODS instance to your local file system. Your local data will be updated.
 
 .. code-block:: python
 
