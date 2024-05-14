@@ -278,7 +278,7 @@ class IrodsPath():
         """
         if not self.exists():
             raise ValueError(f"Path '{str(self)}' does not exist;"
-                             "it is neither a collection nor a dataobject")
+                             " it is neither a collection nor a dataobject.")
         if self.dataobject_exists():
             return self.dataobject.size
         all_objs = _get_data_objects(self.session, self.collection)
