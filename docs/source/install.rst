@@ -46,7 +46,7 @@ Ensure that the file is saved as `.json`.
 Configuration of your `home` collection
 ----------------------------------------
 
-iBridges makes use of the conugration item `"irods_home"`. The `"irods_home"` is your default path on the iRODS server which in iBridges you can address with `~` when creating paths.
+iBridges makes use of the configuration setting `"irods_home"`. The `"irods_home"` is your default path on the iRODS server which in iBridges you can address with `~` when creating paths.
 
 In a default iRODS instance you have a personal location on the iRODS server with the path
 
