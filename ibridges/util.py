@@ -1,5 +1,7 @@
 """Utilities to work with dataobjects and collections."""
 
+from __future__ import annotations
+
 from typing import Union
 
 import irods
