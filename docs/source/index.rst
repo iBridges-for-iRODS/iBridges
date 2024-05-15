@@ -24,6 +24,9 @@ that do not have any technical knowledge of iRods.
    :caption: Contents:
 
    quickstart
+
+   install
+   sync
    ipath
    cli
    faq
