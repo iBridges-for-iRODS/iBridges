@@ -21,7 +21,8 @@ release = '0.1'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.napoleon', "sphinx.ext.autodoc", "sphinx_autodoc_typehints",
-              'sphinx_rtd_theme', "sphinx_inline_tabs", "sphinx_copybutton"]
+              'sphinx_rtd_theme', "sphinx_inline_tabs", "sphinx_copybutton",
+              "sphinx.ext.autosummary"]
 
 templates_path = ['_templates']
 exclude_patterns = []
