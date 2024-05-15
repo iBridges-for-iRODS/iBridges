@@ -2,18 +2,26 @@ iRODS paths
 ===========
 
 iRODS paths follow a certain pattern just like the local paths of different operatings systems.
+To allow for similar path operations on iRODS paths, rather than using strings, `iBridges` offers an class with similar `pathlib`-like functionality.
 
-In iRODS the `/` is used as separator and all paths on an iRODS server start with `/<zone_name>`.
+Why prefer `pathlib.path` and `IrodsPath` over strings?
 
-Users usually have a personal `home` collection in iRODS: `/<zone_name>/home/<user name>`.
-Group-based iRODS instances like Yoda will give you access to a group `home` collection: `/<zone_name>/home/<group name>`
+.. note::
+    - To work with pathlib and IrodsPath is **safer** since it takes care of the correct concatenation of parts of the path according to the operating system and their specific setup.
+
+
+    - To work with pathlib and IrodsPath is **more convenient** since you can easily determine certain parts of a path, like parent, name and parts and easily check whether a path exists.
 
 IrodsPath
 ---------
 
-iBridges offers an `IrodsPath` class to conveniently work with those paths. It implements a selection of functions which are comparable to their counterparts in `pathlib`.
+In iRODS the `/` is used as separator and all paths on an iRODS server start with `/<zone_name>`.
+Users usually have a personal `home` collection in iRODS: `/<zone_name>/home/<user name>`.
+Group-based iRODS instances like Yoda will give you access to a group `home` collection: `/<zone_name>/home/<group name>`
 
-In the installation we showed you how to set a default `home`, for which we can address by `~` in `IrodsPath`.
+iBridges implements a selection of functions which are comparable to their counterparts in `pathlib`.
+
+In the :doc:`Installation <install>` we showed you how to set a default `home`, which we can address by `~` in `IrodsPath`.
 
 .. code-block:: python
 
@@ -43,7 +51,10 @@ Below we present a selection of possible iRODS path manipulations:
 Concatenating iRODS paths and local paths
 -----------------------------------------
 
-Assume we would like to create a counter part collection to our local path:
+In data transfers often iRODS collections that correspond to a local folder have to be created.
+Below we show how you can create an iRODS collection with the same name as an arbitrary local folder.
+
+We create the local path that points to a folder:
 
 .. code-block:: python
     
@@ -63,9 +74,3 @@ We will create `new_dir` in our iRODS home collection:
     print(new_irods_coll_path)
 
     coll = IrodsPath.create_collection(session, new_irods_coll_path)
-
-Summary
--------
-
-To work with pathlib and IrodsPath is safer since it takes care of the correct concatenation of parts of the path according to the operating system and their specific setup.
-
