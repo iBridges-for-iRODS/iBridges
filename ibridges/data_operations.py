@@ -363,7 +363,7 @@ def create_collection(session: Session,
               ) from exc
 
 
-def perform_operations(session: Session, operations: dict):
+def perform_operations(session: Session, operations: dict, ignore_err: bool=False):
     """Perform data operations.
 
     Parameters
@@ -372,7 +372,8 @@ def perform_operations(session: Session, operations: dict):
         Session to do the data operations for.
     operations
         Dictionary containing the operations to perform.
-
+    ignore_err
+        Ignore any errors and convert them into warnings if True.
     """
     up_sizes = [ipath.size for ipath, _ in operations["download"]]
     down_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
@@ -386,9 +387,9 @@ def perform_operations(session: Session, operations: dict):
     for curdir in operations["create_dir"]:
         Path(curdir).mkdir(parents=True, exist_ok=True)
     for (lpath, ipath), size in zip(operations["upload"], up_sizes):
-        _obj_put(session, lpath, ipath, overwrite=True)
+        upload(session, lpath, ipath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)
     for (ipath, lpath), size in zip(operations["download"], up_sizes):
-        _obj_get(session, ipath, lpath, overwrite=True)
+        download(session, ipath, lpath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)
 

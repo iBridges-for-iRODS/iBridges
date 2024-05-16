@@ -77,14 +77,14 @@ def sync_data(session: Session,
             raise ValueError(f"Source folder '{source}' does not exist")
 
     if isinstance(source, IrodsPath):
-        ops = _down_sync_operations(session, source, target, copy_empty_folders=copy_empty_folders,
+        ops = _down_sync_operations(source, target, copy_empty_folders=copy_empty_folders,
                                     depth=max_level)
     else:
-        ops = _up_sync_operations(session, source, target, copy_empty_folders=copy_empty_folders,
+        ops = _up_sync_operations(source, target, copy_empty_folders=copy_empty_folders,
                                     depth=max_level)
 
     if not dry_run:
-        perform_operations(session, ops)
+        perform_operations(session, ops, ignore_err=ignore_err)
     return ops
 
 def _param_checks(source, target):
@@ -104,7 +104,7 @@ def _calc_checksum(filepath):
             f_hash.update(memv[:item])
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
-def _down_sync_operations(session, isource_path, ldest_path, copy_empty_folders=True, depth=None):
+def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None):
     operations = {
         "create_dir": set(),
         "create_collection": set(),
@@ -128,7 +128,7 @@ def _down_sync_operations(session, isource_path, ldest_path, copy_empty_folders=
                 operations["create_dir"].add(str(lpath))
     return operations
 
-def _up_sync_operations(session, lsource_path, idest_path, copy_empty_folders=True, depth=None):
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
     operations = {
         "create_dir": set(),
         "create_collection": set(),
@@ -137,6 +137,8 @@ def _up_sync_operations(session, lsource_path, idest_path, copy_empty_folders=Tr
     }
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)
+        if depth is not None and len(root_part.parts) > depth:
+            continue
         root_ipath = idest_path.joinpath(*root_part.parts)
         for cur_file in files:
             ipath = root_ipath / cur_file
@@ -148,7 +150,8 @@ def _up_sync_operations(session, lsource_path, idest_path, copy_empty_folders=Tr
                     operations["upload"].append((lpath, ipath))
             else:
                 operations["upload"].append((lpath, ipath))
-        for fold in folders:
-            operations["create_collection"].add(str(root_ipath / fold))
+        if copy_empty_folders:
+            for fold in folders:
+                operations["create_collection"].add(str(root_ipath / fold))
         operations["create_collection"].add(str(root_ipath))
     return operations
