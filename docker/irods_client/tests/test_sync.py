@@ -17,7 +17,7 @@ def test_sync_dry_run(session, testdata, capsys):
                     dry_run=True,
                     copy_empty_folders=True)
 
-    assert len(ops["create_collection"]) == 0
+    assert len(ops["create_collection"]) == 1
     assert len(ops["create_dir"]) == 0
     assert len(ops["download"]) == 0
     assert len(ops["upload"]) == 7

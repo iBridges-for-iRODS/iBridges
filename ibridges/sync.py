@@ -160,6 +160,6 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
             for fold in folders:
                 if str(root_ipath / fold) not in remote_ipaths:
                     operations["create_collection"].add(str(root_ipath / fold))
-        if str(root_ipath) not in remote_ipaths:
+        if str(root_ipath) not in remote_ipaths and str(root_ipath) != str(idest_path):
             operations["create_collection"].add(str(root_ipath))
     return operations
