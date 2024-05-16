@@ -248,10 +248,15 @@ class IrodsPath():
     def walk(self, depth: Optional[int] = None) -> Iterable[IrodsPath]:
         """Walk on a collection.
 
+        This iterates over all collections and data object for the path. If the
+        path is pointing to a data object, it will simply yield this data object.
+
         Parameters
         ----------
         depth : int
-            Stops after depth many iterations, even if the tree is deeper.
+            The maximum depth relative to the starting collection over which is walked.
+            For example if depth equals 1, then it will iterate only over the subcollections
+            and data objects directly under the starting collection.
 
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
