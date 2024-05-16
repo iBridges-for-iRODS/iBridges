@@ -364,6 +364,16 @@ def create_collection(session: Session,
 
 
 def perform_operations(session: Session, operations: dict):
+    """Perform data operations.
+
+    Parameters
+    ----------
+    session
+        Session to do the data operations for.
+    operations
+        Dictionary containing the operations to perform.
+
+    """
     up_sizes = [ipath.size for ipath, _ in operations["download"]]
     down_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
     # pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="MiB",

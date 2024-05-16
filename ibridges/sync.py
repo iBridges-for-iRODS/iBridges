@@ -12,15 +12,11 @@ import base64
 import os
 from hashlib import sha256
 from pathlib import Path
-from typing import NamedTuple, Optional, Union
-
-from irods.collection import iRODSCollection
-from tqdm import tqdm
+from typing import Optional, Union
 
 from ibridges.data_operations import perform_operations
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.util import get_collection, get_dataobject
 
 
 def sync_data(session: Session,

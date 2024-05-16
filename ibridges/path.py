@@ -426,4 +426,5 @@ def _get_subcoll_paths(session,
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
 
-    return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results() for p in r.values()]
+    return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
+            for p in r.values()]
