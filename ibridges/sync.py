@@ -157,5 +157,6 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
         operations["create_collection"].add(str(root_ipath))
 
     operations["create_collection"] = set(col_str for col_str in operations["create_collection"]
-                                          if not IrodsPath(idest_path.session, col_str).collection_exists())
+                                          if not IrodsPath(idest_path.session, col_str
+                                                           ).collection_exists())
     return operations
