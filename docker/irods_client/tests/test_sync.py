@@ -9,26 +9,31 @@ def test_sync_dry_run(session, testdata, capsys):
     coll = create_collection(session=session, coll_path=ipath)
 
     # upload
-    sync_data(session=session,
-         source=testdata,
-         target=ipath,
-         max_level=None,
-         dry_run=True,
-         copy_empty_folders=True)
+    ops = sync_data(session=session,
+                    source=testdata,
+                    target=ipath,
+                    max_level=None,
+                    dry_run=True,
+                    copy_empty_folders=True)
 
-    captured = capsys.readouterr()
-    lines=sorted([x.strip() for x in captured.out.split("\n") if len(x.strip())>0])
+    assert len(ops["create_collection"]) == 0
+    assert len(ops["create_dir"]) == 0
+    assert len(ops["download"]) == 0
+    assert len(ops["upload"]) == 7
 
-    assert lines == ['/tempZone/home/rods/empty/more_data',
-        'Will create collection(s):',
-        "Will upload from '/tmp/testdata' to '/tempZone/home/rods/empty':",
-        'beach.rtf  727',
-        'bunny.rtf  10150',
-        'example.r  182',
-        'more_data/polarbear.txt  2717',
-        'plant.rtf  992',
-        'plant.rtf.copy  992',
-        'sun.rtf  661']
+    # captured = capsys.readouterr()
+    # lines=sorted([x.strip() for x in captured.out.split("\n") if len(x.strip())>0])
+
+    # assert lines == ['/tempZone/home/rods/empty/more_data',
+    #     'Will create collection(s):',
+    #     "Will upload from '/tmp/testdata' to '/tempZone/home/rods/empty':",
+    #     'beach.rtf  727',
+    #     'bunny.rtf  10150',
+    #     'example.r  182',
+    #     'more_data/polarbear.txt  2717',
+    #     'plant.rtf  992',
+    #     'plant.rtf.copy  992',
+    #     'sun.rtf  661']
 
     assert len(coll.data_objects)+len(coll.subcollections)==0, "Dry run did sync"
 

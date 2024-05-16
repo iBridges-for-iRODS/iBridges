@@ -376,13 +376,14 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
         Ignore any errors and convert them into warnings if True.
 
     """
-    up_sizes = [ipath.size for ipath, _ in operations["download"]]
-    down_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
+    up_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
+    down_sizes = [ipath.size for ipath, _ in operations["download"]]
     # pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="MiB",
                 # bar_format="{desc}: {percentage:3.0f}% {n_fmt:.3f}/{total_fmt:.3f} "
                 # "[{elapsed}<{remaining}, {rate_fmt}{postfix}]")
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
 
+    # print(operations["upload"])
     for col in operations["create_collection"]:
         IrodsPath.create_collection(session, col)
     for curdir in operations["create_dir"]:
@@ -390,6 +391,6 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     for (lpath, ipath), size in zip(operations["upload"], up_sizes):
         upload(session, lpath, ipath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)
-    for (ipath, lpath), size in zip(operations["download"], up_sizes):
+    for (ipath, lpath), size in zip(operations["download"], down_sizes):
         download(session, ipath, lpath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)

@@ -310,7 +310,7 @@ class IrodsPath():
         """
         if self.dataobject_exists():
             dataobj = self.dataobject
-            return dataobj.chksum if dataobj.chksum is not None else dataobj.checksum()
+            return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
         if self.collection_exists():
             raise ValueError("Cannot take checksum of a collection.")
         raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")

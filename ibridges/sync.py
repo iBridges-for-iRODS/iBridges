@@ -17,6 +17,7 @@ from typing import Optional, Union
 from ibridges.data_operations import perform_operations
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+from ibridges.util import is_collection
 
 
 def sync_data(session: Session,
@@ -154,4 +155,7 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
             for fold in folders:
                 operations["create_collection"].add(str(root_ipath / fold))
         operations["create_collection"].add(str(root_ipath))
+
+    operations["create_collection"] = set(col_str for col_str in operations["create_collection"]
+                                          if not IrodsPath(idest_path.session, col_str).collection_exists())
     return operations
