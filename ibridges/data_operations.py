@@ -374,6 +374,7 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
         Dictionary containing the operations to perform.
     ignore_err
         Ignore any errors and convert them into warnings if True.
+
     """
     up_sizes = [ipath.size for ipath, _ in operations["download"]]
     down_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
