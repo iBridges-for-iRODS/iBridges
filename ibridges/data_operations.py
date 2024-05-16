@@ -10,6 +10,7 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
+from tqdm import tqdm
 
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -360,3 +361,24 @@ def create_collection(session: Session,
         raise PermissionError(
                 f"While creating collection at '{coll_path}': iRODS server forbids action."
               ) from exc
+
+
+def perform_operations(session: Session, operations: dict):
+    up_sizes = [ipath.size for ipath, _ in operations["download"]]
+    down_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
+    # pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="MiB",
+                # bar_format="{desc}: {percentage:3.0f}% {n_fmt:.3f}/{total_fmt:.3f} "
+                # "[{elapsed}<{remaining}, {rate_fmt}{postfix}]")
+    pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
+
+    for col in operations["create_collection"]:
+        IrodsPath.create_collection(session, col)
+    for curdir in operations["create_dir"]:
+        Path(curdir).mkdir(parents=True, exist_ok=True)
+    for (lpath, ipath), size in zip(operations["upload"], up_sizes):
+        _obj_put(session, lpath, ipath, overwrite=True)
+        pbar.update(size)
+    for (ipath, lpath), size in zip(operations["download"], up_sizes):
+        _obj_get(session, ipath, lpath, overwrite=True)
+        pbar.update(size)
+
