@@ -100,8 +100,7 @@ def _param_checks(source, target):
 
 def _calc_checksum(filepath):
     if isinstance(filepath, IrodsPath):
-        dataobj = filepath.dataobject
-        return dataobj.checksum if dataobj.checksum else dataobj.chksum()
+        return filepath.checksum
     f_hash=sha256()
     memv=memoryview(bytearray(128*1024))
     with open(filepath, 'rb', buffering=0) as file:
