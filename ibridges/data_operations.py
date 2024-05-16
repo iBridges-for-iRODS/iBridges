@@ -392,4 +392,3 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     for (ipath, lpath), size in zip(operations["download"], up_sizes):
         download(session, ipath, lpath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)
-

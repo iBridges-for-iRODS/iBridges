@@ -112,7 +112,7 @@ def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, dep
         "download": [],
     }
     for ipath in isource_path.walk(depth=depth):
-        lpath = ldest_path.joinpath(*ipath.relative_to(isource_path)._parts)
+        lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
                 l_chksum = _calc_checksum(lpath)
