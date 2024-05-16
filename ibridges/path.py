@@ -258,6 +258,10 @@ class IrodsPath():
             For example if depth equals 1, then it will iterate only over the subcollections
             and data objects directly under the starting collection.
 
+        Returns
+        -------
+            Generator that generates all data objects and subcollections in the collection.
+
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
         for path, name, _, _ in _get_data_objects(self.session, self.collection):
