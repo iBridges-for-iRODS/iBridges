@@ -319,22 +319,22 @@ def ibridges_sync():
                   dry_run=args.dry_run,
         )
         if args.dry_run:
-            if len(ops["create_collection"]):
+            if len(ops["create_collection"]) > 0:
                 print("Create collections:\n")
                 for coll in ops["create_collection"]:
                     print(str(coll))
                 print("\n\n\n")
-            if len(ops["create_dir"]):
+            if len(ops["create_dir"]) > 0:
                 print("Create directories:\n")
                 for cur_dir in ops["create_dir"]:
                     print(str(cur_dir))
                 print("\n\n\n")
-            if len(ops["upload"]):
+            if len(ops["upload"]) > 0:
                 print("Upload files:\n")
                 for lpath, ipath in ops["upload"]:
                     print(f"{lpath} -> {ipath}")
                 print("\n\n\n")
-            if len(ops["download"]):
+            if len(ops["download"]) > 0:
                 print("Download files:\n")
                 for ipath, lpath in ops["download"]:
                     print(f"{ipath} -> {lpath}")

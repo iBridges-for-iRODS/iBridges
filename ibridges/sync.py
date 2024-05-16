@@ -15,9 +15,8 @@ from pathlib import Path
 from typing import Optional, Union
 
 from ibridges.data_operations import perform_operations
-from ibridges.path import IrodsPath
+from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
-from ibridges.util import is_collection
 
 
 def sync_data(session: Session,
@@ -129,7 +128,7 @@ def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, dep
                 operations["create_dir"].add(str(lpath))
     return operations
 
-def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+def _up_sync_operations_old(lsource_path, idest_path, copy_empty_folders=True, depth=None):
     operations = {
         "create_dir": set(),
         "create_collection": set(),
@@ -159,4 +158,44 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
     operations["create_collection"] = set(col_str for col_str in operations["create_collection"]
                                           if not IrodsPath(idest_path.session, col_str
                                                            ).collection_exists())
+    return operations
+
+
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+    operations = {
+        "create_dir": set(),
+        "create_collection": set(),
+        "upload": [],
+        "download": [],
+    }
+    session = idest_path.session
+    remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
+    for root, folders, files in os.walk(lsource_path):
+        root_part = Path(root).relative_to(lsource_path)
+        if depth is not None and len(root_part.parts) > depth:
+            continue
+        root_ipath = idest_path.joinpath(*root_part.parts)
+        for cur_file in files:
+            ipath = root_ipath / cur_file
+            lpath = lsource_path / root_part / cur_file
+            if str(ipath) in remote_ipaths:
+                ipath = remote_ipaths[str(ipath)]
+                l_chksum = _calc_checksum(lpath)
+                i_chksum = _calc_checksum(ipath)
+
+                if i_chksum != l_chksum:
+                    operations["upload"].append((lpath, ipath))
+            else:
+                ipath = CachedIrodsPath(session, None, False, None, str(ipath))
+                operations["upload"].append((lpath, ipath))
+        if copy_empty_folders:
+            for fold in folders:
+                if str(root_ipath / fold) not in remote_ipaths:
+                    operations["create_collection"].add(str(root_ipath / fold))
+        if str(root_ipath) not in remote_ipaths:
+            operations["create_collection"].add(str(root_ipath))
+
+    # operations["create_collection"] = set(col_str for col_str in operations["create_collection"]
+                                        #   if not IrodsPath(session, col_str
+                                                        #    ).collection_exists())
     return operations
