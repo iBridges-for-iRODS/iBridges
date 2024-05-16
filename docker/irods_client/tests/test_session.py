@@ -1,8 +1,10 @@
-import pytest
 import json
+
+import pytest
 
 from ibridges import Session
 from ibridges.interactive import interactive_auth
+
 
 def test_session_from_cached_pw(config, irods_env):
     # test only for plain irods

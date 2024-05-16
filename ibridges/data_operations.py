@@ -10,113 +10,12 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
-from irods.models import DataObject
 
-import ibridges.icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 
 NUM_THREADS = 4
 
-def get_dataobject(session: Session,
-                   path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
-    """Instantiate an iRODS data object.
-
-    Parameters
-    ----------
-    session :
-        Session with connection to the server to get the data object from.
-    path : str
-        Name of an iRODS data object.
-
-    Raises
-    ------
-    ValueError:
-        If the path is pointing to a collection and not a data object.
-
-    Returns
-    -------
-    iRODSDataObject
-        Instance of the data object with `path`.
-
-    """
-    path = IrodsPath(session, path)
-    if path.dataobject_exists():
-        return session.irods_session.data_objects.get(str(path))
-    if path.collection_exists():
-        raise ValueError("Error retrieving data object, path is linked to a collection."
-                         " Use get_collection instead to retrieve the collection.")
-
-    raise irods.exception.DataObjectDoesNotExist(path)
-
-def get_collection(session: Session,
-                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
-    """Instantiate an iRODS collection.
-
-    Parameters
-    ----------
-    session :
-        Session to get the collection from.
-    path : str
-        Name of an iRODS collection.
-
-    Raises
-    ------
-    ValueError:
-        If the path points to a dataobject and not a collection.
-
-    Returns
-    -------
-    iRODSCollection
-        Instance of the collection with `path`.
-
-    """
-    path = IrodsPath(session, path)
-    if path.collection_exists():
-        return session.irods_session.collections.get(str(path))
-    if path.dataobject_exists():
-        raise ValueError("Error retrieving collection, path is linked to a data object."
-                         " Use get_dataobject instead to retrieve the data object.")
-    raise irods.exception.CollectionDoesNotExist(path)
-
-def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str, str, int, str]]:
-    """Retrieve information about replicas (copies of the file on different resources).
-
-    It does so for a data object in the iRODS system.
-
-    Parameters
-    ----------
-    obj : irods.data_object.iRODSDataObject
-        The data object
-
-    Returns
-    -------
-    list(tuple(int, str, str, int, str)):
-        List with tuple where each tuple contains replica index/number, resource name on which
-        the replica is stored about one replica, replica checksum, replica size,
-        replica status of the replica
-
-    """
-    #replicas = []
-    repl_states = {
-        '0': 'stale',
-        '1': 'good',
-        '2': 'intermediate',
-        '3': 'write-locked'
-    }
-
-    replicas = [(r.number, r.resource_name, r.checksum,
-                 r.size, repl_states.get(r.status, r.status)) for r in obj.replicas]
-
-    return replicas
-
-def is_dataobject(item) -> bool:
-    """Determine if item is an iRODS data object."""
-    return isinstance(item, irods.data_object.iRODSDataObject)
-
-def is_collection(item) -> bool:
-    """Determine if item is an iRODS collection."""
-    return isinstance(item, irods.collection.iRODSCollection)
 
 def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[str, IrodsPath],
              overwrite: bool = False, resc_name: str = '', options: Optional[dict] = None):
@@ -273,31 +172,20 @@ def _upload_collection(session: Session, local_path: Union[str, Path],
             else:
                 raise ValueError(f'Upload failed: {source}: '+repr(e)) from e
 
-def _create_local_dest(session: Session, irods_path: IrodsPath, local_path: Path
+def _create_local_dest(irods_path: IrodsPath, local_path: Path,
+                       copy_empty_folders: bool = True
                        ) -> list[tuple[IrodsPath, Path]]:
     """Assembles the local destination paths for download of a collection."""
-    # get all data objects
-    coll = get_collection(session, irods_path)
-    all_objs = _get_data_objects(session, coll)
-
     download_path = local_path.joinpath(irods_path.name.lstrip('/'))
     source_to_dest: list[tuple[IrodsPath, Path]] = []
-    for subcoll_path, obj_name, _, _ in all_objs:
-        cur_ipath = IrodsPath(session, subcoll_path, obj_name)
-        cur_lpath = (download_path / IrodsPath(session, subcoll_path).relative_to(irods_path)
-                                   / obj_name)
-        source_to_dest.append((cur_ipath, cur_lpath))
+    for cur_ipath in irods_path.walk():
+        cur_lpath = download_path / cur_ipath.relative_to(irods_path)
+        if copy_empty_folders and cur_ipath.collection_exists():
+            cur_lpath.mkdir(parents=True, exist_ok=True)
+        elif cur_ipath.dataobject_exists():
+            source_to_dest.append((cur_ipath, cur_lpath))
+            cur_lpath.parent.mkdir(parents=True, exist_ok=True)
     return source_to_dest
-
-def _create_local_subtree(session: Session, irods_path: IrodsPath, local_path: Path):
-
-    coll = get_collection(session, irods_path)
-    subcolls = _get_subcoll_paths(session, coll)
-    # create all folders from collections including empty ones
-    folders = [local_path.joinpath(coll.name, *sc.relative_to(irods_path).parts)
-               for sc in subcolls]
-    for folder in folders:
-        folder.mkdir(parents=True, exist_ok=True)
 
 def _download_collection(session: Session, irods_path: Union[str, IrodsPath], local_path: Path,
                          overwrite: bool = False, ignore_err: bool = False, resc_name: str = '',
@@ -331,14 +219,9 @@ def _download_collection(session: Session, irods_path: Union[str, IrodsPath], lo
     if not irods_path.collection_exists():
         raise ValueError("irods_path must be a collection.")
 
-    if copy_empty_folders:
-        _create_local_subtree(session, irods_path, local_path)
-    source_to_dest = _create_local_dest(session, irods_path, local_path)
+    source_to_dest = _create_local_dest(irods_path, local_path, copy_empty_folders)
 
     for source, dest in source_to_dest:
-        # ensure local folder exists
-        if not dest.parent.is_dir():
-            os.makedirs(dest.parent)
         try:
             _obj_get(session, source, dest, overwrite, resc_name, options)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG:
@@ -453,66 +336,6 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         raise FileExistsError(f"File or directory {local_path} already exists. "
                               "Use overwrite=True to overwrite the existing file(s).") from exc
 
-def get_size(session: Session, item: Union[irods.data_object.iRODSDataObject,
-                               irods.collection.iRODSCollection]) -> int:
-    """Collect the sizes of a data object or a collection.
-
-    Parameters
-    ----------
-    session :
-        Session with the connection to the item.
-    item : iRODSDataObject or iRODSCollection
-        Collection or data object to get the size of.
-
-    Returns
-    -------
-    int :
-        Total size [bytes] of the iRODS object or all iRODS objects in the collection.
-
-    """
-    if is_dataobject(item):
-        return item.size
-    all_objs = _get_data_objects(session, item)
-    return sum(size for _, _, size, _ in all_objs)
-
-def _get_data_objects(session: Session,
-                      coll: irods.collection.iRODSCollection) -> list[tuple[str, str, int, str]]:
-    """Retrieve all data objects in a collection and all its subcollections.
-
-    Parameters
-    ----------
-    session:
-        Session to get the data objects with.
-    coll : irods.collection.iRODSCollection
-        The collection to search for all data objects
-
-    Returns
-    -------
-    list of all data objects
-        [(collection path, name, size, checksum)]
-
-    """
-    # all objects in the collection
-    objs = [(obj.collection.path, obj.name, obj.size, obj.checksum)
-            for obj in coll.data_objects]
-
-    # all objects in subcollections
-    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
-                                                  DataObject.size, DataObject.checksum)
-    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
-    for res in data_query.get_results():
-        path, name, size, checksum = res.values()
-        objs.append((path, name, size, checksum))
-
-    return objs
-
-def _get_subcoll_paths(session: Session,
-                     coll: irods.collection.iRODSCollection) -> list:
-    """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
-    coll_query = session.irods_session.query(icat.COLL_NAME)
-    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
-
-    return [IrodsPath(session, p) for r in coll_query.get_results() for p in r.values()]
 
 def create_collection(session: Session,
                       coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:

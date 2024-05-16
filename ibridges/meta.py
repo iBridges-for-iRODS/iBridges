@@ -6,7 +6,7 @@ from typing import Any, Iterator, Optional, Sequence, Union
 import irods.exception
 import irods.meta
 
-from ibridges.data_operations import is_dataobject
+from ibridges.util import is_dataobject
 
 
 class MetaData():

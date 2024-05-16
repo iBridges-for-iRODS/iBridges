@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-import os
 
 import pytest
 import tomli
@@ -8,8 +7,6 @@ import tomli
 from ibridges import Session
 from ibridges.data_operations import (
     create_collection,
-    get_collection,
-    get_dataobject,
     upload,
 )
 from ibridges.path import IrodsPath
@@ -61,6 +58,5 @@ def collection(session):
 def dataobject(session, testdata):
     ipath = IrodsPath(session, "~", "bunny.rtf")
     upload(session, testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
-    data_obj = get_dataobject(session, ipath)
-    yield data_obj
+    yield ipath.dataobject
     ipath.remove()

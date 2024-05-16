@@ -124,6 +124,15 @@ ibridges.tickets module
    :show-inheritance:
 
 
+ibridges.util module
+-----------------------
+
+.. automodule:: ibridges.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
 .. Module contents
 .. ---------------
 
