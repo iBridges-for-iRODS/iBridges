@@ -268,8 +268,6 @@ class IrodsPath():
             abs_path = IrodsPath(self.session, path).absolute_path()
             all_data_objects[abs_path].append(IrodsPath(self.session, path) / name)
         yield from _recursive_walk(self, depth, all_data_objects)
-            # for path, name, _, _ in _get_data_objects(self.session, self.collection):
-                # yield IrodsPath(self.session, path) / name
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
