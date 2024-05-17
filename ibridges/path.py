@@ -268,7 +268,13 @@ class IrodsPath():
             abs_path = IrodsPath(self.session, path).absolute_path()
             ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
             all_data_objects[abs_path].append(ipath)
-        yield from _recursive_walk(self, depth, all_data_objects)
+        all_collections = _get_subcoll_paths(self.session, self.collection)
+        all_collections = sorted(all_collections, key=lambda x: str(x))
+        sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
+        for cur_col in all_collections:
+            sub_collections[str(cur_col.parent)].append(cur_col)
+
+        yield from _recursive_walk(self, sub_collections, all_data_objects, self)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
@@ -315,6 +321,13 @@ class IrodsPath():
             raise ValueError("Cannot take checksum of a collection.")
         raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
 
+
+def _recursive_walk(cur_col, sub_collections, all_dataobjects, start_col):
+    if cur_col != start_col:
+        yield cur_col
+    for sub_col in sub_collections[str(cur_col)]:
+        yield from _recursive_walk(sub_col, sub_collections, all_dataobjects, start_col)
+    yield from sorted(all_dataobjects[str(cur_col)], key=lambda x: str(x))
 
 class CachedIrodsPath(IrodsPath):
     """Cached version of the IrodsPath.
@@ -368,24 +381,6 @@ class CachedIrodsPath(IrodsPath):
     def collection_exists(self):
         """See IrodsPath."""
         return not self._is_dataobj
-
-
-def _recursive_walk(ipath, depth, data_objects):
-    if depth is None:
-        next_depth = None
-    else:
-        next_depth = depth - 1
-    if not ipath.collection_exists():
-        if ipath.dataobject_exists():
-            yield ipath
-    else:
-        coll_ipaths = _get_subcoll_paths(ipath.session, ipath.collection)
-        coll_ipaths = sorted(coll_ipaths, key=lambda x: str(coll_ipaths))
-        for new_ipath in coll_ipaths:
-            yield new_ipath
-            if depth is None or depth > 1:
-                yield from _recursive_walk(new_ipath, next_depth, data_objects)
-        yield from data_objects[ipath.absolute_path()]
 
 
 def _get_data_objects(session,
