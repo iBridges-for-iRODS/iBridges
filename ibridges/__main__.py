@@ -1,4 +1,6 @@
 """Command line tools for the iBridges library."""
+from __future__ import annotations
+
 import argparse
 import json
 import sys
@@ -367,7 +369,7 @@ _tree_elements = {
 }
 
 
-def _print_build_list(build_list, prefix, pels, show_max=10):
+def _print_build_list(build_list: list[str], prefix: str, pels: dict[str, str], show_max: int = 10):
     if len(build_list) > show_max:
         n_half = (show_max-1)//2
         for item in build_list[:n_half]:
@@ -381,7 +383,8 @@ def _print_build_list(build_list, prefix, pels, show_max=10):
     if len(build_list) > 0:
         print(prefix + pels["last"] + build_list[-1])
 
-def _tree(ipath: IrodsPath, path_list, pels, prefix='', show_max=10):
+def _tree(ipath: IrodsPath, path_list: list[IrodsPath], pels: dict[str, str], prefix: str = '',
+          show_max: int = 10):
     """Generate A recursive generator, given a directory Path object.
 
     will yield a visual tree structure line by line
