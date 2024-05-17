@@ -81,6 +81,8 @@ def main() -> None:
         ibridges_list()
     elif subcommand == "mkcoll":
         ibridges_mkcoll()
+    elif subcommand == "tree":
+        ibridges_tree()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -339,3 +341,85 @@ def ibridges_sync():
                 print("Download files:\n")
                 for ipath, lpath in ops["download"]:
                     print(f"{ipath} -> {lpath}")
+
+# prefix components:
+space =  '    '
+branch = '│   '
+skip = "..."
+# pointers:
+tee =    '├── '
+last =   '└── '
+
+
+def _print_build_list(build_list, prefix, show_max=10):
+    if len(build_list) > show_max:
+        n_half = (show_max-1)//2
+        for item in build_list[:n_half]:
+            print(prefix + tee + item)
+        print(prefix + skip)
+        for item in build_list[-n_half:-1]:
+            print(prefix + tee + item)
+    else:
+        for item in build_list[:-1]:
+            print(prefix + tee + item)
+    if len(build_list) > 0:
+        print(prefix + last + build_list[-1])
+
+def _tree(ipath: IrodsPath, path_list, prefix='', show_max=10):
+    """Generate A recursive generator, given a directory Path object.
+
+    will yield a visual tree structure line by line
+    with each line prefixed by the same characters
+
+    """
+    j_path = 0
+    build_list: list[str] = []
+    while j_path < len(path_list):
+        cur_path = path_list[j_path]
+        try:
+            rel_path = cur_path.relative_to(ipath)
+        except ValueError:
+            break
+            # return j_path
+        # nskip = 0
+        # print(rel_path)
+        if len(rel_path.parts) > 1:
+            _print_build_list(build_list, prefix)
+            build_list = []
+            j_path += _tree(cur_path.parent, path_list[j_path:], prefix=prefix + branch)
+            continue
+            # cur_path = path_list[j_path]
+        # print(cur_path, ipath)
+        build_list.append(str(rel_path))
+        # print(prefix + tee + str(rel_path))
+        j_path += 1
+    _print_build_list(build_list, prefix)
+    return j_path
+    # for new_ipath in ipath.walk(depth=depth):
+        # print(new_ipath.relative_to(ipath))
+        # print(ipath.relative_to(new_ipath))
+    # # contents = list(dir_path.iterdir())
+    # # contents each get pointers that are ├── with a final └── :
+    # pointers = [tee] * (len(contents) - 1) + [last]
+    # for pointer, path in zip(pointers, contents):
+    #     yield prefix + pointer + path.name
+    #     if path.is_dir(): # extend the prefix and recurse:
+    #         extension = branch if pointer == tee else space
+    #         # i.e. space because last, └── , above so no more |
+    #         yield from _tree(path, prefix=prefix+extension)
+
+def ibridges_tree():
+    parser = argparse.ArgumentParser(
+        prog="ibridges tree",
+        description="Show collection/directory tree."
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Path to collection to make a tree of.",
+        type=str,
+    )
+    args, _ = parser.parse_known_args()
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        print(list(ipath.walk()))
+        _tree(ipath, list(ipath.walk()))
