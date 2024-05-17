@@ -269,12 +269,12 @@ class IrodsPath():
             ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
             all_data_objects[abs_path].append(ipath)
         all_collections = _get_subcoll_paths(self.session, self.collection)
-        all_collections = sorted(all_collections, key=lambda x: str(x))
+        all_collections = sorted(all_collections, key=str)
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
             sub_collections[str(cur_col.parent)].append(cur_col)
 
-        yield from _recursive_walk(self, sub_collections, all_data_objects, self)
+        yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
@@ -322,12 +322,15 @@ class IrodsPath():
         raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
 
 
-def _recursive_walk(cur_col, sub_collections, all_dataobjects, start_col):
+def _recursive_walk(cur_col, sub_collections, all_dataobjects, start_col, depth, max_depth):
     if cur_col != start_col:
         yield cur_col
+    if max_depth is not None and depth >= max_depth:
+        return
     for sub_col in sub_collections[str(cur_col)]:
-        yield from _recursive_walk(sub_col, sub_collections, all_dataobjects, start_col)
-    yield from sorted(all_dataobjects[str(cur_col)], key=lambda x: str(x))
+        yield from _recursive_walk(sub_col, sub_collections, all_dataobjects, start_col,
+                                   depth+1, max_depth)
+    yield from sorted(all_dataobjects[str(cur_col)], key=str)
 
 class CachedIrodsPath(IrodsPath):
     """Cached version of the IrodsPath.
