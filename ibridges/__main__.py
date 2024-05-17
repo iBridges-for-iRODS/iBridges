@@ -35,8 +35,11 @@ Available subcommands:
         Only updated files will be downloaded/uploaded.
     list:
         List the content of a collections, if no path is given, the home collection will be listed.
+    tree:
+        List a collection and subcollections in a hierarchical way.
     mkcoll:
         Create the collection and all its parent collections.
+
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -49,6 +52,7 @@ ibridges init
 ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
+ibridges tree irods:~/collection
 
 Program information:
     -v, --version - display CLI version and exit
@@ -343,29 +347,41 @@ def ibridges_sync():
                     print(f"{ipath} -> {lpath}")
 
 # prefix components:
-space =  '    '
-branch = '│   '
-skip = "..."
-# pointers:
-tee =    '├── '
-last =   '└── '
+_tree_elements = {
+    "pretty":
+        {
+            "space": '    ',
+            "branch": '│   ',
+            "skip": "...",
+            "tee": '├── ',
+            "last": '└── ',
+        },
+    "ascii":
+        {
+            "space": '    ',
+            "branch": '|   ',
+            "skip": "...",
+            "tee": '|-- ',
+            "last": '\\-- ',
+        }
+}
 
 
-def _print_build_list(build_list, prefix, show_max=10):
+def _print_build_list(build_list, prefix, show_max=10, pels=_tree_elements["pretty"]):
     if len(build_list) > show_max:
         n_half = (show_max-1)//2
         for item in build_list[:n_half]:
-            print(prefix + tee + item)
-        print(prefix + skip)
+            print(prefix + pels["tee"] + item)
+        print(prefix + pels["skip"])
         for item in build_list[-n_half:-1]:
-            print(prefix + tee + item)
+            print(prefix + pels["tee"] + item)
     else:
         for item in build_list[:-1]:
-            print(prefix + tee + item)
+            print(prefix + pels["tee"] + item)
     if len(build_list) > 0:
-        print(prefix + last + build_list[-1])
+        print(prefix + pels["last"] + build_list[-1])
 
-def _tree(ipath: IrodsPath, path_list, prefix='', show_max=10):
+def _tree(ipath: IrodsPath, path_list, prefix='', show_max=10, pels=_tree_elements["pretty"]):
     """Generate A recursive generator, given a directory Path object.
 
     will yield a visual tree structure line by line
@@ -380,35 +396,21 @@ def _tree(ipath: IrodsPath, path_list, prefix='', show_max=10):
             rel_path = cur_path.relative_to(ipath)
         except ValueError:
             break
-            # return j_path
-        # nskip = 0
-        # print(rel_path)
         if len(rel_path.parts) > 1:
-            _print_build_list(build_list, prefix)
+            _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
             build_list = []
-            j_path += _tree(cur_path.parent, path_list[j_path:], prefix=prefix + branch)
+            j_path += _tree(cur_path.parent, path_list[j_path:], show_max=show_max,
+                            prefix=prefix + pels["branch"],
+                            pels=pels)
             continue
-            # cur_path = path_list[j_path]
-        # print(cur_path, ipath)
         build_list.append(str(rel_path))
-        # print(prefix + tee + str(rel_path))
         j_path += 1
-    _print_build_list(build_list, prefix)
+    _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
     return j_path
-    # for new_ipath in ipath.walk(depth=depth):
-        # print(new_ipath.relative_to(ipath))
-        # print(ipath.relative_to(new_ipath))
-    # # contents = list(dir_path.iterdir())
-    # # contents each get pointers that are ├── with a final └── :
-    # pointers = [tee] * (len(contents) - 1) + [last]
-    # for pointer, path in zip(pointers, contents):
-    #     yield prefix + pointer + path.name
-    #     if path.is_dir(): # extend the prefix and recurse:
-    #         extension = branch if pointer == tee else space
-    #         # i.e. space because last, └── , above so no more |
-    #         yield from _tree(path, prefix=prefix+extension)
+
 
 def ibridges_tree():
+    """Print a tree representation of a remote directory."""
     parser = argparse.ArgumentParser(
         prog="ibridges tree",
         description="Show collection/directory tree."
@@ -418,8 +420,36 @@ def ibridges_tree():
         help="Path to collection to make a tree of.",
         type=str,
     )
+    parser.add_argument(
+        "--show-max",
+        help="Show only up to this number of dataobject in the same collection, default 10.",
+        default=10,
+        type=int,
+    )
+    parser.add_argument(
+        "--ascii",
+        help="Print the tree in pure ascii",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--depth",
+        help="Maximum depth of the tree to be shown, default no limit.",
+        default=None,
+        type=int,
+    )
     args, _ = parser.parse_known_args()
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         ipath = _parse_remote(args.remote_path, session)
-        print(list(ipath.walk()))
-        _tree(ipath, list(ipath.walk()))
+        if args.ascii:
+            pels = _tree_elements["ascii"]
+        else:
+            pels = _tree_elements["pretty"]
+        ipath_list = list(ipath.walk(depth=args.depth))
+        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
+        n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
+        n_data = len(ipath_list) - n_col
+        print_str = f"{n_col} collections, {n_data} data objects"
+        if args.depth is not None:
+            print_str += " (possibly more at higher depths)"
+        print(print_str)
+
