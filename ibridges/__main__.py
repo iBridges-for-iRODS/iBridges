@@ -367,7 +367,7 @@ _tree_elements = {
 }
 
 
-def _print_build_list(build_list, prefix, show_max=10, pels=_tree_elements["pretty"]):
+def _print_build_list(build_list, prefix, pels, show_max=10):
     if len(build_list) > show_max:
         n_half = (show_max-1)//2
         for item in build_list[:n_half]:
@@ -381,7 +381,7 @@ def _print_build_list(build_list, prefix, show_max=10, pels=_tree_elements["pret
     if len(build_list) > 0:
         print(prefix + pels["last"] + build_list[-1])
 
-def _tree(ipath: IrodsPath, path_list, prefix='', show_max=10, pels=_tree_elements["pretty"]):
+def _tree(ipath: IrodsPath, path_list, pels, prefix='', show_max=10):
     """Generate A recursive generator, given a directory Path object.
 
     will yield a visual tree structure line by line
@@ -452,4 +452,3 @@ def ibridges_tree():
         if args.depth is not None:
             print_str += " (possibly more at higher depths)"
         print(print_str)
-
