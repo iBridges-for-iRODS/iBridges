@@ -281,7 +281,7 @@ class IrodsPath():
         return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
 
     @property
-    def size(self):
+    def size(self) -> int:
         """Collect the sizes of a data object or a collection.
 
         Returns
@@ -322,7 +322,9 @@ class IrodsPath():
         raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
 
 
-def _recursive_walk(cur_col, sub_collections, all_dataobjects, start_col, depth, max_depth):
+def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
+                    all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
+                    depth: int, max_depth: Optional[int]):
     if cur_col != start_col:
         yield cur_col
     if max_depth is not None and depth >= max_depth:
@@ -364,24 +366,24 @@ class CachedIrodsPath(IrodsPath):
         super().__init__(session, *args)
 
     @property
-    def size(self):
+    def size(self) -> int:
         """See IrodsPath."""
         if self._size is None:
             return super().size
         return self._size
 
     @property
-    def checksum(self):
+    def checksum(self) -> str:
         """See IrodsPath."""
         if self._checksum is None:
             return super().checksum
         return self._checksum
 
-    def dataobject_exists(self):
+    def dataobject_exists(self) -> bool:
         """See IrodsPath."""
         return self._is_dataobj
 
-    def collection_exists(self):
+    def collection_exists(self) -> bool:
         """See IrodsPath."""
         return not self._is_dataobj
 
@@ -419,7 +421,7 @@ def _get_data_objects(session,
 
 
 def _get_subcoll_paths(session,
-                     coll: irods.collection.iRODSCollection) -> list:
+                       coll: irods.collection.iRODSCollection) -> list:
     """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
