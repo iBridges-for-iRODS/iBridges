@@ -196,13 +196,6 @@ class IrodsPath():
     def collection(self) -> irods.collection.iRODSCollection:
         """Instantiate an iRODS collection.
 
-        Parameters
-        ----------
-        session :
-            Session to get the collection from.
-        path : str
-            Name of an iRODS collection.
-
         Raises
         ------
         ValueError:
