@@ -1,9 +1,10 @@
+import irods
 import pytest
 from pytest import mark
-import irods
 
-from ibridges.meta import MetaData
 from ibridges.export_metadata import export_metadata_to_dict
+from ibridges.meta import MetaData
+
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_meta(item_name, request):
@@ -64,11 +65,10 @@ def test_meta(item_name, request):
     assert ("y", "x") in meta
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_export_metadata(item_name, request):
+def test_metadata_todict(item_name, request):
     item = request.getfixturevalue(item_name)
     meta = MetaData(item)
     meta.clear()
-    
     # test against:
     test_dict = {
             'name': item.name,
@@ -78,7 +78,7 @@ def test_export_metadata(item_name, request):
 
     if isinstance(item, irods.data_object.iRODSDataObject):
         test_dict['checksum'] = item.checksum
-    
+
     # Add some metadata
     meta.add("x", "z", "m")
     assert "x" in meta
@@ -88,3 +88,9 @@ def test_export_metadata(item_name, request):
         assert key in test_dict
     for value in result.values():
         assert value in test_dict.values()
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_metadata_export(item_name, request, session):
+    item = request.getfixturevalue(item_name)
+    res = export_metadata_to_dict(MetaData(item), session)
+    assert isinstance(res, dict)

@@ -78,5 +78,5 @@ max-args=10
 [tool.ruff]
 exclude = ["_version.py"]
 line-length = 100
-select = ["D", "E", "F", "W", "I", "N"]
-ignore = ["D203", "D213"]
+lint.select = ["D", "E", "F", "W", "I", "N"]
+lint.ignore = ["D203", "D213"]

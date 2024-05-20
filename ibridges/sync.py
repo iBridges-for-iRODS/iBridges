@@ -20,12 +20,11 @@ from tqdm import tqdm
 from ibridges.data_operations import (
     create_collection,
     download,
-    get_collection,
-    get_dataobject,
     upload,
 )
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+from ibridges.util import get_collection, get_dataobject
 
 
 class FileObject(NamedTuple):

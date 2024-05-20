@@ -5,13 +5,10 @@ import pytest
 
 from ibridges.data_operations import (
     download,
-    get_collection,
-    get_dataobject,
-    is_collection,
-    is_dataobject,
     upload,
 )
 from ibridges.path import IrodsPath
+from ibridges.util import is_collection, is_dataobject
 
 
 def _get_digest(obj_or_file):
@@ -33,11 +30,11 @@ def test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     upload(session, testdata/"plant.rtf", IrodsPath(session, "~"))
-    data_obj = get_dataobject(session, ipath)
+    data_obj = ipath.dataobject
     assert is_dataobject(data_obj)
     assert not is_collection(data_obj)
     with pytest.raises(ValueError):
-        get_collection(session, ipath)
+        _ = ipath.collection
     download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
 
@@ -46,11 +43,11 @@ def test_upload_download_collection(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     upload(session, testdata, ipath)
-    collection = get_collection(session, ipath)
+    collection = ipath.collection
     assert is_collection(collection)
     assert not is_dataobject(collection)
     with pytest.raises(ValueError):
-        get_dataobject(session, ipath)
+        ipath.dataobject
     download(session, ipath, tmpdir/"test")
     files = list(testdata.glob("*"))
 
