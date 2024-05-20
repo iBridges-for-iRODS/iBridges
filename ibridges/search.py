@@ -56,7 +56,7 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
                                                   icat.DATA_CHECKSUM)
     # iRODS queries do not know the 'or' operator, so we need three searches
-    # One for the collection, and two for the data 
+    # One for the collection, and two for the data
     # one data search in case path is a collection path and we want to retrieve all data there
     # one in case the path is or ends with a file name
     if path:
