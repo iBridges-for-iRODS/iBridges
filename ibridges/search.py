@@ -63,7 +63,7 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
         path = str(path)
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, path))
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, path))
-        potential_data_name = path if '/' not in path else path.split("/")[-1]
+        potential_data_name = path if '/' not in path else path.rsplit("/", maxsplit=1)[-1]
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_NAME, potential_data_name))
     if key_vals:
         for key in key_vals:
