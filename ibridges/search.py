@@ -60,8 +60,9 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     # one data search in case path is a collection path and we want to retrieve all data there
     # one in case the path is or ends with a file name
     if path:
-        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, str(path)))
-        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, str(path)))
+        path = str(path)
+        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, path))
+        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, path))
         potential_data_name = path if '/' not in path else path.split("/")[-1]
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_NAME, potential_data_name))
     if key_vals:
