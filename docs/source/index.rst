@@ -30,7 +30,7 @@ that do not have any technical knowledge of iRods.
    ipath
    cli
    faq
-   api
+   api/main
 
 
 Indices and tables
