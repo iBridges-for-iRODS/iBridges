@@ -84,10 +84,11 @@ def sync_data(session: Session,
                                     depth=max_level)
     else:
         ops = _up_sync_operations(Path(source), target, copy_empty_folders=copy_empty_folders,
-                                    depth=max_level)
+                                  depth=max_level)
 
     if not dry_run:
         perform_operations(session, ops, ignore_err=ignore_err)
+
     return ops
 
 def _param_checks(source, target):

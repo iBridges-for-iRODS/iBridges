@@ -60,7 +60,10 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
-        session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+        try:
+            session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+        except (PermissionError, OSError) as error:
+            raise PermissionError(f'Cannot read {error.filename}') from error
     else:
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
@@ -383,7 +386,10 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     for col in operations["create_collection"]:
         IrodsPath.create_collection(session, col)
     for curdir in operations["create_dir"]:
-        Path(curdir).mkdir(parents=True, exist_ok=True)
+        try:
+            Path(curdir).mkdir(parents=True, exist_ok=True)
+        except NotADirectoryError as error:
+            raise PermissionError(f"Cannot create {error.filename}") from error
     for (lpath, ipath), size in zip(operations["upload"], up_sizes):
         upload(session, lpath, ipath, overwrite=True, ignore_err=ignore_err)
         pbar.update(size)
