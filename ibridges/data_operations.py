@@ -65,7 +65,7 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         except (PermissionError, OSError) as error:
             raise PermissionError(f'Cannot read {error.filename}.') from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise PermissionError(f'Cannot write {str(irods_path)}.')
+            raise PermissionError(f'Cannot write {str(irods_path)}.') from error
     else:
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
