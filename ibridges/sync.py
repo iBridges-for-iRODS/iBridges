@@ -62,8 +62,11 @@ def sync_data(session: Session,
 
     Returns
     -------
-        A dict object containing two keys: 'changed_folders' and 'changed_files'.
-        These contain lists of changed folders and files, respectively
+        A dict object containing four keys:
+            'create_dir' : Create local directories when sync from iRODS to local
+            'create_collection' : Create tcollections when sync from local to iRODS
+            'upload' : Tuple(local path, iRODS path) when sync from local to iRODS
+            'download' : Tuple(iRODS path, local path) when sync from iRODS to local
         (or of to-be-changed folders and files, when in dry-run mode).
 
     """
