@@ -63,7 +63,9 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
         try:
             session.irods_session.data_objects.put(local_path, str(irods_path), **options)
         except (PermissionError, OSError) as error:
-            raise PermissionError(f'Cannot read {error.filename}') from error
+            raise PermissionError(f'Cannot read {error.filename}.') from error
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f'Cannot write {str(irods_path)}.')
     else:
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
@@ -104,7 +106,10 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     #Quick fix for #126
     if Path(local_path).is_dir():
         local_path = Path(local_path).joinpath(irods_path.parts[-1])
-    session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+    try:
+        session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+    except OSError as error:
+        raise PermissionError(f'Cannot write to {local_path}.') from error
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
                        ) -> list[tuple[Path, IrodsPath]]:
@@ -384,7 +389,10 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
 
     for col in operations["create_collection"]:
-        IrodsPath.create_collection(session, col)
+        try:
+            IrodsPath.create_collection(session, col)
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f"Cannot create {str(col)}") from error
     for curdir in operations["create_dir"]:
         try:
             Path(curdir).mkdir(parents=True, exist_ok=True)
