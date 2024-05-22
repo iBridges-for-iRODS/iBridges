@@ -92,7 +92,7 @@ The command to upload files and directories to an iRODS server is similar to the
 .. note::
 
     In contrast to the `download`` command, the `upload`` command always needs a 
-    desination collection or data object.
+    destination collection or data object.
 
 
 Synchronizing data
