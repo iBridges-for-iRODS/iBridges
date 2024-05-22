@@ -74,4 +74,4 @@ Options
 
 - The ``dry_run`` option lists all the source files and folders that need to be synchronized without actually performing the synchronization.
 
-** By default, checksums of all transferred files will be calculated and verified after up- or downloading.** A checksum mismatch will generate an error, aborting the synchronization process. Should this happen, it is possible some hiccup occurred during the transfer process. Check both copies of the offending file, and retain the correct one.
+**By default, checksums of all transferred files will be calculated and verified after up- or downloading.** A checksum mismatch will generate an error, aborting the synchronization process. Should this happen, it is possible some hiccup occurred during the transfer process. Check both copies of the offending file, and retain the correct one.
