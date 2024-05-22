@@ -11,6 +11,9 @@ To allow for similar path operations on iRODS paths, rather than using strings, 
     - To work with pathlib and IrodsPath is **safer** since it takes care of the correct concatenation of parts of the path according to the operating system and their specific setup.
     - To work with pathlib and IrodsPath is **more convenient** since you can easily determine certain parts of a path, like parent, name and parts and easily check whether a path exists.
 
+
+A complete tutorial on iRODS paths can be followed `here <https://github.com/UtrechtUniversity/iBridges/tree/main/tutorials>`__.
+
 IrodsPath
 ---------
 
