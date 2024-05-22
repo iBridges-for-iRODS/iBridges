@@ -36,7 +36,7 @@ class IrodsPath():
         """
         self.session = session
         if not hasattr(session, "irods_session"):
-            raise ValueError(f'str{self} does not have a valid session.')
+            raise ValueError(f'{str(self)} does not have a valid session.')
         # We don't want recursive IrodsPaths, so we take the
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a
