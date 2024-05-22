@@ -27,7 +27,7 @@ ibridges cli where it is:
 This will most likely ask for your password. After filling this in, iBridges will cache your password, so that
 you will not have to type it in every time you use an iBridges operation. This is especially useful if you want
 to execute scripts that run in the background. Note that the time your cached password is valid depends on the
-administrator settings of your iRods server.
+administrator settings of your iRODS server.
 
 iBridges stores the location of your irods environment file in `~/.ibridges/ibridges_cli.json`. You can safely delete
 this file if somehow it gets corrupted. If you have the irods environment in the default location, it can still be
@@ -41,17 +41,27 @@ useful to cache the password so that the next commands do not ask for your passw
 Listing remote files
 --------------------
 
-To list the dataobjects and collections that are available on the iRods server, you can use the `ibridges list` command:
+To list the dataobjects and collections that are available on the iRODS server, you can use the `ibridges list` command:
 
 .. code:: shell
 
-    ibridges list "irods:some_collection"
+    ibridges list "irods:/path/to/some_collection"
 
-If you don't supply a collection to display, it will list the data objects and collections in your `irods_home` directory.
+If you don't supply a collection to display, it will list the data objects and collections in your `irods_home` directory which you can specify in your `~/.irods/irods_environment.json`.
+
+If you want to list a collection in your `irods_home`, you can use `~` as an abbreviation:
+
+.. code:: shell
+
+    ibridges list "irods:~/collection_in_home"
+
+
+Please try to avoid spaces in collection and data object names! If you really need them, you must enclose the path with `"`. That also holds true for local paths.
+
 
 .. note::
 
-    Note that all data objects and collections on the iRods server are always preceded with "irods:". This is
+    Note that all data objects and collections on the iRODS server are always preceded with "irods:". This is
     done to distinguish local and remote files.
 
 
@@ -73,7 +83,7 @@ There are two more options: `--overwrite` to allow the download command to overw
 Uploading data
 --------------
 
-The command to upload files and directories to an iRods server is similar to the `download` command:
+The command to upload files and directories to an iRODS server is similar to the `download` command:
 
 .. code:: shell
 
@@ -81,8 +91,8 @@ The command to upload files and directories to an iRods server is similar to the
 
 .. note::
 
-    In contrast to the `download`` command, the `upload`` command always needs a desination collection or data
-    object.
+    In contrast to the `download`` command, the `upload`` command always needs a 
+    desination collection or data object.
 
 
 Synchronizing data
