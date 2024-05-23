@@ -28,9 +28,15 @@ class IrodsPath():
         args:
             Specification of the path. For example: "x/z" or "x", "z".
 
+        Raises
+        ------
+        ValueError:
+            If the provided session does not have an 'irods_session' attribute.
+
         """
         self.session = session
-        assert hasattr(session, "irods_session")
+        if not hasattr(session, "irods_session"):
+            raise ValueError(f'{str(self)} does not have a valid session.')
         # We don't want recursive IrodsPaths, so we take the
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a

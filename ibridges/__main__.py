@@ -131,7 +131,8 @@ def ibridges_init():
     ienv_path = _set_ienv_path(args.irods_env_path)
     print(ienv_path, args.irods_env_path)
     with interactive_auth(irods_env_path=ienv_path) as session:
-        assert isinstance(session, Session)
+        if not isinstance(session, Session):
+            raise ValueError(f"Irods session '{session}' is not a session.")
     print("ibridges init was succesful.")
 
 
