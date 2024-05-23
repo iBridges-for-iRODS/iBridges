@@ -50,13 +50,13 @@ iBridges makes use of the configuration setting `"irods_home"`. The `"irods_home
 
 In a default iRODS instance you have a personal location on the iRODS server with the path
 
-..code:: bash
+.. code:: bash
 
     /<zone_name>/home/<username>
 
 However, this can differ. E.g. on Yoda instances you will belong to a research group and hence your iRODS home will be:
 
-..code:: bash
+.. code:: bash
     
     /<zone_name>/home/research-<group name>
 

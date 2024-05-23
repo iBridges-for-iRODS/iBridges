@@ -18,6 +18,8 @@ iBridges is a wrapper around the `python-irodsclient <https://github.com/irods/p
 python-irodsclient is very powerful and feature rich, we aim to provide an easier API for users (mainly researchers)
 that do not have any technical knowledge of iRods.
 
+We provide extensive tutorials on how to work with data in iRODS. Please consult our `iBridges <https://github.com/UtrechtUniversity/iBridges/tree/main/tutorials>`__.
+
 .. toctree::
    :hidden:
    :maxdepth: 2
