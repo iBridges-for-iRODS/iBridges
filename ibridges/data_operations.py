@@ -162,7 +162,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
             warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
         else:
             ops = _empty_ops()
-            ops.append((local_path, ipath))
+            ops["upload"].append((local_path, ipath))
 
     ops.update({"resc_name": resc_name, "options": options})
     if not dry_run:
