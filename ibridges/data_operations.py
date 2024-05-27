@@ -264,12 +264,15 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     local_path = Path(local_path)
 
     if irods_path.collection_exists():
-        if not local_path.is_dir():
+        if not local_path.is_file():
             raise NotADirectoryError(
                 f"Cannot download to directory {local_path} since it is not a directory.")
+
         ops = _down_sync_operations(irods_path, local_path / irods_path.name,
                                     copy_empty_folders=copy_empty_folders)
         ops["create_dir"].add(local_path / irods_path.name)
+        if not local_path.is_dir():
+            ops["create_dir"].add(local_path)
     elif irods_path.dataobject_exists():
         ops = _empty_ops()
         if (not overwrite) and local_path.is_dir() and (local_path / irods_path.name).is_file():
