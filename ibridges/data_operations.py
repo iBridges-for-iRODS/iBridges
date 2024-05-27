@@ -264,9 +264,9 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     local_path = Path(local_path)
 
     if irods_path.collection_exists():
-        if not local_path.is_file():
+        if local_path.is_file():
             raise NotADirectoryError(
-                f"Cannot download to directory {local_path} since it is not a directory.")
+                f"Cannot download to directory {local_path} since a file with the same name exists.")
 
         ops = _down_sync_operations(irods_path, local_path / irods_path.name,
                                     copy_empty_folders=copy_empty_folders)
