@@ -275,7 +275,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         if (not overwrite) and local_path.is_dir() and (local_path / irods_path.name).is_file():
             raise FileExistsError(f"File or directory {local_path} already exists. "
                                    "Use overwrite=True to overwrite the existing file(s).")
-        ops["download"].append(irods_path, local_path)
+        ops["download"].append((irods_path, local_path))
     else:
         raise ValueError(f"Data object or collection not found: '{irods_path}'")
 
