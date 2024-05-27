@@ -7,11 +7,10 @@ import sys
 from pathlib import Path
 from typing import Union
 
-from ibridges.data_operations import download, upload
+from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.sync import sync_data
 from ibridges.util import get_collection
 
 try:  # Python < 3.10 (backport)
@@ -322,7 +321,7 @@ def ibridges_sync():
 
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        ops = sync_data(session,
+        ops = sync(session,
                   _parse_str(args.source, session),
                   _parse_str(args.destination, session),
                   dry_run=args.dry_run,
