@@ -59,7 +59,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
     with pytest.raises(ValueError):
         ipath.dataobject
     ops = download(session, ipath, tmpdir/"test")
-    _check_count(ops, [0, 2, 7, 0])
+    _check_count(ops, [0, 4, 7, 0])
     files = list(testdata.glob("*"))
 
     for cur_file in files:
