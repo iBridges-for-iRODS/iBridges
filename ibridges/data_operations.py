@@ -161,9 +161,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
                     "Use overwrite=True to overwrite the existing file.")
             warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
         else:
-            ops = {
-                "upload": (local_path, ipath)
-            }
+            ops = _empty_ops()
+            ops.append((local_path, ipath))
+
     ops.update({"resc_name": resc_name, "options": options})
     if not dry_run:
         perform_operations(session, ops, ignore_err=ignore_err)
@@ -279,7 +279,7 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         if (not overwrite) and local_path.is_dir() and (local_path / irods_path.name).is_file():
             raise FileExistsError(f"File or directory {local_path} already exists. "
                                    "Use overwrite=True to overwrite the existing file(s).")
-        ops["download"] = (irods_path, local_path)
+        ops["download"].append(irods_path, local_path)
     else:
         raise ValueError(f"Data object or collection not found: '{irods_path}'")
 
