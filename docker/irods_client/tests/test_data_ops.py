@@ -52,14 +52,14 @@ def test_upload_download_collection(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     ops = upload(session, testdata, ipath)
-    _check_count(ops, [2, 0, 0, 6])
+    _check_count(ops, [2, 0, 0, 7])
     collection = ipath.collection
     assert is_collection(collection)
     assert not is_dataobject(collection)
     with pytest.raises(ValueError):
         ipath.dataobject
     ops = download(session, ipath, tmpdir/"test")
-    _check_count(ops, [0, 2, 6, 0])
+    _check_count(ops, [0, 2, 7, 0])
     files = list(testdata.glob("*"))
 
     for cur_file in files:
