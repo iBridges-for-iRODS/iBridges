@@ -262,10 +262,6 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     """
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
-    if not local_path.is_dir():
-        raise NotADirectoryError(f"Cannot download to directory {local_path} since it is not a "
-                                 "directory.")
-
 
     if irods_path.collection_exists():
         if not local_path.is_dir():
