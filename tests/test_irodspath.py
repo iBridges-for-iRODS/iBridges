@@ -13,8 +13,6 @@ class MockIrodsSession:
     port = 9876
     home = "/testzone/home/testuser"
     irods_session = None
-    # def home(self):
-        # return "/"+self.zone+"/home/"+self.user
 
 
 # IrodsPath tests
