@@ -48,7 +48,7 @@ class IrodsPath():
         """Return the path if the absolute irods path."""
         # absolute path
         if len(self._path.parts) == 0:
-            return self.session.home
+            return IrodsPath(self.session, self.session.home)
         if self._path.parts[0] == "~" or self._path.parts[0] == ".":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == "/":
@@ -73,7 +73,7 @@ class IrodsPath():
 
     def __getattribute__(self, attr):
         """Make the IrodsPath transparent so that some Path functionality is available."""
-        if attr in ["name", "parts"]:
+        if attr in ["parts"]:
             return self._path.__getattribute__(attr)
         return super().__getattribute__(attr)
 

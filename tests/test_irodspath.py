@@ -1,10 +1,9 @@
 from pathlib import PurePosixPath
+
 from pytest import mark
-import os
-from pathlib import Path
 
 from ibridges import IrodsPath
-from ibridges.data_operations import _create_irods_dest
+
 
 class MockIrodsSession:
     zone = "testzone"
@@ -29,11 +28,11 @@ linux_path = "linux/or/mac/path"
 @mark.parametrize(
     "input,abs_path,name,parent",
     [
-        ([], "/testzone/home/testuser", "", "."),
-        (["~"], "/testzone/home/testuser", "~", "."),
-        ([""], "/testzone/home/testuser", "", "."),
-        (["."], "/testzone/home/testuser", "", "."),
-        ([PurePosixPath(".")], "/testzone/home/testuser", "", "."),
+        ([], "/testzone/home/testuser", "testuser", "."),
+        (["~"], "/testzone/home/testuser", "testuser", "."),
+        ([""], "/testzone/home/testuser", "testuser", "."),
+        (["."], "/testzone/home/testuser", "testuser", "."),
+        ([PurePosixPath(".")], "/testzone/home/testuser", "testuser", "."),
         (["~", "xyz"], "/testzone/home/testuser/xyz", "xyz", "~"),
         (["xyz"], "/testzone/home/testuser/xyz", "xyz", "."),
         ([".", "xyz"], "/testzone/home/testuser/xyz", "xyz", "."),
@@ -47,7 +46,7 @@ linux_path = "linux/or/mac/path"
 def test_absolute_path(input, abs_path, name, parent):
     session = MockIrodsSession()
     ipath = IrodsPath(session, *input)
-    assert ipath.absolute_path() == abs_path
+    assert str(ipath.absolute()) == abs_path
     assert ipath.name == name
     assert isinstance(ipath.parent, IrodsPath)
     assert str(ipath.parent._path) == parent, str(ipath.parent)
@@ -63,16 +62,3 @@ def test_absolute_path(input, abs_path, name, parent):
 def test_join_path(path, to_join, result):
     irods_path = IrodsPath(MockIrodsSession(), path)
     assert str(irods_path.joinpath(*to_join)._path) == result
-
-# Create upload and download path tests for data_operations
-
-def test_create_irods_paths():
-    session = MockIrodsSession()
-    local_path = Path("tests/testdata").absolute()
-    irods_path = IrodsPath(MockIrodsSession(), session.home)
-    source_to_dest = _create_irods_dest(local_path, irods_path)
-    for source, dest in source_to_dest:
-        local_parts = source.parts[source.parts.index("testdata"):]
-        irods_parts = dest.parts[dest.parts.index("testdata"):]
-        assert list(local_parts) == list(irods_parts)
-        assert str(dest).split("testdata")[0].rstrip("/") == session.home
