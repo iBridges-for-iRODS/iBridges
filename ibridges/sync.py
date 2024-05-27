@@ -12,76 +12,12 @@ import base64
 import os
 from hashlib import sha256
 from pathlib import Path
-from typing import NamedTuple, Optional, Union
+from typing import Optional, Union
 
-from irods.collection import iRODSCollection
-from tqdm import tqdm
-
-from ibridges.data_operations import (
-    create_collection,
-    download,
-    upload,
-)
-from ibridges.path import IrodsPath
+from ibridges.data_operations import perform_operations
+from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
-from ibridges.util import get_collection, get_dataobject
 
-
-class FileObject(NamedTuple):
-    """Object to hold attributes from local and remote files."""
-
-    name: str
-    path: str
-    size: int
-    checksum: str
-
-class FolderObject:
-    """Object to hold attributes from local and remote folders/collections."""
-
-    def __init__(self,
-                 path: str = '',
-                 n_files: int = 0,
-                 n_folders: int = 0) -> None:
-        """Initialize FolderObject.
-
-        Attributes
-        ----------
-        path : str
-            Path, relative to source or target root
-        n_files : int
-            Number of files in folder
-        n_folders : int
-            Number of subfolders in folder
-
-        Methods
-        -------
-        is_empty()
-            Check whether folder is empty.
-
-        """
-        self.path=path
-        self.n_files=n_files
-        self.n_folders=n_folders
-
-    def is_empty(self):
-        """Check to see if folder has anything (files or subfolders) in it."""
-        return (self.n_files+self.n_folders)==0
-
-    def __repr__(self):
-        """Give a nicer representation for debug purposes."""
-        return f"{self.__class__.__name__}(path='{self.path}', n_files={self.n_files}, \
-            n_folders={self.n_folders})"
-
-    def __eq__(self, other: object):
-        """Check whether two folders (paths) are the same."""
-        if not isinstance(other, FolderObject):
-            return NotImplemented
-
-        return self.path==other.path
-
-    def __hash__(self):
-        """Hash the path as a hash for the folder."""
-        return hash(self.path)
 
 def sync_data(session: Session,
          source: Union[str, Path, IrodsPath],
@@ -126,8 +62,11 @@ def sync_data(session: Session,
 
     Returns
     -------
-        A dict object containing two keys: 'changed_folders' and 'changed_files'.
-        These contain lists of changed folders and files, respectively
+        A dict object containing four keys:
+            'create_dir' : Create local directories when sync from iRODS to local
+            'create_collection' : Create tcollections when sync from local to iRODS
+            'upload' : Tuple(local path, iRODS path) when sync from local to iRODS
+            'download' : Tuple(iRODS path, local path) when sync from iRODS to local
         (or of to-be-changed folders and files, when in dry-run mode).
 
     """
@@ -136,65 +75,21 @@ def sync_data(session: Session,
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
             raise ValueError(f"Source collection '{source.absolute_path()}' does not exist")
-        src_files, src_folders=_get_irods_tree(
-            coll=get_collection(session=session, path=source),
-            max_level=max_level)
     else:
         if not Path(source).is_dir():
             raise ValueError(f"Source folder '{source}' does not exist")
-        src_files, src_folders=_get_local_tree(
-            path=Path(source),
-            max_level=max_level)
 
-    if isinstance(target, IrodsPath):
-        if not target.collection_exists():
-            raise ValueError(f"Target collection '{target.absolute_path()}' does not exist")
-        tgt_files, tgt_folders=_get_irods_tree(
-            coll=get_collection(session=session, path=target),
-            max_level=max_level)
+    if isinstance(source, IrodsPath):
+        ops = _down_sync_operations(source, Path(target), copy_empty_folders=copy_empty_folders,
+                                    depth=max_level)
     else:
-        if not Path(target).is_dir():
-            raise ValueError(f"Target folder '{target}' does not exist")
-        tgt_files, tgt_folders=_get_local_tree(
-            path=Path(target),
-            max_level=max_level)
+        ops = _up_sync_operations(Path(source), target, copy_empty_folders=copy_empty_folders,
+                                  depth=max_level)
 
-    folders_diff=sorted(
-        set(src_folders).difference(set(tgt_folders)),
-        key=lambda x: (x.path.count('/'), x.path))
+    if not dry_run:
+        perform_operations(session, ops, ignore_err=ignore_err)
 
-    files_diff=sorted(
-        set(src_files).difference(set(tgt_files)),
-        key=lambda x: (x.path.count('/'), x.path))
-
-    if isinstance(target, IrodsPath):
-        _create_irods_collections(
-            session=session,
-            target=target,
-            collections=folders_diff,
-            dry_run=dry_run,
-            copy_empty_folders=copy_empty_folders)
-        _copy_local_to_irods(
-            session=session,
-            source=Path(source),
-            target=target,
-            files=files_diff,
-            dry_run=dry_run,
-            ignore_err=ignore_err)
-    else:
-        _create_local_folders(
-            target=Path(target),
-            folders=folders_diff,
-            dry_run=dry_run,
-            copy_empty_folders=copy_empty_folders)
-        _copy_irods_to_local(
-            session=session,
-            source=source,  # type: ignore
-            target=Path(target),
-            objects=files_diff,
-            dry_run=dry_run,
-            ignore_err=ignore_err)
-    return {'changed_folders': folders_diff, 'changed_files': files_diff}
+    return ops
 
 def _param_checks(source, target):
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
@@ -204,6 +99,8 @@ def _param_checks(source, target):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
 def _calc_checksum(filepath):
+    if isinstance(filepath, IrodsPath):
+        return filepath.checksum
     f_hash=sha256()
     memv=memoryview(bytearray(128*1024))
     with open(filepath, 'rb', buffering=0) as file:
@@ -211,156 +108,62 @@ def _calc_checksum(filepath):
             f_hash.update(memv[:item])
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
-def _get_local_tree(path: Path,
-                    max_level: Optional[int] = None):
+def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None):
+    operations = {
+        "create_dir": set(),
+        "create_collection": set(),
+        "upload": [],
+        "download": [],
+    }
+    for ipath in isource_path.walk(depth=depth):
+        lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
+        if ipath.dataobject_exists():
+            if lpath.is_file():
+                l_chksum = _calc_checksum(lpath)
+                i_chksum = _calc_checksum(ipath)
+                if i_chksum != l_chksum:
+                    operations["download"].append((ipath, lpath))
+            else:
+                operations["download"].append((ipath, lpath))
+            if not lpath.parent.exists():
+                operations["create_dir"].add(str(lpath.parent))
+        elif ipath.collection_exists() and copy_empty_folders:
+            if not lpath.exists():
+                operations["create_dir"].add(str(lpath))
+    return operations
 
-    # change all sep into /, regardless of platform, for easier comparison
-    def fix_local_path(path: str):
-        return "/".join(path.split(os.sep))
 
-    objects=[]
-    collections=[]
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+    operations = {
+        "create_dir": set(),
+        "create_collection": set(),
+        "upload": [],
+        "download": [],
+    }
+    session = idest_path.session
+    remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
+    for root, folders, files in os.walk(lsource_path):
+        root_part = Path(root).relative_to(lsource_path)
+        if depth is not None and len(root_part.parts) > depth:
+            continue
+        root_ipath = idest_path.joinpath(*root_part.parts)
+        for cur_file in files:
+            ipath = root_ipath / cur_file
+            lpath = lsource_path / root_part / cur_file
+            if str(ipath) in remote_ipaths:
+                ipath = remote_ipaths[str(ipath)]
+                l_chksum = _calc_checksum(lpath)
+                i_chksum = _calc_checksum(ipath)
 
-    for root, dirs, files in os.walk(path):
-        for file in files:
-            full_path=Path(root) / file
-            rel_path=str(full_path)[len(str(path)):].lstrip(os.sep)
-            if max_level is None or rel_path.count(os.sep)<max_level:
-                objects.append(FileObject(
-                    name=file,
-                    path=fix_local_path(rel_path),
-                    size=full_path.stat().st_size,
-                    checksum=_calc_checksum(full_path)))
-
-        collections.extend([FolderObject(
-                fix_local_path(str(Path(root) / dir)[len(str(path)):].lstrip(os.sep)),
-                len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_file()]),
-                len([x for x in Path(f"{root}{os.sep}{dir}").iterdir() if x.is_dir()])
-            )
-            for dir in dirs if max_level is None or dir.count(os.sep)<max_level-1])
-
-    return objects, collections
-
-def _get_irods_tree(coll: iRODSCollection,
-                    root: str = '',
-                    level: int = 0,
-                    max_level: Optional[int] = None):
-
-    root=coll.path if len(root)==0 else root
-
-    # chksum() (re)calculates checksum, call only when checksum is empty
-    objects=[FileObject(
-        x.name,
-        x.path[len(root):].lstrip('/'),
-        x.size,
-        x.checksum if x.checksum is not None and len(x.checksum)>0 else x.chksum())
-        for x in coll.data_objects]
-
-    if max_level is None or level<max_level-1:
-        collections=[FolderObject(
-            x.path[len(root):].lstrip('/'),
-            len(x.data_objects),
-            len(x.subcollections)) for x in coll.subcollections]
-
-        for subcoll in coll.subcollections:
-            subobjects, subcollections=_get_irods_tree(
-                coll=subcoll,
-                root=root,
-                level=level+1,
-                max_level=max_level)
-            objects.extend(subobjects)
-            collections.extend(subcollections)
-    else:
-        collections=[]
-
-    return objects, collections
-
-def _create_irods_collections(session: Session,
-                              target: IrodsPath,
-                              collections: list[FolderObject],
-                              dry_run: bool,
-                              copy_empty_folders: bool):
-    new_colls=[str(target / x.path) for x in collections if not x.is_empty() or copy_empty_folders]
-    if dry_run:
-        print("Will create collection(s):")
-        print(*[f"  {x}" for x in new_colls], sep='\n')
-        return
-    for coll in new_colls:
-        create_collection(session, coll)
-
-def _create_local_folders(target: Path,
-                          folders: list[FolderObject],
-                          dry_run: bool,
-                          copy_empty_folders: bool):
-    new_folders=[target / Path(x.path) for x in folders if not x.is_empty() or copy_empty_folders]
-    if dry_run:
-        print("Will create folder(s):")
-        print(*[f"  {x}" for x in new_folders], sep='\n')
-        return
-    for folder in new_folders:
-        folder.mkdir(parents=True, exist_ok=True)
-
-def _copy_local_to_irods(session: Session,
-                         source: Path,
-                         target: IrodsPath,
-                         files: list[FileObject],
-                         dry_run: bool,
-                         ignore_err: bool) -> None:
-    if dry_run:
-        print(f"Will upload from '{source}' to '{target}':")
-        print(*[f"  {x.path}  {x.size}" for x in files], sep='\n')
-        return
-
-    if len(files)==0:
-        return
-
-    pbar=tqdm(desc='Uploading', total=sum(x.size for x in files))
-    for file in files:
-        source_path=Path(source) / file.path
-        target_path=str(target / file.path)
-        try:
-            upload(session=session,
-                    local_path=source_path,
-                    irods_path=target_path,
-                    overwrite=True,
-                    ignore_err=ignore_err)
-            obj=get_dataobject(session, target_path)
-            if file.checksum != \
-                    (obj.checksum if obj.checksum is not None and len(obj.checksum)>0
-                     else obj.chksum()):
-                raise ValueError(f"Checksum mismatch after upload: '{target_path}'")
-
-            pbar.update(file.size)
-        except Exception as err:
-            raise ValueError(f"Uploading '{source_path}' failed: {repr(err)}") from err
-
-def _copy_irods_to_local(session: Session,
-                         source: IrodsPath,
-                         target: Path,
-                         objects: list[FileObject],
-                         dry_run: bool,
-                         ignore_err: bool) -> None:
-    if dry_run:
-        print(f"Will download from '{source}' to '{target}':")
-        print(*[f"  {x.path}  {x.size}" for x in objects], sep='\n')
-        return
-
-    if len(objects)==0:
-        return
-
-    pbar=tqdm(desc='Downloading', total=sum(x.size for x in objects))
-    for obj in objects:
-        target_path=Path(target) / obj.path
-        source_path=str(source / obj.path)
-        try:
-            download(session=session,
-                        irods_path=source_path,
-                        local_path=target_path,
-                        overwrite=True,
-                        ignore_err=ignore_err)
-            if obj.checksum != _calc_checksum(target_path):
-                raise ValueError(f"Checksum mismatch after download: '{source_path}'")
-
-            pbar.update(obj.size)
-        except Exception as err:
-            raise ValueError(f"Downloading '{source_path}' failed: {repr(err)}") from err
+                if i_chksum != l_chksum:
+                    operations["upload"].append((lpath, ipath))
+            else:
+                ipath = CachedIrodsPath(session, None, False, None, str(ipath))
+                operations["upload"].append((lpath, ipath))
+        if copy_empty_folders:
+            for fold in folders:
+                if str(root_ipath / fold) not in remote_ipaths:
+                    operations["create_collection"].add(str(root_ipath / fold))
+        if str(root_ipath) not in remote_ipaths and str(root_ipath) != str(idest_path):
+            operations["create_collection"].add(str(root_ipath))
+    return operations

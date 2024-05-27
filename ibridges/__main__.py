@@ -35,7 +35,7 @@ Available subcommands:
         Only updated files will be downloaded/uploaded.
     list:
         List the content of a collections, if no path is given, the home collection will be listed.
-    midir:
+    mkcoll:
         Create the collection and all its parent collections.
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
@@ -314,8 +314,28 @@ def ibridges_sync():
 
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        sync_data(session,
+        ops = sync_data(session,
                   _parse_str(args.source, session),
                   _parse_str(args.destination, session),
                   dry_run=args.dry_run,
         )
+        if args.dry_run:
+            if len(ops["create_collection"]) > 0:
+                print("Create collections:\n")
+                for coll in ops["create_collection"]:
+                    print(str(coll))
+                print("\n\n\n")
+            if len(ops["create_dir"]) > 0:
+                print("Create directories:\n")
+                for cur_dir in ops["create_dir"]:
+                    print(str(cur_dir))
+                print("\n\n\n")
+            if len(ops["upload"]) > 0:
+                print("Upload files:\n")
+                for lpath, ipath in ops["upload"]:
+                    print(f"{lpath} -> {ipath}")
+                print("\n\n\n")
+            if len(ops["download"]) > 0:
+                print("Download files:\n")
+                for ipath, lpath in ops["download"]:
+                    print(f"{ipath} -> {lpath}")

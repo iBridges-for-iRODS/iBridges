@@ -10,6 +10,7 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
+from tqdm import tqdm
 
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -59,7 +60,12 @@ def _obj_put(session: Session, local_path: Union[str, Path], irods_path: Union[s
     if resc_name not in ['', None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
-        session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+        try:
+            session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+        except (PermissionError, OSError) as error:
+            raise PermissionError(f'Cannot read {error.filename}.') from error
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f'Cannot write {str(irods_path)}.') from error
     else:
         raise irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG
 
@@ -100,7 +106,10 @@ def _obj_get(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
     #Quick fix for #126
     if Path(local_path).is_dir():
         local_path = Path(local_path).joinpath(irods_path.parts[-1])
-    session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+    try:
+        session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+    except OSError as error:
+        raise PermissionError(f'Cannot write to {local_path}.') from error
 
 def _create_irods_dest(local_path: Path, irods_path: IrodsPath
                        ) -> list[tuple[Path, IrodsPath]]:
@@ -360,3 +369,38 @@ def create_collection(session: Session,
         raise PermissionError(
                 f"While creating collection at '{coll_path}': iRODS server forbids action."
               ) from exc
+
+
+def perform_operations(session: Session, operations: dict, ignore_err: bool=False):
+    """Perform data operations.
+
+    Parameters
+    ----------
+    session
+        Session to do the data operations for.
+    operations
+        Dictionary containing the operations to perform.
+    ignore_err
+        Ignore any errors and convert them into warnings if True.
+
+    """
+    up_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
+    down_sizes = [ipath.size for ipath, _ in operations["download"]]
+    pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
+
+    for col in operations["create_collection"]:
+        try:
+            IrodsPath.create_collection(session, col)
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f"Cannot create {str(col)}") from error
+    for curdir in operations["create_dir"]:
+        try:
+            Path(curdir).mkdir(parents=True, exist_ok=True)
+        except NotADirectoryError as error:
+            raise PermissionError(f"Cannot create {error.filename}") from error
+    for (lpath, ipath), size in zip(operations["upload"], up_sizes):
+        upload(session, lpath, ipath, overwrite=True, ignore_err=ignore_err)
+        pbar.update(size)
+    for (ipath, lpath), size in zip(operations["download"], down_sizes):
+        download(session, ipath, lpath, overwrite=True, ignore_err=ignore_err)
+        pbar.update(size)

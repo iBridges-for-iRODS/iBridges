@@ -263,17 +263,24 @@ class IrodsPath():
 
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
-        for path, name, _, _ in _get_data_objects(self.session, self.collection):
+        for path, name, size, checksum in _get_data_objects(self.session, self.collection):
             abs_path = IrodsPath(self.session, path).absolute_path()
-            all_data_objects[abs_path].append(IrodsPath(self.session, path) / name)
-        yield from _recursive_walk(self, depth, all_data_objects)
+            ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
+            all_data_objects[abs_path].append(ipath)
+        all_collections = _get_subcoll_paths(self.session, self.collection)
+        all_collections = sorted(all_collections, key=str)
+        sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
+        for cur_col in all_collections:
+            sub_collections[str(cur_col.parent)].append(cur_col)
+
+        yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
         return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
 
     @property
-    def size(self):
+    def size(self) -> int:
         """Collect the sizes of a data object or a collection.
 
         Returns
@@ -290,23 +297,94 @@ class IrodsPath():
         all_objs = _get_data_objects(self.session, self.collection)
         return sum(size for _, _, size, _ in all_objs)
 
+    @property
+    def checksum(self) -> str:
+        """Checksum of the data object.
 
-def _recursive_walk(ipath, depth, data_objects):
-    if depth is None:
-        next_depth = None
-    else:
-        next_depth = depth - 1
-    if not ipath.collection_exists():
-        if ipath.dataobject_exists():
-            yield ipath
-    else:
-        coll_ipaths = _get_subcoll_paths(ipath.session, ipath.collection)
-        coll_ipaths = sorted(coll_ipaths, key=lambda x: str(coll_ipaths))
-        for new_ipath in coll_ipaths:
-            yield new_ipath
-            if depth is None or depth > 1:
-                yield from _recursive_walk(new_ipath, next_depth, data_objects)
-        yield from data_objects[ipath.absolute_path()]
+        If not calculated yet, it will be computed on the server.
+
+        Returns
+        -------
+            The checksum of the data object.
+
+        Raises
+        ------
+        ValueError
+            When the path does not point to a data object.
+
+        """
+        if self.dataobject_exists():
+            dataobj = self.dataobject
+            return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
+        if self.collection_exists():
+            raise ValueError("Cannot take checksum of a collection.")
+        raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
+
+
+def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
+                    all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
+                    depth: int, max_depth: Optional[int]):
+    if cur_col != start_col:
+        yield cur_col
+    if max_depth is not None and depth >= max_depth:
+        return
+    for sub_col in sub_collections[str(cur_col)]:
+        yield from _recursive_walk(sub_col, sub_collections, all_dataobjects, start_col,
+                                   depth+1, max_depth)
+    yield from sorted(all_dataobjects[str(cur_col)], key=str)
+
+class CachedIrodsPath(IrodsPath):
+    """Cached version of the IrodsPath.
+
+    This version should generally not be used by users, but is used for performance reasons.
+    It will cache the size checksum and whether it is a data object. This can be invalidated
+    when other ibridges operations are used.
+    """
+
+    def __init__(self, session, size: Optional[int], is_dataobj: bool,
+                 checksum: Optional[str], *args):
+        """Initialize CachedIrodsPath.
+
+        Parameters
+        ----------
+        session:
+            Session used for the IrodsPath
+        size:
+            Size of the dataobject, None for collections.
+        is_dataobj:
+            Whether the path points to a data object.`
+        checksum:
+            The checksum of the dataobject, None for collections.
+        args:
+            Remainder of the path
+
+        """
+        self._is_dataobj = is_dataobj
+        self._size = size
+        self._checksum = checksum
+        super().__init__(session, *args)
+
+    @property
+    def size(self) -> int:
+        """See IrodsPath."""
+        if self._size is None:
+            return super().size
+        return self._size
+
+    @property
+    def checksum(self) -> str:
+        """See IrodsPath."""
+        if self._checksum is None:
+            return super().checksum
+        return self._checksum
+
+    def dataobject_exists(self) -> bool:
+        """See IrodsPath."""
+        return self._is_dataobj
+
+    def collection_exists(self) -> bool:
+        """See IrodsPath."""
+        return not self._is_dataobj
 
 
 def _get_data_objects(session,
@@ -342,9 +420,10 @@ def _get_data_objects(session,
 
 
 def _get_subcoll_paths(session,
-                     coll: irods.collection.iRODSCollection) -> list:
+                       coll: irods.collection.iRODSCollection) -> list:
     """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
 
-    return [IrodsPath(session, p) for r in coll_query.get_results() for p in r.values()]
+    return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
+            for p in r.values()]
