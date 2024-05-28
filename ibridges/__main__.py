@@ -243,13 +243,21 @@ def ibridges_download():
         default="",
         required=False
     )
-    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--dry-run",
+        help="Do not perform the download, but list the files to be updated.",
+        action="store_true"
+    )
+    args = parser.parse_args()
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        download(session,
+        ops = download(session,
                  _parse_remote(args.remote_path, session),
                  _parse_local(args.local_path),
                  overwrite=args.overwrite,
-                 resc_name=args.resource        )
+                 resc_name=args.resource,
+                 dry_run=args.dry_run)
+        if args.dry_run:
+            _summarize_ops(ops)
 
 
 def ibridges_upload():
@@ -280,21 +288,51 @@ def ibridges_upload():
         default="",
         required=False
     )
-    args, _ = parser.parse_known_args()
+    parser.add_argument(
+        "--dry-run",
+        help="Do not perform the upload, but list the files to be updated.",
+        action="store_true"
+    )
+    args = parser.parse_args()
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        upload(session,
+        ops = upload(session,
                _parse_local(args.local_path),
                _parse_remote(args.remote_path, session),
                overwrite=args.overwrite,
                resc_name=args.resource,
+               dry_run=args.dry_run
         )
+        if args.dry_run:
+            _summarize_ops(ops)
 
 
 def _parse_str(remote_or_local: str, session) -> Union[str, IrodsPath]:
     if remote_or_local.startswith("irods:"):
         return IrodsPath(session, remote_or_local[6:])
     return remote_or_local
+
+def _summarize_ops(ops):
+    if len(ops["create_collection"]) > 0:
+        print("Create collections:\n")
+        for coll in ops["create_collection"]:
+            print(str(coll))
+        print("\n\n\n")
+    if len(ops["create_dir"]) > 0:
+        print("Create directories:\n")
+        for cur_dir in ops["create_dir"]:
+            print(str(cur_dir))
+        print("\n\n\n")
+    if len(ops["upload"]) > 0:
+        print("Upload files:\n")
+        for lpath, ipath in ops["upload"]:
+            print(f"{lpath} -> {ipath}")
+        print("\n\n\n")
+    if len(ops["download"]) > 0:
+        print("Download files:\n")
+        for ipath, lpath in ops["download"]:
+            print(f"{ipath} -> {lpath}")
+
 
 def ibridges_sync():
     """Synchronize files/directories between local and remote."""
@@ -317,7 +355,7 @@ def ibridges_sync():
         help="Do not perform the synchronization, but list the files to be updated.",
         action="store_true"
     )
-    args, _ = parser.parse_known_args()
+    args = parser.parse_known_args()
 
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
@@ -327,25 +365,8 @@ def ibridges_sync():
                   dry_run=args.dry_run,
         )
         if args.dry_run:
-            if len(ops["create_collection"]) > 0:
-                print("Create collections:\n")
-                for coll in ops["create_collection"]:
-                    print(str(coll))
-                print("\n\n\n")
-            if len(ops["create_dir"]) > 0:
-                print("Create directories:\n")
-                for cur_dir in ops["create_dir"]:
-                    print(str(cur_dir))
-                print("\n\n\n")
-            if len(ops["upload"]) > 0:
-                print("Upload files:\n")
-                for lpath, ipath in ops["upload"]:
-                    print(f"{lpath} -> {ipath}")
-                print("\n\n\n")
-            if len(ops["download"]) > 0:
-                print("Download files:\n")
-                for ipath, lpath in ops["download"]:
-                    print(f"{ipath} -> {lpath}")
+            _summarize_ops(ops)
+
 
 # prefix components:
 _tree_elements = {
