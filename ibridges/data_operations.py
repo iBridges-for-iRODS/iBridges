@@ -1,11 +1,5 @@
-"""Collections and data objects.
-
-Synchronize data between local and remote copies.
-
-'sync' synchronizes the data between a local copy (local file system) and the copy stored in
-iRODS. The command can be in one of the two modes: synchronization of data from the client's
-local file system to iRODS, or from iRODS to the local file system. It broadly mirros the
-behaviour of the irsync module of the icommands command line tool.
+"""Data transfers.
+Transfer data between local file system and iRODS, includes upload, download and sync.
 """
 from __future__ import annotations
 
