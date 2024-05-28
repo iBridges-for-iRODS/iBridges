@@ -64,7 +64,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     assert isinstance(testdata, Path)
     if "resc2" in config["resources"]:
         subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf",
-                        "--resource resc2"], check=True, **pass_opts)
+                        "--resource", "resc2"], check=True, **pass_opts)
     else:
         subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"], 
                         check=True, **pass_opts)
