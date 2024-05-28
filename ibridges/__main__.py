@@ -355,7 +355,7 @@ def ibridges_sync():
         help="Do not perform the synchronization, but list the files to be updated.",
         action="store_true"
     )
-    args = parser.parse_known_args()
+    args = parser.parse_args()
 
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
