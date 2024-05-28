@@ -69,8 +69,8 @@ download(session, "/irods/path", "/other/local/path")
 
 ```
 
-## Commandline interface
-To simply upload or download data you do not need to write full python program, we offer a Commandline interface
+## Command line interface
+To simply upload or download data you do not need to write full python program, we offer a command line interface
 
 - Establish a connection
 
@@ -78,7 +78,7 @@ To simply upload or download data you do not need to write full python program, 
   ibridges init
   ```
 
-- List a colletion
+- List a collection
   
   ```bash
   # list your home collection
@@ -88,7 +88,7 @@ To simply upload or download data you do not need to write full python program, 
   ibridges list irods:~/<collection>
   
   # list a collection on a different path than your home
-  ibridges. list irods:<full_irods_path>
+  ibridges list irods:<full_irods_path>
   ```
 
 - Upload data
