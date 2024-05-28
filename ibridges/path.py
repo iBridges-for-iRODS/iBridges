@@ -44,23 +44,24 @@ class IrodsPath():
         self._path = PurePosixPath(*args)
         super().__init__()
 
-    def absolute_path(self) -> str:
+    def absolute(self) -> IrodsPath:
         """Return the path if the absolute irods path."""
         # absolute path
         if len(self._path.parts) == 0:
-            return self.session.home
+            return IrodsPath(self.session, self.session.home)
         if self._path.parts[0] == "~" or self._path.parts[0] == ".":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == "/":
             begin, end = "/", self._path.parts[1:]
         else:
             begin, end = self.session.home, self._path.parts
-        return str(PurePosixPath(begin, *end))
+        abs_str = str(PurePosixPath(begin, *end))
+        return IrodsPath(self.session, abs_str)
 
 
     def __str__(self) -> str:
         """Get the absolute path if converting to string."""
-        return self.absolute_path()
+        return str(self.absolute()._path)
 
     def __repr__(self) -> str:
         """Representation of the IrodsPath object in line with a Path object."""
@@ -72,7 +73,7 @@ class IrodsPath():
 
     def __getattribute__(self, attr):
         """Make the IrodsPath transparent so that some Path functionality is available."""
-        if attr in ["name", "parts"]:
+        if attr in ["parts"]:
             return self._path.__getattribute__(attr)
         return super().__getattribute__(attr)
 
@@ -96,6 +97,17 @@ class IrodsPath():
 
         """
         return IrodsPath(self.session, self._path.parent)
+
+    @property
+    def name(self):
+        """Return the name of the data object or collection.
+
+        Returns
+        -------
+            The name of the object/collction, similarly to pathlib.
+
+        """
+        return self.absolute().parts[-1]
 
     def remove(self):
         """Remove the data behind an iRODS path.
@@ -264,9 +276,9 @@ class IrodsPath():
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
         for path, name, size, checksum in _get_data_objects(self.session, self.collection):
-            abs_path = IrodsPath(self.session, path).absolute_path()
+            abs_path = IrodsPath(self.session, path).absolute()
             ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
-            all_data_objects[abs_path].append(ipath)
+            all_data_objects[str(abs_path)].append(ipath)
         all_collections = _get_subcoll_paths(self.session, self.collection)
         all_collections = sorted(all_collections, key=str)
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
@@ -277,7 +289,8 @@ class IrodsPath():
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path."""
-        return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
+        return PurePosixPath(str(self.absolute())).relative_to(
+            PurePosixPath(str(other.absolute())))
 
     @property
     def size(self) -> int:
