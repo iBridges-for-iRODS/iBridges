@@ -204,7 +204,7 @@ def _obj_get(session: Session, irods_path: IrodsPath, local_path: Path,
 
     try:
         session.irods_session.data_objects.get(str(irods_path), local_path, **options)
-    except OSError as error:
+    except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
         msg = f'Cannot write to {local_path}.'
         if not ignore_err:
             raise PermissionError(msg) from error
