@@ -96,7 +96,7 @@ class IrodsPath():
             The parent just above the current directory
 
         """
-        return IrodsPath(self.session, self._path.parent)
+        return self.absolute()._path.parent
 
     @property
     def name(self):
