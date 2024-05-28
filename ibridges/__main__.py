@@ -1,4 +1,6 @@
 """Command line tools for the iBridges library."""
+from __future__ import annotations
+
 import argparse
 import json
 import sys
@@ -35,8 +37,11 @@ Available subcommands:
         Only updated files will be downloaded/uploaded.
     list:
         List the content of a collections, if no path is given, the home collection will be listed.
+    tree:
+        List a collection and subcollections in a hierarchical way.
     mkcoll:
         Create the collection and all its parent collections.
+
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -49,6 +54,7 @@ ibridges init
 ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
+ibridges tree irods:~/collection
 
 Program information:
     -v, --version - display CLI version and exit
@@ -81,6 +87,8 @@ def main() -> None:
         ibridges_list()
     elif subcommand == "mkcoll":
         ibridges_mkcoll()
+    elif subcommand == "tree":
+        ibridges_tree()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -339,3 +347,111 @@ def ibridges_sync():
                 print("Download files:\n")
                 for ipath, lpath in ops["download"]:
                     print(f"{ipath} -> {lpath}")
+
+# prefix components:
+_tree_elements = {
+    "pretty":
+        {
+            "space": '    ',
+            "branch": '│   ',
+            "skip": "...",
+            "tee": '├── ',
+            "last": '└── ',
+        },
+    "ascii":
+        {
+            "space": '    ',
+            "branch": '|   ',
+            "skip": "...",
+            "tee": '|-- ',
+            "last": '\\-- ',
+        }
+}
+
+
+def _print_build_list(build_list: list[str], prefix: str, pels: dict[str, str], show_max: int = 10):
+    if len(build_list) > show_max:
+        n_half = (show_max-1)//2
+        for item in build_list[:n_half]:
+            print(prefix + pels["tee"] + item)
+        print(prefix + pels["skip"])
+        for item in build_list[-n_half:-1]:
+            print(prefix + pels["tee"] + item)
+    else:
+        for item in build_list[:-1]:
+            print(prefix + pels["tee"] + item)
+    if len(build_list) > 0:
+        print(prefix + pels["last"] + build_list[-1])
+
+def _tree(ipath: IrodsPath, path_list: list[IrodsPath], pels: dict[str, str], prefix: str = '',
+          show_max: int = 10):
+    """Generate A recursive generator, given a directory Path object.
+
+    will yield a visual tree structure line by line
+    with each line prefixed by the same characters
+
+    """
+    j_path = 0
+    build_list: list[str] = []
+    while j_path < len(path_list):
+        cur_path = path_list[j_path]
+        try:
+            rel_path = cur_path.relative_to(ipath)
+        except ValueError:
+            break
+        if len(rel_path.parts) > 1:
+            _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
+            build_list = []
+            j_path += _tree(cur_path.parent, path_list[j_path:], show_max=show_max,
+                            prefix=prefix + pels["branch"],
+                            pels=pels)
+            continue
+        build_list.append(str(rel_path))
+        j_path += 1
+    _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
+    return j_path
+
+
+def ibridges_tree():
+    """Print a tree representation of a remote directory."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges tree",
+        description="Show collection/directory tree."
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Path to collection to make a tree of.",
+        type=str,
+    )
+    parser.add_argument(
+        "--show-max",
+        help="Show only up to this number of dataobject in the same collection, default 10.",
+        default=10,
+        type=int,
+    )
+    parser.add_argument(
+        "--ascii",
+        help="Print the tree in pure ascii",
+        action="store_true",
+    )
+    parser.add_argument(
+        "--depth",
+        help="Maximum depth of the tree to be shown, default no limit.",
+        default=None,
+        type=int,
+    )
+    args, _ = parser.parse_known_args()
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        if args.ascii:
+            pels = _tree_elements["ascii"]
+        else:
+            pels = _tree_elements["pretty"]
+        ipath_list = list(ipath.walk(depth=args.depth))
+        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
+        n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
+        n_data = len(ipath_list) - n_col
+        print_str = f"{n_col} collections, {n_data} data objects"
+        if args.depth is not None:
+            print_str += " (possibly more at higher depths)"
+        print(print_str)
