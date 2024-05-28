@@ -183,7 +183,7 @@ def _obj_get(session: Session, irods_path: IrodsPath, local_path: Path,
     resc_name:
         Name of the resource to get the object from.
     options : dict
-        iRODS transfer options.
+        Extra options to the python irodsclient get method.
     ignore_err:
         If True, convert errors into warnings.
 
