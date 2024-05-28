@@ -52,7 +52,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
 
     if "resc2" in config["resources"]:
         subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
-                        "--overwrite", "--resource resc2"],
+                        "--overwrite", "--resource", "resc2"],
                         check=True, **pass_opts)
     else:
         subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
@@ -66,7 +66,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
         subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf",
                         "--resource", "resc2"], check=True, **pass_opts)
     else:
-        subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"], 
+        subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"],
                         check=True, **pass_opts)
     assert Path(testdata/"plant2.rtf").is_file()
 
