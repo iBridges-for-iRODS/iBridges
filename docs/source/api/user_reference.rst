@@ -33,17 +33,7 @@ Data Operations
 
     download
     upload
-
-
-Synchronization
----------------
-
-.. currentmodule:: ibridges.sync
-
-.. autosummary::
-    :toctree: generated/
-
-    sync_data
+    sync
 
 
 Metadata
