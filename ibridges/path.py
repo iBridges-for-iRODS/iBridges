@@ -183,7 +183,7 @@ class IrodsPath():
     @staticmethod
     def create_collection(session,
                           coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
-        """Create a collection and all collections in its path.
+        """Create a collection and all parent collections that do not exist yet.
 
         Parameters
         ----------
@@ -210,6 +210,8 @@ class IrodsPath():
         """
         try:
             return session.irods_session.collections.create(str(coll_path))
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f"Cannot create {str(coll_path)}, no access.") from error
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc

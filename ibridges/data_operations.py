@@ -131,16 +131,28 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
     PermissionError:
         If the iRODS server does not allow the collection or data object to be created.
 
+    Examples
+    --------
+    >>> ipath = IrodsPath(session, "~/some_col")
+    >>> upload(session, Path("dir"), ipath)
+    >>> upload(session, Path("dir"), ipath, overwrite=True)
+    >>> ops = upload(session, Path("some_file.txt"), ipath, dry_run)  # Does not upload
+    >>> print(ops)
+    {'create_dir': set(),
+    'create_collection': set(),
+    'upload': [(PosixPath('some_file.txt'), IrodsPath(~, some_col))],
+    'download': [],
+    'resc_name': '',
+    'options': None}
+
     """
     local_path = Path(local_path)
     ipath = IrodsPath(session, irods_path)
+    ops = _empty_ops()
     if local_path.is_dir():
         idest_path = ipath / local_path.name
         if not overwrite and idest_path.exists():
-            msg = f"{idest_path} already exists."
-            if not ignore_err:
-                raise FileExistsError(msg)
-            warnings.warn(msg)
+            raise FileExistsError(f"{idest_path} already exists.")
         else:
             ops = _up_sync_operations(local_path, idest_path, copy_empty_folders=copy_empty_folders,
                                       depth=None)
@@ -150,15 +162,13 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
                                ipath / local_path.name).dataobject_exists() \
                                or ipath.dataobject_exists()
         if obj_exists and not overwrite:
-            if not ignore_err:
-                raise FileExistsError(
-                    f"Dataset {irods_path} already exists. "
-                    "Use overwrite=True to overwrite the existing file.")
-            warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
+            raise FileExistsError(
+                f"Dataset {irods_path} already exists. "
+                "Use overwrite=True to overwrite the existing file.")
         else:
-            ops = _empty_ops()
             ops["upload"].append((local_path, ipath))
-
+    else:
+        raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
     ops.update({"resc_name": resc_name, "options": options})
     if not dry_run:
         perform_operations(session, ops, ignore_err=ignore_err)
@@ -253,6 +263,23 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
         (part of the) collection.
     ValueError:
         If the irods_path is not pointing to either a collection or a data object.
+    FileExistsError:
+        If the irods_path points to a data object and the local file already exists.
+    NotADirectoryError:
+        If the irods_path is a collection, while the destination is a file.
+
+    Examples
+    --------
+    >>> download(session, "~/some_collection", "some_local_dir")
+    >>> download(session, IrodsPath(session, "some_obj.txt"), "some_local_dir")
+    >>> ops = download(session, "~/some_obj.txt", "some_local_dir", dry_run=True)
+    >>> print(ops)
+    {'create_dir': set(),
+    'create_collection': set(),
+    'upload': [],
+    'download': [(IrodsPath(~, some_obj.txt), PosixPath('some_local_dir'))],
+    'resc_name': '',
+    'options': None}
 
     """
     irods_path = IrodsPath(session, irods_path)
@@ -286,7 +313,9 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
 
 def create_collection(session: Session,
                       coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
-    """Create a collection and all collections in its path.
+    """Create a collection and all parent collections that do not exist yet.
+
+    Alias for :meth:`ibridges.path.IrodsPath.create_collection`
 
     Parameters
     ----------
@@ -300,17 +329,19 @@ def create_collection(session: Session,
     PermissionError:
         If creating a collection is not allowed by the server.
 
+
+    Examples
+    --------
+    >>> create_collection(session, IrodsPath("~/new_collection"))
+
     """
-    try:
-        return session.irods_session.collections.create(str(coll_path))
-    except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        raise PermissionError(
-                f"While creating collection at '{coll_path}': iRODS server forbids action."
-              ) from exc
+    return IrodsPath.create_collection(session, coll_path)
 
 
 def perform_operations(session: Session, operations: dict, ignore_err: bool=False):
-    """Perform data operations.
+    """Execute data operations.
+
+    The operations can be obtained with a dry run of the upload/download/sync function.
 
     Parameters
     ----------
@@ -321,16 +352,22 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     ignore_err
         Ignore any errors and convert them into warnings if True.
 
+    Raises
+    ------
+    PermissionError:
+        When the operation is not allowed on either the iRODS server or locally.
+
+    Examples
+    --------
+    >>> perform_operations(session, ops)
+
     """
     up_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
     down_sizes = [ipath.size for ipath, _ in operations["download"]]
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
 
     for col in operations["create_collection"]:
-        try:
-            IrodsPath.create_collection(session, col)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise PermissionError(f"Cannot create {str(col)}") from error
+        IrodsPath.create_collection(session, col)
     for curdir in operations["create_dir"]:
         try:
             Path(curdir).mkdir(parents=True, exist_ok=True)
@@ -339,7 +376,7 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
 
     options = operations.get("options", None)
     options = {} if options is None else options
-    resc_name = operations.get("resc_ame", "")
+    resc_name = operations.get("resc_name", "")
     for (lpath, ipath), size in zip(operations["upload"], up_sizes):
         _obj_put(session, lpath, ipath, overwrite=True, ignore_err=ignore_err, options=options,
                  resc_name=resc_name)
@@ -389,7 +426,7 @@ def sync(session: Session,
         any errors encountered will be transformed into warnings and iBridges will continue
         to transfer the remaining files.
     copy_empty_folders : bool, default False
-        Controls whether folders/collections that contain no files or  subfolders/subcollections
+        Controls whether folders/collections that contain no files or subfolders/subcollections
         will be synchronized.
     resc_name : str
         Name of the resource from which data is downloaded, by default the server will decide.
@@ -401,7 +438,7 @@ def sync(session: Session,
     -------
         A dict object containing four keys:
             'create_dir' : Create local directories when sync from iRODS to local
-            'create_collection' : Create tcollections when sync from local to iRODS
+            'create_collection' : Create collections when sync from local to iRODS
             'upload' : Tuple(local path, iRODS path) when sync from local to iRODS
             'download' : Tuple(iRODS path, local path) when sync from iRODS to local
         (or of to-be-changed folders and files, when in dry-run mode).
