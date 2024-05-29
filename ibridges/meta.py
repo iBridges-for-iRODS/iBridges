@@ -15,6 +15,22 @@ class MetaData():
 
     This allows for adding and deleting of metadata entries for data objects
     and collections.
+
+    Examples
+    --------
+    >>> meta = MetaData(coll)
+    >>> "Author" in meta
+    True
+    >>> for entry in meta:
+    >>>     print(entry.key, entry.value, entry.units)
+    Author Ben
+    Mass 10 kg
+    >>> meta.add("Author", "Emma")
+    >>> meta.set("Author", "Alice")
+    >>> meta.delete("Author")
+    >>> print(meta)
+    {Mass, 10, kg}
+
     """
 
     def __init__(self, item: Union[irods.data_object.iRODSDataObject,
