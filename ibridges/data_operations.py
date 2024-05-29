@@ -153,10 +153,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
         idest_path = ipath / local_path.name
         if not overwrite and idest_path.exists():
             raise FileExistsError(f"{idest_path} already exists.")
-        else:
-            ops = _up_sync_operations(local_path, idest_path, copy_empty_folders=copy_empty_folders,
-                                      depth=None)
-            ops["create_collection"].add(str(idest_path))
+        ops = _up_sync_operations(local_path, idest_path, copy_empty_folders=copy_empty_folders,
+                                    depth=None)
+        ops["create_collection"].add(str(idest_path))
     elif local_path.is_file():
         obj_exists = IrodsPath(session,
                                ipath / local_path.name).dataobject_exists() \
@@ -165,8 +164,7 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
             raise FileExistsError(
                 f"Dataset {irods_path} already exists. "
                 "Use overwrite=True to overwrite the existing file.")
-        else:
-            ops["upload"].append((local_path, ipath))
+        ops["upload"].append((local_path, ipath))
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
     ops.update({"resc_name": resc_name, "options": options})
