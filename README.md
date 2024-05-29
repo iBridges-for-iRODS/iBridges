@@ -47,6 +47,10 @@ If you want to install the unstable version to test out new features, you can in
 pip install git+https://github.com/UtrechtUniversity/iBridges.git@develop
 ```
 
+## Configuration
+
+You will need to have a so-called `irods_environment.json`. Please follow the [documentation](https://ibridges.readthedocs.io/en/latest/) how to set it up. 
+
 ## Usage
 
 Below are some basic examples of the features in iBridges.
@@ -70,7 +74,7 @@ download(session, "/irods/path", "/other/local/path")
 ```
 
 ## Command line interface
-To simply upload or download data you do not need to write full python program, we offer a command line interface
+To simply upload or download data you do not need to write full python program, we offer a command line interface (see also [the documentation](https://ibridges.readthedocs.io/en/latest/)).
 
 - Establish a connection
 
@@ -85,28 +89,28 @@ To simply upload or download data you do not need to write full python program, 
   ibridges list
   
   # list a different collection in your home
-  ibridges list irods:~/<collection>
+  ibridges list "irods:~/<collection>"
   
   # list a collection on a different path than your home
-  ibridges list irods:<full_irods_path>
+  ibridges list "irods:/full/irods/path"
   ```
 
 - Upload data
 
   ```bash
-  ibridges upload my_file.json irods:~/some_collection
+  ibridges upload my_file.json "irods:~/some_collection"
   ```
 
 - Download data
 
   ```bash
-  ibridges download irods:~/some_collection/some_object download_dir
+  ibridges download "irods:~/some_collection/some_object" download_dir
   ```
 
 - Synchronise data
 
   ```bash
-  	ibridges sync some_local_directory irods:~/some_collection
+  	ibridges sync some_local_directory "irods:~/some_collection"
   ```
 
 ## Tutorials
@@ -114,16 +118,15 @@ To simply upload or download data you do not need to write full python program, 
 - **[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)**
 
 ### Guides
-- [Manual with examples](tutorials/QuickStart.ipynb)
-- [Tutorial for iRODS paths](tutorials/01-iRODS_paths.ipynb)
-- [Data synchronisation manual](tutorials/Data_sync.ipynb)
+- [Manual with examples](tutorials/00-FirstSteps.ipynb)
 
 ### Beginners tutorials
 - [Setup client configuration](tutorials/01-Setup-and-connect.ipynb)
-- [iRODS Paths](tutorials/01-iRODS_paths.ipynb)
-- [Working with data](tutorials/02-Working-with-data.ipynb)
+- [iRODS Paths](tutorials/02-iRODS_paths.ipynb)
+- [Working with data](tutorials/03-Working-with-data.ipynb)
 - [Metadata](tutorials/04-Metadata.ipynb)
 - [Sharing data](tutorials/05-Data-Sharing.ipynb)
+- [Synchronising data](tutorials/06-Data-sync.ipynb)
 
 ## Authors
 
