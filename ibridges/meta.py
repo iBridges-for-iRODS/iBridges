@@ -191,6 +191,7 @@ class MetaData():
         >>> meta.delete("mass", "10")
         >>> # Delete all metadata with the key mass
         >>> meta.delete("mass")
+
         """
         try:
             if value is None:
