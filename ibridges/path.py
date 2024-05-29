@@ -77,7 +77,7 @@ class IrodsPath():
             return self._path.__getattribute__(attr)
         return super().__getattribute__(attr)
 
-    def joinpath(self, *args):
+    def joinpath(self, *args) -> IrodsPath:
         """Concanate another path to this one.
 
         Returns
@@ -88,7 +88,7 @@ class IrodsPath():
         return IrodsPath(self.session, self._path, *args)
 
     @property
-    def parent(self):
+    def parent(self) -> IrodsPath:
         """Return the parent directory of the current directory.
 
         Returns
@@ -96,10 +96,10 @@ class IrodsPath():
             The parent just above the current directory
 
         """
-        return IrodsPath(self.session, self._path.parent)
+        return IrodsPath(self.session, self.absolute()._path.parent)  # pylint: disable=protected-access
 
     @property
-    def name(self):
+    def name(self) -> str:
         """Return the name of the data object or collection.
 
         Returns
