@@ -51,6 +51,15 @@ class Session:
         LoginError:
             If the connection to the iRODS server fails to establish.
 
+        Examples
+        --------
+        >>> session = Session(Path.home() / ".irods" / "irods_environment.json",
+        >>>                    password="your_password", irods_home="/zone/home/user")
+        >>> session = Session(env_dictionary)  # env_dictionary with connection info
+        >>> with Session("irods_environment.json") as session:
+        >>>     # Do operations with the session here.
+        >>>     # The session will be automatically closed on finish/error.
+
         """
         irods_env_path = None
         if isinstance(irods_env, (str, Path)):
@@ -92,6 +101,12 @@ class Session:
         Returns
         -------
             The current working directory in the current session.
+
+
+        Examples
+        --------
+        >>> session.home
+        /zone/home/user
 
         """
         return self._irods_env["irods_home"]

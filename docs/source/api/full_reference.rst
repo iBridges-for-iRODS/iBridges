@@ -102,15 +102,6 @@ ibridges.session module
    :show-inheritance:
 
 
-ibridges.sync module
---------------------
-
-.. automodule:: ibridges.sync
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 ibridges.tickets module
 -----------------------
 
