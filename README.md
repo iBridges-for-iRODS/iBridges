@@ -13,7 +13,7 @@ iBridges is library for scientific programmers who are working with data in iROD
 - **Interactive connection** to your iRods server.
 - **Upload** and **Download** your data.
 - Manipulate the **metadata** on the iRODS server.
-- **Synchronize** your data between your local computer and the iRODS server.
+- **Synchronise** your data between your local computer and the iRODS server.
 - Create and manipulate **Tickets** to temporarily grant access to outside users.
 - **Search** through all metadata for your dataset or collection.
 - Small number of dependencies (`python-irodsclient` and `tqdm`)
@@ -49,7 +49,7 @@ pip install git+https://github.com/UtrechtUniversity/iBridges.git@develop
 
 ## Configuration
 
-You will need to have a so-called `irods_environment.json`. Please follow the [documentation](https://ibridges.readthedocs.io/en/latest/) how to set it up. 
+You will need to have a so-called `irods_environment.json`. Please follow the [documentation](https://ibridges.readthedocs.io/en/latest/cli.html) how to set it up. 
 
 ## Usage
 
