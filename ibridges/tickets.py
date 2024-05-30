@@ -152,11 +152,13 @@ class Tickets():
         self._all_tickets = []
         for row in self.session.irods_session.query(TicketQuery.Ticket).filter(
                 TicketQuery.Owner.name == user):
+            time = row[TicketQuery.Ticket.expiry_ts]
+            time_stamp = datetime.fromtimestamp(int(time)) if time else ""
             self._all_tickets.append(
                 TicketData(row[TicketQuery.Ticket.string],
                            row[TicketQuery.Ticket.type],
                            self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
-                           datetime.fromtimestamp(int(row[TicketQuery.Ticket.expiry_ts]))
+                           time_stamp
                 ))
         return self._all_tickets
 

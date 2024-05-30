@@ -3,16 +3,38 @@ from __future__ import annotations
 
 from typing import Any, Iterator, Optional, Sequence, Union
 
+import irods
 import irods.exception
 import irods.meta
 
-from ibridges.data_operations import is_dataobject
+from ibridges.util import is_dataobject
 
 
 class MetaData():
-    """Irods metadata operations."""
+    """Irods metadata operations.
 
-    def __init__(self, item):
+    This allows for adding and deleting of metadata entries for data objects
+    and collections.
+
+    Examples
+    --------
+    >>> meta = MetaData(coll)
+    >>> "Author" in meta
+    True
+    >>> for entry in meta:
+    >>>     print(entry.key, entry.value, entry.units)
+    Author Ben
+    Mass 10 kg
+    >>> meta.add("Author", "Emma")
+    >>> meta.set("Author", "Alice")
+    >>> meta.delete("Author")
+    >>> print(meta)
+    {Mass, 10, kg}
+
+    """
+
+    def __init__(self, item: Union[irods.data_object.iRODSDataObject,
+                                   irods.collection.iRODSCollection]):
         """Initialize the metadata object.
 
         Parameters
@@ -28,7 +50,22 @@ class MetaData():
         yield from self.item.metadata.items()
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
-        """Check whether a key, key/val, key/val/units pairs are in the metadata."""
+        """Check whether a key, key/val, key/val/units pairs are in the metadata.
+
+        Returns
+        -------
+            True if key/val/unit pairs are present in the item.
+
+        Examples
+        --------
+        >>> "Author" in meta
+        True
+        >>> ("Author", "Ben") in meta
+        False
+        >>> ("Release", "2000", "year") in meta
+        True
+
+        """
         if isinstance(val, str):
             val = [val]
         all_attrs = ["name", "value", "units"][:len(val)]
@@ -81,6 +118,11 @@ class MetaData():
         PermissionError:
             If the metadata cannot be updated because the user does not have sufficient permissions.
 
+        Examples
+        --------
+        >>> meta.add("Author", "Ben")
+        >>> meta.add("Mass", "10", "kg")
+
         """
         try:
             if (key, value, units) in self:
@@ -113,6 +155,11 @@ class MetaData():
         PermissionError:
             If the user does not have sufficient permissions to set the metadata.
 
+        Examples
+        --------
+        >>> meta.set("Author", "Ben")
+        >>> meta.set("mass", "10", "kg")
+
         """
         self.delete(key, None)
         self.add(key, value, units)
@@ -135,6 +182,15 @@ class MetaData():
             If the to be deleted key cannot be found.
         PermissionError:
             If the user has insufficient permissions to delete the metadata.
+
+        Examples
+        --------
+        >>> # Delete the metadata entry with mass 10 kg
+        >>> meta.delete("mass", "10", "kg")
+        >>> # Delete all metadata with key mass  and value 10
+        >>> meta.delete("mass", "10")
+        >>> # Delete all metadata with the key mass
+        >>> meta.delete("mass")
 
         """
         try:

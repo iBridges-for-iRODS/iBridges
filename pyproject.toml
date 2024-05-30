@@ -44,6 +44,7 @@ test = [
     "types-tqdm",
     "sphinx", "sphinx-rtd-theme", "sphinxcontrib-napoleon",
     "sphinx-autodoc-typehints", "sphinx_inline_tabs", "sphinx_copybutton",
+    "ruff"
 ]
 
 
@@ -77,5 +78,5 @@ max-args=10
 [tool.ruff]
 exclude = ["_version.py"]
 line-length = 100
-select = ["D", "E", "F", "W", "I", "N"]
-ignore = ["D203", "D213"]
+lint.select = ["D", "E", "F", "W", "I", "N"]
+lint.ignore = ["D203", "D213"]

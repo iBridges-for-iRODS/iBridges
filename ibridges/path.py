@@ -1,14 +1,27 @@
-"""A class to handle iRODS and local (Win, linux) paths."""
+"""A class to handle iRODS paths."""
 from __future__ import annotations
 
+from collections import defaultdict
 from pathlib import PurePosixPath
-from typing import Union
+from typing import Iterable, Optional, Union
 
 import irods
+from irods.models import DataObject
+
+import ibridges.icat_columns as icat
 
 
 class IrodsPath():
-    """Extending the posix path functionalities with iRODS functionalities."""
+    """A class analogous to the pathlib.Path for accessing iRods data.
+
+    The IrodsPath can be used in much the same way as a Path from the pathlib library.
+    Not all methods and attributes are implemented, and some methods/attributes behave
+    subtly different from the pathlib implementation. They mostly do with the expansion
+    of the home directory. With the IrodsPath, the '~' is used to denote the irods_home
+    directory set in the Session object. So, for example the name of an irods path is
+    always the name of the collection/subcollection, which is different from the pathlib
+    behavior in some cases.
+    """
 
     _current_working_path = ""
 
@@ -24,9 +37,22 @@ class IrodsPath():
         args:
             Specification of the path. For example: "x/z" or "x", "z".
 
+        Raises
+        ------
+        ValueError:
+            If the provided session does not have an 'irods_session' attribute.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~")  # Get an iRods path of the irods_home collection.
+        >>> IrodsPath(session, "/zone/home/some_collection")  # Absolute path.
+        >>> IrodsPath(session, "some_collection")  # Relative path.
+        >>> IrodsPath(session, "~/some_collection")  # Same as above.
+
         """
         self.session = session
-        assert hasattr(session, "irods_session")
+        if not hasattr(session, "irods_session"):
+            raise ValueError(f'{str(self)} does not have a valid session.')
         # We don't want recursive IrodsPaths, so we take the
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a
@@ -34,23 +60,37 @@ class IrodsPath():
         self._path = PurePosixPath(*args)
         super().__init__()
 
-    def absolute_path(self) -> str:
-        """Return the path if the absolute irods path."""
+    def absolute(self) -> IrodsPath:
+        """Return the absolute path.
+
+        This method does the expansion of the '~' and '.' symbols.
+
+        Returns
+        -------
+            The absolute IrodsPath, without any '~' or '.'.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~").absolute()
+        IrodsPath(/, zone, user)
+
+        """
         # absolute path
         if len(self._path.parts) == 0:
-            return self.session.home
+            return IrodsPath(self.session, self.session.home)
         if self._path.parts[0] == "~" or self._path.parts[0] == ".":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == "/":
             begin, end = "/", self._path.parts[1:]
         else:
             begin, end = self.session.home, self._path.parts
-        return str(PurePosixPath(begin, *end))
+        abs_str = str(PurePosixPath(begin, *end))
+        return IrodsPath(self.session, abs_str)
 
 
     def __str__(self) -> str:
         """Get the absolute path if converting to string."""
-        return self.absolute_path()
+        return str(self.absolute()._path)
 
     def __repr__(self) -> str:
         """Representation of the IrodsPath object in line with a Path object."""
@@ -62,30 +102,59 @@ class IrodsPath():
 
     def __getattribute__(self, attr):
         """Make the IrodsPath transparent so that some Path functionality is available."""
-        if attr in ["name", "parts"]:
+        if attr in ["parts"]:
             return self._path.__getattribute__(attr)
         return super().__getattribute__(attr)
 
-    def joinpath(self, *args):
-        """Concanate another path to this one.
+    def joinpath(self, *args) -> IrodsPath:
+        """Concatenate another path to this one.
 
         Returns
         -------
             The concatenated path.
 
+        Examples
+        --------
+        >>> IrodsPath(session, "~").joinpath("x", "y")
+        IrodsPath(~, x, y)
+
         """
         return IrodsPath(self.session, self._path, *args)
 
     @property
-    def parent(self):
+    def parent(self) -> IrodsPath:
         """Return the parent directory of the current directory.
 
         Returns
         -------
             The parent just above the current directory
 
+        Examples
+        --------
+        >>> IrodsPath(session, "/zone/home/user").parent
+        IrodsPath("/", "zone", "home")
+        >>> IrodsPath(session, "~").parent
+        IrodsPath("/", "zone", "home")
+
         """
-        return IrodsPath(self.session, self._path.parent)
+        return IrodsPath(self.session, self.absolute()._path.parent)  # pylint: disable=protected-access
+
+    @property
+    def name(self) -> str:
+        """Return the name of the data object or collection.
+
+        Returns
+        -------
+            The name of the object/collction, similarly to pathlib.
+
+
+        Examples
+        --------
+        >>> IrodsPath(session, "/zone/home/user")
+        "user"
+
+        """
+        return self.absolute().parts[-1]
 
     def remove(self):
         """Remove the data behind an iRODS path.
@@ -94,6 +163,10 @@ class IrodsPath():
         ------
         PermissionError:
             If the user has insufficient permission to remove the data.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "/home/zone/user/some_collection").remove()
 
         """
         try:
@@ -110,7 +183,7 @@ class IrodsPath():
     @staticmethod
     def create_collection(session,
                           coll_path: Union[IrodsPath, str]) -> irods.collection.iRODSCollection:
-        """Create a collection and all collections in its path.
+        """Create a collection and all parent collections that do not exist yet.
 
         Parameters
         ----------
@@ -129,23 +202,43 @@ class IrodsPath():
         collection:
             The newly created collection.
 
+        Examples
+        --------
+        >>> IrodsPath.create_collection(session, "/zone/home/user/some_collection")
+        >>> IrodsPath.create_collection(session, IrodsPath(session, "~/some_collection"))
+
         """
         try:
             return session.irods_session.collections.create(str(coll_path))
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise PermissionError(f"Cannot create {str(coll_path)}, no access.") from error
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(
                 "While creating collection '{coll_path}': iRODS server forbids action.") from exc
 
     def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
         """Change the name or the path of a data object or collection.
+
         New collections on the path will be created.
-        
+
         Parameters
         ----------
         new_name: str or IrodsPath
             new name or a new full path
-        """
 
+
+        Raises
+        ------
+        ValueError:
+            If the new path already exists, or the path is in a different zone.
+        PermissionError:
+            If the new collection cannot be created.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/some_collection").rename("~/new_collection")
+
+        """
         if not self.exists():
             raise ValueError(f'str{self} does not exist.')
 
@@ -176,28 +269,325 @@ class IrodsPath():
 
 
     def collection_exists(self) -> bool:
-        """Check if the path points to an iRODS collection."""
+        """Check if the path points to an iRODS collection.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/does_not_exist").collection_exists()
+        False
+        >>> IrodsPath(session, "~/some_dataobj").collection_exists()
+        False
+        >>> IrodsPath(session, "~/some_collection").collection_exists()
+        True
+
+        """
         return self.session.irods_session.collections.exists(str(self))
 
     def dataobject_exists(self) -> bool:
-        """Check if the path points to an iRODS data object."""
+        """Check if the path points to an iRODS data object.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/does_not_exist").dataobject_exists()
+        False
+        >>> IrodsPath(session, "~/some_collection").dataobject_exists()
+        False
+        >>> IrodsPath(session, "~/some_dataobj").dataobject_exists()
+        True
+
+        """
         return self.session.irods_session.data_objects.exists(str(self))
 
     def exists(self) -> bool:
-        """Check if the path already exists on the iRODS server."""
+        """Check if the path already exists on the iRODS server.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/does_not_exist").exists()
+        False
+        >>> IrodsPath(session, "~/some_collection").exists()
+        True
+        >>> IrodsPath(session, "~/some_dataobj").exists()
+        True
+
+        """
         return self.dataobject_exists() or self.collection_exists()
 
-    def walk(self, depth: int):
+    @property
+    def collection(self) -> irods.collection.iRODSCollection:
+        """Instantiate an iRODS collection.
+
+        Raises
+        ------
+        ValueError:
+            If the path points to a dataobject and not a collection.
+        CollectionDoesNotExist:
+            If the path does not point to a dataobject or a collection.
+
+        Returns
+        -------
+        iRODSCollection
+            Instance of the collection with `path`.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/some_collection").collection
+        <iRODSCollection 21260050 b'some_collection'>
+
+        """
+        if self.collection_exists():
+            return self.session.irods_session.collections.get(str(self))
+        if self.dataobject_exists():
+            raise ValueError("Error retrieving collection, path is linked to a data object."
+                            " Use get_dataobject instead to retrieve the data object.")
+        raise irods.exception.CollectionDoesNotExist(str(self))
+
+    @property
+    def dataobject(self) -> irods.data_object.iRODSDataObject:
+        """Instantiate an iRODS data object.
+
+        Raises
+        ------
+        ValueError:
+            If the path is pointing to a collection and not a data object.
+
+        Returns
+        -------
+        iRODSDataObject
+            Instance of the data object with `path`.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/some_dataobj.txt").dataobject
+        <iRODSDataObject 24490075 some_dataobj.txt>
+
+        """
+        if self.dataobject_exists():
+            return self.session.irods_session.data_objects.get(str(self))
+        if self.collection_exists():
+            raise ValueError("Error retrieving data object, path is linked to a collection."
+                         " Use get_collection instead to retrieve the collection.")
+
+        raise irods.exception.DataObjectDoesNotExist(str(IrodsPath))
+
+
+    def walk(self, depth: Optional[int] = None) -> Iterable[IrodsPath]:
         """Walk on a collection.
+
+        This iterates over all collections and data object for the path. If the
+        path is pointing to a data object, it will simply yield this data object.
 
         Parameters
         ----------
         depth : int
-            Stops after depth many iterations, even if the tree is deeper.
+            The maximum depth relative to the starting collection over which is walked.
+            For example if depth equals 1, then it will iterate only over the subcollections
+            and data objects directly under the starting collection.
+
+        Returns
+        -------
+            Generator that generates all data objects and subcollections in the collection.
+
+        Examples
+        --------
+        >>> for ipath in IrodsPath(session, "~").walk():
+        >>>     print(ipath)
+        IrodsPath(~, x)
+        IrodsPath(~, x, y)
+        IrodsPath(~, x, y, z.txt)
+        >>> for ipath in IrodsPath(session, "~").walk(depth=1):
+        >>>     print(ipath)
+        IrodsPath(~, x)
 
         """
-        raise NotImplementedError("Walk method not implemented yet.")
+        all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
+        for path, name, size, checksum in _get_data_objects(self.session, self.collection):
+            abs_path = IrodsPath(self.session, path).absolute()
+            ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
+            all_data_objects[str(abs_path)].append(ipath)
+        all_collections = _get_subcoll_paths(self.session, self.collection)
+        all_collections = sorted(all_collections, key=str)
+        sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
+        for cur_col in all_collections:
+            sub_collections[str(cur_col.parent)].append(cur_col)
+
+        yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
-        """Calculate the relative path compared to our path."""
-        return PurePosixPath(self.absolute_path()).relative_to(PurePosixPath(other.absolute_path()))
+        """Calculate the relative path compared to our path.
+
+        Can only calculate the relateive path compared to another irods path.
+
+        >>> IrodsPath(session, "~/col/dataobj.txt").relative_to(IrodsPath(session, "~"))
+        PurePosixPath(col, dataobj.txt)
+        >>> IrodsPath(session, "~/col/dataobj.txt").relative_to(IrodsPath(session, "~/col"))
+        PurePosixPath(dataobj.txt)
+        """
+        return PurePosixPath(str(self.absolute())).relative_to(
+            PurePosixPath(str(other.absolute())))
+
+    @property
+    def size(self) -> int:
+        """Collect the sizes of a data object or a collection.
+
+        Returns
+        -------
+        int :
+            Total size [bytes] of the iRODS object or all iRODS objects in the collection.
+
+        Raises
+        ------
+        ValueError:
+            If the path is neither a collection or data object.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/some_collection").size
+        12345
+        >>> IrodsPath(session, "~/some_dataobj.txt").size
+        623
+
+        """
+        if not self.exists():
+            raise ValueError(f"Path '{str(self)}' does not exist;"
+                             " it is neither a collection nor a dataobject.")
+        if self.dataobject_exists():
+            return self.dataobject.size
+        all_objs = _get_data_objects(self.session, self.collection)
+        return sum(size for _, _, size, _ in all_objs)
+
+    @property
+    def checksum(self) -> str:
+        """Checksum of the data object.
+
+        If not calculated yet, it will be computed on the server.
+
+        Returns
+        -------
+            The checksum of the data object.
+
+        Raises
+        ------
+        ValueError
+            When the path does not point to a data object.
+
+        Examples
+        --------
+        >>> IrodsPath(session, "~/some_dataobj.txt").checksum
+        'sha2:XGiECYZOtUfP9lnCGyZaBBkBGLaJJw1p6eoc0GxLeKU='
+
+        """
+        if self.dataobject_exists():
+            dataobj = self.dataobject
+            return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
+        if self.collection_exists():
+            raise ValueError("Cannot take checksum of a collection.")
+        raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
+
+
+def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
+                    all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
+                    depth: int, max_depth: Optional[int]):
+    if cur_col != start_col:
+        yield cur_col
+    if max_depth is not None and depth >= max_depth:
+        return
+    for sub_col in sub_collections[str(cur_col)]:
+        yield from _recursive_walk(sub_col, sub_collections, all_dataobjects, start_col,
+                                   depth+1, max_depth)
+    yield from sorted(all_dataobjects[str(cur_col)], key=str)
+
+class CachedIrodsPath(IrodsPath):
+    """Cached version of the IrodsPath.
+
+    This version should generally not be used by users, but is used for performance reasons.
+    It will cache the size checksum and whether it is a data object. This can be invalidated
+    when other ibridges operations are used.
+    """
+
+    def __init__(self, session, size: Optional[int], is_dataobj: bool,
+                 checksum: Optional[str], *args):
+        """Initialize CachedIrodsPath.
+
+        Parameters
+        ----------
+        session:
+            Session used for the IrodsPath
+        size:
+            Size of the dataobject, None for collections.
+        is_dataobj:
+            Whether the path points to a data object.`
+        checksum:
+            The checksum of the dataobject, None for collections.
+        args:
+            Remainder of the path
+
+        """
+        self._is_dataobj = is_dataobj
+        self._size = size
+        self._checksum = checksum
+        super().__init__(session, *args)
+
+    @property
+    def size(self) -> int:
+        """See IrodsPath."""
+        if self._size is None:
+            return super().size
+        return self._size
+
+    @property
+    def checksum(self) -> str:
+        """See IrodsPath."""
+        if self._checksum is None:
+            return super().checksum
+        return self._checksum
+
+    def dataobject_exists(self) -> bool:
+        """See IrodsPath."""
+        return self._is_dataobj
+
+    def collection_exists(self) -> bool:
+        """See IrodsPath."""
+        return not self._is_dataobj
+
+
+def _get_data_objects(session,
+                      coll: irods.collection.iRODSCollection) -> list[tuple[str, str, int, str]]:
+    """Retrieve all data objects in a collection and all its subcollections.
+
+    Parameters
+    ----------
+    session:
+        Session to get the data objects with.
+    coll : irods.collection.iRODSCollection
+        The collection to search for all data objects
+
+    Returns
+    -------
+    list of all data objects
+        [(collection path, name, size, checksum)]
+
+    """
+    # all objects in the collection
+    objs = [(obj.collection.path, obj.name, obj.size, obj.checksum)
+            for obj in coll.data_objects]
+
+    # all objects in subcollections
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
+                                                  DataObject.size, DataObject.checksum)
+    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+    for res in data_query.get_results():
+        path, name, size, checksum = res.values()
+        objs.append((path, name, size, checksum))
+
+    return objs
+
+
+def _get_subcoll_paths(session,
+                       coll: irods.collection.iRODSCollection) -> list:
+    """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
+    coll_query = session.irods_session.query(icat.COLL_NAME)
+    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path+"/%"))
+
+    return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
+            for p in r.values()]

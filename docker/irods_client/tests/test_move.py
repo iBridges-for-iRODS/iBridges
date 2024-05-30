@@ -1,4 +1,3 @@
-import pytest
 from pytest import mark
 from ibridges.path import IrodsPath
 

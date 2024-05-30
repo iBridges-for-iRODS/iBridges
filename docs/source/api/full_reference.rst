@@ -1,9 +1,5 @@
-API Reference
-=============
-
-
-Submodules
-----------
+Full Reference
+==============
 
 
 ibridges.data\_operations module
@@ -106,15 +102,6 @@ ibridges.session module
    :show-inheritance:
 
 
-ibridges.sync module
---------------------
-
-.. automodule:: ibridges.sync
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 ibridges.tickets module
 -----------------------
 
@@ -122,12 +109,3 @@ ibridges.tickets module
    :members:
    :undoc-members:
    :show-inheritance:
-
-
-.. Module contents
-.. ---------------
-
-.. .. automodule:: ibridges
-..    :members:
-..    :undoc-members:
-..    :show-inheritance:

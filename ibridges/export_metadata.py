@@ -6,10 +6,10 @@ from typing import Any, Optional, Union
 
 from irods.collection import iRODSCollection
 
-from ibridges.data_operations import is_collection, is_dataobject
 from ibridges.meta import MetaData
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+from ibridges.util import is_collection, is_dataobject
 
 
 def export_metadata_to_dict(meta: MetaData, session: Session,
