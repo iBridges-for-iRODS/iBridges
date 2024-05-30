@@ -75,7 +75,7 @@ To create a new collection in you iRODS home simply type:
 
 Or:
 
-.. code shell
+.. code:: shell
   	
   	ibridges mkcoll "irods:/full/path/to/new_collection"
 
