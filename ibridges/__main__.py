@@ -470,7 +470,7 @@ def ibridges_tree():
         _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col
-        print_str = f"{n_col} collections, {n_data} data objects"
+        print_str = f"\n{n_col} collections, {n_data} data objects"
         if args.depth is not None:
             print_str += " (possibly more at higher depths)"
         print(print_str)
