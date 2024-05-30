@@ -136,7 +136,6 @@ def ibridges_init():
     )
     args, _ = parser.parse_known_args()
     ienv_path = _set_ienv_path(args.irods_env_path)
-    print(ienv_path, args.irods_env_path)
     with interactive_auth(irods_env_path=ienv_path) as session:
         if not isinstance(session, Session):
             raise ValueError(f"Irods session '{session}' is not a session.")
@@ -317,17 +316,17 @@ def _summarize_ops(ops):
         print("Create collections:\n")
         for coll in ops["create_collection"]:
             print(str(coll))
-        print("\n\n\n")
+        print("\n")
     if len(ops["create_dir"]) > 0:
         print("Create directories:\n")
         for cur_dir in ops["create_dir"]:
             print(str(cur_dir))
-        print("\n\n\n")
+        print("\n")
     if len(ops["upload"]) > 0:
         print("Upload files:\n")
         for lpath, ipath in ops["upload"]:
             print(f"{lpath} -> {ipath}")
-        print("\n\n\n")
+        print("\n")
     if len(ops["download"]) > 0:
         print("Download files:\n")
         for ipath, lpath in ops["download"]:
