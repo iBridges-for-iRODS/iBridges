@@ -219,12 +219,14 @@ class IrodsPath():
     def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
         """Change the name or the path of a data object or collection.
 
+
         New collections on the path will be created.
 
         Parameters
         ----------
         new_name: str or IrodsPath
             new name or a new full path
+
 
         Raises
         ------
@@ -238,6 +240,7 @@ class IrodsPath():
         >>> IrodsPath(session, "~/some_collection").rename("~/new_collection")
 
         """
+
         if not self.exists():
             raise ValueError(f'str{self} does not exist.')
 

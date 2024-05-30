@@ -41,7 +41,6 @@ Available subcommands:
     mkcoll:
         Create the collection and all its parent collections.
 
-
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
 
@@ -54,6 +53,7 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+
 
 Program information:
     -v, --version - display CLI version and exit
@@ -177,6 +177,7 @@ def _create_coll(session: Session, remote_path: IrodsPath):
 
 def ibridges_mkcoll():
     """Create a collection with all its parents given the new path."""
+
     parser = argparse.ArgumentParser(
         prog="ibridges mkcoll",
         description="Create a new collecion with all its parent collections."
