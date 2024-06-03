@@ -19,7 +19,7 @@ The Metadata object
 With the object `meta` we can now access the metadata of the data object and manipulate the metadata.
 
 Add, set and delete metadata
------------------------------
+----------------------------
 
 - Add metadata to a collection or data object:
 
