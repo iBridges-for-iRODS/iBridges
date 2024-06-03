@@ -64,7 +64,7 @@ The function `Metadata.to_dict` will provide you with a python dictionary contai
     'metadata': [('Key', 'Value', 'Unit'), ('Key', 'Value', 'Unit1')]}
 
 The dictionary contains the name of the data object or collection and its iRODS identifier.
-Metadata of dataobjects also have an entry for the checksum. The checksum is ot calculated, but extracted from the iRODS database.
+Metadata of dataobjects also have an entry for the checksum. The checksum is not calculated, but extracted from the iRODS database.
 
 the user-defined metadata can be accessed with the key `metadata`.
 
