@@ -14,7 +14,7 @@ In the example below we transfer a file or a folder to a new collection *new_col
     from ibridges import IrodsPath
     from pathlib import Path
     
-    local_path = Path(/path/to the/data/to/upload)
+    local_path = Path("/path/to the/data/to/upload")
     irods_path = IrodsPath(session, '~', 'new_coll')
     upload(session, local_path, irods_path)
 
