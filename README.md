@@ -110,7 +110,7 @@ To simply upload or download data you do not need to write full python program, 
 - Synchronise data
 
   ```bash
-  	ibridges sync some_local_directory "irods:~/some_collection"
+  ibridges sync some_local_directory "irods:~/some_collection"
   ```
 
 ## Tutorials
