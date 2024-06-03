@@ -83,7 +83,7 @@ metadata of all memebers of a collection you can use:
     export_metadata_to_dict(meta, session)
 
 The resulting dictionary is built like above and contains two more keys `subcollections` and `dataobjects`.
-The member dictionaries conatinan extra key `rel_path` which denotes the relative path to the collection from which we are extracting the metadata.
+The member dictionaries contain the extra key `rel_path` which denotes the relative path to the collection from which we are extracting the metadata.
   
 .. code-block:: json
 
