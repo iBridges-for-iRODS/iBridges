@@ -70,7 +70,7 @@ The download function works similar to the upload function. Simply define your i
 
 Again you will receive a dictionary with changes, which you can also retrieve beforehand with the option `dry_run=True`.
 
-As above, existing local data will not be overwritten. Pease use the option `overwrite=True` for that.
+As above, existing local data will not be overwritten. Please use the option `overwrite=True` for that.
 
 
 Synchronisation
