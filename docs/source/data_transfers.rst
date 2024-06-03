@@ -63,7 +63,7 @@ The download function works similar to the upload function. Simply define your i
     from ibridges import IrodsPath
     from pathlib import Path
     
-    local_path = Path(/destination/location/for/the/data)
+    local_path = Path("/destination/location/for/the/data")
     irods_path = IrodsPath(session, '~', 'new_coll')
     download(session, irods_path, local_path)
 
