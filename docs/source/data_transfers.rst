@@ -29,23 +29,23 @@ you will receive the following exception.
 .. code-block:: python
 	
 	irods_path = IrodsPath(session, '~', 'new_coll', 'new_subcoll', 'new')
-	
+
 	CAT_UNKNOWN_COLLECTION: collection '/nluu12p/home/research-test-christine/new_coll1/new_subcoll' is unknown
 
 
 The output of a successful upload is:
 
-.. code-block:: json
+.. code-block:: python
 
-    {	
-    	'create_dir': set(),
- 	  	'create_collection': set(),
- 	   'upload': [(PosixPath('/Users/christine/demofile.txt'),
-   		IrodsPath(/, <zone_name>, home, <user or group>, new_coll1))],
- 		'download': [],
- 		'resc_name': '',
+    {
+        'create_dir': set(),
+ 	    'create_collection': set(),
+ 	    'upload': [(PosixPath('/Users/christine/demofile.txt'),
+                    IrodsPath(/, <zone_name>, home, <user or group>, new_coll1))],
+        'download': [],
+ 	    'resc_name': '',
  		'options': None
- 	 }
+    }
 
 .. note::
 
@@ -67,7 +67,7 @@ The download function works similar to the upload function. Simply define your i
     from ibridges import download
     from ibridges import IrodsPath
     from pathlib import Path
-    
+   
     local_path = Path("/destination/location/for/the/data")
     irods_path = IrodsPath(session, '~', 'new_coll')
     download(session, irods_path, local_path)
@@ -75,7 +75,7 @@ The download function works similar to the upload function. Simply define your i
 
 Again you will receive a dictionary with changes, which you can also retrieve beforehand with the option `dry_run=True`.
 
-As above, existing local data will not be overwritten. Please use the option `overwrite=True` for that.
+As above, existing local data will not be overwritten. Please use the option `overwrite=True` if you want to overwrite your local data.
 
 
 Synchronisation
@@ -90,8 +90,8 @@ That works without any problems for textual data.
 
 .. code-block:: python
   
-  	from ibrigdes import IrodsPath
-  	
+    from ibrigdes import IrodsPath
+  
   	obj_path = IrodsPath(session, "path", "to", "object")
   	
   	content = ''
@@ -104,11 +104,9 @@ Some python libraries allow to be instantiated directly from such a stream. This
 .. code-block:: python
 
 	from io import StringIO
-	
+    imort pandas as pd
+
 	df = None
 	with obj_path.dataobject.open('r') as stream:
 		df = pd.read_csv(StringIO(stream.read().decode()))
 	print(df)
-	    
-	
-	
