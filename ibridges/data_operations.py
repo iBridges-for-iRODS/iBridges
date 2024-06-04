@@ -157,14 +157,15 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
                                     depth=None)
         ops["create_collection"].add(str(idest_path))
     elif local_path.is_file():
-        obj_exists = IrodsPath(session,
-                               ipath / local_path.name).dataobject_exists() \
-                               or ipath.dataobject_exists()
+        if ipath.collection_exists():
+            ipath = ipath / local_path.name
+        obj_exists = ipath.dataobject_exists()
         if obj_exists and not overwrite:
             raise FileExistsError(
                 f"Dataset {irods_path} already exists. "
                 "Use overwrite=True to overwrite the existing file.")
-        ops["upload"].append((local_path, ipath))
+        if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(ipath)):
+            ops["upload"].append((local_path, ipath))
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
     ops.update({"resc_name": resc_name, "options": options})
@@ -296,10 +297,14 @@ def download(session: Session, irods_path: Union[str, IrodsPath], local_path: Un
             ops["create_dir"].add(str(local_path))
     elif irods_path.dataobject_exists():
         ops = _empty_ops()
-        if (not overwrite) and local_path.is_dir() and (local_path / irods_path.name).is_file():
+        if local_path.is_dir():
+            local_path = local_path / irods_path.name
+        if (not overwrite) and local_path.is_file():
             raise FileExistsError(f"File or directory {local_path} already exists. "
                                    "Use overwrite=True to overwrite the existing file(s).")
-        ops["download"].append((irods_path, local_path))
+        if not (local_path.is_file() and
+                (_calc_checksum(irods_path) == _calc_checksum(local_path))):
+            ops["download"].append((irods_path, local_path))
     else:
         raise ValueError(f"Data object or collection not found: '{irods_path}'")
 
