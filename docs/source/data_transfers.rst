@@ -10,8 +10,8 @@ In the example below we transfer a file or a folder to a new collection *new_col
 
 .. note::
     
-    If you transfer data to a destination folder or collection for which the path does not already exist, the missing folders or collections will NOT be created and the command will fail wit the respective error message.
-    Please use the `IrodsPath.create_collection` or the `pathlib.Path.mkdir(parents=True, exist_ok=True)` to create the destination before the upload or download.
+    If you transfer data to a destination folder or collection for which the path does not already exist, the missing folders or collections will NOT be created and the command will fail with the respective error message.
+    Please use `IrodsPath.create_collection` or `pathlib.Path.mkdir(parents=True, exist_ok=True)` to create the destination before the upload or download.
 
 .. code-block:: python
 
