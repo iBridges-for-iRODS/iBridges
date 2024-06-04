@@ -128,6 +128,14 @@ To simply upload or download data you do not need to write full python program, 
 - [Sharing data](tutorials/05-Data-Sharing.ipynb)
 - [Synchronising data](tutorials/06-Data-sync.ipynb)
 
+
+## Do I have to choose between the *python-irodsclient* and *iBridges*?
+No. *iBridges* itself is based on the *python-irodsclient*. When you connect to iRODS a *python-irodsclient* `irods.iRODSSession` is automatically created with which you can access all functionality of the *python-irodsclient*.
+
+<p align="center">
+<img src="docs/ibridges-prc.png" alt="ibridges and prc" style="width:75%;"/>
+</p>
+
 ## Authors
 
 **Christine Staiger (Maintainer) [ORCID](https://orcid.org/0000-0002-6754-7647)**

@@ -28,8 +28,12 @@ We provide extensive tutorials on how to work with data in iRODS. Please consult
    quickstart
 
    install
-   sync
+   session
    ipath
+   data_transfers
+   sync
+   metadata
+   irods_search
    cli
    faq
    api/main
