@@ -11,8 +11,8 @@ The Metadata object
 	deom ibridges.interactive import interactive_auth
 	from ibridges import Metadata
 	from ibridges import IrodsPath
-	
-	session = interactive_auth()
+
+    session = interactive_auth()
 	obj = IrodsPath(session, "~", "dataobj_name").dataobject
 	meta = Metadata(obj)
 	
@@ -27,8 +27,7 @@ Add, set and delete metadata
 
 		meta.add('NewKey', 'NewValue', 'NewUnit')
 		print(meta)
-		
-		
+	
 	- You always need to provide a key and a value, the unit is optional and can be left out.
 	
 	- You can have several metadata entries with the same key but different values and units, i.e. metadata keys are not unique in iRODS but the combination of key, value and unit must be unique.
@@ -64,9 +63,9 @@ The function `Metadata.to_dict` will provide you with a python dictionary contai
     'metadata': [('Key', 'Value', 'Unit'), ('Key', 'Value', 'Unit1')]}
 
 The dictionary contains the name of the data object or collection and its iRODS identifier.
-Metadata of dataobjects also have an entry for the checksum. The checksum is not calculated, but extracted from the iRODS database.
+For data objects the checksum is also listed under the key `checksum`. The checksum is not calculated, but extracted from the iRODS database.
 
-the user-defined metadata can be accessed with the key `metadata`.
+The user-defined metadata can be accessed with the key `metadata`.
 
 Export metadata of all member of a collection
 ---------------------------------------------
@@ -77,14 +76,15 @@ metadata of all memebers of a collection you can use:
 .. code-block:: python
 
     from ibridges.export_metadata import export_metadata_to_dict
-    
+   
     coll = IrodsPath(session, <coll_path>).collection
     meta = Metadata(coll)
     export_metadata_to_dict(meta, session)
 
 The resulting dictionary is built like above and contains two more keys `subcollections` and `dataobjects`.
-The member dictionaries contain the extra key `rel_path` which denotes the relative path to the collection from which we are extracting the metadata.
-  
+Under `collections` we will find the extracted  metadata of all subcollection and under `dataobjects` the extracted metadata for all data objects. 
+Those extracted metadata are also represented by dictionaries as shown above, they only  contain one extra key `rel_path` which denotes the path relative to the collection from which we gave as input to the function.
+
 .. code-block:: json
 
     {'ibridges_metadata_version': 1.0,
@@ -92,7 +92,7 @@ The member dictionaries contain the extra key `rel_path` which denotes the relat
         'irods_id': 24484787,
         'metadata': [('Key', 'very_important', None)],
         
-        'subcollections': [{'name': 'Demo',
+        'subcollections': [{'name': 'subDemo',
         'irods_id': 24490064,
         'rel_path': 'Demo',
         'metadata': []},
