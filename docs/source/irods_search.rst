@@ -1,31 +1,33 @@
 iRODS Search
 ============
 
+`iBridges` offers an easy way to search for data. You can pass a combination of path, metadata keys and values and checksum. The output will be a list of dictionaries, one dictionary for each found item, which contain information where to find the item on the iRODS server.
+
+
 Search data by Path
 --------
 
-`iBridges` offers an easy way to search for data. You can pass a combination of path, metadata keys and values and checksum.
-
- The path can be an IrodsPath or a string:
+In the example below we search for a data object by ites path.
+The path can be an IrodsPath or a string:
  	
-	.. code-block:: python
+.. code-block:: python
 		
-		from ibridges import search_data
-		search_data(session, path=IrodsPath(session, "dataobj_name"))
-		
-	The result is a list of dictionaries.
+        from ibridges import search_data
+	    search_data(session, path=IrodsPath(session, "dataobj_name"))
 	
-	.. code-block:: python
+The result is a list of dictionaries.
 	
-		[{'COLL_NAME': '/nluu12p/home/research-test-christine',
-  		'DATA_NAME': 'bunny2.txt',
+.. code-block:: python
+	
+		[{'COLL_NAME': '/you/irods/home',
+  		'DATA_NAME': 'dataobj_name',
   		'D_DATA_CHECKSUM': 'sha2:XGiECYZOtUfP9lnCGyZaBBkBGLaJJw1p6eoc0GxLeKU='}]
   		
-  	For collections the dictionary only contains the entry `COLL_NAME`.
+For collections the dictionary only contains the entry `COLL_NAME`.
   	
-  	To find all collections and dataobjects in a csubcollection of the iRODS tree use the `%` as wildcard:
+To find all subcollections and dataobjects in a collection use the `%` as wildcard:
   	
-  	.. code-block:: python
+.. code-block:: python
   	
   		search_data(session, path=IrodsPath(session, "subcoll/%"))
   	

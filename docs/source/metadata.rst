@@ -1,22 +1,22 @@
 Metadata 
 =========
 
-iRODS offers metadata as key, value, units triplets. The type is always string. Below we shoe how to create an `ibridges.Metadata` object from a dataobject or collection.
+iRODS offers metadata as key, value, units triplets. The type is always string. Below we show how to create an `ibridges.Metadata` object from a dataobject or collection.
 
 The Metadata object
 --------------------
 
 .. code-block:: python
 
-	deom ibridges.interactive import interactive_auth
+	from ibridges.interactive import interactive_auth
 	from ibridges import Metadata
 	from ibridges import IrodsPath
-
+    
     session = interactive_auth()
 	obj = IrodsPath(session, "~", "dataobj_name").dataobject
 	meta = Metadata(obj)
 	
-With the object `meta` we can now access the metadata of the data object and manipulate the metadata.
+With the object `meta` we can now access and manipulate the metadata of the data object.
 
 Add, set and delete metadata
 ----------------------------
@@ -37,7 +37,7 @@ Add, set and delete metadata
 	.. code-block:: python
 	
 		meta.set('ExistingKey', 'Value', 'Unit')
-		
+	
 	The `set` function is a special function. It sets all metadata items with the key `ExistingKey` to the value and unit. It is the implementation of the *icommands* `imeta set`.
 	
 - Delete metadata of a collection or data object:
@@ -55,12 +55,14 @@ The function `Metadata.to_dict` will provide you with a python dictionary contai
 
    meta.to_dict()
 
-.. code-block:: json
+.. code-block:: python
 
-    {'name': '<obj_name>',
+    {
+    'name': '<obj_name>',
     'irods_id': 24490075,
     'checksum': 'sha2:XGiECYZOtUfP9lnCGyZaBBkBGLaJJw1p6eoc0GxLeKU=',
-    'metadata': [('Key', 'Value', 'Unit'), ('Key', 'Value', 'Unit1')]}
+    'metadata': [('Key', 'Value', 'Unit'), ('Key', 'Value', 'Unit1')]
+    }
 
 The dictionary contains the name of the data object or collection and its iRODS identifier.
 For data objects the checksum is also listed under the key `checksum`. The checksum is not calculated, but extracted from the iRODS database.
@@ -81,30 +83,38 @@ metadata of all memebers of a collection you can use:
     meta = Metadata(coll)
     export_metadata_to_dict(meta, session)
 
-The resulting dictionary is built like above and contains two more keys `subcollections` and `dataobjects`.
-Under `collections` we will find the extracted  metadata of all subcollection and under `dataobjects` the extracted metadata for all data objects. 
-Those extracted metadata are also represented by dictionaries as shown above, they only  contain one extra key `rel_path` which denotes the path relative to the collection from which we gave as input to the function.
+The resulting dictionary is built like above and contains two additional keys `subcollections` and `dataobjects`.
 
-.. code-block:: json
+Under `subcollections` we will find the extracted  metadata of all subcollection and under `dataobjects` the extracted metadata for all data objects. 
+Those extracted metadata are also represented by dictionaries as shown above, they only  contain one extra key `rel_path` which denotes the path relative to the collection which we gave as input to the function.
 
-    {'ibridges_metadata_version': 1.0,
-        'name': 'Demo',
-        'irods_id': 24484787,
-        'metadata': [('Key', 'very_important', None)],
-        
-        'subcollections': [{'name': 'subDemo',
-        'irods_id': 24490064,
-        'rel_path': 'Demo',
-        'metadata': []},
-        
-        {'name': 'my_books',
-        'irods_id': 24502538,
-        'rel_path': 'my_books',
-        'metadata': []}],
-        
-        'dataobjects': [{'name': 'BenHur.txt',
-        'irods_id': 24484789,
-        'checksum': 'sha2:TQzOrHuw1qRQ6zh8xm5GEuVKGjs22STdgQCdezv8LY4=',
-        'rel_path': 'BenHur.txt',
-        'metadata': [('author', 'someone', None)]}]
-        }
+.. code-block:: python
+
+    {
+    'ibridges_metadata_version': 1.0,
+    'name': 'Demo',
+    'irods_id': 24484787,
+    'metadata': [('Key', 'very_important', None)],
+    'subcollections': [
+        {
+            'name': 'subDemo',
+            'irods_id': 24490064,
+            'rel_path': 'Demo',
+            'metadata': []
+            },
+        {
+            'name': 'my_books',
+            'irods_id': 24502538,
+            'rel_path': 'my_books',
+            'metadata': []}
+        ],
+    'dataobjects': [
+        {
+            'name': 'AliceInWonderland.txt',
+            'irods_id': 24484789,
+            'checksum': 'sha2:TQzOrHuw1qRQ6zh8xm5GEuVKGjs22STdgQCdezv8LY4=',
+            'rel_path': 'my_books/AliceInWonderland.txt',
+            'metadata': [('author', 'Lewis Carroll', None)]
+            }
+        ]
+    }
