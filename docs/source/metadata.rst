@@ -68,8 +68,8 @@ Metadata of dataobjects also have an entry for the checksum. The checksum is not
 
 the user-defined metadata can be accessed with the key `metadata`.
 
-Export metadata of all memeber of a collection
-----------------------------------------------
+Export metadata of all member of a collection
+---------------------------------------------
 
 Above we showed how to export the metadata of one collection or data object. In case you want to export
 metadata of all memebers of a collection you can use:
