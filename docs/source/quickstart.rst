@@ -12,7 +12,7 @@ iBridges requires Python version 3.8 or higher. You can install iBridges with pi
     pip install ibridges
 
 
-Getting your irods environment file
+Getting your iRODS environment file
 -----------------------------------
 
 To connect to an iRods server you need an iRods environment file (`irods_nevironment.json`).
@@ -43,7 +43,7 @@ but if needed (if you need access to more than one iRods instance for example) y
 replace that path in this quick start guide with the path you have chosen.
 
 
-Connecting to your iRods server
+Connecting to your iRODS server
 -------------------------------
 
 To connect to your iRods server, we will create a session. The session is the central object in the iBridges library;
@@ -74,7 +74,7 @@ This upload function can upload both directories (collections in iRods) and file
 Add metadata
 ------------
 
-One of the powerful features of iRods is its ability to store metadata with your data in a consistent manner.
+One of the powerful features of iRODS is its ability to store metadata with your data in a consistent manner.
 Let's add some metadata to a collection or data object:
 
 .. code:: python
