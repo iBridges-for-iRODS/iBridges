@@ -74,6 +74,7 @@ download(session, "/irods/path", "/other/local/path")
 ```
 
 ## Command line interface
+
 To simply upload or download data you do not need to write full python program, we offer a command line interface (see also [the documentation](https://ibridges.readthedocs.io/en/latest/)).
 
 - Establish a connection
@@ -92,6 +93,7 @@ To simply upload or download data you do not need to write full python program, 
   ibridges list "irods:~/<collection>"
   
   # list a collection on a different path than your home
+
   ibridges list "irods:/full/irods/path"
   ```
 
@@ -110,14 +112,16 @@ To simply upload or download data you do not need to write full python program, 
 - Synchronise data
 
   ```bash
+
   ibridges sync some_local_directory "irods:~/some_collection"
-  ```
+
 
 ## Tutorials
 ### Documentation
 - **[ReadTheDocs](https://ibridges.readthedocs.io/en/latest/)**
 
 ### Guides
+
 - [Manual with examples](tutorials/00-FirstSteps.ipynb)
 
 ### Beginners tutorials

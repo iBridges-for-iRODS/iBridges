@@ -1,6 +1,7 @@
 iRODS paths
 ===========
 
+
 iRODS paths follow a certain pattern just like the local paths of different operating systems.
 To allow for similar path operations on iRODS paths, rather than using strings, `iBridges` offers an class with similar `pathlib`-like functionality.
 

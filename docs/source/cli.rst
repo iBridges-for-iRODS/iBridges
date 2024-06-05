@@ -61,6 +61,7 @@ Please try to avoid spaces in collection and data object names! If you really ne
 
 .. note::
 
+
     Note that all data objects and collections on the iRODS server are always preceded with "irods:". This is done to distinguish local and remote files.
     
     
