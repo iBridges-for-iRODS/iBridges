@@ -15,6 +15,7 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
+from irods import DEFAULT_CONNECTION_TIMEOUT
 from tqdm import tqdm
 
 from ibridges.path import CachedIrodsPath, IrodsPath
@@ -375,6 +376,15 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     down_sizes = [ipath.size for ipath, _ in operations["download"]]
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024)
 
+    # For large files, the checksum computation might take too long, which can result in a timeout.
+    # This is why we increase the time out from file sizes > 1 GB
+    # This might still result in a time out if your server is very busy or a potato.
+    max_size = max([*up_sizes, *down_sizes])
+    original_timeout = session.irods_session.pool.connection_timeout
+    if max_size > 1e9 and original_timeout == DEFAULT_CONNECTION_TIMEOUT:
+        session.irods_session.pool.connection_timeout = int(
+            DEFAULT_CONNECTION_TIMEOUT*(max_size/1e9)+0.5)
+
     for col in operations["create_collection"]:
         IrodsPath.create_collection(session, col)
     for curdir in operations["create_dir"]:
@@ -394,6 +404,7 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
         _obj_get(session, ipath, lpath, overwrite=True, ignore_err=ignore_err, options=options,
                  resc_name=resc_name)
         pbar.update(size)
+    session.irods_session.pool.connection_timeout = original_timeout
 
 
 def sync(session: Session,
