@@ -126,7 +126,7 @@ To simply upload or download data you do not need to write full python program, 
 
 ### Beginners tutorials
 - [Setup client configuration](tutorials/01-Setup-and-connect.ipynb)
-- [iRODS Paths](tutorials/02-iRODS_paths.ipynb)
+- [iRODS Paths](tutorials/02-iRODS-paths.ipynb)
 - [Working with data](tutorials/03-Working-with-data.ipynb)
 - [Metadata](tutorials/04-Metadata.ipynb)
 - [Sharing data](tutorials/05-Data-Sharing.ipynb)
