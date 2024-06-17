@@ -374,8 +374,9 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     """
     up_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
     down_sizes = [ipath.size for ipath, _ in operations["download"]]
+    disable = len(up_sizes) + len(down_sizes) == 0
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024,
-                disable=(len(up_sizes) + len(down_sizes) == 0))
+                disable=disable)
 
     # For large files, the checksum computation might take too long, which can result in a timeout.
     # This is why we increase the time out from file sizes > 1 GB
