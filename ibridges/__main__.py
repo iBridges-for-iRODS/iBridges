@@ -11,7 +11,6 @@ from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.util import get_collection
 
 try:  # Python < 3.10 (backport)
     from importlib_metadata import version  # type: ignore
@@ -145,7 +144,7 @@ def ibridges_init():
 def _list_coll(session: Session, remote_path: IrodsPath):
     if remote_path.collection_exists():
         print(str(remote_path)+':')
-        coll = get_collection(session, remote_path)
+        coll = remote_path.collection
         print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
         print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
     else:

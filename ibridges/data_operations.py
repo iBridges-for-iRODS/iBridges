@@ -5,6 +5,7 @@ Transfer data between local file system and iRODS, includes upload, download and
 from __future__ import annotations
 
 import base64
+import json
 import os
 import warnings
 from hashlib import sha256
@@ -18,6 +19,7 @@ import irods.keywords as kw
 from irods import DEFAULT_CONNECTION_TIMEOUT
 from tqdm import tqdm
 
+from ibridges.export_metadata import add_to_metadict, empty_metadict
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
 
@@ -406,6 +408,13 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
         _obj_get(session, ipath, lpath, overwrite=True, ignore_err=ignore_err, options=options,
                  resc_name=resc_name)
         pbar.update(size)
+    if len(operations["meta_download"]) > 0:
+        for op in operations["meta_download"]:
+            meta_dict = empty_metadict(op["root_ipath"])
+            for ipath in op["items"]:
+                add_to_metadict(meta_dict, ipath, op["root_ipath"])
+            with open(op["dest_meta_lpath"], "w") as handle:
+                json.dump(meta_dict, handle)
     session.irods_session.pool.connection_timeout = original_timeout
 
 
@@ -511,11 +520,23 @@ def _empty_ops():
         "create_collection": set(),
         "upload": [],
         "download": [],
+        "meta_download": [],
+        "meta_upload": [],
     }
 
-def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None):
+def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None,
+                          transfer_metadata=True):
     operations = _empty_ops()
+    cur_meta_id = len(operations["meta_download"])
+    if transfer_metadata:
+        operations["meta_download"].append({
+            "items": [],
+            "root_ipath": isource_path,
+            "dest_meta_lpath": Path(ldest_path) / ".meta_ibridges.json",
+        })
     for ipath in isource_path.walk(depth=depth):
+        if transfer_metadata:
+            operations["meta_download"][cur_meta_id]["items"].append(ipath)
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
@@ -533,9 +554,16 @@ def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, dep
     return operations
 
 
-def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None,
+                        transfer_metadata: bool = True):
     operations = _empty_ops()
     session = idest_path.session
+    if transfer_metadata:
+        operations["meta_upload"].append({
+            "items": [],
+            "root_ipath": idest_path,
+            "src_meta_lpath": Path(lsource_path) / ".meta_ibridges.json"
+        })
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
     except irods.exception.CollectionDoesNotExist:

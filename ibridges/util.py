@@ -2,39 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Union
-
 import irods
-
-from ibridges.path import IrodsPath
-
-
-def get_dataobject(session,
-                   path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
-    """Instantiate an iRODS data object.
-
-    See :meth:`ibridges.path.IrodsPath.dataobject` for details.
-
-    """
-    path = IrodsPath(session, path)
-    return path.dataobject
-
-def get_collection(session,
-                   path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
-    """Instantiate an iRODS collection.
-
-    See :meth:`ibridges.path.IrodsPath.collection` for details.
-    """
-    return IrodsPath(session, path).collection
-
-
-def get_size(session, item: Union[irods.data_object.iRODSDataObject,
-                                  irods.collection.iRODSCollection]) -> int:
-    """Collect the sizes of a data object or a collection.
-
-    See :meth:`ibridges.path.IrodsPath.size` for details.
-    """
-    return IrodsPath(session, item.path).size
 
 
 def is_dataobject(item) -> bool:
