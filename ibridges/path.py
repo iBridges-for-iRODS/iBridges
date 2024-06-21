@@ -411,9 +411,6 @@ class IrodsPath():
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
             sub_collections[str(cur_col.parent)].append(cur_col)
-        print(all_collections)
-        print(sub_collections)
-
         yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
