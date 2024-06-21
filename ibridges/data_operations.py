@@ -18,7 +18,7 @@ import irods.exception
 import irods.keywords as kw
 from tqdm import tqdm
 
-from ibridges.export_metadata import add_to_metadict, empty_metadict
+from ibridges.export_metadata import add_to_metadict, empty_metadict, set_metadata_from_dict
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
 from ibridges.util import calc_checksum
@@ -473,7 +473,14 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool = Fa
             for ipath in op["items"]:
                 add_to_metadict(meta_dict, ipath, op["root_ipath"])
             with open(op["dest_meta_lpath"], "w") as handle:
-                json.dump(meta_dict, handle)
+                json.dump(meta_dict, handle, indent=4)
+
+    if len(operations["meta_upload"]) > 0:
+        for op in operations["meta_upload"]:
+            with open(op["src_meta_lpath"], "r") as handle:
+                meta_dict = json.load(handle)
+            set_metadata_from_dict(op["root_ipath"], session, meta_dict)
+
     session.irods_session.pool.connection_timeout = original_timeout
 
 

@@ -169,10 +169,9 @@ def _get_meta_from_irods_tree(
 >>>>>>> 6ea7c07 (Add metadata to operations)
 
 def set_metadata_from_dict(ipath: IrodsPath, session: Session, metadata_dict: dict):
-    for item_data in metadata_dict["collections"] + metadata_dict["data_objects"]:
+    for item_data in metadata_dict["items"]:
         new_path = ipath / item_data["rel_path"]
         if not new_path.exists():
             raise ValueError("")
         meta = new_path.meta
         meta.from_dict(item_data["metadata"])
-        print("set", new_path, item_data["metadata"])
