@@ -378,14 +378,18 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
     pbar = tqdm(total=sum(up_sizes) + sum(down_sizes), unit="B", unit_scale=True, unit_divisor=1024,
                 disable=disable)
 
+    # The code below does not work as expected, since connections in the
+    # pool can be reused. Another solution for dynamic timeouts might be needed
+    # Leaving the previous solution in here for documentation.
+
     # For large files, the checksum computation might take too long, which can result in a timeout.
     # This is why we increase the time out from file sizes > 1 GB
     # This might still result in a time out if your server is very busy or a potato.
-    max_size = max([*up_sizes, *down_sizes, 0])
-    original_timeout = session.irods_session.pool.connection_timeout
-    if max_size > 1e9 and original_timeout == DEFAULT_CONNECTION_TIMEOUT:
-        session.irods_session.pool.connection_timeout = int(
-            DEFAULT_CONNECTION_TIMEOUT*(max_size/1e9)+0.5)
+    # max_size = max([*up_sizes, *down_sizes, 0])
+    # original_timeout = session.irods_session.pool.connection_timeout
+    # if max_size > 1e9 and original_timeout == DEFAULT_CONNECTION_TIMEOUT:
+    #     session.irods_session.pool.connection_timeout = int(
+    #         DEFAULT_CONNECTION_TIMEOUT*(max_size/1e9)+0.5)
 
     for col in operations["create_collection"]:
         IrodsPath.create_collection(session, col)
@@ -406,7 +410,7 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool=Fals
         _obj_get(session, ipath, lpath, overwrite=True, ignore_err=ignore_err, options=options,
                  resc_name=resc_name)
         pbar.update(size)
-    session.irods_session.pool.connection_timeout = original_timeout
+    # session.irods_session.pool.connection_timeout = original_timeout
 
 
 def sync(session: Session,
