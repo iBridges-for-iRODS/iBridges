@@ -147,7 +147,8 @@ def _list_coll(session: Session, remote_path: IrodsPath):
         print(str(remote_path)+':')
         coll = get_collection(session, remote_path)
         print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
-        print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
+        print('\n'.join(['  C- '+sub.path for sub in coll.subcollections
+                         if not str(remote_path) == sub.path]))
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
