@@ -7,16 +7,16 @@ import sys
 from pathlib import Path
 from typing import Union
 
-try:
-    from importlib_metadata import entry_points
-except ImportError:
-    from importlib.metadata import entry_points  # type: ignore
-
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.util import get_collection
+from ibridges.util import (
+    find_environment_provider,
+    get_collection,
+    get_environment_providers,
+    print_environment_providers,
+)
 
 try:  # Python < 3.10 (backport)
     from importlib_metadata import version  # type: ignore
@@ -45,6 +45,8 @@ Available subcommands:
         List a collection and subcollections in a hierarchical way.
     mkcoll:
         Create the collection and all its parent collections.
+    setup:
+        Create an iRODS environment file to connect to an iRODS server.
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -58,6 +60,7 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+ibridges setup uu-its
 
 
 Program information:
@@ -93,8 +96,8 @@ def main() -> None:
         ibridges_mkcoll()
     elif subcommand == "tree":
         ibridges_tree()
-    elif subcommand == "template":
-        ibridges_template()
+    elif subcommand == "setup":
+        ibridges_setup()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -159,26 +162,22 @@ def _list_coll(session: Session, remote_path: IrodsPath):
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
 
-def _get_templates():
-    return [entry.load() for entry in entry_points(group="ibridges_template")]
-
-
-def ibridges_template():
-    """Use templates to create an irods environment json."""
+def ibridges_setup():
+    """Use templates to create an iRODS environment json."""
     parser = argparse.ArgumentParser(
-        prog="ibridges template",
-        description="List a collection on iRODS."
+        prog="ibridges setup",
+        description="Tool to create a valid irods_environment.json"
     )
     parser.add_argument(
-        "template_name",
-        help="Template to use for creating your irods_environment.json",
+        "server_name",
+        help="Server name to create your irods_environment.json for.",
         type=str,
         default=None,
         nargs="?"
     )
     parser.add_argument(
         "--list",
-        help="List all available templates.",
+        help="List all available server names.",
         action="store_true"
     )
     parser.add_argument(
@@ -194,38 +193,35 @@ def ibridges_template():
         action="store_true"
     )
     args = parser.parse_args()
-    all_providers = _get_templates()
+    env_providers = get_environment_providers()
     if args.list:
-        for provider in all_providers:
-            print(provider.name)
-            print("-"*len(provider.name))
-            print("\n")
-            print("\n".join(provider.list_templates()))
+        print_environment_providers(env_providers)
         return
 
-    for provider in all_providers:
-        if not provider.contains(args.template_name):
-            continue
+    try:
+        provider = find_environment_provider(env_providers, args.server_name)
+    except ValueError:
+        print(f"Error: Unknown server with name '{args.server_name}.\n"
+          "Use `ibridges setup --list` to list all available server names.")
+        sys.exit(123)
 
-        user_answers = {}
-        for question in provider.questions:
-            user_answers[question] = input(question + ": ")
+    user_answers = {}
+    for question in provider.questions:
+        user_answers[question] = input(question + ": ")
 
-        json_str = provider.environment_json(args.template_name, **user_answers)
-        if args.output.is_file() and not args.overwrite:
-            print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
-            print("\n")
-            print(json_str)
-        if args.output.is_dir():
-            raise ValueError(f"Output {args.output} is a directory, cannot export irods_environment"
-                             " file.")
-        else:
-            with open(args.output, "w") as handle:
-                handle.write(json_str)
-        return
-    print(f"Error: Cannot find template with name '{args.template_name}.\n"
-          "Use `ibridges templates --list` to list all available templates.")
-    sys.exit(123)
+    json_str = provider.environment_json(args.server_name, **user_answers)
+    if args.output.is_file() and not args.overwrite:
+        print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
+        print("\n")
+        print(json_str)
+    if args.output.is_dir():
+        print(f"Output {args.output} is a directory, cannot export irods_environment"
+                " file.")
+        sys.exit(234)
+    else:
+        with open(args.output, "w") as handle:
+            handle.write(json_str)
+
 
 def ibridges_list():
     """List a collection on iRODS."""
