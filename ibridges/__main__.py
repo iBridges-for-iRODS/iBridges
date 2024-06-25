@@ -7,8 +7,13 @@ import sys
 from pathlib import Path
 from typing import Union
 
+try:
+    from importlib_metadata import entry_points
+except ImportError:
+    from importlib.metadata import entry_points  # type: ignore
+
 from ibridges.data_operations import download, sync, upload
-from ibridges.interactive import interactive_auth
+from ibridges.interactive import DEFAULT_IENV_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import get_collection
@@ -88,6 +93,8 @@ def main() -> None:
         ibridges_mkcoll()
     elif subcommand == "tree":
         ibridges_tree()
+    elif subcommand == "template":
+        ibridges_template()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -151,6 +158,74 @@ def _list_coll(session: Session, remote_path: IrodsPath):
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
+
+def _get_templates():
+    return [entry.load() for entry in entry_points(group="ibridges_template")]
+
+
+def ibridges_template():
+    """Use templates to create an irods environment json."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges template",
+        description="List a collection on iRODS."
+    )
+    parser.add_argument(
+        "template_name",
+        help="Template to use for creating your irods_environment.json",
+        type=str,
+        default=None,
+        nargs="?"
+    )
+    parser.add_argument(
+        "--list",
+        help="List all available templates.",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        help="Store the environment to a file.",
+        type=Path,
+        default=DEFAULT_IENV_PATH,
+        required=False,
+    )
+    parser.add_argument(
+        "--overwrite",
+        help="Overwrite the irods environment file.",
+        action="store_true"
+    )
+    args = parser.parse_args()
+    all_providers = _get_templates()
+    if args.list:
+        for provider in all_providers:
+            print(provider.name)
+            print("-"*len(provider.name))
+            print("\n")
+            print("\n".join(provider.list_templates()))
+        return
+
+    for provider in all_providers:
+        if not provider.contains(args.template_name):
+            continue
+
+        user_answers = {}
+        for question in provider.questions:
+            user_answers[question] = input(question + ": ")
+
+        json_str = provider.environment_json(args.template_name, **user_answers)
+        if args.output.is_file() and not args.overwrite:
+            print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
+            print("\n")
+            print(json_str)
+        if args.output.is_dir():
+            raise ValueError(f"Output {args.output} is a directory, cannot export irods_environment"
+                             " file.")
+        else:
+            with open(args.output, "w") as handle:
+                handle.write(json_str)
+        return
+    print(f"Error: Cannot find template with name '{args.template_name}.\n"
+          "Use `ibridges templates --list` to list all available templates.")
+    sys.exit(123)
 
 def ibridges_list():
     """List a collection on iRODS."""
