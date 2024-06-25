@@ -91,7 +91,7 @@ def get_environment_providers() -> list:
         The list that contains the providers.
 
     """
-    return [entry.load() for entry in entry_points(group="ibridges_template")]
+    return [entry.load() for entry in entry_points(group="ibridges_server_template")]
 
 
 def print_environment_providers(env_providers: Sequence):
