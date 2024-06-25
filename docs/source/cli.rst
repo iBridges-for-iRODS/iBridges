@@ -12,10 +12,40 @@ in your shell script without having to create a new python script.
     There are no CLI commands to add/change metadata, instead use the iBridges API for this.
 
 
-Setting up
-----------
+.. _cli-setup:
 
-As with the ibridges API, you will need to create an `irods_environment.json`. It is the easiest if you put this file
+Setup
+-----
+
+As with the ibridges API, you will need to create an `irods_environment.json`. We have created a plugin system to automatically
+create the environment file for you. Below are the currently (known) plugins, see the links for installation instructions:
+
+.. list-table:: Server configuration plugins
+    :widths: 50 50
+    :header-rows: 1
+
+    * - Organization
+      - Link
+    * - Utrecht University
+      - https://github.com/UtrechtUniversity/ibridges-servers-uu
+
+After installation, you will be able to create an `irods_environment.json` by simply answering questions like which email-address
+you have. First find the server name with:
+
+.. code:: shell
+
+    ibridges setup --list
+
+Then finish the setup using the server name you just found:
+
+.. code:: shell
+
+    ibridges setup server_name
+
+If your organization does not provide a plugin, then you will have to create the `environment.json` yourself (with 
+the help of your iRODS administrator).
+
+It is the easiest if you put this file
 in the default location: `~/.irods/irods_environment.json`, because then it will be automatically detected. However,
 if you have it in another location for some reason (let's say you have multiple environments), then you can tell the
 ibridges CLI where it is:
