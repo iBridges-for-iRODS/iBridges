@@ -107,7 +107,9 @@ def print_environment_providers(env_providers: Sequence):
         print(provider.name)
         print("-"*len(provider.name))
         print("\n")
-        print("\n".join(provider.list_templates()))
+        max_len = max(len(x) for x in provider.descriptions)
+        for server_name, description in provider.descriptions.items():
+            print(f"{server_name: <{max_len+1}} - {description}")
 
 
 def find_environment_provider(env_providers: list, server_name: str) -> object:
