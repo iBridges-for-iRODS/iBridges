@@ -61,6 +61,7 @@ write_to = "ibridges/_version.py"
 [[tool.mypy.overrides]]
 module = [
     "irods.*",
+    "importlib_metadata.*",
 ]
 ignore_missing_imports = true
 
