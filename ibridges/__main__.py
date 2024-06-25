@@ -224,7 +224,7 @@ def ibridges_setup():
                 " file.")
         sys.exit(234)
     else:
-        with open(args.output, "w") as handle:
+        with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(json_str)
 
 
