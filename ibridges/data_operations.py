@@ -15,7 +15,6 @@ import irods.collection
 import irods.data_object
 import irods.exception
 import irods.keywords as kw
-from irods import DEFAULT_CONNECTION_TIMEOUT
 from tqdm import tqdm
 
 from ibridges.path import CachedIrodsPath, IrodsPath
