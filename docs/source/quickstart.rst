@@ -15,8 +15,9 @@ iBridges requires Python version 3.8 or higher. You can install iBridges with pi
 Getting your iRODS environment file
 -----------------------------------
 
-To connect to an iRods server you need an iRods environment file (`irods_nevironment.json`).
-You can obtain this by asking your local iRods administrator. An example of an environment file:
+To connect to an iRods server you need an iRods environment file (`irods_environment.json`).
+If your organization provides automatic setup, you can create this file yourself using the :ref:`CLI <cli-setup>`.
+Otherwise, you can obtain this by asking your local iRods administrator. An example of an environment file:
 
 .. code:: json
 

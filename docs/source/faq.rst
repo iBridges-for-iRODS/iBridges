@@ -21,3 +21,15 @@ An advantage compared to the iCommands is that iBridges also works on Mac OS and
 
 Our development is done on `GitHub <https://github.com/UtrechtUniversity/iBridges>`__ We are welcoming contributions
 by pull requests. You can also ask for new features/ideas in our issue tracker.
+
+
+**I have installed iBridges and now get "ibridges: command not found"**
+-----------------------------------------------------------------------
+
+This can happen for a variety for reasons, but the most common reason is that your PATH is not setup correctly on your system.
+Often `pip` will complain about this when you install `ibridges`. To solve this, you must first find out where pip installs the
+ibridges executable. Usually this will be something like `/home/your_username/.local/bin`, but this is dependent on your system. Then we must
+add this to the path on the command line: `export PATH="${PATH}:/home/your_username/.local/bin"` (change the path according to your system). This should allow
+your shell to find the `ibridges` command. You would have to type the previous command every time you start a new shell, which can be inconvenient.
+To fix this permanently, add the command to your `.bashrc` or `.zshrc` file in your home directory at the end of the file
+(depending on your shell, type `echo ${SHELL}` to find out).
