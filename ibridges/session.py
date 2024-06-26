@@ -72,6 +72,9 @@ class Session:
             raise TypeError(f"Error reading environment file '{irods_env_path}': "
                             f"expected dictionary, got {type(irods_env)}.")
 
+        if "connection_timeout" not in irods_env:
+            irods_env["connection_timeout"] = 25000
+
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
