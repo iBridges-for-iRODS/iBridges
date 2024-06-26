@@ -36,6 +36,7 @@ To fix this permanently, add the command to your `.bashrc` or `.zshrc` file in y
 
 
 **Help, I'm getting a "NetworkError" while trying to transfer (large) files**
+-----------------------------------------------------------------------------
 
 This error is most likely to happen if you try to transfer a large file. The default timeout for iBridges is 25000 seconds,
 which translates to roughly 7 hours. This should not cause issues during the actual transfer. However, if the calculation
