@@ -206,7 +206,7 @@ def ibridges_setup():
     try:
         provider = find_environment_provider(env_providers, args.server_name)
     except ValueError:
-        print(f"Error: Unknown server with name '{args.server_name}.\n"
+        print(f"Error: Unknown server with name {args.server_name}.\n"
           "Use `ibridges setup --list` to list all available server names.")
         sys.exit(123)
 
