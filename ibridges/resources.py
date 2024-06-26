@@ -44,11 +44,9 @@ class Resources():
             If the resource does not exist.
 
         """
-        try:
-            return self.session.irods_session.resources.get(resc_name)
-        except irods.exception.ResourceDoesNotExist as error:
-            return {'successful': False, 'reason': repr(error)}
-
+        
+        return self.session.irods_session.resources.get(resc_name)
+        
     def get_free_space(self, resc_name: str) -> int:
         """Determine free space in a resource hierarchy.
 
