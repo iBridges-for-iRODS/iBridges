@@ -8,10 +8,15 @@ from pathlib import Path
 from typing import Union
 
 from ibridges.data_operations import download, sync, upload
-from ibridges.interactive import interactive_auth
+from ibridges.interactive import DEFAULT_IENV_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.util import get_collection
+from ibridges.util import (
+    find_environment_provider,
+    get_collection,
+    get_environment_providers,
+    print_environment_providers,
+)
 
 try:  # Python < 3.10 (backport)
     from importlib_metadata import version  # type: ignore
@@ -40,6 +45,8 @@ Available subcommands:
         List a collection and subcollections in a hierarchical way.
     mkcoll:
         Create the collection and all its parent collections.
+    setup:
+        Create an iRODS environment file to connect to an iRODS server.
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -53,6 +60,7 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+ibridges setup uu-its
 
 
 Program information:
@@ -88,6 +96,8 @@ def main() -> None:
         ibridges_mkcoll()
     elif subcommand == "tree":
         ibridges_tree()
+    elif subcommand == "setup":
+        ibridges_setup()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -151,6 +161,72 @@ def _list_coll(session: Session, remote_path: IrodsPath):
                          if not str(remote_path) == sub.path]))
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
+
+
+def ibridges_setup():
+    """Use templates to create an iRODS environment json."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges setup",
+        description="Tool to create a valid irods_environment.json"
+    )
+    parser.add_argument(
+        "server_name",
+        help="Server name to create your irods_environment.json for.",
+        type=str,
+        default=None,
+        nargs="?"
+    )
+    parser.add_argument(
+        "--list",
+        help="List all available server names.",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-o", "--output",
+        help="Store the environment to a file.",
+        type=Path,
+        default=DEFAULT_IENV_PATH,
+        required=False,
+    )
+    parser.add_argument(
+        "--overwrite",
+        help="Overwrite the irods environment file.",
+        action="store_true"
+    )
+    args = parser.parse_args()
+    env_providers = get_environment_providers()
+    if args.list:
+        if len(env_providers) == 0:
+            print("No server information was found. To use this function, please install a plugin"
+                  " such as:\n\nhttps://github.com/UtrechtUniversity/ibridges-servers-uu"
+                  "\n\nAlternatively create an irods_environment.json by yourself or with the help "
+                  "of your iRODS administrator.")
+        print_environment_providers(env_providers)
+        return
+
+    try:
+        provider = find_environment_provider(env_providers, args.server_name)
+    except ValueError:
+        print(f"Error: Unknown server with name {args.server_name}.\n"
+          "Use `ibridges setup --list` to list all available server names.")
+        sys.exit(123)
+
+    user_answers = {}
+    for question in provider.questions:
+        user_answers[question] = input(question + ": ")
+
+    json_str = provider.environment_json(args.server_name, **user_answers)
+    if args.output.is_file() and not args.overwrite:
+        print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
+        print("\n")
+        print(json_str)
+    if args.output.is_dir():
+        print(f"Output {args.output} is a directory, cannot export irods_environment"
+                " file.")
+        sys.exit(234)
+    else:
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(json_str)
 
 
 def ibridges_list():
