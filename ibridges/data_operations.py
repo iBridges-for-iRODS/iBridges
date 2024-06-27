@@ -536,7 +536,7 @@ def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, dep
     return operations
 
 
-def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):  # pylint: disable=too-many-branches
     operations = _empty_ops()
     session = idest_path.session
     try:
