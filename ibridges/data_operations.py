@@ -568,6 +568,7 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
                 operations["upload"].append((lpath, ipath))
         if copy_empty_folders:
             for fold in folders:
+                # Ignore folder symlinks
                 lpath = lsource_path / root_part / fold
                 if lpath.is_symlink():
                     warnings.warn(f"Ignoring symlink {lpath}.")
