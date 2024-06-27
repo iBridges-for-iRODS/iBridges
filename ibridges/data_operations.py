@@ -551,6 +551,11 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
         for cur_file in files:
             ipath = root_ipath / cur_file
             lpath = lsource_path / root_part / cur_file
+
+            # Ignore symlinks
+            if lpath.is_symlink():
+                warnings.warn(f"Ignoring symlink {lpath}.")
+                continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
                 l_chksum = _calc_checksum(lpath)
@@ -563,6 +568,10 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
                 operations["upload"].append((lpath, ipath))
         if copy_empty_folders:
             for fold in folders:
+                lpath = lsource_path / root_part / fold
+                if lpath.is_symlink():
+                    warnings.warn(f"Ignoring symlink {lpath}.")
+                    continue
                 if str(root_ipath / fold) not in remote_ipaths:
                     operations["create_collection"].add(str(root_ipath / fold))
         if str(root_ipath) not in remote_ipaths and str(root_ipath) != str(idest_path):
