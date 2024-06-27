@@ -33,3 +33,13 @@ add this to the path on the command line: `export PATH="${PATH}:/home/your_usern
 your shell to find the `ibridges` command. You would have to type the previous command every time you start a new shell, which can be inconvenient.
 To fix this permanently, add the command to your `.bashrc` or `.zshrc` file in your home directory at the end of the file
 (depending on your shell, type `echo ${SHELL}` to find out).
+
+
+**Help, I'm getting a "NetworkError" while trying to transfer (large) files**
+-----------------------------------------------------------------------------
+
+This error is most likely to happen if you try to transfer a large file. The default timeout for iBridges is 25000 seconds,
+which translates to roughly 7 hours. This should not cause issues during the actual transfer. However, if the calculation
+of the checksum takes more than 7 hours (if the iRODS server is busy for example, or the file is many terabytes), then 
+you will get a network error. The checksum itself should still be created. You can increase the timeout in your `irods_environment.json`
+file by adding a new entry with `"connection_timeout": 99999999999,`. 
