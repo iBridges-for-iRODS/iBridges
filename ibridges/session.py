@@ -72,8 +72,7 @@ class Session:
             raise TypeError(f"Error reading environment file '{irods_env_path}': "
                             f"expected dictionary, got {type(irods_env)}.")
 
-        if "connection_timeout" not in irods_env:
-            irods_env["connection_timeout"] = 25000
+        self.connection_timeout = irods_env.pop("connection_timeout", 25000)
 
         self._password = password
         self._irods_env: dict = irods_env
@@ -198,9 +197,11 @@ class Session:
     def authenticate_using_password(self) -> iRODSSession:
         """Authenticate with the iRODS server using a password."""
         try:
-            irods_session = irods.session.iRODSSession(password=self._password,
-                                                             **self._irods_env,
-                                                       application_name=APP_NAME)
+            irods_session = irods.session.iRODSSession(
+                password=self._password,
+                **self._irods_env,
+                connection_timeout=self.connection_timeout,
+                application_name=APP_NAME)
             _ = irods_session.server_version
         except Exception as e:
             raise _translate_irods_error(e) from e
@@ -212,7 +213,8 @@ class Session:
         """Authenticate with an authentication file."""
         try:
             irods_session = irods.session.iRODSSession(
-                irods_env_file=self._irods_env_path, application_name=APP_NAME)
+                irods_env_file=self._irods_env_path, application_name=APP_NAME,
+                connection_timeout=self.connection_timeout)
             _ = irods_session.server_version
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
