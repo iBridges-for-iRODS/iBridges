@@ -7,5 +7,13 @@ from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.tickets import Tickets
 
-__all__ = ["Session", "IrodsPath", "download", "upload",
-           "MetaData", "Tickets", "search_data", "sync"]
+__all__ = [
+    "Session",
+    "IrodsPath",
+    "download",
+    "upload",
+    "MetaData",
+    "Tickets",
+    "search_data",
+    "sync",
+]

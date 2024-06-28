@@ -1,4 +1,5 @@
 """Ticket operations."""
+
 from __future__ import annotations
 
 from collections import namedtuple
@@ -11,9 +12,10 @@ from irods.models import TicketQuery
 import ibridges.icat_columns as icat
 from ibridges.session import Session
 
-TicketData = namedtuple('TicketData', ["name", "type", "path", "expiration_date"])
+TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
 
-class Tickets():
+
+class Tickets:
     """Irods Ticket operations."""
 
     def __init__(self, session: Session):
@@ -28,9 +30,12 @@ class Tickets():
         self.session = session
         self._all_tickets = self.update_tickets()
 
-    def create_ticket(self, obj_path: str,
-                      ticket_type: str = 'read',
-                      expiry_date: Optional[Union[str, datetime, date]] = None) -> tuple:
+    def create_ticket(
+        self,
+        obj_path: str,
+        ticket_type: str = "read",
+        expiry_date: Optional[Union[str, datetime, date]] = None,
+    ) -> tuple:
         """Create an iRODS ticket.
 
         This allows read access to the object referenced by `obj_path`.
@@ -65,15 +70,17 @@ class Tickets():
             if isinstance(expiry_date, date):
                 expiry_date = datetime.combine(expiry_date, datetime.min.time())
             if isinstance(expiry_date, datetime):
-                expiry_date = expiry_date.strftime('%Y-%m-%d.%H:%M:%S')
+                expiry_date = expiry_date.strftime("%Y-%m-%d.%H:%M:%S")
             if not isinstance(expiry_date, str):
-                raise TypeError("Expecting datetime, date or string type for 'expiry_date' "
-                                 f"argument, got {type(expiry_date)}")
+                raise TypeError(
+                    "Expecting datetime, date or string type for 'expiry_date' "
+                    f"argument, got {type(expiry_date)}"
+                )
             try:
-                expiration_set = ticket.modify('expire', expiry_date) == ticket
+                expiration_set = ticket.modify("expire", expiry_date) == ticket
             except Exception as error:
                 self.delete_ticket(ticket)
-                raise ValueError('Could not set expiration date') from error
+                raise ValueError("Could not set expiration date") from error
         self.update_tickets()
         return ticket.ticket, expiration_set
 
@@ -106,11 +113,11 @@ class Tickets():
         """
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
-        raise KeyError(f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' "
-                       "does not exist.")
+        raise KeyError(
+            f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' " "does not exist."
+        )
 
-    def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket],
-                      check: bool = False):
+    def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket], check: bool = False):
         """Delete irods ticket.
 
         Parameters
@@ -151,15 +158,18 @@ class Tickets():
         user = self.session.username
         self._all_tickets = []
         for row in self.session.irods_session.query(TicketQuery.Ticket).filter(
-                TicketQuery.Owner.name == user):
+            TicketQuery.Owner.name == user
+        ):
             time = row[TicketQuery.Ticket.expiry_ts]
             time_stamp = datetime.fromtimestamp(int(time)) if time else ""
             self._all_tickets.append(
-                TicketData(row[TicketQuery.Ticket.string],
-                           row[TicketQuery.Ticket.type],
-                           self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
-                           time_stamp
-                ))
+                TicketData(
+                    row[TicketQuery.Ticket.string],
+                    row[TicketQuery.Ticket.type],
+                    self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
+                    time_stamp,
+                )
+            )
         return self._all_tickets
 
     def clear(self):
@@ -198,4 +208,4 @@ class Tickets():
         if len(list(coll_query)) > 0:
             res = next(coll_query.get_results())
             return list(res.values())[0]
-        return ''
+        return ""

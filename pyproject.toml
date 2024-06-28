@@ -6,6 +6,8 @@ build-backend = "setuptools.build_meta"
 name = "ibridges"
 authors = [
     { name = "Christine Staiger", email = "c.staiger@uu.nl" },
+    { name = "Raoul Schram", email = "r.d.schram@uu.nl" },
+    { name = "Maarten Schermer", email = "m.d.schermer@uu.nl" },
 ]
 description = "Package for accessing data and metadata on iRods servers."
 readme = "README.md"
@@ -24,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "python-irodsclient>=1.1.6",
+    "python-irodsclient>=2.0.0",
     "tqdm",
     "importlib-metadata;python_version<'3.10'",
 ]
