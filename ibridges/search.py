@@ -1,4 +1,5 @@
 """Data query."""
+
 from __future__ import annotations
 
 from typing import Optional, Union
@@ -8,8 +9,12 @@ from ibridges.path import IrodsPath
 from ibridges.session import Session
 
 
-def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
-           checksum: Optional[str] = None, key_vals: Optional[dict] = None) -> list[dict]:
+def search_data(
+    session: Session,
+    path: Optional[Union[str, IrodsPath]] = None,
+    checksum: Optional[str] = None,
+    key_vals: Optional[dict] = None,
+) -> list[dict]:
     """Retrieve all collections and data objects.
 
     (the absolute collection path,
@@ -45,16 +50,17 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     """
     if path is None and checksum is None and key_vals is None:
         raise ValueError(
-                "QUERY: Error while searching in the metadata: No query criteria set." \
-                        + " Please supply either a path, checksum or key_vals.")
+            "QUERY: Error while searching in the metadata: No query criteria set."
+            + " Please supply either a path, checksum or key_vals."
+        )
 
     # create the query for collections; we only want to return the collection name
     coll_query = session.irods_session.query(icat.COLL_NAME)
     # create the query for data objects; we need the collection name, the data name and its checksum
-    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
-                                             icat.DATA_CHECKSUM)
-    data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
-                                                  icat.DATA_CHECKSUM)
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
+    data_name_query = session.irods_session.query(
+        icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM
+    )
     # iRODS queries do not know the 'or' operator, so we need three searches
     # One for the collection, and two for the data
     # one data search in case path is a collection path and we want to retrieve all data there
@@ -75,7 +81,8 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, path))
         # all data objects on path.parent with name
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_NAME, name)).filter(
-                                                 icat.LIKE(icat.COLL_NAME, parent))
+            icat.LIKE(icat.COLL_NAME, parent)
+        )
     if key_vals:
         for key in key_vals:
             data_query.filter(icat.LIKE(icat.META_DATA_ATTR_NAME, key))
@@ -85,14 +92,16 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
                 data_query.filter(icat.LIKE(icat.META_DATA_ATTR_VALUE, key_vals[key]))
                 coll_query.filter(icat.LIKE(icat.META_COLL_ATTR_VALUE, key_vals[key]))
                 data_name_query = data_name_query.filter(
-                                    icat.LIKE(icat.META_DATA_ATTR_VALUE, key_vals[key]))
+                    icat.LIKE(icat.META_DATA_ATTR_VALUE, key_vals[key])
+                )
     if checksum:
         data_query = data_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
     # gather results, data_query and data_name_query can contain the same results
-    results = [dict(s) for s in set(frozenset(d.items())
-                       for d in list(data_query)+list(data_name_query))]
-    
+    results = [
+        dict(s) for s in set(frozenset(d.items()) for d in list(data_query) + list(data_name_query))
+    ]
+
     if checksum is None:
         coll_res = list(coll_query.get_results())
         if len(coll_res) > 0:

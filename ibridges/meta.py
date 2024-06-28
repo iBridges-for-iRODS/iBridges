@@ -1,4 +1,5 @@
 """metadata operations."""
+
 from __future__ import annotations
 
 from typing import Any, Iterator, Optional, Sequence, Union
@@ -10,7 +11,7 @@ import irods.meta
 from ibridges.util import is_dataobject
 
 
-class MetaData():
+class MetaData:
     """Irods metadata operations.
 
     This allows for adding and deleting of metadata entries for data objects
@@ -33,8 +34,9 @@ class MetaData():
 
     """
 
-    def __init__(self, item: Union[irods.data_object.iRODSDataObject,
-                                   irods.collection.iRODSCollection]):
+    def __init__(
+        self, item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]
+    ):
         """Initialize the metadata object.
 
         Parameters
@@ -68,7 +70,7 @@ class MetaData():
         """
         if isinstance(val, str):
             val = [val]
-        all_attrs = ["name", "value", "units"][:len(val)]
+        all_attrs = ["name", "value", "units"][: len(val)]
         for meta in self:
             n_same = 0
             for i_attr, attr in enumerate(all_attrs):
@@ -83,7 +85,6 @@ class MetaData():
     def __repr__(self) -> str:
         """Create a sorted representation of the metadata."""
         return f"MetaData<{self.item.path}>"
-
 
     def __str__(self) -> str:
         """Return a string showing all metadata entries."""
@@ -203,11 +204,14 @@ class MetaData():
             else:
                 self.item.metadata.remove(key, value, units)
         except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
-            raise KeyError(f"Cannot delete metadata with key '{key}', value '{value}'"
-                             f" and units '{units}' since it does not exist.") from error
+            raise KeyError(
+                f"Cannot delete metadata with key '{key}', value '{value}'"
+                f" and units '{units}' since it does not exist."
+            ) from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise ValueError("Cannot delete metadata due to insufficient permission for "
-                             "path '{item.path}'.") from error
+            raise ValueError(
+                "Cannot delete metadata due to insufficient permission for " "path '{item.path}'."
+            ) from error
 
     def clear(self):
         """Delete all metadata belonging to the item.
