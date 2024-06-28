@@ -61,8 +61,12 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     # one in case the path is or ends with a file name
     if path:
         path = str(path)
-        parent = path.rsplit("/", maxsplit=1)[0]
-        name = path.rsplit("/", maxsplit=1)[1]
+        if len(path.rsplit("/", maxsplit=1)) > 1:
+            parent = path.rsplit("/", maxsplit=1)[0]
+            name = path.rsplit("/", maxsplit=1)[1]
+        else:
+            name = path
+            parent = "%"
         # all collections starting with path
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, path))
 
