@@ -26,7 +26,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "python-irodsclient>=1.1.6",
+    "python-irodsclient>=2.0.0",
     "tqdm",
     "importlib-metadata;python_version<'3.10'",
 ]
