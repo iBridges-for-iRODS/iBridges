@@ -1,4 +1,5 @@
 """resource operations."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -10,7 +11,7 @@ from ibridges import icat_columns as icat
 from ibridges.session import Session
 
 
-class Resources():
+class Resources:
     """Irods Resource operations."""
 
     def __init__(self, session: Session):
@@ -78,9 +79,9 @@ class Resources():
         if resc.free_space is not None:
             return int(resc.free_space)
         children = self.get_resource_children(resc)
-        free_space = sum((
-            int(child.free_space) for child in children
-            if child.free_space is not None))
+        free_space = sum(
+            (int(child.free_space) for child in children if child.free_space is not None)
+        )
         return free_space
 
     def get_resource_children(self, resc: irods.resource.iRODSResource) -> list:
@@ -123,24 +124,24 @@ class Resources():
         """
         if self._resources is None or update:
             query = self.session.irods_session.query(
-                icat.RESC_NAME, icat.RESC_PARENT, icat.RESC_STATUS, icat.RESC_CONTEXT)
+                icat.RESC_NAME, icat.RESC_PARENT, icat.RESC_STATUS, icat.RESC_CONTEXT
+            )
             resc_list = []
             for item in query.get_results():
                 name, parent, status, context = item.values()
-                if name == 'bundleResc':
+                if name == "bundleResc":
                     continue
                 free_space = 0
                 if parent is None:
                     free_space = self.get_free_space(name)
                 metadata = {
-                    'parent': parent,
-                    'status': status,
-                    'context': context,
-                    'free_space': free_space,
+                    "parent": parent,
+                    "status": status,
+                    "context": context,
+                    "free_space": free_space,
                 }
                 resc_list.append((name, metadata))
-            resc_dict = dict(
-                sorted(resc_list, key=lambda item: str.casefold(item[0])))
+            resc_dict = dict(sorted(resc_list, key=lambda item: str.casefold(item[0])))
             self._resources = resc_dict
         return self._resources
 
@@ -156,6 +157,8 @@ class Resources():
         List [(resource_name, status, free_space, context)]
 
         """
-        parents = [(key, val) for key, val in self.resources().items() if not val['parent']]
-        return [(resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"])
-                for resc in parents]
+        parents = [(key, val) for key, val in self.resources().items() if not val["parent"]]
+        return [
+            (resc[0], resc[1]["status"], resc[1]["free_space"], resc[1]["context"])
+            for resc in parents
+        ]

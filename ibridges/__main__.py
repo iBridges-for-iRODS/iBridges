@@ -1,4 +1,5 @@
 """Command line tools for the iBridges library."""
+
 from __future__ import annotations
 
 import argparse
@@ -102,6 +103,7 @@ def main() -> None:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
 
+
 def _set_ienv_path(ienv_path: Union[None, str, Path]):
     try:
         with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
@@ -134,8 +136,7 @@ def _get_ienv_path() -> Union[None, str]:
 def ibridges_init():
     """Create a cached password for future use."""
     parser = argparse.ArgumentParser(
-        prog="ibridges init",
-        description="Cache your iRODS password to be used later."
+        prog="ibridges init", description="Cache your iRODS password to be used later."
     )
     parser.add_argument(
         "irods_env_path",
@@ -154,11 +155,18 @@ def ibridges_init():
 
 def _list_coll(session: Session, remote_path: IrodsPath):
     if remote_path.collection_exists():
-        print(str(remote_path)+':')
+        print(str(remote_path) + ":")
         coll = get_collection(session, remote_path)
-        print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
-        print('\n'.join(['  C- '+sub.path for sub in coll.subcollections
-                         if not str(remote_path) == sub.path]))
+        print("\n".join(["  " + sub.path for sub in coll.data_objects]))
+        print(
+            "\n".join(
+                [
+                    "  C- " + sub.path
+                    for sub in coll.subcollections
+                    if not str(remote_path) == sub.path
+                ]
+            )
+        )
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
@@ -166,49 +174,47 @@ def _list_coll(session: Session, remote_path: IrodsPath):
 def ibridges_setup():
     """Use templates to create an iRODS environment json."""
     parser = argparse.ArgumentParser(
-        prog="ibridges setup",
-        description="Tool to create a valid irods_environment.json"
+        prog="ibridges setup", description="Tool to create a valid irods_environment.json"
     )
     parser.add_argument(
         "server_name",
         help="Server name to create your irods_environment.json for.",
         type=str,
         default=None,
-        nargs="?"
+        nargs="?",
     )
+    parser.add_argument("--list", help="List all available server names.", action="store_true")
     parser.add_argument(
-        "--list",
-        help="List all available server names.",
-        action="store_true"
-    )
-    parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         help="Store the environment to a file.",
         type=Path,
         default=DEFAULT_IENV_PATH,
         required=False,
     )
     parser.add_argument(
-        "--overwrite",
-        help="Overwrite the irods environment file.",
-        action="store_true"
+        "--overwrite", help="Overwrite the irods environment file.", action="store_true"
     )
     args = parser.parse_args()
     env_providers = get_environment_providers()
     if args.list:
         if len(env_providers) == 0:
-            print("No server information was found. To use this function, please install a plugin"
-                  " such as:\n\nhttps://github.com/UtrechtUniversity/ibridges-servers-uu"
-                  "\n\nAlternatively create an irods_environment.json by yourself or with the help "
-                  "of your iRODS administrator.")
+            print(
+                "No server information was found. To use this function, please install a plugin"
+                " such as:\n\nhttps://github.com/UtrechtUniversity/ibridges-servers-uu"
+                "\n\nAlternatively create an irods_environment.json by yourself or with the help "
+                "of your iRODS administrator."
+            )
         print_environment_providers(env_providers)
         return
 
     try:
         provider = find_environment_provider(env_providers, args.server_name)
     except ValueError:
-        print(f"Error: Unknown server with name {args.server_name}.\n"
-          "Use `ibridges setup --list` to list all available server names.")
+        print(
+            f"Error: Unknown server with name {args.server_name}.\n"
+            "Use `ibridges setup --list` to list all available server names."
+        )
         sys.exit(123)
 
     user_answers = {}
@@ -221,8 +227,7 @@ def ibridges_setup():
         print("\n")
         print(json_str)
     if args.output.is_dir():
-        print(f"Output {args.output} is a directory, cannot export irods_environment"
-                " file.")
+        print(f"Output {args.output} is a directory, cannot export irods_environment" " file.")
         sys.exit(234)
     else:
         with open(args.output, "w", encoding="utf-8") as handle:
@@ -232,8 +237,7 @@ def ibridges_setup():
 def ibridges_list():
     """List a collection on iRODS."""
     parser = argparse.ArgumentParser(
-        prog="ibridges list",
-        description="List a collection on iRODS."
+        prog="ibridges list", description="List a collection on iRODS."
     )
     parser.add_argument(
         "remote_path",
@@ -247,16 +251,18 @@ def ibridges_list():
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         _list_coll(session, _parse_remote(args.remote_path, session))
 
+
 def _create_coll(session: Session, remote_path: IrodsPath):
     if remote_path.exists():
-        raise ValueError(f'New collection path {remote_path} already exists.')
+        raise ValueError(f"New collection path {remote_path} already exists.")
     remote_path.create_collection(session, remote_path)
+
 
 def ibridges_mkcoll():
     """Create a collection with all its parents given the new path."""
     parser = argparse.ArgumentParser(
         prog="ibridges mkcoll",
-        description="Create a new collecion with all its parent collections."
+        description="Create a new collecion with all its parent collections.",
     )
     parser.add_argument(
         "remote_path",
@@ -268,6 +274,7 @@ def ibridges_mkcoll():
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         _create_coll(session, _parse_remote(args.remote_path, session))
 
+
 def _parse_local(local_path: Union[None, str, Path]) -> Path:
     if local_path is None:
         return Path.cwd()
@@ -276,6 +283,7 @@ def _parse_local(local_path: Union[None, str, Path]) -> Path:
             raise ValueError("Please provide a local path (not starting with 'irods:')")
         local_path = Path(local_path)
     return local_path
+
 
 def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
     if remote_path is None:
@@ -290,11 +298,12 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
+
 def ibridges_download():
     """Download a remote data object or collection."""
     parser = argparse.ArgumentParser(
         prog="ibridges download",
-        description="Download a data object or collection from an iRODS server."
+        description="Download a data object or collection from an iRODS server.",
     )
     parser.add_argument(
         "remote_path",
@@ -317,21 +326,23 @@ def ibridges_download():
         help="Name of the resource from which the data is to be downloaded.",
         type=str,
         default="",
-        required=False
+        required=False,
     )
     parser.add_argument(
         "--dry-run",
         help="Do not perform the download, but list the files to be updated.",
-        action="store_true"
+        action="store_true",
     )
     args = parser.parse_args()
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        ops = download(session,
-                 _parse_remote(args.remote_path, session),
-                 _parse_local(args.local_path),
-                 overwrite=args.overwrite,
-                 resc_name=args.resource,
-                 dry_run=args.dry_run)
+        ops = download(
+            session,
+            _parse_remote(args.remote_path, session),
+            _parse_local(args.local_path),
+            overwrite=args.overwrite,
+            resc_name=args.resource,
+            dry_run=args.dry_run,
+        )
         if args.dry_run:
             _summarize_ops(ops)
 
@@ -340,7 +351,7 @@ def ibridges_upload():
     """Upload a local file or directory to the irods server."""
     parser = argparse.ArgumentParser(
         prog="ibridges upload",
-        description="Upload a data object or collection from an iRODS server."
+        description="Upload a data object or collection from an iRODS server.",
     )
     parser.add_argument(
         "local_path",
@@ -362,22 +373,23 @@ def ibridges_upload():
         help="Name of the resource to which the data is to be uploaded.",
         type=str,
         default="",
-        required=False
+        required=False,
     )
     parser.add_argument(
         "--dry-run",
         help="Do not perform the upload, but list the files to be updated.",
-        action="store_true"
+        action="store_true",
     )
     args = parser.parse_args()
 
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        ops = upload(session,
-               _parse_local(args.local_path),
-               _parse_remote(args.remote_path, session),
-               overwrite=args.overwrite,
-               resc_name=args.resource,
-               dry_run=args.dry_run
+        ops = upload(
+            session,
+            _parse_local(args.local_path),
+            _parse_remote(args.remote_path, session),
+            overwrite=args.overwrite,
+            resc_name=args.resource,
+            dry_run=args.dry_run,
         )
         if args.dry_run:
             _summarize_ops(ops)
@@ -387,6 +399,7 @@ def _parse_str(remote_or_local: str, session) -> Union[str, IrodsPath]:
     if remote_or_local.startswith("irods:"):
         return IrodsPath(session, remote_or_local[6:])
     return remote_or_local
+
 
 def _summarize_ops(ops):
     if len(ops["create_collection"]) > 0:
@@ -413,8 +426,7 @@ def _summarize_ops(ops):
 def ibridges_sync():
     """Synchronize files/directories between local and remote."""
     parser = argparse.ArgumentParser(
-        prog="ibridges sync",
-        description="Synchronize files/directories between local and remote."
+        prog="ibridges sync", description="Synchronize files/directories between local and remote."
     )
     parser.add_argument(
         "source",
@@ -429,16 +441,16 @@ def ibridges_sync():
     parser.add_argument(
         "--dry-run",
         help="Do not perform the synchronization, but list the files to be updated.",
-        action="store_true"
+        action="store_true",
     )
     args = parser.parse_args()
 
-
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
-        ops = sync(session,
-                  _parse_str(args.source, session),
-                  _parse_str(args.destination, session),
-                  dry_run=args.dry_run,
+        ops = sync(
+            session,
+            _parse_str(args.source, session),
+            _parse_str(args.destination, session),
+            dry_run=args.dry_run,
         )
         if args.dry_run:
             _summarize_ops(ops)
@@ -446,28 +458,26 @@ def ibridges_sync():
 
 # prefix components:
 _tree_elements = {
-    "pretty":
-        {
-            "space": '    ',
-            "branch": '│   ',
-            "skip": "...",
-            "tee": '├── ',
-            "last": '└── ',
-        },
-    "ascii":
-        {
-            "space": '    ',
-            "branch": '|   ',
-            "skip": "...",
-            "tee": '|-- ',
-            "last": '\\-- ',
-        }
+    "pretty": {
+        "space": "    ",
+        "branch": "│   ",
+        "skip": "...",
+        "tee": "├── ",
+        "last": "└── ",
+    },
+    "ascii": {
+        "space": "    ",
+        "branch": "|   ",
+        "skip": "...",
+        "tee": "|-- ",
+        "last": "\\-- ",
+    },
 }
 
 
 def _print_build_list(build_list: list[str], prefix: str, pels: dict[str, str], show_max: int = 10):
     if len(build_list) > show_max:
-        n_half = (show_max-1)//2
+        n_half = (show_max - 1) // 2
         for item in build_list[:n_half]:
             print(prefix + pels["tee"] + item)
         print(prefix + pels["skip"])
@@ -479,8 +489,14 @@ def _print_build_list(build_list: list[str], prefix: str, pels: dict[str, str], 
     if len(build_list) > 0:
         print(prefix + pels["last"] + build_list[-1])
 
-def _tree(ipath: IrodsPath, path_list: list[IrodsPath], pels: dict[str, str], prefix: str = '',
-          show_max: int = 10):
+
+def _tree(
+    ipath: IrodsPath,
+    path_list: list[IrodsPath],
+    pels: dict[str, str],
+    prefix: str = "",
+    show_max: int = 10,
+):
     """Generate A recursive generator, given a directory Path object.
 
     will yield a visual tree structure line by line
@@ -498,9 +514,13 @@ def _tree(ipath: IrodsPath, path_list: list[IrodsPath], pels: dict[str, str], pr
         if len(rel_path.parts) > 1:
             _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
             build_list = []
-            j_path += _tree(cur_path.parent, path_list[j_path:], show_max=show_max,
-                            prefix=prefix + pels["branch"],
-                            pels=pels)
+            j_path += _tree(
+                cur_path.parent,
+                path_list[j_path:],
+                show_max=show_max,
+                prefix=prefix + pels["branch"],
+                pels=pels,
+            )
             continue
         build_list.append(str(rel_path))
         j_path += 1
@@ -511,8 +531,7 @@ def _tree(ipath: IrodsPath, path_list: list[IrodsPath], pels: dict[str, str], pr
 def ibridges_tree():
     """Print a tree representation of a remote directory."""
     parser = argparse.ArgumentParser(
-        prog="ibridges tree",
-        description="Show collection/directory tree."
+        prog="ibridges tree", description="Show collection/directory tree."
     )
     parser.add_argument(
         "remote_path",

@@ -19,7 +19,7 @@ class MockIrodsSession:
 mock_session = MockIrodsSession()
 dirname = "blabla"
 filename = "blublub"
-irods_path = IrodsPath(mock_session, dirname, filename) 
+irods_path = IrodsPath(mock_session, dirname, filename)
 windows_path = "windows\\path\\directory"
 linux_path = "linux/or/mac/path"
 

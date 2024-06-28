@@ -1,4 +1,5 @@
 """session operations."""
+
 from __future__ import annotations
 
 import json
@@ -19,15 +20,18 @@ from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 from ibridges import icat_columns as icat
 
-APP_NAME="ibridges"
+APP_NAME = "ibridges"
+
 
 class Session:
     """Irods session authentication."""
 
-    def __init__(self,
-                 irods_env: Union[dict, str, Path],
-                 password: Optional[str] = None,
-                 irods_home: Optional[str] = None):
+    def __init__(
+        self,
+        irods_env: Union[dict, str, Path],
+        password: Optional[str] = None,
+        irods_home: Optional[str] = None,
+    ):
         """IRODS authentication with Python client.
 
         Parameters
@@ -69,8 +73,10 @@ class Session:
             with irods_env_path.open("r", encoding="utf-8") as envfd:
                 irods_env = json.load(envfd)
         if not isinstance(irods_env, dict):
-            raise TypeError(f"Error reading environment file '{irods_env_path}': "
-                            f"expected dictionary, got {type(irods_env)}.")
+            raise TypeError(
+                f"Error reading environment file '{irods_env_path}': "
+                f"expected dictionary, got {type(irods_env)}."
+            )
 
         self.connection_timeout = irods_env.pop("connection_timeout", 25000)
 
@@ -81,7 +87,7 @@ class Session:
         if irods_home is not None:
             self.home = irods_home
         if "irods_home" not in self._irods_env:
-            self.home = '/'+self.zone+'/home/'+self.username
+            self.home = "/" + self.zone + "/home/" + self.username
 
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
@@ -156,16 +162,15 @@ class Session:
             except socket.error:
                 return False
 
-
     def connect(self) -> iRODSSession:
         """Establish an iRODS session."""
-        irods_host = self._irods_env.get('irods_host', None)
-        irods_port = self._irods_env.get('irods_port', None)
+        irods_host = self._irods_env.get("irods_host", None)
+        irods_port = self._irods_env.get("irods_port", None)
         network = self.network_check(irods_host, irods_port)
         if network is False:
-            raise ConnectionError(f'No internet connection to {irods_host} and port {irods_port}')
-        user = self._irods_env.get('irods_user_name', '')
-        if user == 'anonymous':
+            raise ConnectionError(f"No internet connection to {irods_host} and port {irods_port}")
+        user = self._irods_env.get("irods_user_name", "")
+        if user == "anonymous":
             # TODOx: implement and test for SSL enabled iRODS
             # self.irods_session = iRODSSession(user='anonymous',
             #                        password='',
@@ -174,7 +179,7 @@ class Session:
             #                        host=host)
             raise NotImplementedError
         # authentication with irods environment and password
-        if self._password is None or self._password == '':
+        if self._password is None or self._password == "":
             # use cached password of .irodsA built into prc
             # print("Auth without password")
             return self.authenticate_using_auth_file()
@@ -201,7 +206,8 @@ class Session:
                 password=self._password,
                 **self._irods_env,
                 connection_timeout=self.connection_timeout,
-                application_name=APP_NAME)
+                application_name=APP_NAME,
+            )
             _ = irods_session.server_version
         except Exception as e:
             raise _translate_irods_error(e) from e
@@ -213,8 +219,10 @@ class Session:
         """Authenticate with an authentication file."""
         try:
             irods_session = irods.session.iRODSSession(
-                irods_env_file=self._irods_env_path, application_name=APP_NAME,
-                connection_timeout=self.connection_timeout)
+                irods_env_file=self._irods_env_path,
+                application_name=APP_NAME,
+                connection_timeout=self.connection_timeout,
+            )
             _ = irods_session.server_version
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
@@ -224,18 +232,16 @@ class Session:
             raise LoginError("iRODS server does not return a server version.")
         return irods_session
 
-
     def write_pam_password(self):
         """Store the password in the iRODS authentication file in obfuscated form."""
         connection = self.irods_session.pool.get_connection()
         pam_passwords = self.irods_session.pam_pw_negotiated
         if len(pam_passwords):
             irods_auth_file = self.irods_session.get_irods_password_file()
-            with open(irods_auth_file, 'w', encoding='utf-8') as authfd:
-                authfd.write(
-                    irods.password_obfuscation.encode(pam_passwords[0]))
+            with open(irods_auth_file, "w", encoding="utf-8") as authfd:
+                authfd.write(irods.password_obfuscation.encode(pam_passwords[0]))
         else:
-            warnings.warn('WARNING -- unable to cache obfuscated password locally')
+            warnings.warn("WARNING -- unable to cache obfuscated password locally")
         connection.release()
 
     @property
@@ -289,33 +295,33 @@ class Session:
             iRODS group names
 
         """
-        query = self.irods_session.query(icat.USER_TYPE).filter(icat.LIKE(
-            icat.USER_NAME, self.username))
-        user_type = [
-            list(result.values())[0] for result in query.get_results()
-        ][0]
-        query = self.irods_session.query(icat.USER_GROUP_NAME).filter(icat.LIKE(
-            icat.USER_NAME, self.username))
-        user_groups = [
-            list(result.values())[0] for result in query.get_results()
-        ]
+        query = self.irods_session.query(icat.USER_TYPE).filter(
+            icat.LIKE(icat.USER_NAME, self.username)
+        )
+        user_type = [list(result.values())[0] for result in query.get_results()][0]
+        query = self.irods_session.query(icat.USER_GROUP_NAME).filter(
+            icat.LIKE(icat.USER_NAME, self.username)
+        )
+        user_groups = [list(result.values())[0] for result in query.get_results()]
         return user_type, user_groups
 
 
 class LoginError(AttributeError):
     """Error indicating a failure to log into the iRODS server due to the configuration."""
 
+
 class PasswordError(ValueError):
     """Error indicating failure to log into the iRODS server due to wrong or outdated password."""
 
 
-
 def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return-statements
     if isinstance(exc, NetworkException):
-        if any((a.startswith('Client-Server negotiation failure') for a in exc.args)):
-            return LoginError("Host, port, irods_client_server_policy or "
-                              "irods_client_server_negotiation not set correctly in "
-                              "irods_environment.json")
+        if any((a.startswith("Client-Server negotiation failure") for a in exc.args)):
+            return LoginError(
+                "Host, port, irods_client_server_policy or "
+                "irods_client_server_negotiation not set correctly in "
+                "irods_environment.json"
+            )
     if isinstance(exc, TypeError):
         return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
