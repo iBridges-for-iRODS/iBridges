@@ -169,7 +169,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
         if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(ipath)):
             ops["upload"].append((local_path, ipath))
-
+    elif local_path.is_symlink():
+        raise FileNotFoundError(f"Cannot upload symbolic link {local_path}, please supply a direct "
+                                "path.")
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
     ops.update({"resc_name": resc_name, "options": options})
@@ -536,7 +538,7 @@ def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, dep
     return operations
 
 
-def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):
+def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):  # pylint: disable=too-many-branches
     operations = _empty_ops()
     session = idest_path.session
     try:
@@ -551,6 +553,11 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
         for cur_file in files:
             ipath = root_ipath / cur_file
             lpath = lsource_path / root_part / cur_file
+
+            # Ignore symlinks
+            if lpath.is_symlink():
+                warnings.warn(f"Ignoring symlink {lpath}.")
+                continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
                 l_chksum = _calc_checksum(lpath)
@@ -563,6 +570,11 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
                 operations["upload"].append((lpath, ipath))
         if copy_empty_folders:
             for fold in folders:
+                # Ignore folder symlinks
+                lpath = lsource_path / root_part / fold
+                if lpath.is_symlink():
+                    warnings.warn(f"Ignoring symlink {lpath}.")
+                    continue
                 if str(root_ipath / fold) not in remote_ipaths:
                     operations["create_collection"].add(str(root_ipath / fold))
         if str(root_ipath) not in remote_ipaths and str(root_ipath) != str(idest_path):
