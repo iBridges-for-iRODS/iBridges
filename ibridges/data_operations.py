@@ -169,7 +169,9 @@ def upload(session: Session, local_path: Union[str, Path], irods_path: Union[str
 
         if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(ipath)):
             ops["upload"].append((local_path, ipath))
-
+    elif local_path.is_symlink():
+        raise FileNotFoundError(f"Cannot upload symbolic link {local_path}, please supply a direct "
+                                "path.")
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
     ops.update({"resc_name": resc_name, "options": options})
