@@ -67,6 +67,7 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
         else:
             name = path
             parent = "%"
+
         # all collections starting with path
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, path))
 
@@ -88,8 +89,10 @@ def search_data(session: Session, path: Optional[Union[str, IrodsPath]] = None,
     if checksum:
         data_query = data_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
-    # gather results
-    results = list(data_query.get_results())+list(data_name_query.get_results())
+    # gather results, data_query and data_name_query can contain the same results
+    results = [dict(s) for s in set(frozenset(d.items())
+                       for d in list(data_query)+list(data_name_query))]
+    
     if checksum is None:
         coll_res = list(coll_query.get_results())
         if len(coll_res) > 0:
