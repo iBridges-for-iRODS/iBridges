@@ -65,15 +65,9 @@ def search_data(
     # One for the collection, and two for the data
     # one data search in case path is a collection path and we want to retrieve all data there
     # one in case the path is or ends with a file name
-    if path:
-        path = str(path)
-        if len(path.rsplit("/", maxsplit=1)) > 1:
-            parent = path.rsplit("/", maxsplit=1)[0]
-            name = path.rsplit("/", maxsplit=1)[1]
-        else:
-            name = path
-            parent = "%"
-
+    path_params = _path_params(path)
+    if path_params:
+        path, name, parent = path_params
         # all collections starting with path
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, path))
 
@@ -94,18 +88,22 @@ def search_data(
                 data_name_query = data_name_query.filter(
                     icat.LIKE(icat.META_DATA_ATTR_VALUE, key_vals[key])
                 )
+
+    results = []
     if checksum:
         data_query = data_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
         data_name_query = data_name_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
-    # gather results, data_query and data_name_query can contain the same results
-    results = [
-        dict(s) for s in set(frozenset(d.items()) for d in list(data_query) + list(data_name_query))
-    ]
-
-    if checksum is None:
+    else:
+        # gather collection results
         coll_res = list(coll_query.get_results())
         if len(coll_res) > 0:
             results.extend(coll_res)
+
+    # gather results, data_query and data_name_query can contain the same results
+    results.extend([
+        dict(s) for s in set(frozenset(d.items())
+                for d in list(data_query) + list(data_name_query))
+    ])
 
     for item in results:
         if isinstance(item, dict):
@@ -114,3 +112,16 @@ def search_data(
                 item[n_key] = item.pop(o_key)
 
     return results
+
+def _path_params(path_param):
+    """Parse the path parameter and return, path, name and parent."""
+    if path_param:
+        path = str(path_param)
+        if len(path.rsplit("/", maxsplit=1)) > 1:
+            parent = path.rsplit("/", maxsplit=1)[0]
+            name = path.rsplit("/", maxsplit=1)[1]
+        else:
+            name = path
+            parent = "%"
+        return path, name, parent
+    return None

@@ -135,5 +135,5 @@ def find_environment_provider(env_providers: list, server_name: str) -> object:
         if provider.contains(server_name):
             return provider
     raise ValueError(
-        "Cannot find provider with name {server_name} ensure that the plugin is " "installed."
+        "Cannot find provider with name {server_name} ensure that the plugin is installed."
     )
