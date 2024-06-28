@@ -10,8 +10,7 @@ Welcome to the iBridges documentation!
 
 .. admonition:: Warning
 
-   The project (including documentation) is currently in active development at a pre-alpha stage, which means that some functionality may be
-   broken or not implemented yet. We appreciate help, issues and bug report in our issue tracker on `github <https://github.com/UtrechtUniversity/iBridges>`__.
+   The project is in active development, current features are stable and the documentation is complete. However, we are still actively developing new features and improving the existing ones. We appreciate help, suggestions, issues and bug reports in our issue tracker on `github <https://github.com/UtrechtUniversity/iBridges>`__.
 
 
 iBridges is a wrapper around the `python-irodsclient <https://github.com/irods/python-irodsclient>`__. While the
