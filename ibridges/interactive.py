@@ -63,7 +63,7 @@ def interactive_auth(
         if sys.stdin.isatty():
             password = getpass('Your iRODS password: ')
         else:
-            print('Your iRODS password')
+            print('Your iRODS password: ')
             password = sys.stdin.readline().rstrip()
         try:
             session = Session(irods_env=irods_env_path, password=password)
