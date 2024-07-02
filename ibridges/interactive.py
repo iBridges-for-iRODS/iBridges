@@ -1,6 +1,7 @@
 """Interactive authentication with iRODS server."""
 
 import os
+import sys
 from getpass import getpass
 from pathlib import Path
 from typing import Optional, Union
@@ -59,7 +60,11 @@ def interactive_auth(
     n_tries = 0
     success = False
     while not success and n_tries < 3:
-        password = getpass("Your iRODS password: ")
+        if sys.stdin.isatty():
+            password = getpass('Your iRODS password: ')
+        else:
+            print('Your iRODS password: ')
+            password = sys.stdin.readline().rstrip()
         try:
             session = Session(irods_env=irods_env_path, password=password)
             session.write_pam_password()
