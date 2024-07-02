@@ -78,7 +78,8 @@ def _obj_put(
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
         try:
-            session.irods_session.data_objects.put(local_path, str(irods_path), pbar=pbar,
+            session.irods_session.data_objects.put(local_path, str(irods_path),
+                                                   updatables=[pbar.update],
                                                    **options)
         except (PermissionError, OSError) as error:
             err_msg = f"Cannot read {error.filename}."
@@ -245,7 +246,8 @@ def _obj_get(
         local_path = Path(local_path).joinpath(irods_path.name)
 
     try:
-        session.irods_session.data_objects.get(str(irods_path), local_path, pbar=pbar, **options)
+        session.irods_session.data_objects.get(str(irods_path), local_path,
+                                               updatables=[pbar.update], **options)
     except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
         msg = f"Cannot write to {local_path}."
         if not ignore_err:
