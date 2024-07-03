@@ -481,7 +481,7 @@ def perform_operations(session: Session, operations: dict, ignore_err: bool = Fa
                 meta_dict = json.load(handle)
             set_metadata_from_dict(op["root_ipath"], session, meta_dict)
 
-    session.irods_session.pool.connection_timeout = original_timeout
+    # session.irods_session.pool.connection_timeout = original_timeout
 
 
 def sync(

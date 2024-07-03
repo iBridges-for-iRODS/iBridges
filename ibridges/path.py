@@ -499,24 +499,11 @@ class IrodsPath:
 
 
 
-<<<<<<< HEAD
-def _recursive_walk(
-    cur_col: IrodsPath,
-    sub_collections: dict[str, list[IrodsPath]],
-    all_dataobjects: dict[str, list[IrodsPath]],
-    start_col: IrodsPath,
-    depth: int,
-    max_depth: Optional[int],
-):
-    if cur_col != start_col:
-        yield cur_col
-=======
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
                     depth: int, max_depth: Optional[int]):
     # if cur_col != start_col:
     yield cur_col
->>>>>>> 6ea7c07 (Add metadata to operations)
     if max_depth is not None and depth >= max_depth:
         return
     for sub_col in sub_collections[str(cur_col)]:
@@ -619,13 +606,5 @@ def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection) -> list:
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path + "/%"))
 
-<<<<<<< HEAD
-    return [
-        CachedIrodsPath(session, None, False, None, p)
-        for r in coll_query.get_results()
-        for p in r.values()
-    ]
-=======
     return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
             for p in r.values()] + [CachedIrodsPath(session, None, False, None, coll.path)]
->>>>>>> 6ea7c07 (Add metadata to operations)

@@ -8,8 +8,6 @@ import irods
 import irods.exception
 import irods.meta
 
-from ibridges.util import is_dataobject
-
 
 class MetaData:
     """Irods metadata operations.
@@ -247,7 +245,7 @@ class MetaData:
         meta_dict: dict[str, Any] = {}
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
-        if is_dataobject(self.item):
+        if isinstance(self.item, irods.data_object.iRODSDataObject):
             meta_dict["checksum"] = self.item.checksum
         if keys is None:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
