@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 from collections.abc import Sequence
 from hashlib import sha256
+from pathlib import Path
 from typing import Union
 
 import irods
@@ -140,7 +141,19 @@ def find_environment_provider(env_providers: list, server_name: str) -> object:
         "Cannot find provider with name {server_name} ensure that the plugin is installed."
     )
 
-def calc_checksum(filepath):
+def calc_checksum(filepath: Union[Path, str, IrodsPath]):
+    """Calculate the checksum for an iRODS dataobject or local file.
+
+    Parameters
+    ----------
+    filepath:
+        Can be either a local path, or an iRODS path
+
+    Returns
+    -------
+        The base64 encoding of the sha256 sum of the object, prefixed by 'sha2:'.
+
+    """
     if isinstance(filepath, IrodsPath):
         return filepath.checksum
     f_hash=sha256()

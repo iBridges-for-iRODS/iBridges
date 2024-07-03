@@ -1,5 +1,6 @@
-from ibridges.data_operations import _calc_checksum, create_collection, sync
+from ibridges.data_operations import create_collection, sync
 from ibridges.path import IrodsPath
+from ibridges.util import calc_checksum
 
 
 def test_sync_dry_run(session, testdata, capsys):
@@ -42,7 +43,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
         if cur_file.is_file():
             assert s_ipath.dataobject_exists(), "File not uploaded"
             cur_obj=s_ipath.dataobject
-            assert _calc_checksum(cur_file)==(cur_obj.checksum
+            assert calc_checksum(cur_file)==(cur_obj.checksum
                 if len(cur_obj.checksum)>0
                 else cur_obj.chksum()), "Checksums not identical after upload"
 
@@ -51,7 +52,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
     s_ipath = IrodsPath(session, "~/empty/more_data/polarbear.txt")
     assert s_ipath.dataobject_exists(), "File in subfolder not uploaded"
     obj = s_ipath.dataobject
-    assert _calc_checksum(testdata / "more_data" / "polarbear.txt")== \
+    assert calc_checksum(testdata / "more_data" / "polarbear.txt")== \
         (obj.checksum if len(obj.checksum)>0 else obj.chksum()), \
             "Checksums not identical after upload"
 
@@ -66,12 +67,12 @@ def test_sync_upload_download(session, testdata, tmpdir):
     for cur_file in list(testdata.glob("*")):
         if cur_file.is_file():
             assert (tmpdir / cur_file.name).exists(), "File not downloaded"
-            assert _calc_checksum(tmpdir / cur_file.name)== \
-                _calc_checksum(testdata / cur_file.name), "Checksums not identical after download"
+            assert calc_checksum(tmpdir / cur_file.name)== \
+                calc_checksum(testdata / cur_file.name), "Checksums not identical after download"
         elif cur_file.is_dir():
             assert (tmpdir / cur_file.name).exists(), "Subfolder not downloaded"
 
     assert (tmpdir / "more_data" / "polarbear.txt").exists(), "File in subfolder not downloaded"
-    assert _calc_checksum(tmpdir / "more_data" / "polarbear.txt")== \
-        _calc_checksum(testdata  / "more_data" / "polarbear.txt"), \
+    assert calc_checksum(tmpdir / "more_data" / "polarbear.txt")== \
+        calc_checksum(testdata  / "more_data" / "polarbear.txt"), \
             "Checksums not identical after download"
