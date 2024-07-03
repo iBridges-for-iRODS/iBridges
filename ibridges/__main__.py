@@ -158,7 +158,7 @@ def _get_ienv_path() -> Union[None, str]:
         return None
 
 
-def _cli_auth(ienv_path: Optional[str, Path]):
+def _cli_auth(ienv_path: Union[None, str, Path]):
     ibridges_conf = _get_ibridges_conf(ienv_path)
     alias = None
     if str(ienv_path) in ibridges_conf.get("aliases", {}):
@@ -169,6 +169,7 @@ def _cli_auth(ienv_path: Optional[str, Path]):
         with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
             irodsa_content = handle.read()
         if irodsa_content != ibridges_conf["aliases"][alias]["irodsa_backup"]:
+            ienv_path = ienv_path if ienv_path is not None else DEFAULT_IENV_PATH
             _set_alias(alias, ienv_path)
     return session
 
