@@ -127,10 +127,8 @@ class MetaData:
         """
         try:
             if (key, value, units) in self:
-                raise irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME()
+                raise ValueError("ADD META: Metadata already present")
             self.item.metadata.add(key, value, units)
-        except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
-            raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
 
@@ -231,8 +229,8 @@ class MetaData:
         {
             "name": item.name,
             "irods_id": item.id, #iCAT database ID
-             "checksum": item.checksum if the item is a data object
-             "metadata": [(m.name, m.value, m.units)]
+            "checksum": item.checksum if the item is a data object
+            "metadata": [(m.name, m.value, m.units)]
         }
 
         Parameters
@@ -256,3 +254,19 @@ class MetaData:
         else:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
         return meta_dict
+
+    def from_dict(self, meta_dict: dict):
+        """Fill the metadata based on a dictionary.
+
+        Parameters
+        ----------
+        meta_dict
+            Dictionary that contains all the key, value, units triples. This
+            should use the same format as the output of the to_dict method.
+
+        """
+        for meta_tuple in meta_dict["metadata"]:
+            try:
+                self.add(*meta_tuple)
+            except ValueError:
+                pass

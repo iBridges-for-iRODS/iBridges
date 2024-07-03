@@ -12,12 +12,15 @@ from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+<<<<<<< HEAD
 from ibridges.util import (
     find_environment_provider,
     get_collection,
     get_environment_providers,
     print_environment_providers,
 )
+=======
+>>>>>>> 6ea7c07 (Add metadata to operations)
 
 try:  # Python < 3.10 (backport)
     from importlib_metadata import version  # type: ignore
@@ -219,6 +222,7 @@ def ibridges_init():
 
 def _list_coll(session: Session, remote_path: IrodsPath):
     if remote_path.collection_exists():
+<<<<<<< HEAD
         print(str(remote_path) + ":")
         coll = get_collection(session, remote_path)
         print("\n".join(["  " + sub.path for sub in coll.data_objects]))
@@ -231,6 +235,12 @@ def _list_coll(session: Session, remote_path: IrodsPath):
                 ]
             )
         )
+=======
+        print(str(remote_path)+':')
+        coll = remote_path.collection
+        print('\n'.join(['  '+sub.path for sub in coll.data_objects]))
+        print('\n'.join(['  C- '+sub.path for sub in coll.subcollections]))
+>>>>>>> 6ea7c07 (Add metadata to operations)
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
