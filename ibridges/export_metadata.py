@@ -10,8 +10,16 @@ from ibridges.session import Session
 
 def add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
     meta = ipath.meta
+    if ipath.collection_exists():
+        item_type = "collection"
+    elif ipath.dataobject_exists():
+        item_type = "data object"
+    else:
+        item_type = "unknown"
+
     meta_dict["items"].append({
         "rel_path": str(ipath.relative_to(root_ipath)),
+        "type": item_type,
         "irods_id": meta.item.id,
         "metadata": meta.to_dict(),
     })
