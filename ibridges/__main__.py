@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
@@ -128,6 +128,7 @@ def _set_alias(alias, ienv_path: Union[str, Path]):
 
 def _set_ienv_path(ienv_path: Union[None, str, Path]):
     ibridges_conf = _get_ibridges_conf(ienv_path)
+    alias = None
 
     if ibridges_conf is None:
         return None
