@@ -13,11 +13,11 @@ from ibridges.interactive import DEFAULT_IENV_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import (
+    ensure_irods_location,
     find_environment_provider,
     get_collection,
     get_environment_providers,
     print_environment_providers,
-    ensure_irods_location
 )
 
 try:  # Python < 3.10 (backport)

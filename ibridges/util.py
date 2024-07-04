@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from pathlib import Path
 from typing import Union
 
 import irods
@@ -137,7 +138,7 @@ def find_environment_provider(env_providers: list, server_name: str) -> object:
     raise ValueError(
         "Cannot find provider with name {server_name} ensure that the plugin is installed."
     )
-    
+
 def ensure_irods_location():
     """Ensure that .irods exists in user's home."""
     irods_loc = Path("~/.irods").expanduser()
