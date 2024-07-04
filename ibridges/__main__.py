@@ -17,6 +17,7 @@ from ibridges.util import (
     get_collection,
     get_environment_providers,
     print_environment_providers,
+    ensure_irods_location
 )
 
 try:  # Python < 3.10 (backport)
@@ -74,6 +75,8 @@ IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 
 def main() -> None:
     """CLI pointing to different entrypoints."""
+    # ensure .irods folder
+    ensure_irods_location()
     # show help by default, else consume first argument
     subcommand = "--help" if len(sys.argv) < 2 else sys.argv.pop(1)
 
