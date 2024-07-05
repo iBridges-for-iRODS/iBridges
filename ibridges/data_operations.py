@@ -342,7 +342,7 @@ def sync(
         )
     else:
         ops = _up_sync_operations(
-            Path(source), target, copy_empty_folders=copy_empty_folders, depth=max_level)
+            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders, depth=max_level)
         if metadata is not None:
             ops.add_meta_upload(target, metadata)
 
@@ -373,7 +373,8 @@ def _calc_checksum(filepath):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 
-def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None,
+def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
+                          copy_empty_folders: bool  =True, depth: Optional[int] = None,
                           metadata: Union[None, str, Path] = None):
     operations = Operations()
     for ipath in isource_path.walk(depth=depth):

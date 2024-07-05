@@ -164,7 +164,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
     This class is mostly for internal use.
     """
 
-    def __init__(self, resc_name = None, options = None):
+    def __init__(self, resc_name: Optional[str] = None, options: Optional[dict] = None):
         """Initialize and empty Operations object.
 
         Parameters
@@ -175,16 +175,16 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Options to transfer data with.
 
         """
-        self.create_dir = set()
-        self.create_collection = set()
-        self.upload = []
-        self.download = []
-        self.meta_download = defaultdict(lambda: {"items": []})
-        self.meta_upload = []
-        self.resc_name = resc_name
-        self.options = options
+        self.create_dir: set[str] = set()
+        self.create_collection: set[str] = set()
+        self.upload: list[tuple[Path, IrodsPath]] = []
+        self.download: list[tuple[IrodsPath, Path]] = []
+        self.meta_download: dict = defaultdict(lambda: {"items": []})
+        self.meta_upload: list[tuple[IrodsPath, Union[str, Path]]] = []
+        self.resc_name: str = "" if resc_name is None else resc_name
+        self.options: Optional[dict] = {} if resc_name is None else options
 
-    def add_meta_download(self, root_ipath: IrodsPath, ipath: IrodsPath, meta_fp: Path):
+    def add_meta_download(self, root_ipath: IrodsPath, ipath: IrodsPath, meta_fp: Union[str, Path]):
         """Add operation for downloading metadata.
 
         Parameters
@@ -200,7 +200,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
         self.meta_download[str(meta_fp)]["items"].append(ipath)
 
-    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Path):
+    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
         """Add operation to upload metadata.
 
         Parameters
@@ -261,7 +261,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.create_collection.add(str(new_col))
 
-    def execute(self, session, ignore_err: bool = False):
+    def execute(self, session: Session, ignore_err: bool = False):
         """Execute all added operations.
 
         Parameters
@@ -289,7 +289,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.execute_meta_download()
         self.execute_meta_upload(session)
 
-    def execute_download(self, session, down_sizes, pbar, ignore_err: bool = False):
+    def execute_download(self, session: Session, down_sizes: list[int],
+                         pbar, ignore_err: bool = False):
         """Execute all download operations.
 
         Parameters
@@ -316,7 +317,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             )
             pbar.update(size)
 
-    def execute_upload(self, session, up_sizes, pbar, ignore_err: bool = False):
+    def execute_upload(self, session: Session, up_sizes: list[int],
+                       pbar, ignore_err: bool = False):
         """Execute all upload operations.
 
         Parameters
@@ -352,7 +354,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             with open(meta_fp, "w", encoding="utf-8") as handle:
                 json.dump(meta_dict, handle, indent=4)
 
-    def execute_meta_upload(self, session):
+    def execute_meta_upload(self, session: Session):
         """Execute all metadata upload operations.
 
         Parameters
@@ -364,7 +366,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         for root_ipath, meta_fp in self.meta_upload:
             with open(meta_fp, "r", encoding="utf-8") as handle:
                 meta_dict = json.load(handle)
-            set_metadata_from_dict(root_ipath, session, meta_dict)  # pylint: disable=too-many-function-args
+            set_metadata_from_dict(root_ipath, meta_dict)
 
     def execute_create_dir(self):
         """Execute all create directory operations.
@@ -381,7 +383,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             except NotADirectoryError as error:
                 raise PermissionError(f"Cannot create {error.filename}") from error
 
-    def execute_create_coll(self, session):
+    def execute_create_coll(self, session: Session):
         """Execute all create collection operations.
 
         Parameters
