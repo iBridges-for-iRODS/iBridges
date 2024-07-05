@@ -287,7 +287,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.execute_download(session, down_sizes, pbar, ignore_err=ignore_err)
         self.execute_upload(session, up_sizes, pbar, ignore_err=ignore_err)
         self.execute_meta_download()
-        self.execute_meta_upload(session)
+        self.execute_meta_upload()
 
     def execute_download(self, session: Session, down_sizes: list[int],
                          pbar, ignore_err: bool = False):
@@ -354,7 +354,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             with open(meta_fp, "w", encoding="utf-8") as handle:
                 json.dump(meta_dict, handle, indent=4)
 
-    def execute_meta_upload(self, session: Session):
+    def execute_meta_upload(self):
         """Execute all metadata upload operations.
 
         Parameters
