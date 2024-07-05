@@ -1,3 +1,5 @@
+import json
+
 import irods
 import pytest
 from pytest import mark
@@ -104,7 +106,7 @@ def test_metadata_export(item_name, request, session, tmpdir):
     ops.add_meta_download(IrodsPath(session, item.path), IrodsPath(session, item.path), tmp_file)
     ops.execute(session)
     with open(tmp_file, "r", encoding="utf-8"):
-        new_meta_dict = tmp_file
+        new_meta_dict = json.load(tmp_file)
     assert isinstance(new_meta_dict, dict)
     # res = export_metadata_to_dict(MetaData(item), session)
     # assert isinstance(res, dict)

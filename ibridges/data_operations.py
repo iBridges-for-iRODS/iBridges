@@ -208,9 +208,8 @@ def download(
             irods_path, local_path / irods_path.name, metadata=metadata,
             copy_empty_folders=copy_empty_folders
         )
-        # ops["create_dir"].add(str(local_path / irods_path.name))
-        # if not local_path.is_dir():
-            # ops["create_dir"].add(str(local_path))
+        if not local_path.is_dir():
+            ops["create_dir"].add(str(local_path))
     elif irods_path.dataobject_exists():
         ops = Operations()
 

@@ -99,19 +99,20 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
                    **pass_opts)
     assert ipath_collection.exists()
     meta = ipath_collection.meta
-    meta.add("meta_test", "some_val")
+    meta.add("some_key", "some_val")
     subprocess.run(["ibridges", "download", f"irods:{ipath_collection}", tmpdir, "--metadata"],
                    **pass_opts)
     meta_fp = tmpdir / "meta_test" / ".ibridges_metadata.json"
     assert meta_fp.isfile()
     with open(meta_fp, "r", encoding="utf-8") as handle:
         metadata = json.load(handle)
-        assert metadata["items"][0]["name"] == "meta_test"
-        assert metadata["items"][0]["value"] == "some_val"
+        assert metadata["items"][0]["metadata"]["name"] == "meta_test"
+        assert metadata["items"][0]["metadata"][0] == "some_key"
+        assert metadata["items"][0]["metadata"][1] == "some_val"
     ipath_collection.remove()
     subprocess.run(["ibridges", "upload", tmpdir / "meta_test", f"irods:{ipath_collection}",
                     "--metadata"], **pass_opts)
-    assert ("meta_test", "some_val") in ipath_collection.meta
+    assert ("some_key", "some_val") in ipath_collection.meta
     ipath_collection.remove()
 
 
