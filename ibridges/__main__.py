@@ -368,8 +368,10 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
         raise ValueError("Supply metadata path for downloading metadata of data objects.")
     if mode == "download":
         default_meta_path = Path(lpath, ipath.name, ".ibridges_metadata.json")
-    if mode == "upload" or mode == "sync":
+    elif mode in ["upload", "sync"]:
         default_meta_path = Path(lpath, ".ibridges_metadata.json")
+    else:
+        raise ValueError("Internal error, contact the iBridges team.")
     metadata = metadata if metadata is not None else default_meta_path
     metadata = None if metadata is False else metadata
     return metadata

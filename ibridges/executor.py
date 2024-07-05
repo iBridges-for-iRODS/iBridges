@@ -284,7 +284,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 summary += f"{ipath} -> {lpath}\n"
             summary_strings.append(summary)
 
-        if len(self.meta_download):
+        if len(self.meta_download) > 0:
             summary = "Metadata to download:\n\n"
             for meta_fp, meta_item in self.meta_download.items():
                 summary += f"- Destination: {meta_fp}\n"
@@ -293,7 +293,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                     summary += f"{item}\n"
             summary_strings.append(summary)
 
-        if len(self.meta_upload):
+        if len(self.meta_upload) > 0:
             summary = "Metadata to upload:\n\n"
             for (ipath, meta_fp) in self.meta_upload:
                 summary += f"{meta_fp} -> {ipath}\n"
@@ -438,4 +438,3 @@ def _obj_get(
         if not ignore_err:
             raise PermissionError(msg) from exc
         warnings.warn(msg)
-

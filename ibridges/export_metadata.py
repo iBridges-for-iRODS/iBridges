@@ -78,4 +78,4 @@ def set_metadata_from_dict(ipath: IrodsPath, metadata_dict: dict):
             raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
                              "itself.")
         meta = new_path.meta
-        meta.from_dict(item_data["metadata"])
+        meta.from_dict(item_data)

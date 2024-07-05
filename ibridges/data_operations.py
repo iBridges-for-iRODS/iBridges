@@ -98,9 +98,10 @@ def upload(
         if not ipath.collection_exists():
             ops.add_create_coll(ipath)
     elif local_path.is_file():
-        if ipath.collection_exists():
-            ipath = ipath / local_path.name
-        obj_exists = ipath.dataobject_exists()
+        idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
+        # if ipath.collection_exists():
+        #     ipath = ipath / local_path.name
+        obj_exists = idest_path.dataobject_exists()
 
         if obj_exists and not overwrite:
             raise FileExistsError(
@@ -108,8 +109,8 @@ def upload(
                 "Use overwrite=True to overwrite the existing file."
             )
 
-        if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(ipath)):
-            ops.add_upload(local_path, ipath)
+        if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(idest_path)):
+            ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
         raise FileNotFoundError(
@@ -120,7 +121,7 @@ def upload(
     ops.resc_name = resc_name
     ops.options = options
     if metadata is not None:
-        ops.add_meta_upload(ipath, metadata)
+        ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
         ops.execute(session, ignore_err=ignore_err)
     return ops
