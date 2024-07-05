@@ -342,7 +342,8 @@ def sync(
         )
     else:
         ops = _up_sync_operations(
-            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders, depth=max_level)
+            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
+            depth=max_level)
         if metadata is not None:
             ops.add_meta_upload(target, metadata)
 
