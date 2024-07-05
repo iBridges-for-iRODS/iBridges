@@ -29,7 +29,7 @@ def _check_files_equal(*files):
 def _check_count(ops, nlist):
     for var, count, in zip(["create_collection", "create_dir", "download", "upload"],
                           nlist):
-        assert len(ops[var]) == count
+        assert len(getattr(ops, var)) == count
 
 
 
