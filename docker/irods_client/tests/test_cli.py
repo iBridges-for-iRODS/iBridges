@@ -103,7 +103,7 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
     subprocess.run(["ibridges", "download", f"irods:{ipath_collection}", tmpdir, "--metadata"],
                    **pass_opts)
     meta_fp = tmpdir / "meta_test" / ".ibridges_metadata.json"
-    assert meta_fp.is_file()
+    assert meta_fp.isfile()
     with open(meta_fp, "r", encoding="utf-8") as handle:
         metadata = json.load(handle)
         assert metadata["items"][0]["name"] == "meta_test"

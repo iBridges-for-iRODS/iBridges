@@ -52,7 +52,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     ops = upload(session, testdata, ipath)
-    _check_count(ops, [2, 0, 0, 7])
+    _check_count(ops, [3, 0, 0, 7])
     collection = ipath.collection
     assert is_collection(collection)
     assert not is_dataobject(collection)
