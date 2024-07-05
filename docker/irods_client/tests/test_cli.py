@@ -107,8 +107,8 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
     with open(meta_fp, "r", encoding="utf-8") as handle:
         metadata = json.load(handle)
         assert metadata["items"][0]["name"] == "meta_test"
-        assert metadata["items"][0]["metadata"][0] == "some_key"
-        assert metadata["items"][0]["metadata"][1] == "some_val"
+        assert metadata["items"][0]["metadata"][0][0] == "some_key"
+        assert metadata["items"][0]["metadata"][0][1] == "some_val"
     ipath_collection.remove()
     subprocess.run(["ibridges", "upload", tmpdir / "meta_test", f"irods:{ipath_collection}",
                     "--metadata"], **pass_opts)
