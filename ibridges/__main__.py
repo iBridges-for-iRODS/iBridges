@@ -658,7 +658,9 @@ def ibridges_tree():
             pels = _tree_elements["ascii"]
         else:
             pels = _tree_elements["pretty"]
-        ipath_list = list(ipath.walk(depth=args.depth))
+        ipath_list = [cur_path for cur_path in ipath.walk(depth=args.depth)
+                      if str(cur_path) != str(ipath)]
+        print(ipath)
         _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col
