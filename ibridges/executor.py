@@ -363,6 +363,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Session to use with uploading the operations.
 
         """
+        print(self.meta_upload)
         for root_ipath, meta_fp in self.meta_upload:
             with open(meta_fp, "r", encoding="utf-8") as handle:
                 meta_dict = json.load(handle)

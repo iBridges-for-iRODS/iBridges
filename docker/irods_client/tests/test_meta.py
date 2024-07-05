@@ -2,8 +2,9 @@ import irods
 import pytest
 from pytest import mark
 
-from ibridges.export_metadata import export_metadata_to_dict
+from ibridges.data_operations import Operations
 from ibridges.meta import MetaData
+from ibridges.path import IrodsPath
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
@@ -90,7 +91,20 @@ def test_metadata_todict(item_name, request):
         assert value in test_dict.values()
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_metadata_export(item_name, request, session):
+def test_metadata_export(item_name, request, session, tmpdir):
+    tmp_file = tmpdir/"meta.json"
     item = request.getfixturevalue(item_name)
-    res = export_metadata_to_dict(MetaData(item), session)
-    assert isinstance(res, dict)
+    meta_dict = MetaData(item).to_dict()
+    assert isinstance(meta_dict, dict)
+    assert "name" in meta_dict
+    assert "irods_id" in meta_dict
+    assert "metadata" in meta_dict
+
+    ops = Operations()
+    ops.add_meta_download(IrodsPath(session, item.path), IrodsPath(session, item.path), tmp_file)
+    ops.execute()
+    with open(tmp_file, "r", encoding="utf-8"):
+        new_meta_dict = tmp_file
+    assert isinstance(new_meta_dict, dict)
+    # res = export_metadata_to_dict(MetaData(item), session)
+    # assert isinstance(res, dict)

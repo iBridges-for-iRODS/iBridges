@@ -361,12 +361,13 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
-def _get_metadata_path(args, ipath, lpath):
+def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path]) -> Union[None, str, Path]:
     metadata = False if not hasattr(args, "metadata") else args.metadata
     if ipath.dataobject_exists() and metadata is None:
         raise ValueError("Supply metadata path for downloading metadata of data objects.")
     metadata = metadata if metadata is not None else Path(lpath, ipath.name,
                                                           ".ibridges_metadata.json")
+    metadata = None if metadata is False else metadata
     return metadata
 
 

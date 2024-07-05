@@ -1,4 +1,5 @@
 import hashlib
+import json
 import subprocess
 from pathlib import Path
 
@@ -20,6 +21,7 @@ def pass_opts(config):
         pass_opts = {}
     else:
         pass_opts = {"input": config["password"].encode()}
+    pass_opts["check"] = True
     return pass_opts
 
 def _get_digest(obj_or_file):
@@ -47,27 +49,24 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     # Test the upload function by uploading a single file.
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
-    subprocess.run(["ibridges", "init", irods_env_file],
-                   check=True, **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
 
     if "resc2" in config["resources"]:
         subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
-                        "--overwrite", "--resource", "resc2"],
-                        check=True, **pass_opts)
+                        "--overwrite", "--resource", "resc2"], **pass_opts)
     else:
         subprocess.run(["ibridges", "upload", testdata/"plant.rtf", "irods:" + str(ipath),
-                        "--overwrite"],
-                        check=True, **pass_opts)
+                        "--overwrite"], **pass_opts)
     assert ipath.dataobject_exists()
 
     # Download the same file and check if they are equal.
     assert isinstance(testdata, Path)
     if "resc2" in config["resources"]:
         subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf",
-                        "--resource", "resc2"], check=True, **pass_opts)
+                        "--resource", "resc2"], **pass_opts)
     else:
         subprocess.run(["ibridges", "download", "irods:~/plant.rtf", testdata/"plant2.rtf"],
-                        check=True, **pass_opts)
+                        **pass_opts)
     assert Path(testdata/"plant2.rtf").is_file()
 
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
@@ -77,25 +76,47 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
     create_collection(session, ipath)
-    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], check=True, **pass_opts)
+    subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], **pass_opts)
     for fname in testdata.glob("*"):
         assert ((ipath / "testdata" / fname.name).dataobject_exists()
                 or (ipath / "testdata" / fname.name).collection_exists())
 
     # Download the created collection and check whether the files are the same.
-    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir], check=True, **pass_opts)
+    subprocess.run(["ibridges", "download", "irods:~/test/testdata", tmpdir], **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/"testdata"/fname.name)
     Path(tmpdir/"testdata").unlink
 
     # Synchronize a collection to a temporary directory and check if they are the same.
-    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], check=True, **pass_opts)
+    subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
+
+def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_file, pass_opts):
+    ipath_collection = IrodsPath(session, "meta_test")
+    ipath_collection.remove()
+    subprocess.run(["ibridges", "upload", testdata, f"irods:{ipath_collection}"],
+                   **pass_opts)
+    assert ipath_collection.exists()
+    meta = ipath_collection.meta
+    meta.add("meta_test", "some_val")
+    subprocess.run(["ibridges", "download", f"irods:{ipath_collection}", tmpdir, "--metadata"],
+                   **pass_opts)
+    meta_fp = tmpdir / "meta_test" / ".ibridges_metadata.json"
+    assert meta_fp.is_file()
+    with open(meta_fp, "r", encoding="utf-8") as handle:
+        metadata = json.load(handle)
+        assert metadata["items"][0]["name"] == "meta_test"
+        assert metadata["items"][0]["value"] == "some_val"
+    ipath_collection.remove()
+    subprocess.run(["ibridges", "upload", tmpdir / "meta_test", f"irods:{ipath_collection}",
+                    "--metadata"], **pass_opts)
+    assert ("meta_test", "some_val") in ipath_collection.meta
+    ipath_collection.remove()
 
 
 def test_list_cli(config, pass_opts, irods_env_file):
     # Check if the listing works without any errors.
-    subprocess.run(["ibridges", "init", irods_env_file], check=True, **pass_opts)
-    subprocess.run(["ibridges", "list"], check=True, **pass_opts)
-    subprocess.run(["ibridges", "list", "irods:test"], check=True, **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
+    subprocess.run(["ibridges", "list"], **pass_opts)
+    subprocess.run(["ibridges", "list", "irods:test"], **pass_opts)
