@@ -19,144 +19,6 @@ from ibridges.session import Session
 
 NUM_THREADS = 4
 
-def _obj_put(
-    session: Session,
-    local_path: Union[str, Path],
-    irods_path: Union[str, IrodsPath],
-    overwrite: bool = False,
-    resc_name: str = "",
-    options: Optional[dict] = None,
-    ignore_err: bool = False,
-):
-    """Upload `local_path` to `irods_path` following iRODS `options`.
-
-    Parameters
-    ----------
-    session :
-        Session to upload the object.
-    local_path : str or Path
-        Path of local file.
-    irods_path : str or IrodsPath
-        Path of iRODS data object or collection.
-    resc_name : str
-        Optional resource name.
-    overwrite :
-        Whether to overwrite the object if it exists.
-    options :
-        Extra options to the python irodsclient put method.
-    ignore_err:
-        If True, convert errors into warnings.
-
-    """
-    local_path = Path(local_path)
-    irods_path = IrodsPath(session, irods_path)
-
-    if not local_path.is_file():
-        err_msg = f"local_path '{local_path}' must be a file."
-        if not ignore_err:
-            raise ValueError(err_msg)
-        warnings.warn(err_msg)
-        return
-
-    # Check if irods object already exists
-    obj_exists = (
-        IrodsPath(session, irods_path / local_path.name).dataobject_exists()
-        or irods_path.dataobject_exists()
-    )
-
-    if options is None:
-        options = {}
-    options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
-
-    if resc_name not in ["", None]:
-        options[kw.RESC_NAME_KW] = resc_name
-    if overwrite or not obj_exists:
-        try:
-            session.irods_session.data_objects.put(local_path, str(irods_path), **options)
-        except (PermissionError, OSError) as error:
-            err_msg = f"Cannot read {error.filename}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            err_msg = f"Cannot write {str(irods_path)}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
-        except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            ) from error
-    else:
-        if not ignore_err:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            )
-        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
-
-
-
-def _obj_get(
-    session: Session,
-    irods_path: IrodsPath,
-    local_path: Path,
-    overwrite: bool = False,
-    resc_name: Optional[str] = "",
-    options: Optional[dict] = None,
-    ignore_err: bool = False,
-):
-    """Download `irods_path` to `local_path` following iRODS `options`.
-
-    Parameters
-    ----------
-    session :
-        Session to get the object from.
-    irods_path : str or IrodsPath
-        Path of iRODS data object.
-    local_path : str or Path
-        Path of local file or directory/folder.
-    overwrite :
-        Whether to overwrite the local file if it exists.
-    resc_name:
-        Name of the resource to get the object from.
-    options : dict
-        Extra options to the python irodsclient get method.
-    ignore_err:
-        If True, convert errors into warnings.
-
-    """
-    if options is None:
-        options = {}
-    options.update(
-        {
-            kw.NUM_THREADS_KW: NUM_THREADS,
-            kw.VERIFY_CHKSUM_KW: "",
-        }
-    )
-    if overwrite:
-        options[kw.FORCE_FLAG_KW] = ""
-    if resc_name not in ["", None]:
-        options[kw.RESC_NAME_KW] = resc_name
-
-    # Quick fix for #126
-    if Path(local_path).is_dir():
-        local_path = Path(local_path).joinpath(irods_path.name)
-
-    try:
-        session.irods_session.data_objects.get(str(irods_path), local_path, **options)
-    except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
-        msg = f"Cannot write to {local_path}."
-        if not ignore_err:
-            raise PermissionError(msg) from error
-        warnings.warn(msg)
-    except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        msg = f"During download operation from '{irods_path}': iRODS server forbids action."
-        if not ignore_err:
-            raise PermissionError(msg) from exc
-        warnings.warn(msg)
-
 
 class Operations():  # pylint: disable=too-many-instance-attributes
     """Storage for all data and metadata operations.
@@ -363,7 +225,6 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Session to use with uploading the operations.
 
         """
-        print(self.meta_upload)
         for root_ipath, meta_fp in self.meta_upload:
             with open(meta_fp, "r", encoding="utf-8") as handle:
                 meta_dict = json.load(handle)
@@ -431,4 +292,150 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 for item in meta_item["items"]:
                     summary += f"{item}\n"
             summary_strings.append(summary)
+
+        if len(self.meta_upload):
+            summary = "Metadata to upload:\n\n"
+            for (ipath, meta_fp) in self.meta_upload:
+                summary += f"{meta_fp} -> {ipath}\n"
+            summary_strings.append(summary)
         print("\n\n".join(summary_strings))
+
+
+def _obj_put(
+    session: Session,
+    local_path: Union[str, Path],
+    irods_path: Union[str, IrodsPath],
+    overwrite: bool = False,
+    resc_name: str = "",
+    options: Optional[dict] = None,
+    ignore_err: bool = False,
+):
+    """Upload `local_path` to `irods_path` following iRODS `options`.
+
+    Parameters
+    ----------
+    session :
+        Session to upload the object.
+    local_path : str or Path
+        Path of local file.
+    irods_path : str or IrodsPath
+        Path of iRODS data object or collection.
+    resc_name : str
+        Optional resource name.
+    overwrite :
+        Whether to overwrite the object if it exists.
+    options :
+        Extra options to the python irodsclient put method.
+    ignore_err:
+        If True, convert errors into warnings.
+
+    """
+    local_path = Path(local_path)
+    irods_path = IrodsPath(session, irods_path)
+
+    if not local_path.is_file():
+        err_msg = f"local_path '{local_path}' must be a file."
+        if not ignore_err:
+            raise ValueError(err_msg)
+        warnings.warn(err_msg)
+        return
+
+    # Check if irods object already exists
+    obj_exists = (
+        IrodsPath(session, irods_path / local_path.name).dataobject_exists()
+        or irods_path.dataobject_exists()
+    )
+
+    if options is None:
+        options = {}
+    options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
+
+    if resc_name not in ["", None]:
+        options[kw.RESC_NAME_KW] = resc_name
+    if overwrite or not obj_exists:
+        try:
+            session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+        except (PermissionError, OSError) as error:
+            err_msg = f"Cannot read {error.filename}."
+            if not ignore_err:
+                raise PermissionError(err_msg) from error
+            warnings.warn(err_msg)
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            err_msg = f"Cannot write {str(irods_path)}."
+            if not ignore_err:
+                raise PermissionError(err_msg) from error
+            warnings.warn(err_msg)
+        except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
+            raise FileExistsError(
+                f"Dataset {irods_path} already exists. "
+                "Use overwrite=True to overwrite the existing file."
+            ) from error
+    else:
+        if not ignore_err:
+            raise FileExistsError(
+                f"Dataset {irods_path} already exists. "
+                "Use overwrite=True to overwrite the existing file."
+            )
+        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
+
+
+
+def _obj_get(
+    session: Session,
+    irods_path: IrodsPath,
+    local_path: Path,
+    overwrite: bool = False,
+    resc_name: Optional[str] = "",
+    options: Optional[dict] = None,
+    ignore_err: bool = False,
+):
+    """Download `irods_path` to `local_path` following iRODS `options`.
+
+    Parameters
+    ----------
+    session :
+        Session to get the object from.
+    irods_path : str or IrodsPath
+        Path of iRODS data object.
+    local_path : str or Path
+        Path of local file or directory/folder.
+    overwrite :
+        Whether to overwrite the local file if it exists.
+    resc_name:
+        Name of the resource to get the object from.
+    options : dict
+        Extra options to the python irodsclient get method.
+    ignore_err:
+        If True, convert errors into warnings.
+
+    """
+    if options is None:
+        options = {}
+    options.update(
+        {
+            kw.NUM_THREADS_KW: NUM_THREADS,
+            kw.VERIFY_CHKSUM_KW: "",
+        }
+    )
+    if overwrite:
+        options[kw.FORCE_FLAG_KW] = ""
+    if resc_name not in ["", None]:
+        options[kw.RESC_NAME_KW] = resc_name
+
+    # Quick fix for #126
+    if Path(local_path).is_dir():
+        local_path = Path(local_path).joinpath(irods_path.name)
+
+    try:
+        session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+    except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
+        msg = f"Cannot write to {local_path}."
+        if not ignore_err:
+            raise PermissionError(msg) from error
+        warnings.warn(msg)
+    except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+        msg = f"During download operation from '{irods_path}': iRODS server forbids action."
+        if not ignore_err:
+            raise PermissionError(msg) from exc
+        warnings.warn(msg)
+

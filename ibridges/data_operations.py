@@ -110,8 +110,7 @@ def upload(
 
         if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(ipath)):
             ops.add_upload(local_path, ipath)
-            if metadata is not None:
-                ops.add_meta_upload(ipath, metadata)
+
     elif local_path.is_symlink():
         raise FileNotFoundError(
             f"Cannot upload symbolic link {local_path}, please supply a direct " "path."
@@ -196,7 +195,6 @@ def download(
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
 
-    print(metadata)
     if irods_path.collection_exists():
         if local_path.is_file():
             raise NotADirectoryError(

@@ -361,12 +361,16 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
-def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path]) -> Union[None, str, Path]:
+def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
+                       mode: str) -> Union[None, str, Path]:
     metadata = False if not hasattr(args, "metadata") else args.metadata
     if ipath.dataobject_exists() and metadata is None:
         raise ValueError("Supply metadata path for downloading metadata of data objects.")
-    metadata = metadata if metadata is not None else Path(lpath, ipath.name,
-                                                          ".ibridges_metadata.json")
+    if mode == "download":
+        default_meta_path = Path(lpath, ipath.name, ".ibridges_metadata.json")
+    if mode == "upload" or mode == "sync":
+        default_meta_path = Path(lpath, ".ibridges_metadata.json")
+    metadata = metadata if metadata is not None else default_meta_path
     metadata = None if metadata is False else metadata
     return metadata
 
@@ -416,7 +420,7 @@ def ibridges_download():
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         ipath = _parse_remote(args.remote_path, session)
         lpath = _parse_local(args.local_path)
-        metadata = _get_metadata_path(args, ipath, lpath)
+        metadata = _get_metadata_path(args, ipath, lpath, "download")
         ops = download(
             session,
             ipath,
@@ -475,7 +479,7 @@ def ibridges_upload():
     with interactive_auth(irods_env_path=_get_ienv_path()) as session:
         lpath = _parse_local(args.local_path)
         ipath = _parse_remote(args.remote_path, session)
-        metadata = _get_metadata_path(args, ipath, lpath)
+        metadata = _get_metadata_path(args, ipath, lpath, "upload")
         ops = upload(
             session,
             lpath,
@@ -528,9 +532,9 @@ def ibridges_sync():
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
-            metadata = _get_metadata_path(args, dest_path, src_path.parent)
+            metadata = _get_metadata_path(args, dest_path, src_path.parent, "sync")
         elif isinstance(src_path, IrodsPath) and isinstance(dest_path, Path):
-            metadata = _get_metadata_path(args, src_path, dest_path.parent)
+            metadata = _get_metadata_path(args, src_path, dest_path.parent, "sync")
         else:
             print("Please provide as the source and destination exactly one local path,"
                   " and one remote path.")
