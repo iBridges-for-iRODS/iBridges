@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+import warnings
 from typing import Any, Iterator, Optional, Sequence, Union
 
 import irods
@@ -33,21 +35,33 @@ class MetaData:
     """
 
     def __init__(
-        self, item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]
+        self,
+        item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection],
+        blacklist: str = r"^org_*",
     ):
         """Initialize the metadata object.
 
         Parameters
         ----------
-        item
+        item:
             The data object or collection to attach the metadata object to.
+        blacklist:
+            A regular expression for metadata names/keys that should be ignored.
 
         """
         self.item = item
+        self.blacklist = blacklist
 
     def __iter__(self) -> Iterator:
         """Iterate over all metadata key/value/units pairs."""
-        yield from self.item.metadata.items()
+        if self.blacklist is None:
+            yield from self.item.metadata.items()
+        for meta in self.item.metadata.items():
+            if re.match(self.blacklist, meta.name) is None:
+                yield meta
+            else:
+                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
+                              f"the blacklist {self.blacklist}.")
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
         """Check whether a key, key/val, key/val/units pairs are in the metadata.

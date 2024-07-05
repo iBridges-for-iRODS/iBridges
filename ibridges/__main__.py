@@ -361,6 +361,14 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
+def _get_metadata_path(args, ipath, lpath):
+    metadata = False if not hasattr(args, "metadata") else args.metadata
+    if ipath.dataobject_exists() and metadata is None:
+        raise ValueError("Supply metadata path for downloading metadata of data objects.")
+    metadata = metadata if metadata is not None else Path(lpath, ipath.name,
+                                                          ".ibridges_metadata.json")
+    return metadata
+
 
 def ibridges_download():
     """Download a remote data object or collection."""
@@ -396,19 +404,29 @@ def ibridges_download():
         help="Do not perform the download, but list the files to be updated.",
         action="store_true",
     )
+    parser.add_argument(
+        "--metadata",
+        help="Path for metadata",
+        default=argparse.SUPPRESS,
+        type=Path,
+        nargs="?",
+    )
     args = parser.parse_args()
-
-    with _cli_auth(ienv_path=_get_ienv_path()) as session:
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        lpath = _parse_local(args.local_path)
+        metadata = _get_metadata_path(args, ipath, lpath)
         ops = download(
             session,
-            _parse_remote(args.remote_path, session),
-            _parse_local(args.local_path),
+            ipath,
+            lpath,
             overwrite=args.overwrite,
             resc_name=args.resource,
-            dry_run=args.dry_run
+            dry_run=args.dry_run,
+            metadata=metadata,
         )
         if args.dry_run:
-            _summarize_ops(ops)
+            ops.print_summary()
 
 
 def ibridges_upload():
@@ -444,46 +462,36 @@ def ibridges_upload():
         help="Do not perform the upload, but list the files to be updated.",
         action="store_true",
     )
+    parser.add_argument(
+        "--metadata",
+        help="Path for metadata",
+        default=argparse.SUPPRESS,
+        type=Path,
+        nargs="?",
+    )
     args = parser.parse_args()
 
-    with _cli_auth(ienv_path=_get_ienv_path()) as session:
-        ops = upload(session,
-               _parse_local(args.local_path),
-               _parse_remote(args.remote_path, session),
-               overwrite=args.overwrite,
-               resc_name=args.resource,
-               dry_run=args.dry_run
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+        lpath = _parse_local(args.local_path)
+        ipath = _parse_remote(args.remote_path, session)
+        metadata = _get_metadata_path(args, ipath, lpath)
+        ops = upload(
+            session,
+            lpath,
+            ipath,
+            overwrite=args.overwrite,
+            resc_name=args.resource,
+            dry_run=args.dry_run,
+            metadata=metadata,
         )
         if args.dry_run:
-            _summarize_ops(ops)
+            ops.print_summary()
 
 
 def _parse_str(remote_or_local: str, session) -> Union[str, IrodsPath]:
     if remote_or_local.startswith("irods:"):
         return IrodsPath(session, remote_or_local[6:])
-    return remote_or_local
-
-
-def _summarize_ops(ops):
-    if len(ops["create_collection"]) > 0:
-        print("Create collections:\n")
-        for coll in ops["create_collection"]:
-            print(str(coll))
-        print("\n")
-    if len(ops["create_dir"]) > 0:
-        print("Create directories:\n")
-        for cur_dir in ops["create_dir"]:
-            print(str(cur_dir))
-        print("\n")
-    if len(ops["upload"]) > 0:
-        print("Upload files:\n")
-        for lpath, ipath in ops["upload"]:
-            print(f"{lpath} -> {ipath}")
-        print("\n")
-    if len(ops["download"]) > 0:
-        print("Download files:\n")
-        for ipath, lpath in ops["download"]:
-            print(f"{ipath} -> {lpath}")
+    return Path(remote_or_local)
 
 
 def ibridges_sync():
@@ -506,16 +514,35 @@ def ibridges_sync():
         help="Do not perform the synchronization, but list the files to be updated.",
         action="store_true",
     )
+    parser.add_argument(
+        "--metadata",
+        help="Path for metadata",
+        default=argparse.SUPPRESS,
+        type=Path,
+        nargs="?",
+    )
     args = parser.parse_args()
 
-    with _cli_auth(ienv_path=_get_ienv_path()) as session:
-        ops = sync(session,
-                  _parse_str(args.source, session),
-                  _parse_str(args.destination, session),
-                  dry_run=args.dry_run,
+    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+        src_path = _parse_str(args.source, session)
+        dest_path = _parse_str(args.destination, session)
+        if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
+            metadata = _get_metadata_path(args, dest_path, src_path.parent)
+        elif isinstance(src_path, IrodsPath) and isinstance(dest_path, Path):
+            metadata = _get_metadata_path(args, src_path, dest_path.parent)
+        else:
+            print("Please provide as the source and destination exactly one local path,"
+                  " and one remote path.")
+            sys.exit(192)
+        ops = sync(
+            session,
+            src_path,
+            dest_path,
+            dry_run=args.dry_run,
+            metadata=metadata,
         )
         if args.dry_run:
-            _summarize_ops(ops)
+            ops.print_summary()
 
 
 # prefix components:

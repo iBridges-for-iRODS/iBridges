@@ -490,6 +490,18 @@ class IrodsPath:
 
     @property
     def meta(self) -> MetaData:
+        """Metadata linked to the dataobject or collection.
+
+        Returns
+        -------
+            The Metadata object pertaining to the dataobject or collection.
+
+        Raises
+        ------
+        ValueError
+            When the path does not point to a data object or collection.
+
+        """
         if self.dataobject_exists():
             return MetaData(self.dataobject)
         if self.collection_exists():
