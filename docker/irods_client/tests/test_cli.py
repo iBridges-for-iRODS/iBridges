@@ -110,7 +110,7 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
         assert metadata["items"][0]["metadata"][0][0] == "some_key"
         assert metadata["items"][0]["metadata"][0][1] == "some_val"
     ipath_collection.remove()
-    subprocess.run(["ibridges", "upload", tmpdir / "meta_test", f"irods:{ipath_collection}",
+    subprocess.run(["ibridges", "upload", tmpdir / "meta_test", "irods:",
                     "--metadata"], **pass_opts)
     assert ("some_key", "some_val") in ipath_collection.meta
     ipath_collection.remove()
