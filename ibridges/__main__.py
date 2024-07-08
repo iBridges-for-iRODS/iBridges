@@ -13,7 +13,6 @@ from ibridges.interactive import DEFAULT_IENV_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import (
-    ensure_irods_location,
     find_environment_provider,
     get_collection,
     get_environment_providers,
@@ -76,7 +75,8 @@ IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 def main() -> None:
     """CLI pointing to different entrypoints."""
     # ensure .irods folder
-    ensure_irods_location()
+    irods_loc = Path("~/.irods").expanduser()
+    irods_loc.mkdir(exist_ok=True)
     # show help by default, else consume first argument
     subcommand = "--help" if len(sys.argv) < 2 else sys.argv.pop(1)
 
