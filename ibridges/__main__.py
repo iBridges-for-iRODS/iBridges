@@ -173,6 +173,9 @@ def _cli_auth(ienv_path: Union[None, str, Path]):
     if str(ienv_path) in ibridges_conf.get("aliases", {}):
         alias = str(ienv_path)
         ienv_path = ibridges_conf["aliases"][alias]["path"]
+    if not Path(ienv_path).exists():
+        print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
+        sys.exit(124)
     session = interactive_auth(irods_env_path=ienv_path)
     if alias is not None:
         with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
