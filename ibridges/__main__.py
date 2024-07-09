@@ -105,13 +105,13 @@ def main() -> None:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
 
-def _get_ibridges_conf(ienv_path):
+def _get_ibridges_conf(ienv_path) -> dict:
     try:
         with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
             ibridges_conf = json.load(handle)
     except FileNotFoundError:
         if ienv_path is None:
-            return None
+            return {}
         ibridges_conf = {}
         IBRIDGES_CONFIG_FP.parent.mkdir(exist_ok=True)
     return ibridges_conf
@@ -130,11 +130,11 @@ def _set_alias(alias, ienv_path: Union[str, Path]):
     with open(IBRIDGES_CONFIG_FP, "w", encoding="utf-8") as handle:
         json.dump(ibridges_conf, handle)
 
-def _set_ienv_path(ienv_path: Union[None, str, Path], alias: Optional[str] = None):
-    ibridges_conf = _get_ibridges_conf(ienv_path)
-
-    if ibridges_conf is None:
+def _set_ienv_path(ienv_path: Union[None, str, Path], alias: Optional[str] = None) -> Optional[str]:
+    if ienv_path is None and alias is None:
         return None
+
+    ibridges_conf = _get_ibridges_conf(ienv_path)
 
     # Detect possible alias.
     if alias is None and str(ienv_path) in ibridges_conf.get("aliases", {}):
@@ -173,6 +173,7 @@ def _cli_auth(ienv_path: Union[None, str, Path]):
     if str(ienv_path) in ibridges_conf.get("aliases", {}):
         alias = str(ienv_path)
         ienv_path = ibridges_conf["aliases"][alias]["path"]
+    ienv_path = ienv_path if ienv_path is not None else DEFAULT_IENV_PATH
     if not Path(ienv_path).exists():
         print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
         sys.exit(124)
@@ -181,7 +182,6 @@ def _cli_auth(ienv_path: Union[None, str, Path]):
         with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
             irodsa_content = handle.read()
         if irodsa_content != ibridges_conf["aliases"][alias]["irodsa_backup"]:
-            ienv_path = ienv_path if ienv_path is not None else DEFAULT_IENV_PATH
             _set_alias(alias, ienv_path)
     return session
 
