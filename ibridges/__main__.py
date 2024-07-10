@@ -74,6 +74,9 @@ IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 
 def main() -> None:
     """CLI pointing to different entrypoints."""
+    # ensure .irods folder
+    irods_loc = Path.home() / ".irods"
+    irods_loc.mkdir(exist_ok=True)
     # show help by default, else consume first argument
     subcommand = "--help" if len(sys.argv) < 2 else sys.argv.pop(1)
 
