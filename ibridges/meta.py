@@ -184,9 +184,11 @@ class MetaData:
         key:
             Key of the new entry to add to the item.
         value:
-            Value of the new entry to add to the item.
+            Value of the new entry to add to the item. If the Ellipsis value [...] is used,
+            then all entries with this value will be deleted.
         units:
-            The units of the new entry.
+            The units of the new entry. If the Elipsis value [...] is used, then all entries
+            with any units will be deleted (but still constrained to the supplied keys and values).
 
         Raises
         ------
