@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path

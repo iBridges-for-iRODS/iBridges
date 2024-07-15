@@ -108,7 +108,7 @@ def upload(
                 "Use overwrite=True to overwrite the existing file."
             )
 
-        if not (obj_exists and _calc_checksum(local_path) == _calc_checksum(idest_path)):
+        if not (obj_exists and calc_checksum(local_path) == calc_checksum(idest_path)):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
@@ -219,7 +219,7 @@ def download(
                 "Use overwrite=True to overwrite the existing file(s)."
             )
         if not (
-            local_path.is_file() and (_calc_checksum(irods_path) == _calc_checksum(local_path))
+            local_path.is_file() and (calc_checksum(irods_path) == calc_checksum(local_path))
         ):
             ops.add_download(irods_path, local_path)
         if metadata is not None:
