@@ -355,6 +355,88 @@ def sync(
     return ops
 
 
+def create_meta_archive(session: Session, source: Union[str, Path, IrodsPath],
+                        meta_fp: Union[str, Path], dry_run: bool = False):
+    """Create a local archive file for the metadata.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects.
+
+    Parameters
+    ----------
+    session
+        Session with the iRODS server.
+    source
+        Source iRODS path to create the archive for. This should be a collection.
+    meta_fp
+        Metadata archive file.
+    dry_run, optional
+        Whether to do a dry run. If so, the archive itself won't be created, by default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    ValueError
+        If the source is not a collection.
+
+    """
+    root_ipath = IrodsPath(session, source)
+    if not root_ipath.collection_exists():
+        raise ValueError("Cannot download metadata archive, no collection present at "
+                         f"'{root_ipath}'.")
+    operations = Operations()
+    for ipath in root_ipath.walk():
+        operations.add_meta_download(root_ipath, ipath, meta_fp)
+    if not dry_run:
+        operations.execute(session)
+    return operations
+
+
+def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, IrodsPath],
+                       dry_run: bool = False):
+    """Apply a metadata archive to set the metadata of collections and data objects.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects.
+
+    Parameters
+    ----------
+    session
+        Session with the iRODS server.
+    meta_fp
+        Metadata archive file to use to set the metadata.
+    ipath
+        Root collection to set the metadata for. The collections and data objects relative to this
+        root collection should be the same as the ones in the metadata archive.
+    dry_run, optional
+        If True, only create an operations object, but do not execute the operation, default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    ValueError
+        If the ipath is not an iRODS collection.
+
+    """
+    ipath = IrodsPath(session, ipath)
+    if not ipath.collection_exists():
+        raise ValueError("Cannot apply metadata archive, since there is no collection"
+                         f" present at '{ipath}")
+    operations = Operations()
+    operations.add_meta_upload(ipath, meta_fp)
+    if not dry_run:
+        operations.execute(session)
+    return operations
+
+
 def _param_checks(source, target):
     if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
         raise TypeError("Either source or target should be an iRODS path.")

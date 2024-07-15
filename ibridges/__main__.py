@@ -534,9 +534,9 @@ def ibridges_sync():
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
-            metadata = _get_metadata_path(args, dest_path, src_path.parent, "sync")
+            metadata = _get_metadata_path(args, dest_path, src_path, "sync")
         elif isinstance(src_path, IrodsPath) and isinstance(dest_path, Path):
-            metadata = _get_metadata_path(args, src_path, dest_path.parent, "sync")
+            metadata = _get_metadata_path(args, src_path, dest_path, "sync")
         else:
             print("Please provide as the source and destination exactly one local path,"
                   " and one remote path.")

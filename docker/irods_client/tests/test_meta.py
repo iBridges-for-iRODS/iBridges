@@ -57,7 +57,7 @@ def test_meta(item_name, request):
     meta.delete("x", "z")
     assert len(list(meta)) == 1
 
-    meta.delete("x", None)
+    meta.delete("x")
     assert len(list(meta)) == 0
 
     meta.add("x", "y")
