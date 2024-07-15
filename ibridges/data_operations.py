@@ -5,7 +5,6 @@ Transfer data between local file system and iRODS, includes upload, download and
 
 from __future__ import annotations
 
-import base64
 import os
 import warnings
 from pathlib import Path
@@ -443,17 +442,6 @@ def _param_checks(source, target):
 
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
-
-
-def _calc_checksum(filepath):
-    if isinstance(filepath, IrodsPath):
-        return filepath.checksum
-    f_hash = sha256()
-    memv = memoryview(bytearray(128 * 1024))
-    with open(filepath, "rb", buffering=0) as file:
-        for item in iter(lambda: file.readinto(memv), 0):
-            f_hash.update(memv[:item])
-    return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
