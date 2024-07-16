@@ -92,14 +92,11 @@ def test_meta_archive(session, testdata, tmpdir):
     assert "ibridges_metadata_version" in meta_dict
     assert meta_dict["recursive"] is True
     assert meta_dict["root_path"] == str(ipath)
-    print([item["rel_path"] for item in meta_dict["items"]])
     assert len(meta_dict["items"]) == 8
 
     def _find_meta_dict(abs_path):
         rel_path = abs_path.relative_to(ipath)
-        print(rel_path)
         for item in meta_dict["items"]:
-            print(item["rel_path"], str(rel_path), type(rel_path))
             if item["rel_path"] == str(rel_path):
                 return item
         raise ValueError("Cannot find item in dictionary.")
