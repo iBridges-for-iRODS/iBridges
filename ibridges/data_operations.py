@@ -98,8 +98,6 @@ def upload(
             ops.add_create_coll(ipath)
     elif local_path.is_file():
         idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
-        # if ipath.collection_exists():
-        #     ipath = ipath / local_path.name
         obj_exists = idest_path.dataobject_exists()
 
         if obj_exists and not overwrite:
@@ -508,6 +506,6 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                     continue
                 if str(root_ipath / fold) not in remote_ipaths:
                     operations.add_create_coll(root_ipath / fold)
-        if str(root_ipath) not in remote_ipaths:# and str(root_ipath) != str(idest_path):
+        if str(root_ipath) not in remote_ipaths:
             operations.add_create_coll(root_ipath)
     return operations

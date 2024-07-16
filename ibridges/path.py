@@ -514,7 +514,6 @@ class IrodsPath:
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
                     depth: int, max_depth: Optional[int]):
-    # if cur_col != start_col:
     yield cur_col
     if max_depth is not None and depth >= max_depth:
         return

@@ -213,10 +213,6 @@ class MetaData:
                 for meta in all_metas:
                     if value is ... or value == meta.value and units is ... or units == meta.units:
                         self.item.metadata.remove(meta)
-                # value_units = [(m.value, m.units) for m in metas]
-                # if (value, units) not in value_units:
-                    # for meta in metas:
-                        # self.item.metadata.remove(meta)
             else:
                 self.item.metadata.remove(key, value, units)
         except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:

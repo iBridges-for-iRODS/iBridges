@@ -108,5 +108,3 @@ def test_metadata_export(item_name, request, session, tmpdir):
     with open(tmp_file, "r", encoding="utf-8"):
         new_meta_dict = json.load(tmp_file)
     assert isinstance(new_meta_dict, dict)
-    # res = export_metadata_to_dict(MetaData(item), session)
-    # assert isinstance(res, dict)
