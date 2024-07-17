@@ -10,7 +10,7 @@ intimately familiar with either of them, you probably don't need iBridges, since
 already there.
 
 The target audience of iBridges is different: it tries to help researchers/users that are not
-expert irods users. The learning curve of using iBridges is much easier than either of the two alternatives.
+expert iRODS users. The learning curve of using iBridges is much easier than either of the two alternatives.
 Additionally, its simplicity and default checks makes it less likely you will end up with bad data.
 
 An advantage compared to the iCommands is that iBridges also works on Mac OS and Windows.

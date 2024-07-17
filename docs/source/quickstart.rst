@@ -11,7 +11,7 @@ that are completely unfamiliar with Python and have never installed it, we recom
 
 .. note::
     Beware of the difference between the command line prompt and the python console. The commandline prompt, which might also be called
-    terminal, konsole, console or powershell, is the place where you can install iBridges and use the
+    terminal, console, console or powershell, is the place where you can install iBridges and use the
     command line interface (:doc:`CLI <cli>`). The Python console can be used to interactively execute python code
     and can be started from the command line prompt by typing `python` and hitting enter.
 

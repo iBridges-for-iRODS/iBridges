@@ -61,7 +61,7 @@ administrator settings of your iRODS server.
 
 iBridges stores the location of your iRODS environment file in `~/.ibridges/ibridges_cli.json`. You can safely delete
 this file if somehow it gets corrupted. If you have the iRODS environment in the default location, it can still be
-useful to cache the password so that the next commands will no longer ask for your password until the cached password expirse.
+useful to cache the password so that the next commands will no longer ask for your password until the cached password expires.
 
 .. code:: shell
 
