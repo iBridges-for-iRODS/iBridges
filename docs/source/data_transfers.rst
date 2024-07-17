@@ -40,7 +40,7 @@ If the transfer concerned a folder, a new collection with the folder name will b
 
 .. note::
 	All of the data transfer functions return an :code:`Operations` object, which can be used to execute all operations.
-	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will is going to be transferred before the actual transfer using the :code:`Operations.print_summary()` method.
+	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will be transferred before the actual transfer using the :code:`Operations.print_summary()` method.
 
 
 Download
