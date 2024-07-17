@@ -5,7 +5,7 @@ iRODS Search
 
 
 Search data by Path
---------
+-------------------
 
 In the example below we search for a data object by ites path.
 The path can be an IrodsPath or a string:
@@ -33,7 +33,7 @@ To find all subcollections and dataobjects in a collection use the `%` as wildca
   	
 
 Search data by metadata
---------------------
+-----------------------
 
 We can also use the metadata we generated above to search for data.
 We need to create a python dictionary which contains the metadata keys ad their values. The values are again optional.
@@ -49,7 +49,7 @@ Use the `%` as a wild card again to match any combination of characters.
 	
 
 Search data by checksum
-------
+-----------------------
 
 The search by checksum is handy to find duplicate data. in *iBridges* we always create checksums when data is uploaded. The checksum is unique for the file we uploaded and can be used to identify the files. E.g. when you uploaded the same file twice, once as `file.txt` and once as `file1.txt` you can find the two duplicates by their checksum:
 

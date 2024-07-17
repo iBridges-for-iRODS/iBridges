@@ -1,8 +1,8 @@
 Command Line Interface
 ======================
 
-iBridges also has a Command Line Interface (CLI). The CLI provides an even more simplified
-interface for uploading, downloading and synchronising. It does not provide (nor intends to) all the features
+iBridges also has a Command Line Interface (CLI). The CLI provides a simplified
+interface for uploading, downloading and synchronising compared to the Python API. It does not provide (nor intends to) all the features
 that are available in the iBridges API library. It is mainly there for users that are not familiar with Python
 and still want to download or upload their data using the interface, or if you need a simple iBridges operation
 in your shell script without having to create a new python script.
@@ -29,7 +29,7 @@ create the environment file for you. Below are the currently (known) plugins, se
     * - Utrecht University
       - https://github.com/UtrechtUniversity/ibridges-servers-uu
 
-After installation, you will be able to create an `irods_environment.json` by simply answering questions like which email-address
+After installation, you will be able to create an `irods_environment.json` by simply answering questions such as which email-address
 you have. First find the server name with:
 
 .. code:: shell
@@ -42,7 +42,7 @@ Then finish the setup using the server name you just found:
 
     ibridges setup server_name
 
-If your organization does not provide a plugin, then you will have to create the `environment.json` yourself (with 
+If your organization does not provide a plugin, then you will have to create the `irods_environment.json` yourself (with 
 the help of your iRODS administrator).
 
 It is the easiest if you put this file
@@ -79,24 +79,31 @@ To list the dataobjects and collections that are available on the iRODS server, 
 
 If you don't supply a collection to display, it will list the data objects and collections in your `irods_home` directory which you can specify in your `~/.irods/irods_environment.json`.
 
-If you want to list a collection in your `irods_home`, you can use `~` as an abbreviation:
+If you want to list a collection relative to your `irods_home`, you can use `~` as an abbreviation:
 
 .. code:: shell
 
     ibridges list "irods:~/collection_in_home"
 
 
-Please try to avoid spaces in collection and data object names! If you really need them, you must enclose the path with `"`. That also holds true for local paths.
+It is generally best to avoid spaces in collection and data object names. If you really need them, you must enclose the path with `"`. That also holds true for local paths.
 
 
 .. note::
-
-
     Note that all data objects and collections on the iRODS server are always preceded with "irods:". This is done to distinguish local and remote files.
-    
-    
+
+Show collection and data object tree
+------------------------------------
+
+Sometimes it can be convenient to not only see subcollections and data objects directly under a collection, but
+also subsubcollections, etc. deeper in the tree. This works similar to the Unix `tree` command and can be shown as follows:
+
+.. code:: shell
+
+    ibridges tree "irods:~/collection_in_home"
+
 Creating a new collection
---------------------
+-------------------------
 
 To create a new collection in you iRODS home simply type:
 
@@ -123,7 +130,9 @@ The basic command to download a data object or collection is `ibridges download`
 The download_dir argument is optional. If it is left out, it will be put in the current working directory.
 
 There are two more options: `--overwrite` to allow the download command to overwrite a local file and
-`--resource` to set the resource to download the data from. See `ibridges download --help` for more details.
+`--resource` to set the resource to download the data from. On many iRODS systems you will not need to set
+the resource yourself: the server will decide for you. In this case, you should not specify the resource.
+See `ibridges download --help` for more details.
 
 
 Uploading data
