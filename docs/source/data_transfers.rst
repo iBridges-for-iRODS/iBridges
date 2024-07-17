@@ -89,7 +89,7 @@ The code below shows how to synchronise from your local file system to iRODS. Th
 Synchronize from remote to local
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-the code below shows how to synchronise from your iRODS instance to your local file system. Your local data will be updated.
+The code below shows how to synchronise from your iRODS instance to your local file system. Your local data will be updated.
 
 .. code-block:: python
 
