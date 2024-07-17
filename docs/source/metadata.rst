@@ -37,7 +37,7 @@ To add metadata, you always need to provide a key and a value, the unit is optio
 Set metadata
 ------------
 
-The :meth:`MetaData.set` method differs from the add method in that it removes all other entries with the
+The :meth:`MetaData.set` method differs from the add method by removing all other entries with the
 same key first. This mirrors the implementation of the `iCommands <https://rdm-docs.icts.kuleuven.be/mango/clients/icommands.html#adding-metadata>`__
 :code:`imeta set`.
 
