@@ -4,8 +4,7 @@ The Session
 .. currentmodule:: ibridges.session
 
 Before we can perform operations on an iRODS server, we need to connect to it using the :class:`Session` object (see also :doc:`API documentation <api/generated/ibridges.session.Session>`).
-This object takes your `irods_environment.json` and uses
-this to connect to the iRODS server. All operations that need a connection will use the :class:`Session` object.
+This object uses your `irods_environment.json` to connect to the iRODS server. All operations that need a connection will use the :class:`Session` object.
 
 
 Authentication with the iRODS server
