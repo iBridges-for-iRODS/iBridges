@@ -10,7 +10,7 @@ Any of these methods can work, but the path/environment needs to be set correctl
 that are completely unfamiliar with Python and have never installed it, we recommend the installing `Anaconda <https://www.anaconda.com/download/success>`__.
 
 .. note::
-    Beware of the difference between the command line prompt and the python console. The commandline prompt, which might also be called
+    Beware of the difference between the command line prompt and the python console. The command line prompt, which might also be called
     terminal, console, console or powershell, is the place where you can install iBridges and use the
     command line interface (:doc:`CLI <cli>`). The Python console can be used to interactively execute python code
     and can be started from the command line prompt by typing `python` and hitting enter.
