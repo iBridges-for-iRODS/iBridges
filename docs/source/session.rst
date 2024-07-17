@@ -52,7 +52,7 @@ There are two ways to create a :class:`Session`.
 		with Session(...) as session:
 			# Do stuff with the session
 
-	The advantage is that at the end data operations, the connections to the server will be automatically
+	The advantage is that at the end data operations, connections to the server will be automatically
 	closed and not linger, regardless of whether the operations were successful or not.
 
 	Otherwise, you will have to close the connection manually using:
