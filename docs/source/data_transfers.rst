@@ -64,8 +64,8 @@ Synchronisation
 The iBridges function :doc:`sync <api/generated/ibridges.data_operations.sync>` synchronises data between your local file system and the iRODS server.
 
 The function works in both directions: synchronisation of data from the client's local file system to iRODS,
-or from iRODS to the local file system. The direction is given by the type of path and the order. This is an
-instance where remote paths **have** to be encoded using :class:`ibridges.path.IrodsPath`, since iBridges
+or from iRODS to the local file system. The direction is given by the type of path and the order. This is a
+case where remote paths **have** to be encoded using :class:`ibridges.path.IrodsPath`, since iBridges
 otherwise has no way of knowing which of the two paths is remote and which is local.
 
 Synchronize from local to remote
