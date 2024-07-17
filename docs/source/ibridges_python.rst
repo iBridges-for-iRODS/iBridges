@@ -14,7 +14,6 @@ library. Alternatively, users can use the :doc:`Command Line Interface <cli>` or
     session
     ipath
     data_transfers
-    sync
     metadata
     irods_search
 

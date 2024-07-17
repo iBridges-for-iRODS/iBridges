@@ -16,6 +16,13 @@ Additionally, its simplicity and default checks makes it less likely you will en
 An advantage compared to the iCommands is that iBridges also works on Mac OS and Windows.
 
 
+**I found a bug or have a feature request, where do I go?**
+------------------------------------------------------------------------
+Our development is done on `GitHub <https://github.com/UtrechtUniversity/iBridges>`__ Look under the `Issues` section
+whether the bug or feature request has already been reported. If not, we heartily welcome creating a new issue. We
+try to get back to you as soon as possible, at least within a few days.
+
+
 **I want to contribute to iBridges, where do I go?**
 ----------------------------------------------------
 
@@ -42,4 +49,4 @@ This error is most likely to happen if you try to transfer a large file. The def
 which translates to roughly 7 hours. This should not cause issues during the actual transfer. However, if the calculation
 of the checksum takes more than 7 hours (if the iRODS server is busy for example, or the file is many terabytes), then 
 you will get a network error. The checksum itself should still be created. You can increase the timeout in your `irods_environment.json`
-file by adding a new entry with `"connection_timeout": 99999999999,`. 
+file by adding a new entry with :code:`"connection_timeout": 99999999999,`. 

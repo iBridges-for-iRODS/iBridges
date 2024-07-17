@@ -1,10 +1,14 @@
 Data Transfers
 ==============
 
+.. currentmodule:: ibridges.path
+
 In the following examples we assume that local directories and remote collections have
 already been created. Otherwise the operations will fail with an error message. To create
 local directories, use :code:`pathlib.Path.mkdir(parents=True, exist_ok=True)`. For remote
-collections, :code:`IrodsPath.create_collection` can be used.
+collections, :meth:`IrodsPath.create_collection` can be used.
+
+.. currentmodule:: ibridges.data_operations
 
 .. note::
     By default, no data will be overwritten. If you want to overwrite data, you
@@ -19,7 +23,7 @@ your local iRODS administrator.
 
 Upload
 ------
-To :doc:`upload <api/generated/ibridges.data_operations.upload>` files or folders from your local file system to iRODS use the `upload` function.
+To upload files or folders from your local file system to iRODS use the :func:`upload` function.
 
 In the example below we transfer a file or a folder to a new collection *new_coll*. 
 If the transfer concerned a folder, a new collection with the folder name will be created.
@@ -35,14 +39,14 @@ If the transfer concerned a folder, a new collection with the folder name will b
     upload(session, local_path, irods_path)
 
 .. note::
-	All of the data transfer functions return am :code:`Operations` object containing all to be executed operations.
-	With the option :code:`dry_run=True` you can retrieve them without executing the operations. This can be useful to check with :code:`Operations.print_summary()`.
+	All of the data transfer functions return an :code:`Operations` object, which can be used to execute all operations.
+	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will is going to be transferred before the actual transfer using the :code:`Operations.print_summary()` method.
 
 
 Download
 --------
 
-The :doc:`download <api/generated/ibridges.data_operations.download>` function works similar to the upload function. Simply define your iRODS path you would like to download and a local destination path.
+The :func:`download` function works similar to the :func:`upload` function. Simply define your iRODS path you would like to download and a local destination path.
 
 .. code-block:: python
 
@@ -61,7 +65,7 @@ The iBridges function :doc:`sync <api/generated/ibridges.data_operations.sync>` 
 
 The function works in both directions: synchronisation of data from the client's local file system to iRODS,
 or from iRODS to the local file system. The direction is given by the type of path and the order. This is an
-instance where remote paths **have** to be encoded using :code:`IrodsPath`, since iBridges
+instance where remote paths **have** to be encoded using :class:`ibridges.path.IrodsPath`, since iBridges
 otherwise has no way of knowing which of the two paths is remote and which is local.
 
 Synchronize from local to remote
@@ -78,7 +82,7 @@ The code below shows how to synchronise from your local file system to iRODS. Th
     target = IrodsPath(session, "~", "<irods path>")
     source = Path.home() / "<local path>"
 
-    # call the synchronisation
+    # Synchronise the data
     sync(session=session, source=source, target=target)
 
 

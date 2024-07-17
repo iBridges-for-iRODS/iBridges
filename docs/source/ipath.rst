@@ -1,20 +1,21 @@
 iRODS paths
 ===========
 
+.. currentmodule:: ibridges.path
 
 iRODS paths follow a certain pattern just like the local paths of different operating systems.
 All iBridges operations support passing iRODS paths as strings. iBridges provides an alternative way
-to describe the location of collections and data objects: :code:`IrodsPath`, which is analogous to a :code:`Path`
+to describe the location of collections and data objects: :class:`IrodsPath`, which is analogous to a :code:`Path`
 from `pathlib <https://docs.python.org/3/library/pathlib.html>`__.
 
-We strongly recommend using :code:`IrodsPath` over using strings for the following reasons:
+We strongly recommend using :class:`IrodsPath` over using strings for the following reasons:
 
-- :code:`IrodsPath` is **safer** since it takes care of the correct concatenation of parts of the path.
-- :code:`IrodsPath` is **more convenient** since there are many methods and attributes available such as: the name, size and parent of the iRODS path.
-- The string representation of the :code:`Irodspath` is available through :code:`str(ipath)`.
+- :class:`IrodsPath` is **safer** since it takes care of the correct concatenation of parts of the path.
+- :class:`IrodsPath` is **more convenient** since there are many methods and attributes available such as: the name, size and parent of the iRODS path.
+- The string representation of the :class:`Irodspath` is available through :code:`str(ipath)`.
 
 A complete tutorial on iRODS paths can be followed `here <https://github.com/UtrechtUniversity/iBridges/tree/main/tutorials>`__. For an overview of
-all functionality connected to the :code:`IrodsPath`, see the :doc:`API documentation <api/generated/ibridges.path.IrodsPath>`. 
+all functionality connected to the :class:`IrodsPath`, see the :doc:`API documentation <api/generated/ibridges.path.IrodsPath>`. 
 
 IrodsPath
 ---------
@@ -23,9 +24,9 @@ In iRODS the `/` is used as separator and all paths on an iRODS server start wit
 Users usually have a personal `home` collection in iRODS: `/<zone_name>/home/<user name>`.
 Group-based iRODS instances such as Yoda will give you access to a group `home` collection: `/<zone_name>/home/<group name>`
 
-iBridges implements a selection of functions which are comparable to their counterparts in `pathlib`.
+iBridges implements a selection of functions which are comparable to their counterparts in :code:`pathlib`.
 
-Apart from absolute paths, :code:`IrodsPath` supports relative paths. Relative paths are always
+Apart from absolute paths, :class:`IrodsPath` supports relative paths. Relative paths are always
 defined with respect to the session :ref:`home <session home>`. The session home is marked by the ~:
 
 .. code-block:: python

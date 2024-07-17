@@ -61,7 +61,7 @@ administrator settings of your iRODS server.
 
 iBridges stores the location of your iRODS environment file in `~/.ibridges/ibridges_cli.json`. You can safely delete
 this file if somehow it gets corrupted. If you have the iRODS environment in the default location, it can still be
-useful to cache the password so that the next commands do not ask for your password anymore:
+useful to cache the password so that the next commands will no longer ask for your password until the cached password expirse.
 
 .. code:: shell
 
@@ -71,7 +71,7 @@ useful to cache the password so that the next commands do not ask for your passw
 Listing remote files
 --------------------
 
-To list the dataobjects and collections that are available on the iRODS server, you can use the `ibridges list` command:
+To list the dataobjects and collections that are available on the iRODS server, you can use the :code:`ibridges list` command:
 
 .. code:: shell
 
@@ -96,7 +96,7 @@ Show collection and data object tree
 ------------------------------------
 
 Sometimes it can be convenient to not only see subcollections and data objects directly under a collection, but
-also subsubcollections, etc. deeper in the tree. This works similar to the Unix `tree` command and can be shown as follows:
+also subsubcollections, etc. deeper in the tree. This works similar to the Unix :code:`tree` command and can be shown as follows:
 
 .. code:: shell
 
@@ -121,7 +121,7 @@ Or:
 Downloading data
 ----------------
 
-The basic command to download a data object or collection is `ibridges download`:
+The basic command to download a data object or collection is :code:`ibridges download`:
 
 .. code:: shell
 
@@ -129,16 +129,16 @@ The basic command to download a data object or collection is `ibridges download`
 
 The download_dir argument is optional. If it is left out, it will be put in the current working directory.
 
-There are two more options: `--overwrite` to allow the download command to overwrite a local file and
-`--resource` to set the resource to download the data from. On many iRODS systems you will not need to set
+There are two more options: :code:`--overwrite` to allow the download command to overwrite a local file and
+:code:`--resource` to set the resource to download the data from. On many iRODS systems you will not need to set
 the resource yourself: the server will decide for you. In this case, you should not specify the resource.
-See `ibridges download --help` for more details.
+Type :code:`ibridges download --help` for more details.
 
 
 Uploading data
 --------------
 
-The command to upload files and directories to an iRODS server is similar to the `download` command:
+The command to upload files and directories to an iRODS server is similar to the :code:`download` command:
 
 .. code:: shell
 
@@ -146,7 +146,7 @@ The command to upload files and directories to an iRODS server is similar to the
 
 .. note::
 
-    In contrast to the `download`` command, the `upload`` command always needs a 
+    In contrast to the :code:`download` command, the :code:`upload` command always needs a 
     destination collection or data object.
 
 
@@ -154,7 +154,7 @@ Synchronising data
 ------------------
 
 In some cases, instead of downloading/uploading your data, you might want to synchronise data between local
-folders and collections. The `sync` command does this synchronisation and only transfers files/directories 
+folders and collections. The :code:`sync` command does this synchronisation and only transfers files/directories 
 that are missing or have a different checksum (content). 
 
 .. code:: shell
@@ -164,6 +164,6 @@ that are missing or have a different checksum (content).
 
 .. note::
 
-    The order of the directory/collection that you supply to `ibridges sync` matters. The first argument is the `source`
+    The order of the directory/collection that you supply to :code:`ibridges sync` matters. The first argument is the `source`
     directory/collection, while the second argument is the `destination` directory/collection. Transfers will only happen
     from `source` to `destination`, so extra or updated files in the `destination` directory will not be transferred.
