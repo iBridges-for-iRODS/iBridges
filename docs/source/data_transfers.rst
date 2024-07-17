@@ -12,7 +12,7 @@ collections, :meth:`IrodsPath.create_collection` can be used.
 
 .. note::
     By default, no data will be overwritten. If you want to overwrite data, you
-    can set :code:`overwrite=True`. Note that you can also overwrite newer data with older data this way.
+    can set :code:`overwrite=True`. Beware that you can also overwrite newer data with older data this way.
     If a file and a dataobject are exactly the same, iBridges will silently skip the transfer,
     thereby saving time.
 
