@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
+import re
+import warnings
 from typing import Any, Iterator, Optional, Sequence, Union
 
 import irods
 import irods.exception
 import irods.meta
-
-from ibridges.util import is_dataobject
 
 
 class MetaData:
@@ -35,21 +35,33 @@ class MetaData:
     """
 
     def __init__(
-        self, item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]
+        self,
+        item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection],
+        blacklist: str = r"^org_*",
     ):
         """Initialize the metadata object.
 
         Parameters
         ----------
-        item
+        item:
             The data object or collection to attach the metadata object to.
+        blacklist:
+            A regular expression for metadata names/keys that should be ignored.
 
         """
         self.item = item
+        self.blacklist = blacklist
 
     def __iter__(self) -> Iterator:
         """Iterate over all metadata key/value/units pairs."""
-        yield from self.item.metadata.items()
+        if self.blacklist is None:
+            yield from self.item.metadata.items()
+        for meta in self.item.metadata.items():
+            if re.match(self.blacklist, meta.name) is None:
+                yield meta
+            else:
+                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
+                              f"the blacklist {self.blacklist}.")
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
         """Check whether a key, key/val, key/val/units pairs are in the metadata.
@@ -127,10 +139,8 @@ class MetaData:
         """
         try:
             if (key, value, units) in self:
-                raise irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME()
+                raise ValueError("ADD META: Metadata already present")
             self.item.metadata.add(key, value, units)
-        except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
-            raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
 
@@ -162,10 +172,11 @@ class MetaData:
         >>> meta.set("mass", "10", "kg")
 
         """
-        self.delete(key, None)
+        self.delete(key)
         self.add(key, value, units)
 
-    def delete(self, key: str, value: Optional[str], units: Optional[str] = None):
+    def delete(self, key: str, value: Union[None, str] = ...,  # type: ignore
+               units: Union[None, str] = ...):  # type: ignore
         """Delete a metadata entry of an item.
 
         Parameters
@@ -173,9 +184,11 @@ class MetaData:
         key:
             Key of the new entry to add to the item.
         value:
-            Value of the new entry to add to the item.
+            Value of the new entry to add to the item. If the Ellipsis value [...] is used,
+            then all entries with this value will be deleted.
         units:
-            The units of the new entry.
+            The units of the new entry. If the Elipsis value [...] is used, then all entries
+            with any units will be deleted (but still constrained to the supplied keys and values).
 
         Raises
         ------
@@ -195,11 +208,10 @@ class MetaData:
 
         """
         try:
-            if value is None:
-                metas = self.item.metadata.get_all(key)
-                value_units = [(m.value, m.units) for m in metas]
-                if (value, units) not in value_units:
-                    for meta in metas:
+            if value is ... or units is ...:
+                all_metas = self.item.metadata.get_all(key)
+                for meta in all_metas:
+                    if value is ... or value == meta.value and units is ... or units == meta.units:
                         self.item.metadata.remove(meta)
             else:
                 self.item.metadata.remove(key, value, units)
@@ -231,8 +243,8 @@ class MetaData:
         {
             "name": item.name,
             "irods_id": item.id, #iCAT database ID
-             "checksum": item.checksum if the item is a data object
-             "metadata": [(m.name, m.value, m.units)]
+            "checksum": item.checksum if the item is a data object
+            "metadata": [(m.name, m.value, m.units)]
         }
 
         Parameters
@@ -249,10 +261,26 @@ class MetaData:
         meta_dict: dict[str, Any] = {}
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
-        if is_dataobject(self.item):
+        if isinstance(self.item, irods.data_object.iRODSDataObject):
             meta_dict["checksum"] = self.item.checksum
         if keys is None:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
         else:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
         return meta_dict
+
+    def from_dict(self, meta_dict: dict):
+        """Fill the metadata based on a dictionary.
+
+        Parameters
+        ----------
+        meta_dict
+            Dictionary that contains all the key, value, units triples. This
+            should use the same format as the output of the to_dict method.
+
+        """
+        for meta_tuple in meta_dict["metadata"]:
+            try:
+                self.add(*meta_tuple)
+            except ValueError:
+                pass

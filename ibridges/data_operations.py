@@ -13,92 +13,13 @@ from typing import Optional, Union
 import irods.collection
 import irods.data_object
 import irods.exception
-import irods.keywords as kw
-from tqdm import tqdm
 
+from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
 from ibridges.util import calc_checksum
 
 NUM_THREADS = 4
-
-
-def _obj_put(
-    session: Session,
-    local_path: Union[str, Path],
-    irods_path: Union[str, IrodsPath],
-    overwrite: bool = False,
-    resc_name: str = "",
-    options: Optional[dict] = None,
-    ignore_err: bool = False,
-):
-    """Upload `local_path` to `irods_path` following iRODS `options`.
-
-    Parameters
-    ----------
-    session :
-        Session to upload the object.
-    local_path : str or Path
-        Path of local file.
-    irods_path : str or IrodsPath
-        Path of iRODS data object or collection.
-    resc_name : str
-        Optional resource name.
-    overwrite :
-        Whether to overwrite the object if it exists.
-    options :
-        Extra options to the python irodsclient put method.
-    ignore_err:
-        If True, convert errors into warnings.
-
-    """
-    local_path = Path(local_path)
-    irods_path = IrodsPath(session, irods_path)
-
-    if not local_path.is_file():
-        err_msg = f"local_path '{local_path}' must be a file."
-        if not ignore_err:
-            raise ValueError(err_msg)
-        warnings.warn(err_msg)
-        return
-
-    # Check if irods object already exists
-    obj_exists = (
-        IrodsPath(session, irods_path / local_path.name).dataobject_exists()
-        or irods_path.dataobject_exists()
-    )
-
-    if options is None:
-        options = {}
-    options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
-
-    if resc_name not in ["", None]:
-        options[kw.RESC_NAME_KW] = resc_name
-    if overwrite or not obj_exists:
-        try:
-            session.irods_session.data_objects.put(local_path, str(irods_path), **options)
-        except (PermissionError, OSError) as error:
-            err_msg = f"Cannot read {error.filename}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            err_msg = f"Cannot write {str(irods_path)}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
-        except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            ) from error
-    else:
-        if not ignore_err:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            )
-        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
 
 
 def upload(
@@ -111,6 +32,7 @@ def upload(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
+    metadata: Union[None, str, Path] = None,
 ):
     """Upload a local directory or file to iRODS.
 
@@ -136,6 +58,8 @@ def upload(
         More options for the upload
     dry_run:
         Whether to do a dry run before uploading the files/folders.
+    metadata:
+        If not None, it should point to a file that contains the metadata for the upload.
 
     Raises
     ------
@@ -161,7 +85,7 @@ def upload(
     """
     local_path = Path(local_path)
     ipath = IrodsPath(session, irods_path)
-    ops = _empty_ops()
+    ops = Operations()
     if local_path.is_dir():
         idest_path = ipath / local_path.name
         if not overwrite and idest_path.exists():
@@ -169,11 +93,12 @@ def upload(
         ops = _up_sync_operations(
             local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None
         )
-        ops["create_collection"].add(str(idest_path))
+        ops.add_create_coll(idest_path)
+        if not ipath.collection_exists():
+            ops.add_create_coll(ipath)
     elif local_path.is_file():
-        if ipath.collection_exists():
-            ipath = ipath / local_path.name
-        obj_exists = ipath.dataobject_exists()
+        idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
+        obj_exists = idest_path.dataobject_exists()
 
         if obj_exists and not overwrite:
             raise FileExistsError(
@@ -181,78 +106,22 @@ def upload(
                 "Use overwrite=True to overwrite the existing file."
             )
 
-        if not (obj_exists and calc_checksum(local_path) == calc_checksum(ipath)):
-            ops["upload"].append((local_path, ipath))
+        if not (obj_exists and calc_checksum(local_path) == calc_checksum(idest_path)):
+            ops.add_upload(local_path, idest_path)
+
     elif local_path.is_symlink():
         raise FileNotFoundError(
             f"Cannot upload symbolic link {local_path}, please supply a direct " "path."
         )
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
-    ops.update({"resc_name": resc_name, "options": options})
+    ops.resc_name = resc_name
+    ops.options = options
+    if metadata is not None:
+        ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
-        perform_operations(session, ops, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err)
     return ops
-
-
-def _obj_get(
-    session: Session,
-    irods_path: IrodsPath,
-    local_path: Path,
-    overwrite: bool = False,
-    resc_name: Optional[str] = "",
-    options: Optional[dict] = None,
-    ignore_err: bool = False,
-):
-    """Download `irods_path` to `local_path` following iRODS `options`.
-
-    Parameters
-    ----------
-    session :
-        Session to get the object from.
-    irods_path : str or IrodsPath
-        Path of iRODS data object.
-    local_path : str or Path
-        Path of local file or directory/folder.
-    overwrite :
-        Whether to overwrite the local file if it exists.
-    resc_name:
-        Name of the resource to get the object from.
-    options : dict
-        Extra options to the python irodsclient get method.
-    ignore_err:
-        If True, convert errors into warnings.
-
-    """
-    if options is None:
-        options = {}
-    options.update(
-        {
-            kw.NUM_THREADS_KW: NUM_THREADS,
-            kw.VERIFY_CHKSUM_KW: "",
-        }
-    )
-    if overwrite:
-        options[kw.FORCE_FLAG_KW] = ""
-    if resc_name not in ["", None]:
-        options[kw.RESC_NAME_KW] = resc_name
-
-    # Quick fix for #126
-    if Path(local_path).is_dir():
-        local_path = Path(local_path).joinpath(irods_path.name)
-
-    try:
-        session.irods_session.data_objects.get(str(irods_path), local_path, **options)
-    except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
-        msg = f"Cannot write to {local_path}."
-        if not ignore_err:
-            raise PermissionError(msg) from error
-        warnings.warn(msg)
-    except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
-        msg = f"During download operation from '{irods_path}': iRODS server forbids action."
-        if not ignore_err:
-            raise PermissionError(msg) from exc
-        warnings.warn(msg)
 
 
 def download(
@@ -265,6 +134,7 @@ def download(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
+    metadata: Union[None, str, Path] = None,
 ):
     """Download a collection or data object to the local filesystem.
 
@@ -291,6 +161,8 @@ def download(
         More options for the download
     dry_run:
         Whether to do a dry run before uploading the files/folders.
+    metadata:
+        If not None, the path to store the metadata to in .json format.
 
     Raises
     ------
@@ -329,29 +201,35 @@ def download(
             )
 
         ops = _down_sync_operations(
-            irods_path, local_path / irods_path.name, copy_empty_folders=copy_empty_folders
+            irods_path, local_path / irods_path.name, metadata=metadata,
+            copy_empty_folders=copy_empty_folders
         )
-        ops["create_dir"].add(str(local_path / irods_path.name))
         if not local_path.is_dir():
-            ops["create_dir"].add(str(local_path))
+            ops.add_create_dir(Path(local_path))
     elif irods_path.dataobject_exists():
-        ops = _empty_ops()
+        ops = Operations()
 
         if local_path.is_dir():
             local_path = local_path / irods_path.name
         if (not overwrite) and local_path.is_file():
-            raise FileExistsError(f"File or directory {local_path} already exists. "
-                                   "Use overwrite=True to overwrite the existing file(s).")
-        if not (local_path.is_file() and
-                (calc_checksum(irods_path) == calc_checksum(local_path))):
-            ops["download"].append((irods_path, local_path))
+            raise FileExistsError(
+                f"File or directory {local_path} already exists. "
+                "Use overwrite=True to overwrite the existing file(s)."
+            )
+        if not (
+            local_path.is_file() and (calc_checksum(irods_path) == calc_checksum(local_path))
+        ):
+            ops.add_download(irods_path, local_path)
+        if metadata is not None:
+            ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
         raise ValueError(f"Data object or collection not found: '{irods_path}'")
 
-    ops.update({"resc_name": resc_name, "options": options})
+    ops.resc_name = resc_name
+    ops.options = options
     if not dry_run:
-        perform_operations(session, ops, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err)
     return ops
 
 
@@ -383,90 +261,6 @@ def create_collection(
     return IrodsPath.create_collection(session, coll_path)
 
 
-def perform_operations(session: Session, operations: dict, ignore_err: bool = False):
-    """Execute data operations.
-
-    The operations can be obtained with a dry run of the upload/download/sync function.
-
-    Parameters
-    ----------
-    session
-        Session to do the data operations for.
-    operations
-        Dictionary containing the operations to perform.
-    ignore_err
-        Ignore any errors and convert them into warnings if True.
-
-    Raises
-    ------
-    PermissionError:
-        When the operation is not allowed on either the iRODS server or locally.
-
-    Examples
-    --------
-    >>> perform_operations(session, ops)
-
-    """
-    up_sizes = [lpath.stat().st_size for lpath, _ in operations["upload"]]
-    down_sizes = [ipath.size for ipath, _ in operations["download"]]
-    disable = len(up_sizes) + len(down_sizes) == 0
-    pbar = tqdm(
-        total=sum(up_sizes) + sum(down_sizes),
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        disable=disable,
-    )
-
-    # The code below does not work as expected, since connections in the
-    # pool can be reused. Another solution for dynamic timeouts might be needed
-    # Leaving the previous solution in here for documentation.
-
-    # For large files, the checksum computation might take too long, which can result in a timeout.
-    # This is why we increase the time out from file sizes > 1 GB
-    # This might still result in a time out if your server is very busy or a potato.
-    # max_size = max([*up_sizes, *down_sizes, 0])
-    # original_timeout = session.irods_session.pool.connection_timeout
-    # if max_size > 1e9 and original_timeout == DEFAULT_CONNECTION_TIMEOUT:
-    #     session.irods_session.pool.connection_timeout = int(
-    #         DEFAULT_CONNECTION_TIMEOUT*(max_size/1e9)+0.5)
-
-    for col in operations["create_collection"]:
-        IrodsPath.create_collection(session, col)
-    for curdir in operations["create_dir"]:
-        try:
-            Path(curdir).mkdir(parents=True, exist_ok=True)
-        except NotADirectoryError as error:
-            raise PermissionError(f"Cannot create {error.filename}") from error
-
-    options = operations.get("options", None)
-    options = {} if options is None else options
-    resc_name = operations.get("resc_name", "")
-    for (lpath, ipath), size in zip(operations["upload"], up_sizes):
-        _obj_put(
-            session,
-            lpath,
-            ipath,
-            overwrite=True,
-            ignore_err=ignore_err,
-            options=options,
-            resc_name=resc_name,
-        )
-        pbar.update(size)
-    for (ipath, lpath), size in zip(operations["download"], down_sizes):
-        _obj_get(
-            session,
-            ipath,
-            lpath,
-            overwrite=True,
-            ignore_err=ignore_err,
-            options=options,
-            resc_name=resc_name,
-        )
-        pbar.update(size)
-    # session.irods_session.pool.connection_timeout = original_timeout
-
-
 def sync(
     session: Session,
     source: Union[str, Path, IrodsPath],
@@ -477,6 +271,7 @@ def sync(
     copy_empty_folders: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
+    metadata: Union[None, str, Path] = None,
 ) -> dict:
     """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
 
@@ -514,6 +309,8 @@ def sync(
         Name of the resource from which data is downloaded, by default the server will decide.
     options : dict
         More options for the download/upload
+    metadata:
+        If not None, the location to get the metadata from or store it to.
 
 
     Returns
@@ -537,18 +334,104 @@ def sync(
 
     if isinstance(source, IrodsPath):
         ops = _down_sync_operations(
-            source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level
+            source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
+            metadata=metadata
         )
     else:
         ops = _up_sync_operations(
-            Path(source), target, copy_empty_folders=copy_empty_folders, depth=max_level
-        )
+            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
+            depth=max_level)
+        if metadata is not None:
+            ops.add_meta_upload(target, metadata)
 
-    ops.update({"resc_name": resc_name, "options": options})
+    ops.resc_name = resc_name
+    ops.options = options
     if not dry_run:
-        perform_operations(session, ops, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err)
 
     return ops
+
+
+def create_meta_archive(session: Session, source: Union[str, Path, IrodsPath],
+                        meta_fp: Union[str, Path], dry_run: bool = False):
+    """Create a local archive file for the metadata.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects.
+
+    Parameters
+    ----------
+    session
+        Session with the iRODS server.
+    source
+        Source iRODS path to create the archive for. This should be a collection.
+    meta_fp
+        Metadata archive file.
+    dry_run, optional
+        Whether to do a dry run. If so, the archive itself won't be created, by default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    ValueError
+        If the source is not a collection.
+
+    """
+    root_ipath = IrodsPath(session, source)
+    if not root_ipath.collection_exists():
+        raise ValueError("Cannot download metadata archive, no collection present at "
+                         f"'{root_ipath}'.")
+    operations = Operations()
+    for ipath in root_ipath.walk():
+        operations.add_meta_download(root_ipath, ipath, meta_fp)
+    if not dry_run:
+        operations.execute(session)
+    return operations
+
+
+def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, IrodsPath],
+                       dry_run: bool = False):
+    """Apply a metadata archive to set the metadata of collections and data objects.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects.
+
+    Parameters
+    ----------
+    session
+        Session with the iRODS server.
+    meta_fp
+        Metadata archive file to use to set the metadata.
+    ipath
+        Root collection to set the metadata for. The collections and data objects relative to this
+        root collection should be the same as the ones in the metadata archive.
+    dry_run, optional
+        If True, only create an operations object, but do not execute the operation, default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    ValueError
+        If the ipath is not an iRODS collection.
+
+    """
+    ipath = IrodsPath(session, ipath)
+    if not ipath.collection_exists():
+        raise ValueError("Cannot apply metadata archive, since there is no collection"
+                         f" present at '{ipath}")
+    operations = Operations()
+    operations.add_meta_upload(ipath, meta_fp)
+    if not dry_run:
+        operations.execute(session)
+    return operations
 
 
 def _param_checks(source, target):
@@ -558,37 +441,34 @@ def _param_checks(source, target):
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
-def _empty_ops():
-    return {
-        "create_dir": set(),
-        "create_collection": set(),
-        "upload": [],
-        "download": [],
-    }
 
-
-def _down_sync_operations(isource_path, ldest_path, copy_empty_folders=True, depth=None):
-    operations = _empty_ops()
+def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
+                          copy_empty_folders: bool  =True, depth: Optional[int] = None,
+                          metadata: Union[None, str, Path] = None):
+    operations = Operations()
     for ipath in isource_path.walk(depth=depth):
+        if metadata is not None:
+            operations.add_meta_download(isource_path, ipath, metadata)
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
                 l_chksum = calc_checksum(lpath)
                 i_chksum = calc_checksum(ipath)
                 if i_chksum != l_chksum:
-                    operations["download"].append((ipath, lpath))
+                    operations.add_download(ipath, lpath)
             else:
-                operations["download"].append((ipath, lpath))
+                operations.add_download(ipath, lpath)
             if not lpath.parent.exists():
-                operations["create_dir"].add(str(lpath.parent))
+                operations.add_create_dir(lpath.parent)
         elif ipath.collection_exists() and copy_empty_folders:
             if not lpath.exists():
-                operations["create_dir"].add(str(lpath))
+                operations.add_create_dir(lpath)
     return operations
 
 
-def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth=None):  # pylint: disable=too-many-branches
-    operations = _empty_ops()
+def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
+                        copy_empty_folders: bool = True, depth: Optional[int] = None):
+    operations = Operations()
     session = idest_path.session
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
@@ -613,10 +493,10 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
                 i_chksum = calc_checksum(ipath)
 
                 if i_chksum != l_chksum:
-                    operations["upload"].append((lpath, ipath))
+                    operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
-                operations["upload"].append((lpath, ipath))
+                operations.add_upload(lpath, ipath)
         if copy_empty_folders:
             for fold in folders:
                 # Ignore folder symlinks
@@ -625,7 +505,7 @@ def _up_sync_operations(lsource_path, idest_path, copy_empty_folders=True, depth
                     warnings.warn(f"Ignoring symlink {lpath}.")
                     continue
                 if str(root_ipath / fold) not in remote_ipaths:
-                    operations["create_collection"].add(str(root_ipath / fold))
-        if str(root_ipath) not in remote_ipaths and str(root_ipath) != str(idest_path):
-            operations["create_collection"].add(str(root_ipath))
+                    operations.add_create_coll(root_ipath / fold)
+        if str(root_ipath) not in remote_ipaths:
+            operations.add_create_coll(root_ipath)
     return operations

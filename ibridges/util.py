@@ -45,7 +45,6 @@ def get_size(
     """
     return IrodsPath(session, item.path).size
 
-
 def is_dataobject(item) -> bool:
     """Determine if item is an iRODS data object."""
     return isinstance(item, irods.data_object.iRODSDataObject)

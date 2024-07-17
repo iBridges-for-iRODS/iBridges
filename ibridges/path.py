@@ -10,6 +10,7 @@ import irods
 from irods.models import DataObject
 
 import ibridges.icat_columns as icat
+from ibridges.meta import MetaData
 
 
 class IrodsPath:
@@ -413,7 +414,6 @@ class IrodsPath:
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
             sub_collections[str(cur_col.parent)].append(cur_col)
-
         yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
@@ -488,17 +488,33 @@ class IrodsPath:
             raise ValueError("Cannot take checksum of a collection.")
         raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
 
+    @property
+    def meta(self) -> MetaData:
+        """Metadata linked to the dataobject or collection.
 
-def _recursive_walk(
-    cur_col: IrodsPath,
-    sub_collections: dict[str, list[IrodsPath]],
-    all_dataobjects: dict[str, list[IrodsPath]],
-    start_col: IrodsPath,
-    depth: int,
-    max_depth: Optional[int],
-):
-    if cur_col != start_col:
-        yield cur_col
+        Returns
+        -------
+            The Metadata object pertaining to the dataobject or collection.
+
+        Raises
+        ------
+        ValueError
+            When the path does not point to a data object or collection.
+
+        """
+        if self.dataobject_exists():
+            return MetaData(self.dataobject)
+        if self.collection_exists():
+            return MetaData(self.collection)
+        raise ValueError("Cannot get metadata for path that is neither dataobject or collection:"
+                         f" {self}")
+
+
+
+def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
+                    all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
+                    depth: int, max_depth: Optional[int]):
+    yield cur_col
     if max_depth is not None and depth >= max_depth:
         return
     for sub_col in sub_collections[str(cur_col)]:
@@ -601,8 +617,5 @@ def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection) -> list:
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path + "/%"))
 
-    return [
-        CachedIrodsPath(session, None, False, None, p)
-        for r in coll_query.get_results()
-        for p in r.values()
-    ]
+    return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
+            for p in r.values()] + [CachedIrodsPath(session, None, False, None, coll.path)]
