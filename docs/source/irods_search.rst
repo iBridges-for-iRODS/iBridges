@@ -7,8 +7,8 @@ iRODS Search
 Search data by Path
 -------------------
 
-In the example below we search for a data object by ites path.
-The path can be an IrodsPath or a string:
+In the example below we search for a data object by its path.
+The path can be an :code:`IrodsPath` or a string:
  	
 .. code-block:: python
 		
