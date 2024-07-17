@@ -132,7 +132,7 @@ Let's add some metadata to a collection or data object:
     ipath.meta.add("some_key", "some_value", "some_units")
 
 We have used the :code:`IrodsPath` class here, which is central to the iBridges API. From here we have
-access to the metadata as shown above, but additionally there many more convenient features directly accessible
+access to the metadata as shown above, but additionally there are many more convenient features directly accessible
 such as getting the size of a collection or data object. A detailed description of the features is present in
 another part of the :doc:`documentation <ipath>`.
 
