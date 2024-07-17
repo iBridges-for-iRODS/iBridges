@@ -12,7 +12,7 @@ The documentation presented here is for the Python API and Command Line Interfac
 located on a separate `page <https://chstaiger.github.io/iBridges-Gui/>`__.
 
 .. note::
-   The project is in active development, current features are stable and the documentation is complete. However, we are still actively developing new features and improving the existing ones. We appreciate help, suggestions, issues and bug reports in our issue tracker on `GitJub <https://github.com/UtrechtUniversity/iBridges>`__.
+   The project is in active development, current features are stable and the documentation is complete. However, we are still actively developing new features and improving the existing ones. We appreciate help, suggestions, issues and bug reports in our issue tracker on `GitHub <https://github.com/UtrechtUniversity/iBridges>`__.
 
 
 iBridges is a wrapper around the `python-irodsclient <https://github.com/irods/python-irodsclient>`__. While the
