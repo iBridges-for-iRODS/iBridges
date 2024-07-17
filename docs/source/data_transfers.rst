@@ -68,7 +68,7 @@ or from iRODS to the local file system. The direction is given by the type of pa
 case where remote paths **have** to be encoded using :class:`ibridges.path.IrodsPath`, since iBridges
 otherwise has no way of knowing which of the two paths is remote and which is local.
 
-Synchronize from local to remote
+Synchronise from local to remote
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The code below shows how to synchronise from your local file system to iRODS. The data in iRODS will be updated. 
