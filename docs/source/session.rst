@@ -1,7 +1,10 @@
 The Session
 ===========
 
-When connecting to iRODS a `Session` object is created, which stores information from your `irods_environment.json` and provides you with more information about the iRODS you are connected to and it is needed for all interactions with iRODS.
+Before we can perform operations on an iRODS server, we need to connect to it using the :code:`Session` object (see also :doc:`API documentation <api/generated/ibridges.session.Session>`).
+This object takes your `irods_environment.json` and uses
+this to connect to the iRODS server. All operations that need a connection will use the :code:`Session` object.
+
 
 Authentication with the iRODS server
 ------------------------------------
@@ -11,13 +14,13 @@ There are two ways to create a `Session`.
 - Interactive authentication
   
   The function `interactive_auth` will check in the `.irods` folder for the default `irods_environment.json` and will try to authenticate with the cached password. If the password does not exist, you will be interactively asked for a password. 
-  You can also pass a path to a specific `irods_environment.json` with the parameter `irods_env_path` and you can also pass a password with the parameter `password`
+  You can also pass a path to a specific `irods_environment.json` with the parameter `irods_env_path` and you can also pass a password with the parameter `password`:
   
   .. code-block:: python
 	
 		from ibridges.interactive import interactive_auth
-		session = interactive_auth()
 
+		session = interactive_auth()
 		# or
 		session = interactive_auth(irods_env_path="/some/other/irods_environment.json")
 
@@ -35,10 +38,33 @@ There are two ways to create a `Session`.
 
   The `irods_env` can also be a python dictionary which contains all your connection details.
 
+.. note::
+	The :code:`Session` object is a `context manager <https://book.pythontips.com/en/latest/context_managers.html>`__.
+	Similar to opening files, we recommend using the :code:`Session` object with a :code:`with` statement.
+
+	.. code-block:: python
+
+		with interactive_auth() as session:
+			# Do stuff with the interactive session.
+	
+		with Session(...) as session:
+			# Do stuff with the session
+
+	The advantage is that at the end data operations, the connections to the server will be automatically
+	closed and not linger, regardless of whether the operations were successful or not.
+
+	Otherwise, you will have to close the connection manually using:
+
+	.. code-block:: python
+
+		session.close()
+
+
+
 The Session object
 ------------------
 
-The `Session` does not only contain the connection to the iRODS server, but also some useful attributes:
+The :code:`Session` does not only contain the connection to the iRODS server, but also some useful attributes:
 
 .. code-block:: python
 
@@ -49,15 +75,15 @@ The `Session` does not only contain the connection to the iRODS server, but also
 	print(session.get_user_info()) # lists user type and groups
 	print(session.home) # default home for iRODS /zone/home/username
 
-We will have a closer look at the `session.home` below.
+We will have a closer look at the :code:`session.home` below.
 
-The `Session` object is necessary for all interactions with the iRODS server and you will have to provide the object to most of the functions in `iBridges`.
-
+.. _session home:
 
 The Session home
 ----------------
 
-The `session.home` denotes your iRODS working path. If you do not specify a full path, all paths you create with `IrodsPath` (see :doc:`IrodsPath <ipath>` ) will be prefixed with your `session.home`.
+The :code:`session.home` denotes your iRODS working path. For any relative paths that are created using an
+:doc:`IrodsPath <ipath>`, the path will be relative to the :code:`session.home` that you have set.
 
 There are three ways to set the irods_home:
 
@@ -65,30 +91,12 @@ There are three ways to set the irods_home:
 - You can pass it as a parameter when creating the session
 - You can set it later by session.home = <YOUR_IRODS_PATH>
 
+If you did not set any :code:`session.home` the home will default to `/<zone_name>/home/<user name>`.
+
 .. note::
 	
-	It is not automatically checked during the connection, if the `session.home` really exists. Please always check:
+	If the home collection does not exist, you might get some strange errors. Its existence can be checked with:
 	
-.. code-block:: python
-		
-    IrodsPath(session, session.home).collection_exists()
-		
-Closing the Session
--------------------
-
-When you do not need the `Session` any longer, close the connection to the iRODS server:
-
-.. code-block:: python
-
-    session.close()
-
-The `Session` will automatically be closed when you open it in a `with` statement:
-
-.. code-block:: python
-
-    with Session("irods_environment.json") as session:
-        # Do things on the iRODS server
-
-
-		
-		
+	.. code-block:: python
+			
+		IrodsPath(session, session.home).collection_exists()
