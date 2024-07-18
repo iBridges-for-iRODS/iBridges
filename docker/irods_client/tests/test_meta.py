@@ -16,11 +16,11 @@ def test_meta(item_name, request):
     meta.clear()
 
     assert len(str(meta)) == 0
-    assert len(list(meta)) == 0
+    assert len(meta) == 0
 
     # Add key, value pair
     meta.add("x", "y")
-    assert len(list(meta)) == 1
+    assert len(meta) == 1
     assert list(meta)[0].name == "x"
     assert list(meta)[0].value == "y"
     assert list(meta)[0].units is None
@@ -32,13 +32,13 @@ def test_meta(item_name, request):
 
     # Same key, but different value
     meta.add("x", "z")
-    assert len(list(meta)) == 2
-    assert len(str(meta).split("\n")) == 3  #\n at the end
+    assert len(meta) == 2
+    assert len(str(meta).split("\n")) == 2
     assert ("x", "z") in meta
 
     # Same key, value different units
     meta.add("x", "z", "m")
-    assert len(list(meta)) == 3
+    assert len(meta) == 3
     assert ("x", "z", "m") in meta
 
     # Test that we cannot add the same metadata twice
@@ -52,13 +52,13 @@ def test_meta(item_name, request):
     with pytest.raises(KeyError):
         meta.delete("x", "z", "kg")
     meta.delete("x", "z", "m")
-    assert len(list(meta)) == 2
+    assert len(meta) == 2
 
     meta.delete("x", "z")
-    assert len(list(meta)) == 1
+    assert len(meta) == 1
 
     meta.delete("x")
-    assert len(list(meta)) == 0
+    assert len(meta) == 0
 
     meta.add("x", "y")
     meta.add("y", "z")

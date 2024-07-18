@@ -1,6 +1,8 @@
-"""Data transfers.
+"""Data and metadata transfers.
 
 Transfer data between local file system and iRODS, includes upload, download and sync.
+Also includes operations for creating a local metadata archive and using this archive
+to set the metadata.
 """
 
 from __future__ import annotations
@@ -33,33 +35,37 @@ def upload(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-):
+) -> Operations:
     """Upload a local directory or file to iRODS.
 
     Parameters
     ----------
-    session :
+    session:
         Session to upload the data to.
-    local_path : Path
+    local_path:
         Absolute path to the directory to upload
-    irods_path : IrodsPath
+    irods_path:
         Absolute irods destination path
-    overwrite : bool
+    overwrite:
         If data object or collection already exists on iRODS, overwrite
-    ignore_err : bool
+    ignore_err:
         If an error occurs during upload, and ignore_err is set to True, any errors encountered
         will be transformed into warnings and iBridges will continue to upload the remaining files.
         By default all errors will stop the process of uploading.
-    resc_name : str
+    resc_name:
         Name of the resource to which data is uploaded, by default the server will decide
-    copy_empty_folders : bool
+    copy_empty_folders:
         Create respective iRODS collection for empty folders. Default: True.
-    options : dict
+    options:
         More options for the upload
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, it should point to a file that contains the metadata for the upload.
+
+    Returns
+    -------
+        Operations object that can be used to execute the upload in case of a dry-run.
 
     Raises
     ------
@@ -71,16 +77,16 @@ def upload(
     Examples
     --------
     >>> ipath = IrodsPath(session, "~/some_col")
+    >>> # Below will create a collection with "~/some_col/dir".
     >>> upload(session, Path("dir"), ipath)
+
+    >>> # Same, but now data objects that exist will be overwritten.
     >>> upload(session, Path("dir"), ipath, overwrite=True)
-    >>> ops = upload(session, Path("some_file.txt"), ipath, dry_run)  # Does not upload
-    >>> print(ops)
-    {'create_dir': set(),
-    'create_collection': set(),
-    'upload': [(PosixPath('some_file.txt'), IrodsPath(~, some_col))],
-    'download': [],
-    'resc_name': '',
-    'options': None}
+
+    >>> # Perform the upload in two steps with a dry-run
+    >>> ops = upload(session, Path("some_file.txt"), ipath, dry_run=True)  # Does not upload
+    >>> ops.print_summary()  # Check if this is what you want here.
+    >>> ops.execute()  # Performs the upload
 
     """
     local_path = Path(local_path)
@@ -135,34 +141,39 @@ def download(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-):
+) -> Operations:
     """Download a collection or data object to the local filesystem.
 
     Parameters
     ----------
-    session :
+    session:
         Session to download the collection from.
-    irods_path : IrodsPath
+    irods_path:
         Absolute irods source path pointing to a collection
-    local_path : Path
+    local_path:
         Absolute path to the destination directory
-    overwrite : bool
+    overwrite:
         If an error occurs during download, and ignore_err is set to True, any errors encountered
         will be transformed into warnings and iBridges will continue to download the remaining
         files.
         By default all errors will stop the process of downloading.
-    ignore_err : bool
+    ignore_err:
         Collections: If download of an item fails print error and continue with next item.
-    resc_name : str
+    resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
-    copy_empty_folders : bool
+    copy_empty_folders:
         Create respective local directory for empty collections.
-    options : dict
+    options:
         More options for the download
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
-        If not None, the path to store the metadata to in .json format.
+        If not None, the path to store the metadata to in JSON format.
+        It is recommended to use the .json suffix.
+
+    Returns
+    -------
+        Operations object that can be used to execute the download in case of a dry-run.
 
     Raises
     ------
@@ -178,16 +189,15 @@ def download(
 
     Examples
     --------
+    >>> # Below will create a directory "some_local_dir/some_collection"
     >>> download(session, "~/some_collection", "some_local_dir")
+
+    >>> # Below will create a file "some_local_dir/some_obj.txt"
     >>> download(session, IrodsPath(session, "some_obj.txt"), "some_local_dir")
-    >>> ops = download(session, "~/some_obj.txt", "some_local_dir", dry_run=True)
-    >>> print(ops)
-    {'create_dir': set(),
-    'create_collection': set(),
-    'upload': [],
-    'download': [(IrodsPath(~, some_obj.txt), PosixPath('some_local_dir'))],
-    'resc_name': '',
-    'options': None}
+
+    >>> # Below will create a file "new_file.txt" in two steps.
+    >>> ops = download(session, "~/some_obj.txt", "new_file.txt", dry_run=True)
+    >>> ops.execute()
 
     """
     irods_path = IrodsPath(session, irods_path)
@@ -272,42 +282,44 @@ def sync(
     resc_name: str = "",
     options: Optional[dict] = None,
     metadata: Union[None, str, Path] = None,
-) -> dict:
-    """Synchronize the data between a local copy (local file system) and the copy stored in iRODS.
+) -> Operations:
+    """Synchronize data between local and remote copies.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
     system to iRODS, or from iRODS to the local file system. The mode is determined by the type of
-    the values for `source` and `target` (IrodsPath or str/Path).
+    the values for `source` and `target`: objects with type :class:`ibridges.path.IrodsPath`  will
+    be interpreted as remote paths, while types :code:`str` and :code:`Path` with be interpreted
+    as local paths.
 
-    The command considers the file size and the checksum to determine whether a file should be
-    synchronized.
+    Files/data objects that have the same checksum will not be synchronized.
 
 
     Parameters
     ----------
-    session : ibridges.Session
+    session:
         An authorized iBridges session.
-    source : str or Path or IrodsPath
+    source:
         Existing local folder or iRODS collection. An exception will be raised if it doesn't exist.
-    target : str or Path or IrodsPath
+    target:
         Existing local folder or iRODS collection. An exception will be raised if it doesn't exist.
-    max_level : int, default None
+    max_level:
         Controls the depth up to which the file tree will be synchronized. A max level of 1
         synchronizes only the source's root, max level 2 also includes the first set of
         subfolders/subcollections and their contents, etc. Set to None, there is no limit
         (full recursive synchronization).
-    dry_run : bool, default False
+    dry_run:
         List all source files and folders that need to be synchronized without actually
         performing synchronization.
-    ignore_err : If an error occurs during the transfer, and ignore_err is set to True,
+    ignore_err:
+        If an error occurs during the transfer, and ignore_err is set to True,
         any errors encountered will be transformed into warnings and iBridges will continue
         to transfer the remaining files.
-    copy_empty_folders : bool, default False
+    copy_empty_folders:
         Controls whether folders/collections that contain no files or subfolders/subcollections
         will be synchronized.
-    resc_name : str
+    resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
-    options : dict
+    options:
         More options for the download/upload
     metadata:
         If not None, the location to get the metadata from or store it to.
@@ -315,12 +327,15 @@ def sync(
 
     Returns
     -------
-        A dict object containing four keys:
-            'create_dir' : Create local directories when sync from iRODS to local
-            'create_collection' : Create collections when sync from local to iRODS
-            'upload' : Tuple(local path, iRODS path) when sync from local to iRODS
-            'download' : Tuple(iRODS path, local path) when sync from iRODS to local
-        (or of to-be-changed folders and files, when in dry-run mode).
+        An operations object to execute the sync if dry-run is True.
+
+    Examples
+    --------
+    >>> # Below, all files/dirs in "some_local_dir" will be transferred into "some_remote_coll"
+    >>> sync(session, "some_local_dir", IrodsPath(session, "~/some_remote_col")
+
+    >>> # Below, all data objects/collections in "col" will tbe transferred into "some_local_dir"
+    >>> sync(session, IrodsPath(session, "~/col"), "some_local_dir")
 
     """
     _param_checks(source, target)
@@ -342,7 +357,7 @@ def sync(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level)
         if metadata is not None:
-            ops.add_meta_upload(target, metadata)
+            ops.add_meta_upload(target, metadata)  # type: ignore
 
     ops.resc_name = resc_name
     ops.options = options
@@ -352,12 +367,12 @@ def sync(
     return ops
 
 
-def create_meta_archive(session: Session, source: Union[str, Path, IrodsPath],
+def create_meta_archive(session: Session, source: Union[str, IrodsPath],
                         meta_fp: Union[str, Path], dry_run: bool = False):
     """Create a local archive file for the metadata.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects.
+    and data objects. To re-use this archive use the function :func:`apply_meta_archive`.
 
     Parameters
     ----------
@@ -380,6 +395,10 @@ def create_meta_archive(session: Session, source: Union[str, Path, IrodsPath],
     ValueError
         If the source is not a collection.
 
+    Examples
+    --------
+    >>> create_meta_archive(session, "/some/home/collection", "meta_archive.json")
+
     """
     root_ipath = IrodsPath(session, source)
     if not root_ipath.collection_exists():
@@ -398,7 +417,7 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
     """Apply a metadata archive to set the metadata of collections and data objects.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects.
+    and data objects. The archive can be created with the function :func:`create_meta_archive`.
 
     Parameters
     ----------
@@ -422,6 +441,10 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
     ValueError
         If the ipath is not an iRODS collection.
 
+    Examples
+    --------
+    >>> apply_meta_archive(session, "meta_archive.json", "/some/home/collection")
+
     """
     ipath = IrodsPath(session, ipath)
     if not ipath.collection_exists():
@@ -444,7 +467,7 @@ def _param_checks(source, target):
 
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           copy_empty_folders: bool  =True, depth: Optional[int] = None,
-                          metadata: Union[None, str, Path] = None):
+                          metadata: Union[None, str, Path] = None) -> Operations:
     operations = Operations()
     for ipath in isource_path.walk(depth=depth):
         if metadata is not None:
@@ -467,7 +490,7 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
 
 
 def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
-                        copy_empty_folders: bool = True, depth: Optional[int] = None):
+                        copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
     operations = Operations()
     session = idest_path.session
     try:

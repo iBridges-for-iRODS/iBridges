@@ -1,4 +1,4 @@
-"""permission operations."""
+"""Set and modify permissions."""
 
 from collections import defaultdict
 from typing import Iterator, Optional
@@ -10,19 +10,22 @@ import irods.session
 
 
 class Permissions:
-    """Irods permissions operations."""
+    """Irods permissions operations.
+
+    This class allows the user retrieve the permissions as well as set them
+    (if the iRODS server allows this).
+
+    Parameters
+    ----------
+    session
+        Session with the connection to the iRODS server.
+    item
+        Data object or collection to create or adjust the permissions for.
+
+    """
 
     def __init__(self, session, item) -> None:
-        """Initialize the permissions object.
-
-        Parameters
-        ----------
-        session
-            Session that contains the item.
-        item
-            Data object or collection to create adjust the permissions for.
-
-        """
+        """Initialize the permissions object."""
         self.session = session
         self.item = item
 

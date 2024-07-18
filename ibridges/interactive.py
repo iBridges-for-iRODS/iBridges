@@ -17,7 +17,10 @@ def interactive_auth(
 ) -> Session:
     """Interactive authentication with iRODS server.
 
-    Stores the password in ~/.irods/.irodsA upon success.
+    The main difference with using the :class:`ibridges.Session` object directly is
+    that it will ask for your password if the cached password does not exist or is outdated.
+    This can be more secure, since you won't have to store the password in a file or notebook.
+    Caches the password in ~/.irods/.irodsA upon success.
 
     Parameters
     ----------
