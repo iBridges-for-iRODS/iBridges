@@ -67,7 +67,7 @@ class MetaData:
 
     def __len__(self) -> int:
         """Get the number of non-blacklisted metadata entries."""
-        return len([x for x in self])
+        return len([x for x in self])  # pylint: disable=unnecessary-comprehension
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
         """Check whether a key, key/val, key/val/units pairs are in the metadata.
