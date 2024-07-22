@@ -21,7 +21,7 @@ except ImportError:
 def get_dataobject(session, path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
     """Instantiate an iRODS data object.
 
-    See :meth:`ibridges.path.IrodsPath.dataobject` for details.
+    This function is deprecated, use :meth:`ibridges.path.IrodsPath.dataobject` instead.
 
     """
     path = IrodsPath(session, path)
@@ -31,7 +31,7 @@ def get_dataobject(session, path: Union[str, IrodsPath]) -> irods.data_object.iR
 def get_collection(session, path: Union[str, IrodsPath]) -> irods.collection.iRODSCollection:
     """Instantiate an iRODS collection.
 
-    See :meth:`ibridges.path.IrodsPath.collection` for details.
+    This function is deprecated, use :meth:`ibridges.path.IrodsPath.collection` instead.
     """
     return IrodsPath(session, path).collection
 
@@ -39,19 +39,25 @@ def get_collection(session, path: Union[str, IrodsPath]) -> irods.collection.iRO
 def get_size(
     session, item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]
 ) -> int:
-    """Collect the sizes of a data object or a collection.
+    """Collect the size of a data object or a collection.
 
-    See :meth:`ibridges.path.IrodsPath.size` for details.
+    This function is deprecated, use :meth:`ibridges.path.IrodsPath.size` instead.
     """
     return IrodsPath(session, item.path).size
 
 def is_dataobject(item) -> bool:
-    """Determine if item is an iRODS data object."""
+    """Determine if item is an iRODS data object.
+
+    This function is deprecated, use :meth:`ibridges.path.IrodsPath.dataobject_exists` instead.
+    """
     return isinstance(item, irods.data_object.iRODSDataObject)
 
 
 def is_collection(item) -> bool:
-    """Determine if item is an iRODS collection."""
+    """Determine if item is an iRODS collection.
+
+    This function is deprecated, use :meth:`ibridges.path.IrodsPath.collection_exists` instead.
+    """
     return isinstance(item, irods.collection.iRODSCollection)
 
 
@@ -67,13 +73,11 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
 
     Returns
     -------
-    list(tuple(int, str, str, int, str)):
         List with tuple where each tuple contains replica index/number, resource name on which
         the replica is stored about one replica, replica checksum, replica size,
         replica status of the replica
 
     """
-    # replicas = []
     repl_states = {"0": "stale", "1": "good", "2": "intermediate", "3": "write-locked"}
 
     replicas = [
@@ -146,7 +150,8 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath]):
     Parameters
     ----------
     filepath:
-        Can be either a local path, or an iRODS path
+        Can be either a local path, or an iRODS path.
+        If filepath is a string, it will be assumed to be a local path.
 
     Returns
     -------

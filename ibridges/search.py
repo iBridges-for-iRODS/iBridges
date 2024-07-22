@@ -1,4 +1,4 @@
-"""Data query."""
+"""Search for data and metadata on the iRODS server."""
 
 from __future__ import annotations
 
@@ -15,12 +15,11 @@ def search_data(
     checksum: Optional[str] = None,
     key_vals: Optional[dict] = None,
 ) -> list[dict]:
-    """Retrieve all collections and data objects.
+    """Search for collections, data objects and metadata.
 
-    (the absolute collection path,
-    data object or collection name) to the given user-defined and system metadata.
-    By Default all accessible collections and data objects will be returned.
-    Wildcard: %
+    By default all accessible collections and data objects are returned.
+    It is also possible to find items with specific metadata, using wild cards.
+    The wildcard used in the iRODS universe is `%`, not `*`.
 
     Parameters
     ----------
@@ -40,12 +39,22 @@ def search_data(
 
     Returns
     -------
-    list: [dict]
         List of dictionaries with keys:
         COLL_NAME (absolute path of the collection),
         DATA_NAME (name of the data object),
         D_DATA_CHECKSUM (checksum of the data object)
         The latter two keys are only present of the found item is a data object.
+
+    Examples
+    --------
+    >>> # Find all sub collections and data objects for a path
+    >>> search_data(session, path="/path/to/sub/col/%")
+
+    >>> # Find all data objects with a specific checksum
+    >>> search_data(session, checksum="...")
+
+    >>> # Find data objects and collections with some key/value pair.
+    >>> search_data(session, key_vals={"some_key": "some_value"})
 
     """
     if path is None and checksum is None and key_vals is None:

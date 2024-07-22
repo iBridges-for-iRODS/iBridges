@@ -41,7 +41,7 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError:
+        TypeError:
             If the provided session does not have an 'irods_session' attribute.
 
         Examples
@@ -53,12 +53,17 @@ class IrodsPath:
 
         """
         self.session = session
+
+        # Check if the session seems the right type.
         if not hasattr(session, "irods_session"):
-            raise ValueError(f"{str(self)} does not have a valid session.")
+            raise TypeError(f"{session} does not seem the right type: {type(session)}, should be "
+                            "ibridges.session.Session.")
+
         # We don't want recursive IrodsPaths, so we take the
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a for a in args]
         self._path = PurePosixPath(*args)
+
         super().__init__()
 
     def absolute(self) -> IrodsPath:

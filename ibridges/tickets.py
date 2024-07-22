@@ -16,17 +16,21 @@ TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"
 
 
 class Tickets:
-    """Irods Ticket operations."""
+    """iRODS Ticket operations.
+
+    Tickets allow users to give temporary access to other users.
+    These tickets are stored on the iRODS server, and can be deleted whenever
+    the access is not needed anymore.
+
+    Parameters
+    ----------
+    session:
+        Session connecting to the iRODS server.
+
+    """  # noqa: D403
 
     def __init__(self, session: Session):
-        """IRODS data operations initialization.
-
-        Parameters
-        ----------
-        session : session.Session
-            instance of the Session class
-
-        """
+        """Initialize for ticket operations."""
         self.session = session
         self._all_tickets = self.update_tickets()
 
@@ -38,7 +42,7 @@ class Tickets:
     ) -> tuple:
         """Create an iRODS ticket.
 
-        This allows read access to the object referenced by `obj_path`.
+        This allows read or write access to the object referenced by `obj_path`.
 
         Parameters
         ----------
@@ -118,7 +122,9 @@ class Tickets:
         )
 
     def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket], check: bool = False):
-        """Delete irods ticket.
+        """Delete iRODS ticket.
+
+        This revokes the access that was granted with the ticket.
 
         Parameters
         ----------
@@ -151,7 +157,7 @@ class Tickets:
 
         Returns
         -------
-        list
+            A list of all available tickets:
             [(ticket string, ticket type, irods obj/coll path, expiry data in epoche)]
 
         """
@@ -173,13 +179,17 @@ class Tickets:
         return self._all_tickets
 
     def clear(self):
-        """Delete all tickets."""
+        """Delete all tickets.
+
+        This revokes all access to data objects and collections that was
+        granted through these tickets.
+        """
         for tick_data in self.update_tickets():
             self.delete_ticket(tick_data.name)
         self.update_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
-        """Get IRODS path from a given an iRODS item id.
+        """Get an iRODS path from a given an iRODS item id.
 
         The item (data object or collection) id should come from the
         TicketQuery.Ticket.object_id.

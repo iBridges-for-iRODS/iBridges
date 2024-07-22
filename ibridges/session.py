@@ -1,4 +1,4 @@
-"""session operations."""
+"""For creating sessions non-interactively."""
 
 from __future__ import annotations
 
@@ -24,7 +24,49 @@ APP_NAME = "ibridges"
 
 
 class Session:
-    """Irods session authentication."""
+    """Session to connect and perform operations on the iRODS server.
+
+    When the session is initialized, you are connected succesfully to the iRODS server.
+    Most likely you will need to supply a password to the initialization routine. This
+    can be problematic from a security standpoint (the password might be recorded for others
+    to see). In this case, you should use the :func:`ibridges.interactive.interactive_auth`
+    function, which will ask for your password and not store it.
+
+    The Session object is a context manager, so using it using the :code:`with` statement
+    is generally preferred, see examples below. Otherwise, the user is responsible for closing
+    the connection using the :meth:`close` method.
+
+    Parameters
+    ----------
+    irods_env:
+        iRODS environment (irods_environment.json) file, or a dictionary containing its contents.
+    password:
+        Pass the password as a string. By default None, in which case it will try to
+        use the cached password. If this fails, the initialization will fail and throw an exception.
+    irods_home:
+        Override the home directory of irods. Otherwise attempt to retrive the value
+        from the irods environment dictionary. If it is not there either, then use
+        /{zone}/home/{username}.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If the irods_env parameter is interpreted as a file name and not found.
+    TypeError:
+        If the irods_env parameter is not a dict, str or Path.
+    LoginError:
+        If the connection to the iRODS server fails to establish.
+
+    Examples
+    --------
+    >>> session = Session(Path.home() / ".irods" / "irods_environment.json",
+    >>>                    password="your_password", irods_home="/zone/home/user")
+    >>> session = Session(env_dictionary)  # env_dictionary with connection info
+    >>> with Session("irods_environment.json") as session:
+    >>>     # Do operations with the session here.
+    >>>     # The session will be automatically closed on finish/error.
+
+    """  # noqa: D403"""
 
     def __init__(
         self,
@@ -32,39 +74,7 @@ class Session:
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
     ):
-        """IRODS authentication with Python client.
-
-        Parameters
-        ----------
-        irods_env: dict
-            Dictionary from irods_environment.json or file to read the
-            dictionary from if irods_env is not supplied.
-        password : str
-            Plain text password.
-        irods_home:
-            Override the home directory of irods. Otherwise attempt to retrive the value
-            from the irods environment dictionary. If it is not there either, then use
-            /{zone}/home/{username}.
-
-        Raises
-        ------
-        FileNotFoundError:
-            If the irods_env parameter is interpreted as a file name and not found.
-        TypeError:
-            If the irods_env parameter is not a dict, str or Path.
-        LoginError:
-            If the connection to the iRODS server fails to establish.
-
-        Examples
-        --------
-        >>> session = Session(Path.home() / ".irods" / "irods_environment.json",
-        >>>                    password="your_password", irods_home="/zone/home/user")
-        >>> session = Session(env_dictionary)  # env_dictionary with connection info
-        >>> with Session("irods_environment.json") as session:
-        >>>     # Do operations with the session here.
-        >>>     # The session will be automatically closed on finish/error.
-
-        """
+        """Authenticate and connect to the iRODS server."""
         irods_env_path = None
         if isinstance(irods_env, (str, Path)):
             irods_env_path = Path(irods_env)
@@ -108,8 +118,8 @@ class Session:
 
         Returns
         -------
+        str:
             The current working directory in the current session.
-
 
         Examples
         --------
@@ -129,8 +139,8 @@ class Session:
 
         Returns
         -------
-        bool
-            Is the session valid?
+        bool:
+            True if the session is valid, False otherwise.
 
         """
         return self.irods_session is not None and self.server_version != ()
@@ -138,6 +148,9 @@ class Session:
     @classmethod
     def network_check(cls, hostname: str, port: int) -> bool:
         """Check connectivity to an iRODS server.
+
+        This method attempts to reach the iRODS server, without
+        supplying any user credentials.
 
         Parameters
         ----------
@@ -148,7 +161,6 @@ class Session:
 
         Returns
         -------
-        bool
             Connection to `hostname` possible.
 
         """
@@ -163,7 +175,20 @@ class Session:
                 return False
 
     def connect(self) -> iRODSSession:
-        """Establish an iRODS session."""
+        """Establish an iRODS session.
+
+        Users generally don't need to call this connect function
+        manually, except if they called the :meth:`close` explicitly
+        and want to reconnect. If you call the connect method multiple times
+        without disconnecting, this might result in stale connections to the iRODS
+        server.
+
+        Returns
+        -------
+            A python-irodsclient session. This is also stored in the ibridges.Session
+            object itself, so users do not need to store this session themselves.
+
+        """
         irods_host = self._irods_env.get("irods_host", None)
         irods_port = self._irods_env.get("irods_port", None)
         network = self.network_check(irods_host, irods_port)
@@ -188,11 +213,11 @@ class Session:
         # print("Auth with password")
         return self.authenticate_using_password()
 
-    def close(self) -> None:
-        """Disconnect the irods session.
+    def close(self):
+        """Disconnect the iRODS session.
 
         This closes the connection, and makes the session available for
-        reconnection with `connect`.
+        reconnection with the :meth:`connect` method.
         """
         if self.irods_session is not None:
             self.irods_session.do_configure = {}
@@ -200,7 +225,10 @@ class Session:
             self.irods_session = None
 
     def authenticate_using_password(self) -> iRODSSession:
-        """Authenticate with the iRODS server using a password."""
+        """Authenticate with the iRODS server using a password.
+
+        Internal use only.
+        """
         try:
             irods_session = irods.session.iRODSSession(
                 password=self._password,
@@ -216,7 +244,10 @@ class Session:
         return irods_session
 
     def authenticate_using_auth_file(self) -> iRODSSession:
-        """Authenticate with an authentication file."""
+        """Authenticate with an authentication file.
+
+        Internal use only.
+        """
         try:
             irods_session = irods.session.iRODSSession(
                 irods_env_file=self._irods_env_path,
@@ -233,7 +264,10 @@ class Session:
         return irods_session
 
     def write_pam_password(self):
-        """Store the password in the iRODS authentication file in obfuscated form."""
+        """Store the password in the iRODS authentication file in obfuscated form.
+
+        Internal use only.
+        """
         connection = self.irods_session.pool.get_connection()
         pam_passwords = self.irods_session.pam_pw_negotiated
         if len(pam_passwords):
@@ -250,8 +284,8 @@ class Session:
 
         Returns
         -------
-        str
-            Resource name.
+        str:
+            Name of the default resource.
 
         """
         if self.irods_session:
@@ -275,7 +309,6 @@ class Session:
 
         Returns
         -------
-        tuple
             Server version: (major, minor, patch).
 
         """
@@ -289,10 +322,7 @@ class Session:
 
         Returns
         -------
-        list
-            iRODS user type names
-        list
-            iRODS group names
+            Tuple containing (iRODS user type names, iRODS group names)
 
         """
         query = self.irods_session.query(icat.USER_TYPE).filter(

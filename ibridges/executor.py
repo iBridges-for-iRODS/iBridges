@@ -22,11 +22,26 @@ NUM_THREADS = 4
 class Operations():  # pylint: disable=too-many-instance-attributes
     """Storage for all data and metadata operations.
 
-    This class is mostly for internal use.
+    This class should generally not be used directly by the user to create and execute
+    the data and metadata operations. Instead, the user should use the upload/download/sync
+    operations from the :mod:`ibridges.data_operations` module. The return value of these functions
+    is an Operations instance. This can be useful in the case of a dry-run, since the user can
+    print the to be performed operations with :meth:`print_summary` and execute them if
+    necessary with :meth:`execute`.
+
+    Examples
+    --------
+    >>> ops = upload(session, "some_directory", ipath, dry_run=True)
+    >>> ops.print_summary()  # Check what which basic operations will be performed.
+    >>> ops.execute(session)  # Execute the upload operation.
+
     """
 
     def __init__(self, resc_name: Optional[str] = None, options: Optional[dict] = None):
         """Initialize and empty Operations object.
+
+        The operations should be added separately, which is usually done by higher
+        level functions.
 
         Parameters
         ----------
@@ -46,7 +61,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.options: Optional[dict] = {} if resc_name is None else options
 
     def add_meta_download(self, root_ipath: IrodsPath, ipath: IrodsPath, meta_fp: Union[str, Path]):
-        """Add operation for downloading metadata.
+        """Add operation for downloading metadata archives.
+
+        This basic operation adds one IrodsPath point to either a collection or data object for
+        metadata archiving.
 
         Parameters
         ----------
@@ -62,7 +80,12 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_download[str(meta_fp)]["items"].append(ipath)
 
     def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
-        """Add operation to upload metadata.
+        """Add operation to use a metadata archive.
+
+        This basic operation adds one metadata archive to be applied to a collection
+        and its subcollections and data objects. It assumes that the data tree structure
+        is the same for the metadata archive as for the destination iRODS path. If this is not the
+        case, you will get errors during the execution of the operation.
 
         Parameters
         ----------
@@ -75,7 +98,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_upload.append((root_ipath, meta_fp))
 
     def add_download(self, ipath: IrodsPath, lpath: Path):
-        """Add operation to download data.
+        """Add operation to download a data object.
 
         Parameters
         ----------
@@ -88,7 +111,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.download.append((ipath, lpath))
 
     def add_create_dir(self, new_dir: Path):
-        """Add operation to create a directory.
+        """Add operation to create a new directory.
 
         Parameters
         ----------
@@ -99,7 +122,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.create_dir.add(str(new_dir))
 
     def add_upload(self, lpath: Path, ipath: IrodsPath):
-        """Add operation to upload data.
+        """Add operation to upload a data object.
 
         Parameters
         ----------
@@ -125,12 +148,15 @@ class Operations():  # pylint: disable=too-many-instance-attributes
     def execute(self, session: Session, ignore_err: bool = False):
         """Execute all added operations.
 
+        This also creates a progress bar to see the status updates.
+
         Parameters
         ----------
         session
             Session to perform the operations with.
         ignore_err, optional
             Whether to ignore errors when encountered, by default False
+            Note that not all errors will be ignored.
 
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
@@ -209,9 +235,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
     def execute_meta_download(self):
         """Execute all metadata download operations."""
         for meta_fp, op in self.meta_download.items():
-            meta_dict = empty_metadict(op["root_ipath"])
+            meta_dict = _empty_metadict(op["root_ipath"])
             for ipath in op["items"]:
-                add_to_metadict(meta_dict, ipath, op["root_ipath"])
+                _add_to_metadict(meta_dict, ipath, op["root_ipath"])
             with open(meta_fp, "w", encoding="utf-8") as handle:
                 json.dump(meta_dict, handle, indent=4)
 
@@ -227,7 +253,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         for root_ipath, meta_fp in self.meta_upload:
             with open(meta_fp, "r", encoding="utf-8") as handle:
                 meta_dict = json.load(handle)
-            set_metadata_from_dict(root_ipath, meta_dict)
+            _set_metadata_from_dict(root_ipath, meta_dict)
 
     def execute_create_dir(self):
         """Execute all create directory operations.
@@ -439,8 +465,8 @@ def _obj_get(
         warnings.warn(msg)
 
 
-def add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
-    """Add an item to the metadata dictionary.
+def _add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
+    """Add an item to the metadata archive dictionary.
 
     Parameters
     ----------
@@ -468,8 +494,8 @@ def add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
     meta_dict["items"].append(new_metadata)
 
 
-def empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
-    """Create an empty dictionary to store the metadata in.
+def _empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
+    """Create an empty dictionary for metadata archival.
 
     Parameters
     ----------
@@ -490,8 +516,8 @@ def empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
         "items": [],
     }
 
-def set_metadata_from_dict(ipath: IrodsPath, metadata_dict: dict):
-    """Set the metadata of an iRODS item from a dictionary.
+def _set_metadata_from_dict(ipath: IrodsPath, metadata_dict: dict):
+    """Set the metadata of an iRODS item from a metadata archive dictionary.
 
     Parameters
     ----------
