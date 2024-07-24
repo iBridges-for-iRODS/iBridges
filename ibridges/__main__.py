@@ -205,7 +205,7 @@ def ibridges_init():
     )
     parser.add_argument(
         "--alias",
-        help="Create an alias for this configuration."
+        help="Create an alias for this configuration.",
         type=str,
         default=None,
         required=False,
