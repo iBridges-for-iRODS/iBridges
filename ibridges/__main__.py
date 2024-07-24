@@ -66,6 +66,9 @@ ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
 ibridges setup uu-its
 
+Reuse a configuration by an alias:
+ibridges init ~/.irods/irods_environment.json --alias my_irods
+ibridges init my_irods
 
 Program information:
     -v, --version - display CLI version and exit
@@ -202,6 +205,7 @@ def ibridges_init():
     )
     parser.add_argument(
         "--alias",
+        help="Create an alias for this configuration."
         type=str,
         default=None,
         required=False,
