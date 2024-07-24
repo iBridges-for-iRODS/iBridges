@@ -1,17 +1,32 @@
 Data Transfers
 ==============
 
-Upload
-------
-To upload data from your local file system to iRODS simply use the `upload` function.
-To determine paths, we recommend to use `pathlib.Path` for local paths and `ibridges.IrodsPath` for iRODS paths.
+.. currentmodule:: ibridges.path
 
-In the example below we transfer a file or a folder to a new collection *new_coll*. The new collection will be created on the fly.
+In the following examples we assume that local directories and remote collections have
+already been created. Otherwise the operations will fail with an error message. To create
+local directories, use :code:`pathlib.Path.mkdir(parents=True, exist_ok=True)`. For remote
+collections, :meth:`IrodsPath.create_collection` can be used.
+
+.. currentmodule:: ibridges.data_operations
 
 .. note::
-    
-    If you transfer data to a destination folder or collection for which the path does not already exist, the missing folders or collections will NOT be created and the command will fail with the respective error message.
-    Please use `IrodsPath.create_collection` or `pathlib.Path.mkdir(parents=True, exist_ok=True)` to create the destination before the upload or download.
+    By default, no data will be overwritten. If you want to overwrite data, you
+    can set :code:`overwrite=True`. Beware that you can also overwrite newer data with older data this way.
+    If a file and a dataobject are exactly the same, iBridges will silently skip the transfer,
+    thereby saving time.
+
+For all operations, iBridges will check that the transfer has been completed without
+error. If a local file is different from a remote file, you will get an error message.
+If this occurs, you can transfer the file again. If the problem persists, you should contact
+your local iRODS administrator.
+
+Upload
+------
+To upload files or folders from your local file system to iRODS use the :func:`upload` function.
+
+In the example below we transfer a file or a folder to a new collection *new_coll*. 
+If the transfer concerned a folder, a new collection with the folder name will be created.
 
 .. code-block:: python
 
@@ -23,44 +38,19 @@ In the example below we transfer a file or a folder to a new collection *new_col
     irods_path = IrodsPath(session, '~', 'new_coll')
     upload(session, local_path, irods_path)
 
-The new collection will be created on the fly. Please note, that this is not true for new nested collections. Please note that the automatic creation of new collections does not work when they are nested. I.e.
-you will receive the following exception.
-
-.. code-block:: python
-	
-	irods_path = IrodsPath(session, '~', 'new_coll', 'new_subcoll', 'new')
-
-	CAT_UNKNOWN_COLLECTION: collection '/nluu12p/home/research-test-christine/new_coll1/new_subcoll' is unknown
-
-
-The output of a successful upload is:
-
-.. code-block:: python
-
-    {
-        'create_dir': set(),
- 	    'create_collection': set(),
- 	    'upload': [(PosixPath('/Users/christine/demofile.txt'),
-                    IrodsPath(/, <zone_name>, home, <user or group>, new_coll1))],
-        'download': [],
- 	    'resc_name': '',
- 		'options': None
-    }
+.. currentmodule:: ibridges.executor
 
 .. note::
 
-	All of the data transfer functions return a python dictionary summarising the changes. 
-	With the option `dry_run=True` you can retrieve them before the actual data transfer.
-	
-The dictionary above summarises the changes. In case of an upload, it will list the created collections, in case you upload a directory with subdirectories; and it 	will list which file was uploaded to which iRODS path.
+	All of the data transfer functions return an :class:`Operations` object, which can be used to execute all operations.
+	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will be transferred before the actual transfer using the :meth:`Operations.print_summary` method.
 
-If you want to explicitly overwrite existing data, you need to set the `overwrite=True` parameter. **By default no existing data will be overwritten.**
-
+.. currentmodule:: ibridges.data_operations
 
 Download
 --------
 
-The download function works similar to the upload function. Simply define your iRODS path you would like to download and a local destination path.
+The :func:`download` function works similar to the :func:`upload` function. Simply define your iRODS path you would like to download and a local destination path.
 
 .. code-block:: python
 
@@ -72,15 +62,50 @@ The download function works similar to the upload function. Simply define your i
     irods_path = IrodsPath(session, '~', 'new_coll')
     download(session, irods_path, local_path)
 
-
-Again you will receive a dictionary with changes, which you can also retrieve beforehand with the option `dry_run=True`.
-
-As above, existing local data will not be overwritten. Please use the option `overwrite=True` if you want to overwrite your local data.
-
-
 Synchronisation
 ---------------
-Please see: :doc:`Synchronisation <sync>`.
+
+The iBridges function :doc:`sync <api/generated/ibridges.data_operations.sync>` synchronises data between your local file system and the iRODS server.
+
+The function works in both directions: synchronisation of data from the client's local file system to iRODS,
+or from iRODS to the local file system. The direction is given by the type of path and the order. This is a
+case where remote paths **have** to be encoded using :class:`ibridges.path.IrodsPath`, since iBridges
+otherwise has no way of knowing which of the two paths is remote and which is local.
+
+Synchronise from local to remote
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The code below shows how to synchronise from your local file system to iRODS. The data in iRODS will be updated. 
+
+.. code-block:: python
+
+    from pathlib import Path
+    from ibridges.path import IrodsPath
+    from ibridges.data_operations import sync
+
+    target = IrodsPath(session, "~", "<irods path>")
+    source = Path.home() / "<local path>"
+
+    # Synchronise the data
+    sync(session=session, source=source, target=target)
+
+
+Synchronize from remote to local
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The code below shows how to synchronise from your iRODS instance to your local file system. Your local data will be updated.
+
+.. code-block:: python
+
+    from pathlib import Path
+    from ibridges.path import IrodsPath
+    from ibridges.data_operations import sync
+    target = Path.home() / "<local path>"
+    source = IrodsPath(session, "~", "<irods path>")
+
+    # call the synchronisation
+    sync(session=session, source=source, target=target)
+
 
 Streaming data objects
 ----------------------

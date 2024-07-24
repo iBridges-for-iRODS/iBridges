@@ -1,21 +1,30 @@
-"""metadata operations."""
+"""Operations to directly manipulate metadata on the iRODS server."""
 
 from __future__ import annotations
 
+import re
+import warnings
 from typing import Any, Iterator, Optional, Sequence, Union
 
 import irods
 import irods.exception
 import irods.meta
 
-from ibridges.util import is_dataobject
-
 
 class MetaData:
-    """Irods metadata operations.
+    """iRODS metadata operations.
 
     This allows for adding and deleting of metadata entries for data objects
     and collections.
+
+    Parameters
+    ----------
+    item:
+        The data object or collection to attach the metadata object to.
+    blacklist:
+        A regular expression for metadata names/keys that should be ignored.
+        By default all metadata starting with `org_` is ignored.
+
 
     Examples
     --------
@@ -26,6 +35,8 @@ class MetaData:
     >>>     print(entry.key, entry.value, entry.units)
     Author Ben
     Mass 10 kg
+    >>> len(meta)
+    2
     >>> meta.add("Author", "Emma")
     >>> meta.set("Author", "Alice")
     >>> meta.delete("Author")
@@ -35,21 +46,28 @@ class MetaData:
     """
 
     def __init__(
-        self, item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection]
+        self,
+        item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection],
+        blacklist: str = r"^org_*",
     ):
-        """Initialize the metadata object.
-
-        Parameters
-        ----------
-        item
-            The data object or collection to attach the metadata object to.
-
-        """
+        """Initialize the metadata object."""
         self.item = item
+        self.blacklist = blacklist
 
     def __iter__(self) -> Iterator:
-        """Iterate over all metadata key/value/units pairs."""
-        yield from self.item.metadata.items()
+        """Iterate over all metadata key/value/units triplets."""
+        if self.blacklist is None:
+            yield from self.item.metadata.items()
+        for meta in self.item.metadata.items():
+            if re.match(self.blacklist, meta.name) is None:
+                yield meta
+            else:
+                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
+                              f"the blacklist {self.blacklist}.")
+
+    def __len__(self) -> int:
+        """Get the number of non-blacklisted metadata entries."""
+        return len([x for x in self])  # pylint: disable=unnecessary-comprehension
 
     def __contains__(self, val: Union[str, Sequence]) -> bool:
         """Check whether a key, key/val, key/val/units pairs are in the metadata.
@@ -93,15 +111,17 @@ class MetaData:
         meta_list = sorted(meta_list, key=lambda m: (m.units is None, m.units))
         meta_list = sorted(meta_list, key=lambda m: (m.value is None, m.value))
         meta_list = sorted(meta_list, key=lambda m: (m.name is None, m.name))
-        meta_str = ""
-        for meta in meta_list:
-            meta_str += f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}\n"
-        return meta_str
+        return "\n".join(f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}"
+                         for meta in meta_list)
 
     def add(self, key: str, value: str, units: Optional[str] = None):
         """Add metadata to an item.
 
-        This will never overwrite an existing entry.
+        This will never overwrite an existing entry. If the triplet already exists
+        it will throw an error instead. Note that entries are only considered the same
+        if all of the key, value and units are the same. Alternatively you can use the
+        :meth:`set` method to remove all entries with the same key, before adding the
+        new entry.
 
         Parameters
         ----------
@@ -127,10 +147,8 @@ class MetaData:
         """
         try:
             if (key, value, units) in self:
-                raise irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME()
+                raise ValueError("ADD META: Metadata already present")
             self.item.metadata.add(key, value, units)
-        except irods.exception.CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME as error:
-            raise ValueError("ADD META: Metadata already present") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
 
@@ -139,7 +157,7 @@ class MetaData:
 
         If the metadata entry already exists, then all metadata entries with
         the same key will be deleted before adding the new entry. An alternative
-        is using the add method to only add to the metadata entries and not
+        is using the :meth:`add` method to only add to the metadata entries and not
         delete them.
 
         Parameters
@@ -162,10 +180,11 @@ class MetaData:
         >>> meta.set("mass", "10", "kg")
 
         """
-        self.delete(key, None)
+        self.delete(key)
         self.add(key, value, units)
 
-    def delete(self, key: str, value: Optional[str], units: Optional[str] = None):
+    def delete(self, key: str, value: Union[None, str] = ...,  # type: ignore
+               units: Union[None, str] = ...):  # type: ignore
         """Delete a metadata entry of an item.
 
         Parameters
@@ -173,9 +192,11 @@ class MetaData:
         key:
             Key of the new entry to add to the item.
         value:
-            Value of the new entry to add to the item.
+            Value of the new entry to add to the item. If the Ellipsis value [...] is used,
+            then all entries with this value will be deleted.
         units:
-            The units of the new entry.
+            The units of the new entry. If the Elipsis value [...] is used, then all entries
+            with any units will be deleted (but still constrained to the supplied keys and values).
 
         Raises
         ------
@@ -195,11 +216,10 @@ class MetaData:
 
         """
         try:
-            if value is None:
-                metas = self.item.metadata.get_all(key)
-                value_units = [(m.value, m.units) for m in metas]
-                if (value, units) not in value_units:
-                    for meta in metas:
+            if value is ... or units is ...:
+                all_metas = self.item.metadata.get_all(key)
+                for meta in all_metas:
+                    if value is ... or value == meta.value and units is ... or units == meta.units:
                         self.item.metadata.remove(meta)
             else:
                 self.item.metadata.remove(key, value, units)
@@ -214,7 +234,18 @@ class MetaData:
             ) from error
 
     def clear(self):
-        """Delete all metadata belonging to the item.
+        """Delete all metadata entries belonging to the item.
+
+        Only entries that are on the blacklist are not deleted.
+
+        Examples
+        --------
+        >>> meta.add("Ben", "10", "kg")
+        >>> print(meta)
+        - {name: Ben, value: 10, units: kg}
+        >>> metadata.clear()
+        >>> print(len(meta))  # empty
+        0
 
         Raises
         ------
@@ -228,11 +259,17 @@ class MetaData:
     def to_dict(self, keys: Optional[list] = None) -> dict:
         """Convert iRODS metadata (AVUs) and system information to a python dictionary.
 
+        This dictionary can later be used to restore the metadata to an iRODS object with
+        the :meth:`from_dict` method.
+
+        Examples
+        --------
+        >>> meta.to_dict()
         {
             "name": item.name,
             "irods_id": item.id, #iCAT database ID
-             "checksum": item.checksum if the item is a data object
-             "metadata": [(m.name, m.value, m.units)]
+            "checksum": item.checksum if the item is a data object
+            "metadata": [(m.name, m.value, m.units)]
         }
 
         Parameters
@@ -249,10 +286,39 @@ class MetaData:
         meta_dict: dict[str, Any] = {}
         meta_dict["name"] = self.item.name
         meta_dict["irods_id"] = self.item.id
-        if is_dataobject(self.item):
+        if isinstance(self.item, irods.data_object.iRODSDataObject):
             meta_dict["checksum"] = self.item.checksum
         if keys is None:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
         else:
             meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
         return meta_dict
+
+    def from_dict(self, meta_dict: dict):
+        """Fill the metadata based on a dictionary.
+
+        The dictionary that is expected can be generated from the :meth:`to_dict` method.
+
+        Parameters
+        ----------
+        meta_dict
+            Dictionary that contains all the key, value, units triples. This
+            should use the same format as the output of the to_dict method.
+
+        Examples
+        --------
+        >>> meta.add("Ben", "10", "kg")
+        >>> meta_dict = meta.to_dict()
+        >>> meta.clear()
+        >>> len(meta)
+        0
+        >>> meta.from_dict(meta_dict)
+        >>> print(meta)
+        - {name: Ben, value: 10, units: kg}
+
+        """
+        for meta_tuple in meta_dict["metadata"]:
+            try:
+                self.add(*meta_tuple)
+            except ValueError:
+                pass

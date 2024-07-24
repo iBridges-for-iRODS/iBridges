@@ -11,24 +11,6 @@ ibridges.data\_operations module
    :show-inheritance:
 
 
-ibridges.export\_metadata module
---------------------------------
-
-.. automodule:: ibridges.export_metadata
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-ibridges.icat\_columns module
---------------------------------
-
-.. automodule:: ibridges.icat_columns
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
 ibridges.interactive module
 ---------------------------
 
@@ -106,6 +88,24 @@ ibridges.tickets module
 -----------------------
 
 .. automodule:: ibridges.tickets
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+ibridges.executor module
+------------------------
+
+.. automodule:: ibridges.executor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+
+ibridges.util module
+------------------------
+
+.. automodule:: ibridges.util
    :members:
    :undoc-members:
    :show-inheritance:

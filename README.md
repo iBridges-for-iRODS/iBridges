@@ -1,5 +1,5 @@
 # iBridges <img src="docs/logo.png" width="150" align="right">
-iBridges is library for scientific programmers who are working with data in iRODS. We provide a wrapper around the [python-irodsclient](https://pypi.org/project/python-irodsclient/) to facilitate easy interaction with the iRODS server. iBridges is currently still in very active development.
+iBridges is a library for scientific programmers who are working with data in iRODS. We provide a wrapper around the [python-irodsclient](https://pypi.org/project/python-irodsclient/) to facilitate easy interaction with the iRODS server. iBridges is currently still in very active development.
 
 [![PyPI version](https://badge.fury.io/py/ibridges.svg)](https://badge.fury.io/py/ibridges)
 [![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml) [![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) 
@@ -11,7 +11,7 @@ iBridges is library for scientific programmers who are working with data in iROD
 - Works on Windows, Mac OS and Linux
 - Runs on Python 3.8 or higher.
 - Supported iRODS server versions: 4.2.11 or higher and 4.3.0 or higher.
-- **Interactive connection** to your iRods server.
+- **Interactive connection** to your iRODS server.
 - **Upload** and **Download** your data.
 - Manipulate the **metadata** on the iRODS server.
 - **Synchronise** your data between your local computer and the iRODS server.

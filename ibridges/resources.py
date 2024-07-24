@@ -12,17 +12,21 @@ from ibridges.session import Session
 
 
 class Resources:
-    """Irods Resource operations."""
+    """iRODS Resource operations.
+
+    On many systems, the selection and management of resources
+    is done completely server side. In this case, the user will not need
+    to worry about using the Resources class.
+
+    Parameters
+    ----------
+    session : Session
+        Instance of the Session class
+
+    """
 
     def __init__(self, session: Session):
-        """IRODS resource initialization.
-
-        Parameters
-        ----------
-        session : Session
-            Instance of the Session class
-
-        """
+        """iRODS resource initialization."""  # noqa: D403
         self._resources: Optional[dict] = None
         self.session = session
 
@@ -50,26 +54,17 @@ class Resources:
     def get_free_space(self, resc_name: str) -> int:
         """Determine free space in a resource hierarchy.
 
-        Storeage resources: return annotation "free_space".
-        Coordinating resources: return sum of all free space of the resource subtree.
-        If "free_space" is not set, set value to 0.
-
         Parameters
         ----------
-        resc_name : str
+        resc_name:
             Name of monolithic resource or the top of a resource tree.
 
         Returns
         -------
-        int
             Number of bytes free in the resource hierarchy.
-
-        The return value can have one of two possible values if not the actual
-        free space:
-
-            -1 if the resource does not exists (typo or otherwise)
-             0 if no free space has been set in the whole resource tree
-                starting at node resc_name.
+            On some iRODS servers, the server does not report the available storage space,
+            but instead will return: -1 if the resource does not exists (typo or otherwise), or
+            0 if no free space has been set in the whole resource tree starting at node resc_name.
 
         """
         try:
@@ -89,12 +84,11 @@ class Resources:
 
         Parameters
         ----------
-        resc : instance
+        resc:
             iRODS resource instance.
 
         Returns
         -------
-        list
             Instances of child resources.
 
         """
@@ -104,7 +98,7 @@ class Resources:
         return resc.children + children
 
     def resources(self, update: bool = False) -> dict:
-        """IRODS resources and their metadata.
+        """iRODS resources and their metadata.
 
         Parameters
         ----------
@@ -113,7 +107,6 @@ class Resources:
 
         Returns
         -------
-        dict
             Name, parent, status, context, and free_space of all
             resources.
 
@@ -121,7 +114,7 @@ class Resources:
               so annotated, otherwise it is the sum of the free_space of
               all its children.
 
-        """
+        """  # noqa: D403
         if self._resources is None or update:
             query = self.session.irods_session.query(
                 icat.RESC_NAME, icat.RESC_PARENT, icat.RESC_STATUS, icat.RESC_CONTEXT
@@ -154,7 +147,7 @@ class Resources:
 
         Returns
         -------
-        List [(resource_name, status, free_space, context)]
+        List  containing [(resource_name, status, free_space, context)]
 
         """
         parents = [(key, val) for key, val in self.resources().items() if not val["parent"]]

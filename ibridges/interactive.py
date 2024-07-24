@@ -1,6 +1,7 @@
 """Interactive authentication with iRODS server."""
 
 import os
+import sys
 from getpass import getpass
 from pathlib import Path
 from typing import Optional, Union
@@ -8,6 +9,7 @@ from typing import Optional, Union
 from ibridges.session import LoginError, PasswordError, Session
 
 DEFAULT_IENV_PATH = Path(os.path.expanduser("~")).joinpath(".irods", "irods_environment.json")
+DEFAULT_IRODSA_PATH = Path.home() / ".irods" / ".irodsA"
 
 
 def interactive_auth(
@@ -15,7 +17,10 @@ def interactive_auth(
 ) -> Session:
     """Interactive authentication with iRODS server.
 
-    Stores the password in ~/.irods/.irodsA upon success.
+    The main difference with using the :class:`ibridges.Session` object directly is
+    that it will ask for your password if the cached password does not exist or is outdated.
+    This can be more secure, since you won't have to store the password in a file or notebook.
+    Caches the password in ~/.irods/.irodsA upon success.
 
     Parameters
     ----------
@@ -43,10 +48,7 @@ def interactive_auth(
         raise FileNotFoundError
 
     session = None
-    if (
-        os.path.exists(Path(os.path.expanduser("~")).joinpath(".irods", ".irodsA"))
-        and password is None
-    ):
+    if DEFAULT_IRODSA_PATH.is_file() and password is None:
         session = _from_pw_file(irods_env_path)
 
     if password is not None:
@@ -59,7 +61,11 @@ def interactive_auth(
     n_tries = 0
     success = False
     while not success and n_tries < 3:
-        password = getpass("Your iRODS password: ")
+        if sys.stdin.isatty():
+            password = getpass('Your iRODS password: ')
+        else:
+            print('Your iRODS password: ')
+            password = sys.stdin.readline().rstrip()
         try:
             session = Session(irods_env=irods_env_path, password=password)
             session.write_pam_password()
