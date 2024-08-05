@@ -1,4 +1,4 @@
-sphinx<8.0.0
+sphinx<9.0.0
 sphinx_inline_tabs
 sphinx-rtd-theme
 sphinxcontrib-napoleon
