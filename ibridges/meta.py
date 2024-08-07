@@ -230,7 +230,8 @@ class MetaData:
             ) from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise ValueError(
-                "Cannot delete metadata due to insufficient permission for path '{item.path}'."
+                f"Cannot delete metadata due to insufficient permission "
+                f"for path '{self.item.path}'."
             ) from error
 
     def clear(self):
