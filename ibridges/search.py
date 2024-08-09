@@ -2,11 +2,27 @@
 
 from __future__ import annotations
 
+from collections import namedtuple
 from typing import Optional, Union
 
 from ibridges import icat_columns as icat
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+
+META_COLS = {
+    "collection": (icat.META_COLL_ATTR_NAME, icat.META_COLL_ATTR_VALUE, icat.META_COLL_ATTR_UNITS),
+    "data_object": (icat.META_DATA_ATTR_NAME, icat.META_DATA_ATTR_VALUE, icat.META_DATA_ATTR_UNITS)
+}
+
+
+class MetaSearch(namedtuple("MetaSearch", ["key", "value", "units"], defaults=[..., ..., ...])):
+    def __new__(cls, key=..., value=..., units=...):
+        if key is ... and value is ... and units is ...:
+            raise ValueError("Cannot create metasearch without specifying either key, value or units.")
+        key = "%" if key is ... else key
+        value = "%" if value is ... else value
+        units = "%" if units is ... else units
+        return super(MetaSearch, cls)  .__new__(cls, key, value, units)
 
 
 def search_data(
@@ -14,9 +30,8 @@ def search_data(
     path: Optional[Union[str, IrodsPath]] = None,
     path_pattern: Optional[str] = None,
     checksum: Optional[str] = None,
-    key: Union[list[str], str, ..., None] = ...,
-    value: Union[list[str], str, ..., None] = ...,
-    units: Union[list[str], str, ..., None] = ...,
+    metadata: Union[None, MetaSearch, list[MetaSearch]] = None,
+    item_type: Optional[str] = None,
 ) -> list[dict]:
     """Search for collections, data objects and metadata.
 
@@ -72,7 +87,7 @@ def search_data(
     [IrodsPath(/, somefile.txt), IrodsPath(/, someother.txt)]
 
     >>> # Checksums can have wildcards as well, but beware of collisions:
-    >>> search_data(session, checksum="wW+wG%")
+    >>> search_data(session, checksum="sha2:wW+wG%")
     [IrodsPath(/, somefile.txt), IrodsPath(/, someother.txt)]
 
     >>> # Find data objects and collections with some metadata key
@@ -93,72 +108,62 @@ def search_data(
 
 
     """
-    if path_pattern is None and checksum is None and key is ... and value is ... and units is ...:
+    # Input validation
+    if path_pattern is None and checksum is None and metadata is None:
         raise ValueError(
             "QUERY: Error while searching in the metadata: No query criteria set."
             + " Please supply either a path_pattern, checksum, key, value or units."
         )
+    if path is None:
+        path = session.home
+    path = IrodsPath(session, path)
 
-    # create the query for collections; we only want to return the collection name
-    coll_query = session.irods_session.query(icat.COLL_NAME)
-    # create the query for data objects; we need the collection name, the data name and its checksum
-    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
-    data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
+    if metadata is None:
+        metadata = []
+    if isinstance(metadata, MetaSearch):
+        metadata = [metadata]
+
+    queries = []
 
     # iRODS queries do not know the 'or' operator, so we need three searches
     # One for the collection, and two for the data
     # one data search in case path is a collection path and we want to retrieve all data there
     # one in case the path is or ends with a file name
-    if path is None:
-        path = session.home
-    path = IrodsPath(session, path)
+    if item_type != "data_object" and checksum is None:
+        # create the query for collections; we only want to return the collection name
+        coll_query = session.irods_session.query(icat.COLL_NAME)
+        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
+        queries.append((coll_query, "collection"))
+    if item_type != "collection":
+        # create the query for data objects; we need the collection name, the data name and its checksum
+        data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
+        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
+        queries.append((data_query, "data_object"))
 
-    # Filter only paths according to the search path.
-    coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
-    data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
-    data_name_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}"))
-    queries = [coll_query, data_query, data_name_query]
+        data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
+                                                    icat.DATA_CHECKSUM)
+        data_name_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}"))
+        queries.append((data_name_query, "data_object"))
 
     if path_pattern is not None:
-        _path_filter(path, path_pattern, *queries)
+        _path_filter(path, path_pattern, queries)
 
-    if key is not ...:
-        if isinstance(key, str):
-            _key_filter(key, *queries)
-        else:
-            for sub_key in key:
-                _key_filter(sub_key, *queries)
 
-    if value is not ...:
-        if isinstance(value, str):
-            _value_filter(value, *queries)
-        else:
-            for sub_val in value:
-                _value_filter(sub_val, *queries)
+    for mf in metadata:
+        _meta_filter(mf, queries)
 
-    if units is not ...:
-        if isinstance(units, str):
-            _units_filter(units, *queries)
-        else:
-            for sub_units in units:
-                _units_filter(sub_units, *queries)
-
-    results = []
     if checksum is not None:
-        if not checksum.startswith("sha2:"):
-            checksum = f"sha2:{checksum}"
-        data_query = data_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
-        data_name_query.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
-    else:
-        # Gather collection results (not needed if checksum is used).
-        results = list(coll_query.get_results())
+        _checksum_filter(checksum, queries)
 
+    query_results = []
+    for q in queries:
+        query_results.extend(list(q[0]))
 
     # gather results, data_query and data_name_query can contain the same results
-    results.extend([
+    results = [
         dict(s) for s in set(frozenset(d.items())
-                for d in list(data_query) + list(data_name_query))
-    ])
+                for d in query_results)
+    ]
     for item in results:
         if isinstance(item, dict):
             new_keys = [k.icat_key for k in item.keys()]
@@ -180,26 +185,24 @@ def _prefix_wildcard(pattern):
         return pattern
     return f"%/{pattern}"
 
-def _path_filter(root_path, path_pattern, coll_query, data_query, data_name_query):
-    coll_query.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(path_pattern)))
-    split_pat = path_pattern.rsplit("/", maxsplit=1)
-    data_query.filter(icat.LIKE(icat.DATA_NAME, split_pat[-1]))
-    data_name_query.filter(icat.LIKE(icat.DATA_NAME, split_pat[-1]))
+def _path_filter(root_path, path_pattern, queries):
+    for q, q_type in queries:
+        if q_type == "collection":
+            q.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(path_pattern)))
+        else:
+            split_pat = path_pattern.rsplit("/", maxsplit=1)
+            q.filter(icat.LIKE(icat.DATA_NAME, split_pat[-1]))
 
-    if len(split_pat) == 2:
-        data_query.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(split_pat[0])))
-        data_name_query.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(split_pat[0])))
-
-
-def _key_filter(key, *queries):
-    for q in queries:
-        q.filter(icat.LIKE(icat.META_DATA_ATTR_NAME, key))
+            if len(split_pat) == 2:
+                q.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(split_pat[0])))
 
 
-def _value_filter(value, *queries):
-    for q in queries:
-        q.filter(icat.LIKE(icat.META_DATA_ATTR_VALUE, value))
+def _meta_filter(metadata, queries):
+    for q, q_type in queries:
+        for i_elem, elem in enumerate(metadata):
+            q.filter(icat.LIKE(META_COLS[q_type][i_elem], elem))
 
-def _units_filter(units, *queries):
-    for q in queries:
-        q.filter(icat.LIKE(icat.META_DATA_ATTR_UNITS, units))
+def _checksum_filter(checksum, queries):
+    for q, q_type in queries:
+        if q_type == "data_object":
+            q.filter(icat.LIKE(icat.DATA_CHECKSUM, checksum))
