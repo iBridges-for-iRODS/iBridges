@@ -52,13 +52,12 @@ def search_data(
     checksum:
         Checksum of the dataobject, wildcard '%' can be used. If left out, no checksum will be
         matched.
-    key:
-        Metadata key that the data object or collection should contain. Can be either a string
-        or a list of strings. In the latter case, all keys have to be present for that item.
-    value:
-        Metadata value that the data object or collection should contain.
-    units:
-        Metadata units that the data object or collection should contain.
+    metadata:
+        Metadata triples that constrain the key, value and units of the results.
+        For example, to get only items having a metadata entry with value "x",
+        use MetaSearch(value="x"). See :class:`MetaSearch` for more detail.
+        You can also provide a list of constraints. Then each of these constrains
+        will have to be satisfied for the data item to show up in the results.
 
     Raises
     ------
