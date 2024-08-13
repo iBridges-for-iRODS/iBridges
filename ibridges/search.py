@@ -22,7 +22,7 @@ class MetaSearch(namedtuple("MetaSearch", ["key", "value", "units"], defaults=[.
         key = "%" if key is ... else key
         value = "%" if value is ... else value
         units = "%" if units is ... else units
-        return super(MetaSearch, cls)  .__new__(cls, key, value, units)
+        return super(MetaSearch, cls).__new__(cls, key, value, units)
 
 
 def search_data(
@@ -30,7 +30,7 @@ def search_data(
     path: Optional[Union[str, IrodsPath]] = None,
     path_pattern: Optional[str] = None,
     checksum: Optional[str] = None,
-    metadata: Union[None, MetaSearch, list[MetaSearch]] = None,
+    metadata: Union[None, MetaSearch, list[MetaSearch], list[tuple]] = None,
     item_type: Optional[str] = None,
 ) -> list[dict]:
     """Search for collections, data objects and metadata.
@@ -123,12 +123,11 @@ def search_data(
     if isinstance(metadata, MetaSearch):
         metadata = [metadata]
 
-    queries = []
-
     # iRODS queries do not know the 'or' operator, so we need three searches
     # One for the collection, and two for the data
     # one data search in case path is a collection path and we want to retrieve all data there
     # one in case the path is or ends with a file name
+    queries = []
     if item_type != "data_object" and checksum is None:
         # create the query for collections; we only want to return the collection name
         coll_query = session.irods_session.query(icat.COLL_NAME)
@@ -200,7 +199,7 @@ def _path_filter(root_path, path_pattern, queries):
 def _meta_filter(metadata, queries):
     for q, q_type in queries:
         for i_elem, elem in enumerate(metadata):
-            q.filter(icat.LIKE(META_COLS[q_type][i_elem], elem))
+            q.filter(icat.LIKE(META_COLS[q_type][i_elem], MetaSearch(*elem)))
 
 def _checksum_filter(checksum, queries):
     for q, q_type in queries:
