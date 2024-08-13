@@ -196,9 +196,11 @@ def _path_filter(root_path, path_pattern, queries):
 
 
 def _meta_filter(metadata, queries):
+    if len(metadata) < 1 or len(metadata) > 3:
+        raise ValueError(f"Metadata contraints need 1-3 values, not {len(metadata)}")
     for q, q_type in queries:
-        for i_elem, elem in enumerate(metadata):
-            q.filter(icat.LIKE(META_COLS[q_type][i_elem], MetaSearch(*elem)))
+        for i_elem, elem in enumerate(MetaSearch(*metadata)):
+            q.filter(icat.LIKE(META_COLS[q_type][i_elem], elem))
 
 def _checksum_filter(checksum, queries):
     for q, q_type in queries:
