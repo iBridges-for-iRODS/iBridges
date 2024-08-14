@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Optional, Union
 
@@ -678,8 +679,21 @@ def ibridges_tree():
 
 
 def ibridges_search():
+    """Search for collections and objects using constraints."""
+    epilog = """Examples:
+
+ibridges search --path-pattern "%.txt"
+ibridges search --checksum "5dfasd%"
+ibridges search --metadata "key" "value" "units"
+ibridges search --metadata "key" --metadata "key2" "value2"
+ibridges search irods:some_collection --item_type data_object
+ibridges search irods:some_collection --item_type collection
+"""
     parser = argparse.ArgumentParser(
-        prog="ibridges tree", description="Show collection/directory tree."
+        prog="ibridges search",
+        description="Search for dataobjects and collections.",
+        epilog=epilog,
+        formatter_class=RawTextHelpFormatter,
     )
     parser.add_argument(
         "remote_path",
