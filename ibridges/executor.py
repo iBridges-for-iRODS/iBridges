@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import warnings
 from collections import defaultdict
+from inspect import signature
 from pathlib import Path
 from typing import Optional, Union
 
@@ -12,6 +13,7 @@ import irods.data_object
 import irods.exception
 import irods.keywords as kw
 from tqdm import tqdm
+from tqdm.std import tqdm as tqdm_type
 
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -177,7 +179,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.execute_meta_upload()
 
     def execute_download(self, session: Session, down_sizes: list[int],
-                         pbar, ignore_err: bool = False):
+                         pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all download operations.
 
         Parameters
@@ -201,11 +203,11 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 ignore_err=ignore_err,
                 options=self.options,
                 resc_name=self.resc_name,
+                pbar=pbar,
             )
-            pbar.update(size)
 
     def execute_upload(self, session: Session, up_sizes: list[int],
-                       pbar, ignore_err: bool = False):
+                       pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all upload operations.
 
         Parameters
@@ -229,8 +231,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 ignore_err=ignore_err,
                 options=self.options,
                 resc_name=self.resc_name,
+                pbar=pbar,
             )
-            pbar.update(size)
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
@@ -334,6 +336,7 @@ def _obj_put(
     resc_name: str = "",
     options: Optional[dict] = None,
     ignore_err: bool = False,
+    pbar: Optional[tqdm_type] = None,
 ):
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
@@ -353,6 +356,8 @@ def _obj_put(
         Extra options to the python irodsclient put method.
     ignore_err:
         If True, convert errors into warnings.
+    pbar:
+        Optional progress bar.
 
     """
     local_path = Path(local_path)
@@ -374,6 +379,12 @@ def _obj_put(
     if options is None:
         options = {}
     options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
+
+    if pbar is not None:
+        upd_put = "updatables" in signature(session.irods_session.data_objects.put).parameters
+        if upd_put:
+            options["updatables"] = [pbar.update]
+
 
     if resc_name not in ["", None]:
         options[kw.RESC_NAME_KW] = resc_name
@@ -402,7 +413,8 @@ def _obj_put(
                 "Use overwrite=True to overwrite the existing file."
             )
         warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
-
+    if pbar is not None and not upd_put:
+        pbar.update(IrodsPath(session, irods_path).size)
 
 
 def _obj_get(
@@ -413,6 +425,7 @@ def _obj_get(
     resc_name: Optional[str] = "",
     options: Optional[dict] = None,
     ignore_err: bool = False,
+    pbar: Optional[tqdm_type] = None,
 ):
     """Download `irods_path` to `local_path` following iRODS `options`.
 
@@ -432,6 +445,8 @@ def _obj_get(
         Extra options to the python irodsclient get method.
     ignore_err:
         If True, convert errors into warnings.
+    pbar:
+        Optional progress bar.
 
     """
     if options is None:
@@ -446,6 +461,12 @@ def _obj_get(
         options[kw.FORCE_FLAG_KW] = ""
     if resc_name not in ["", None]:
         options[kw.RESC_NAME_KW] = resc_name
+
+    # Compatibility with PRC<2.1
+    if pbar is not None:
+        upd_put = "updatables" in signature(session.irods_session.data_objects.put).parameters
+        if upd_put:
+            options["updatables"] = [pbar.update]
 
     # Quick fix for #126
     if Path(local_path).is_dir():
@@ -463,6 +484,8 @@ def _obj_get(
         if not ignore_err:
             raise PermissionError(msg) from exc
         warnings.warn(msg)
+    if pbar is not None and not upd_put:
+        pbar.update(IrodsPath(session, irods_path).size)
 
 
 def _add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
