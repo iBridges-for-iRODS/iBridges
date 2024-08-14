@@ -36,14 +36,14 @@ class MetaSearch(namedtuple("MetaSearch", ["key", "value", "units"], defaults=[.
         return super(MetaSearch, cls).__new__(cls, key, value, units)
 
 
-def search_data(
+def search_data(  # pylint: disable=too-many-branches
     session: Session,
     path: Optional[Union[str, IrodsPath]] = None,
     path_pattern: Optional[str] = None,
     checksum: Optional[str] = None,
     metadata: Union[None, MetaSearch, list[MetaSearch], list[tuple]] = None,
     item_type: Optional[str] = None,
-) -> list[dict]:
+) -> list[IrodsPath]:
     """Search for collections, data objects and metadata.
 
     By default all accessible collections and data objects are returned.
@@ -149,7 +149,7 @@ def search_data(
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((coll_query, "collection"))
     if item_type != "collection":
-        # create the query for data objects; we need the collection name, the data name and its checksum
+        # create the query for data objects; we need the collection name, the data name and checksum
         data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
@@ -160,7 +160,7 @@ def search_data(
         queries.append((data_name_query, "data_object"))
 
     if path_pattern is not None:
-        _path_filter(path, path_pattern, queries)
+        _path_filter(path_pattern, queries)
 
 
     for mf in metadata:
@@ -204,7 +204,7 @@ def _postfix_wildcard(path):
         return f"{path}%"
     return f"{path}/%"
 
-def _path_filter(root_path, path_pattern, queries):
+def _path_filter(path_pattern, queries):
     for q, q_type in queries:
         if q_type == "collection":
             q.filter(icat.LIKE(icat.COLL_NAME, _prefix_wildcard(path_pattern)))
