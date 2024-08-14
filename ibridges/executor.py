@@ -173,12 +173,12 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         )
         self.execute_create_dir()
         self.execute_create_coll(session)
-        self.execute_download(session, down_sizes, pbar, ignore_err=ignore_err)
-        self.execute_upload(session, up_sizes, pbar, ignore_err=ignore_err)
+        self.execute_download(session, pbar, ignore_err=ignore_err)
+        self.execute_upload(session, pbar, ignore_err=ignore_err)
         self.execute_meta_download()
         self.execute_meta_upload()
 
-    def execute_download(self, session: Session, down_sizes: list[int],
+    def execute_download(self, session: Session,
                          pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all download operations.
 
@@ -194,7 +194,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Whether to ignore errors when encountered, by default False.
 
         """
-        for (ipath, lpath), size in zip(self.download, down_sizes):
+        for ipath, lpath in self.download:
             _obj_get(
                 session,
                 ipath,
@@ -206,7 +206,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 pbar=pbar,
             )
 
-    def execute_upload(self, session: Session, up_sizes: list[int],
+    def execute_upload(self, session: Session,
                        pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all upload operations.
 
@@ -222,7 +222,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Whether to ignore errors when encountered, by default False.
 
         """
-        for (lpath, ipath), size in zip(self.upload, up_sizes):
+        for lpath, ipath in self.upload:
             _obj_put(
                 session,
                 lpath,
@@ -328,7 +328,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         print("\n\n".join(summary_strings))
 
 
-def _obj_put(
+def _obj_put(  # pylint: disable=too-many-branches
     session: Session,
     local_path: Union[str, Path],
     irods_path: Union[str, IrodsPath],
