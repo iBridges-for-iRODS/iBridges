@@ -697,7 +697,7 @@ ibridges search irods:some_collection --item_type collection
     )
     parser.add_argument(
         "remote_path",
-        help="Remote path to search in.",
+        help="Remote path to search inn. The path itself will not be matched.",
         type=str,
         default=None,
         nargs="?"
@@ -706,21 +706,28 @@ ibridges search irods:some_collection --item_type collection
         "--path-pattern",
         default=None,
         type=str,
+        help=("Pattern of the path constraint. For example, use '%%.txt' to find all data objects"
+              " and collections that end with .txt. You can also use the name of the item here "
+              "to find all items with that name.")
     )
     parser.add_argument(
         "--checksum",
         default=None,
         type=str,
+        help="Checksum of the data objects to be found."
     )
     parser.add_argument(
         "--metadata",
         nargs="+",
-        action="append"
+        action="append",
+        help="Constrain the results using metadata, see examples. Can be used multiple times.",
     )
     parser.add_argument(
         "--item_type",
         type=str,
         default=None,
+        help="Use data_object or collection to show only items of that type. By default all items"
+        " are returned."
     )
 
     args = parser.parse_args()

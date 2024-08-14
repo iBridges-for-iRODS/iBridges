@@ -16,9 +16,20 @@ META_COLS = {
 
 
 class MetaSearch(namedtuple("MetaSearch", ["key", "value", "units"], defaults=[..., ..., ...])):
+    """Named tuple to search for objects and collections.
+
+    The key, value and units default to the elipsis (...), which indicate that the search
+    accepts anything for this slot. This is principally the same as using the iRODS wildcard
+    '%' symbol except that during creation using elipses for key, value and units will raise
+    a ValueError. Note that the None value has a different meaning, where it will actually test
+    for the entry being None/empty.
+    """
+
     def __new__(cls, key=..., value=..., units=...):
+        """Create a new MetaSearch object."""
         if key is ... and value is ... and units is ...:
-            raise ValueError("Cannot create metasearch without specifying either key, value or units.")
+            raise ValueError("Cannot create metasearch without specifying either key, value or "
+                             "units.")
         key = "%" if key is ... else key
         value = "%" if value is ... else value
         units = "%" if units is ... else units
@@ -58,6 +69,9 @@ def search_data(
         use MetaSearch(value="x"). See :class:`MetaSearch` for more detail.
         You can also provide a list of constraints. Then each of these constrains
         will have to be satisfied for the data item to show up in the results.
+    item_type:
+        Type of the item to search for, by default None indicating both data objects and collections
+        are returned. Set to "data_object" for data objects and "collection" for collections.
 
     Raises
     ------
@@ -90,21 +104,23 @@ def search_data(
     [IrodsPath(/, somefile.txt), IrodsPath(/, someother.txt)]
 
     >>> # Find data objects and collections with some metadata key
-    >>> search_data(session, key="some_key")
-    >>> search_data(session, key=["some_key", "other_key"])
+    >>> search_data(session, metadata=MetaSearch(key="some_key"))
+    >>> search_data(session, metadata=[MetaSearch("some_key"), MetaSearch("other_key")]
 
     >>> # Find data from metadata values
-    >>> search_data(session, value="some_value")
+    >>> search_data(session, metadata=MetaSearch(value="some_value"))
 
     >>> # Find data using metadata units
-    >>> search_data(session, units="kg")
+    >>> search_data(session, metadata=MetaSearch(units="kg"))
 
     >>> # Different conditions can be combined, only items for which all is True will be returned
-    >>> search_data(session, path="%.txt", key="some_key", units="kg")
+    >>> search_data(session, path_pattern="%.txt", metadata=MetaSearch(key="some_key", units="kg")
 
     >>> # Find data without units
-    >>> search_data(session, units=None)
+    >>> search_data(session, metadata=MetaSearch(units=None)
 
+    >>> Find only data objects
+    >>> search_data(session, path_pattern="x%", item_type="data_object")
 
     """
     # Input validation
@@ -130,12 +146,12 @@ def search_data(
     if item_type != "data_object" and checksum is None:
         # create the query for collections; we only want to return the collection name
         coll_query = session.irods_session.query(icat.COLL_NAME)
-        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
+        coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((coll_query, "collection"))
     if item_type != "collection":
         # create the query for data objects; we need the collection name, the data name and its checksum
         data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
-        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}/%"))
+        data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
 
         data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
@@ -182,6 +198,11 @@ def _prefix_wildcard(pattern):
     if pattern.startswith("%"):
         return pattern
     return f"%/{pattern}"
+
+def _postfix_wildcard(path):
+    if str(path).endswith("/"):
+        return f"{path}%"
+    return f"{path}/%"
 
 def _path_filter(root_path, path_pattern, queries):
     for q, q_type in queries:
