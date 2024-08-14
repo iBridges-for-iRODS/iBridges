@@ -380,6 +380,48 @@ class IrodsPath:
 
         raise irods.exception.DataObjectDoesNotExist(str(IrodsPath))
 
+    def open(self, mode="r", **kwargs):
+        """Open a data object for reading or writing.
+
+        Parameters
+        ----------
+        mode, optional
+            Whether to read or write, by default "r" meaning read. To write to
+            a data object, use "w". Note that opening data objects is always done in binary
+            mode, so to write a string you need to encode it, while reading a string from
+            a data object requires you to decode it. You are advised to use a consistent
+            (utf-8) encoding for all your data objects.
+        kwargs:
+            Extra keyword arguments for the python-irodsclient to parse.
+
+        Returns
+        -------
+            A file handle to be used for reading or writing.
+
+        Raises
+        ------
+        ValueError
+            When the IrodsPath points to a collection.
+        DataObjectDoesNotExist:
+            When the data object does not exist and the read mode is given.
+
+        Examples
+        --------
+        >>> ipath = Irodspath(session, "some_obj.txt")
+        >>> with ipath.open("w") as handle:
+        >>>     handle.write("This is a test string".encode("utf-8"))
+        >>> with ipath.open("r") as handle:
+        >>>     print(handle.read().decode("utf-8))
+        This is a test string
+
+        """
+        if self.collection_exists():
+            raise ValueError("Cannot open collection, only data objects can be opened.")
+        # Create the data object if it does not exist.
+        if mode == "w" and not self.dataobject_exists():
+            self.session.irods_session.data_objects.create(str(self))
+        return self.dataobject.open(mode=mode, **kwargs)
+
     def walk(self, depth: Optional[int] = None) -> Iterable[IrodsPath]:
         """Walk on a collection.
 
