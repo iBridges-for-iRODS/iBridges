@@ -141,7 +141,6 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
     [
         (["--path-pattern", "test_search"], 1),
         (["--path-pattern", "test_search2"], 0),
-        (["--path-pattern", "test_search"], 1),
         (["--path-pattern", "test_search/%"], 6),
         (["--path-pattern", "test_search/%/%"], 1),
         (["--path-pattern", "%.rtf"], 4),
