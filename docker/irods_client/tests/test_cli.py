@@ -160,7 +160,7 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     ipath_coll = IrodsPath(session, "test_search_x", "test_search")
     IrodsPath.create_collection(session, ipath_coll)
-    subprocess.run(["ibridges", "sync", testdata, "irods:test_search_x/test_search"])
+    subprocess.run(["ibridges", "sync", testdata, "irods:test_search_x/test_search"], **pass_opts)
     assert ipath_coll.collection_exists()
     ipath_coll.meta.clear()
     ipath_coll.meta.add("search", "sval", "kg")
@@ -169,8 +169,6 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     ret = subprocess.run(["ibridges", "search", "irods:test_search_x", *search], capture_output=True,
                          **pass_opts)
     stripped_str = ret.stdout.strip("\n")
-    print(ret)
-    print(ret.stdout)
     if stripped_str == "":
         assert nlines == 0
     else:
