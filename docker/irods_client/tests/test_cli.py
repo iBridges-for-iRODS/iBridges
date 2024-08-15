@@ -168,6 +168,8 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     ret = subprocess.run(["ibridges", "search", "irods:test_search_x", *search], capture_output=True,
                          **pass_opts)
     stripped_str = ret.stdout.strip("\n")
+    print(ret)
+    print(ret.stdout)
     if stripped_str == "":
         assert nlines == 0
     else:
