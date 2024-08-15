@@ -28,7 +28,26 @@ Search data by metadata
 -----------------------
 
 We can also use the metadata we generated above to search for data.
-We need to create a python dictionary which contains the metadata keys ad their values. The values are again optional.
+
+
+To search by metadata we need to create a :class:`MetaSearch` for each key, value, units triple:
+
+.. code-block:: python
+
+	MetaSearch(key="my_key", value="my_value", units="my_units")
+
+The above statement means: find all data objects and collections which is annotated with a key "my_key" where the value is "my_value" and the units is "my_units".
+
+You can also omit any of the three items which will be interpreted as "anything". E.g.
+
+.. code-block:: python
+
+	MetaSearch(value="my_value")
+
+means: find all data which is labeled with any key where the value is "my_value" and the units can also be anything. Here again you can also use wild cards.
+
+A query with metadata will look like:
+
 
 .. code-block:: python
 
