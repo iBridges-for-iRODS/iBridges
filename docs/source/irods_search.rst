@@ -8,7 +8,7 @@ Search data by Path
 -------------------
 
 In the example below we search for a data object by its path.
-The path can be an :code:`IrodsPath` or a string:
+The path can be an :class:`ibridges.path.IrodsPath` or a string:
  	
 .. code-block:: python
 		
@@ -30,7 +30,7 @@ Search data by metadata
 We can also use the metadata we generated above to search for data.
 
 
-To search by metadata we need to create a :class:`MetaSearch` for each key, value, units triple:
+To search by metadata we need to create a :class:`ibridges.search.MetaSearch` for each key, value, units triple:
 
 .. code-block:: python
 
