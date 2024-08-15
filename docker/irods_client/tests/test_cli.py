@@ -139,8 +139,8 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
 @mark.parametrize(
     "search,nlines",
     [
-        (["irods:/", "--path-pattern", "test_search"], 1),
-        (["irods:/", "--path-pattern", "test_search2"], 0),
+        (["--path-pattern", "test_search"], 1),
+        (["--path-pattern", "test_search2"], 0),
         (["--path-pattern", "test_search"], 1),
         (["--path-pattern", "test_search/%"], 6),
         (["--path-pattern", "test_search/%/%"], 1),
@@ -148,7 +148,7 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
         (["--checksum", "sha2:uJzC+gqi59rVJu8PoBAaTstNUUnFMxW9HsJzsJUb1ao="], 1),
         (["--checksum", "sha2:uJzC+gqi5%"], 1),
         (["--path-pattern", "%", "--item_type", "data_object"], 6),
-        (["--path-pattern", "%", "--item_type", "collection"], 3),
+        (["--path-pattern", "%", "--item_type", "collection"], 2),
         (["--metadata", "search"], 1),
         (["--metadata", "search", "sval", "kg"], 1),
         (["--metadata", "search", "--metadata", "search2"], 1),
@@ -157,15 +157,15 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
 )
 def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search, nlines):
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
-    ipath_coll = IrodsPath(session, "test_search")
+    ipath_coll = IrodsPath(session, "test_search_x", "test_search")
     IrodsPath.create_collection(session, ipath_coll)
-    subprocess.run(["ibridges", "sync", testdata, "irods:test_search"])
+    subprocess.run(["ibridges", "sync", testdata, "irods:test_search_x/test_search"])
     assert ipath_coll.collection_exists()
     ipath_coll.meta.clear()
     ipath_coll.meta.add("search", "sval", "kg")
     ipath_coll.meta.add("search2", "small")
 
-    ret = subprocess.run(["ibridges", "search", *search], capture_output=True,
+    ret = subprocess.run(["ibridges", "search", "irods:test_search_x", *search], capture_output=True,
                          **pass_opts)
     stripped_str = ret.stdout.decode().strip("\n")
     if stripped_str == "":
