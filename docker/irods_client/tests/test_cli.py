@@ -21,7 +21,8 @@ def pass_opts(config):
             or config.get("has_cached_pw", False)):
         pass_opts = {}
     else:
-        pass_opts = {"input": config["password"].encode()}
+        pass_opts = {"input": config["password"]}
+    pass_opts["text"] = True
     pass_opts["check"] = True
     return pass_opts
 
@@ -166,7 +167,7 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
 
     ret = subprocess.run(["ibridges", "search", "irods:test_search_x", *search], capture_output=True,
                          **pass_opts)
-    stripped_str = ret.stdout.decode().strip("\n")
+    stripped_str = ret.stdout.strip("\n")
     if stripped_str == "":
         assert nlines == 0
     else:
