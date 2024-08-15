@@ -1,19 +1,25 @@
 iRODS Search
 ============
 
-`iBridges` offers an easy way to search for data. You can pass a combination of path, metadata keys and values and checksum. The output will be a list of dictionaries, one dictionary for each found item, which contain information where to find the item on the iRODS server.
+`iBridges` offers an easy way to search for data. You can pass a combination of path, metadata,
+item type and checksum. The output will be a list of :class:`ibridges.path.IrodsPath`, which contain information where to find the item on the iRODS server.
 
+.. note::
 
-Search data by Path
--------------------
+	The collection to search within is by default your home collection. You can change this
+	by supplying the :code:`path` argument. Note that this :code:`path` itself will not show
+	up in the results.
 
-In the example below we search for a data object by its path.
-The path can be an :class:`ibridges.path.IrodsPath` or a string:
+Search data by path pattern
+---------------------------
+
+In the example below we search for a data object by its path pattern.
+The path is a string:
  	
 .. code-block:: python
 		
         from ibridges import search_data
-	    search_data(session, path=IrodsPath(session, "dataobj_name"))
+	    search_data(session, path="/", path_pattern="dataobj_name")
 	
 The result is a list of iRODS paths that indicate the locations of the found collections and data objects.
 	
@@ -21,7 +27,7 @@ To find all subcollections and dataobjects in a collection use the `%` as wildca
   	
 .. code-block:: python
   	
-  		search_data(session, path=IrodsPath(session, "subcoll/%"))
+  		search_data(session, path_pattern="subcoll/%")
   	
 
 Search data by metadata
@@ -74,3 +80,14 @@ The search by checksum is handy to find duplicate data. In *iBridges* we always 
 
 	obj = IrodsPath(session, "~", "dataobj_name").dataobject
 	search_data(session, checksum = obj.checksum)
+
+Search data by item type
+------------------------
+
+Sometimes you might want to only look for data objects or collections. In
+this case you can select for that:
+
+.. code-block:: python
+
+	search_data(session, path_pattern="sta%", item_type="data_object")
+	search_data(session, path_pattern="sta%", item_type="collection")

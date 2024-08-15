@@ -683,7 +683,7 @@ def ibridges_search():
     epilog = """Examples:
 
 ibridges search --path-pattern "%.txt"
-ibridges search --checksum "5dfasd%"
+ibridges search --checksum "sha2:5dfasd%"
 ibridges search --metadata "key" "value" "units"
 ibridges search --metadata "key" --metadata "key2" "value2"
 ibridges search irods:some_collection --item_type data_object
