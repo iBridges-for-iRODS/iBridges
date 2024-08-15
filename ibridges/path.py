@@ -387,7 +387,8 @@ class IrodsPath:
         ----------
         mode, optional
             Whether to read or write, by default "r" meaning read. To write to
-            a data object, use "w". Note that opening data objects is always done in binary
+            a data object, use "w", appending to a data object can be done with "a".*
+            Note that opening data objects is always done in binary
             mode, so to write a string you need to encode it, while reading a string from
             a data object requires you to decode it. You are advised to use a consistent
             (utf-8) encoding for all your data objects.
