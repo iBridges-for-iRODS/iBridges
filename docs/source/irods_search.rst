@@ -15,7 +15,7 @@ The path can be an :code:`IrodsPath` or a string:
         from ibridges import search_data
 	    search_data(session, path=IrodsPath(session, "dataobj_name"))
 	
-The result is a list of paths that indicate the locations of the found collections and data objects.
+The result is a list of iRODS paths that indicate the locations of the found collections and data objects.
 	
 To find all subcollections and dataobjects in a collection use the `%` as wildcard:
   	
