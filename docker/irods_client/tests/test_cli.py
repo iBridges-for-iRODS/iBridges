@@ -149,6 +149,7 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
         (["--checksum", "sha2:uJzC+gqi5%"], 1),
         (["--path-pattern", "%", "--item_type", "data_object"], 6),
         (["--path-pattern", "%", "--item_type", "collection"], 2),
+        (["--path-pattern", "%/%", "--item_type", "collection"], 2),
         (["--metadata", "search"], 1),
         (["--metadata", "search", "sval", "kg"], 1),
         (["--metadata", "search", "--metadata", "search2"], 1),
