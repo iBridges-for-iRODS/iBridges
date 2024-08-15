@@ -32,9 +32,16 @@ We need to create a python dictionary which contains the metadata keys ad their 
 
 .. code-block:: python
 
+	# Search for items with an entry that has key=="key" and any value or units.
+	search_data(session, metadata=MetaSearch(key="key"))
+
+	# Search for items with an entry that has key=="key" and value=="value"
 	search_data(session, metadata=MetaSearch(key="key", value="value"))
-	key_vals = {'key': ''}
-	search_data(session, metadata=MetaSearch(key="key", value=""))
+
+	# Different from above! Search for items with one metadata entry that has key=="key"
+	# and one metadata entry that has value=="value", but they do not have to be
+	# for the same entry as in the above.
+	search_data(session, metadata=[MetaSearch(key="key"), MetaSearch(value="value")])
 	
 Use the `%` as a wild card again to match any combination of characters.
 	
