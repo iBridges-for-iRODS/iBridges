@@ -414,6 +414,8 @@ class IrodsPath:
         >>> with ipath.open("r") as handle:
         >>>     print(handle.read().decode("utf-8))
         This is a test string
+        >>> with ipath.open("a") as handle:
+        >>>     handle.write("A string appended at the end.".encode("utf-8"))
 
         """
         if self.collection_exists():

@@ -13,6 +13,10 @@ def test_path_open_error(session, collection):
         with ipath.open("r") as handle:
             handle.read()
 
+    with pytest.raises(DataObjectDoesNotExist):
+        with ipath.open("a") as handle:
+            handle.write("abc")
+
     # We should not be able to open collections.
     with pytest.raises(ValueError):
         with coll_ipath.open("r") as handle:
