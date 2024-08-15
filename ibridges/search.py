@@ -105,7 +105,8 @@ def search_data(  # pylint: disable=too-many-branches
 
     >>> # Find data objects and collections with some metadata key
     >>> search_data(session, metadata=MetaSearch(key="some_key"))
-    >>> search_data(session, metadata=[MetaSearch("some_key"), MetaSearch("other_key")]
+    >>> # Search for data labeled with several metadata entries
+    >>> search_data(session, metadata=[MetaSearch("some_key"), MetaSearch("other_key", "other_value")]
 
     >>> # Find data from metadata values
     >>> search_data(session, metadata=MetaSearch(value="some_value"))
