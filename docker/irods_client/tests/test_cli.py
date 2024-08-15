@@ -165,9 +165,9 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     ipath_coll.meta.add("search", "sval", "kg")
     ipath_coll.meta.add("search2", "small")
 
-    ret = subprocess.run(["ibridges", "search", *search], capture_output=True, text=True,
+    ret = subprocess.run(["ibridges", "search", *search], capture_output=True,
                          **pass_opts)
-    stripped_str = ret.stdout.strip("\n")
+    stripped_str = ret.stdout.decode().strip("\n")
     if stripped_str == "":
         assert nlines == 0
     else:
