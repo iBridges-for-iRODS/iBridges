@@ -32,7 +32,7 @@ jobs:
 
     - name: Clone Yoda repo for Docker Setup
       run: |
-        git clone -b release-1.9 --single-branch https://github.com/UtrechtUniversity/yoda.git
+        git clone -b v1.9.4 --single-branch https://github.com/UtrechtUniversity/yoda.git
 
     - name: Prepare hosts file for integration tests
       run: |
