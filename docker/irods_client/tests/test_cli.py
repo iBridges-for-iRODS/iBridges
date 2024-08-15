@@ -171,5 +171,5 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     if stripped_str == "":
         assert nlines == 0
     else:
-        assert len(stripped_str.split("\n")) == nlines
+        assert len([x for x in stripped_str.split("\n") if not x.startswith("Your iRODS")]) == nlines
     ipath_coll.remove()
