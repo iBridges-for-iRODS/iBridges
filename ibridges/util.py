@@ -154,6 +154,7 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
         If filepath is a string, it will be assumed to be a local path.
     checksum_type:
         Checksum type to calculate, only sha2 and md5 are currently supported.
+        Ignored for IrodsPath's, since that is configured by the server.
 
     Returns
     -------
