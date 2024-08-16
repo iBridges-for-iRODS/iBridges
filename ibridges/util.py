@@ -176,7 +176,7 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
-    """Check whether remote and local  paths have the same checksum.
+    """Check whether remote and local paths have the same checksum.
 
     Parameters
     ----------
