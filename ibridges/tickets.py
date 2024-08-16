@@ -10,6 +10,7 @@ import irods.ticket
 from irods.models import TicketQuery
 
 import ibridges.icat_columns as icat
+from ibridges import IrodsPath
 from ibridges.session import Session
 
 TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
@@ -32,11 +33,11 @@ class Tickets:
     def __init__(self, session: Session):
         """Initialize for ticket operations."""
         self.session = session
-        self._all_tickets = self.update_tickets()
+        self._all_tickets = self.list_tickets()
 
     def create_ticket(
         self,
-        obj_path: str,
+        irods_path: IrodsPath,
         ticket_type: str = "read",
         expiry_date: Optional[Union[str, datetime, date]] = None,
     ) -> tuple:
@@ -46,7 +47,7 @@ class Tickets:
 
         Parameters
         ----------
-        obj_path:
+        irods_path:
             Collection or data object path to create a ticket for.
         ticket_type, optional:
             read or write, default read
@@ -68,7 +69,7 @@ class Tickets:
 
         """
         ticket = irods.ticket.Ticket(self.session.irods_session)
-        ticket.issue(ticket_type, obj_path)
+        ticket.issue(ticket_type, str(irods_path))
         expiration_set = False
         if expiry_date is not None:
             if isinstance(expiry_date, date):
@@ -85,12 +86,12 @@ class Tickets:
             except Exception as error:
                 self.delete_ticket(ticket)
                 raise ValueError("Could not set expiration date") from error
-        self.update_tickets()
+        self.list_tickets()
         return ticket.ticket, expiration_set
 
     def __iter__(self) -> Iterable[TicketData]:
         """Iterate over all ticket data."""
-        yield from self.update_tickets()
+        yield from self.list_tickets()
 
     @property
     def all_ticket_strings(self) -> list[str]:
@@ -143,11 +144,11 @@ class Tickets:
             ticket = self.get_ticket(ticket)
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
-            self.update_tickets()
+            self.list_tickets()
         elif check:
             raise KeyError(f"Cannot delete ticket: ticket '{ticket}' does not exist (anymore).")
 
-    def update_tickets(self) -> list[TicketData]:
+    def list_tickets(self) -> list[TicketData]:
         """Retrieve all tickets and their metadata belonging to the user.
 
         Parameters
@@ -172,7 +173,8 @@ class Tickets:
                 TicketData(
                     row[TicketQuery.Ticket.string],
                     row[TicketQuery.Ticket.type],
-                    self._id_to_path(str(row[TicketQuery.Ticket.object_id])),
+                    IrodsPath(self.session,
+                              self._id_to_path(str(row[TicketQuery.Ticket.object_id]))),
                     time_stamp,
                 )
             )
@@ -184,9 +186,9 @@ class Tickets:
         This revokes all access to data objects and collections that was
         granted through these tickets.
         """
-        for tick_data in self.update_tickets():
+        for tick_data in self.list_tickets():
             self.delete_ticket(tick_data.name)
-        self.update_tickets()
+        self.list_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
         """Get an iRODS path from a given an iRODS item id.
