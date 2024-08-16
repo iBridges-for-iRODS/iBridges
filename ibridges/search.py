@@ -91,9 +91,9 @@ def search_data(  # pylint: disable=too-many-branches
     >>> # Find data objects and collections
     >>> search_data(session, "/path/to/sub/col", path_pattern="somefile.txt")
 
-    >>> # Find data ending with .txt
+    >>> # Find data ending with .txt in your home and on a collection path with the substring "sub"
     >>> search_data(session, path_pattern="%.txt")
-    >>> search_data(session, path_pattern="sub/%.txt")
+    >>> search_data(session, path_pattern="%sub/%.txt")
 
     >>> # Find all data objects with a specific checksum in the home collection
     >>> search_data(session, checksum="sha2:wW+wG+JxwHmE1uXEvRJQxA2nEpVJLRY2bu1KqW1mqEQ=")
@@ -109,8 +109,9 @@ def search_data(  # pylint: disable=too-many-branches
     >>> # Search for data labeled with several metadata constraints
     >>> search_data(session, metadata=[MetaSearch("some_key"), MetaSearch(value="other_value")]
 
-    >>> # Find data from metadata values
-    >>> search_data(session, metadata=MetaSearch(value="some_value"))
+    >>> # Find data from metadata values using the wildcard
+    >>> # Will find all data and collections with e.g. "my_value" and "some_value"
+    >>> search_data(session, metadata=MetaSearch(value="%_value"))
 
     >>> # Find data using metadata units
     >>> search_data(session, metadata=MetaSearch(units="kg"))
