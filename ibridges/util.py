@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import base64
 from collections.abc import Sequence
-from hashlib import sha256
+from hashlib import md5, sha256
 from pathlib import Path
 from typing import Union
 
@@ -144,7 +144,7 @@ def find_environment_provider(env_providers: list, server_name: str) -> object:
         "Cannot find provider with name {server_name} ensure that the plugin is installed."
     )
 
-def calc_checksum(filepath: Union[Path, str, IrodsPath]):
+def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
     """Calculate the checksum for an iRODS dataobject or local file.
 
     Parameters
@@ -152,6 +152,8 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath]):
     filepath:
         Can be either a local path, or an iRODS path.
         If filepath is a string, it will be assumed to be a local path.
+    checksum_type:
+        Checksum type to calculate, only sha2 and md5 are currently supported.
 
     Returns
     -------
@@ -160,9 +162,34 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath]):
     """
     if isinstance(filepath, IrodsPath):
         return filepath.checksum
-    f_hash=sha256()
+    if checksum_type == "sha2":
+        f_hash = sha256()
+    else:
+        f_hash = md5()
     memv=memoryview(bytearray(128*1024))
     with open(filepath, 'rb', buffering=0) as file:
         for item in iter(lambda : file.readinto(memv), 0):
             f_hash.update(memv[:item])
+    if checksum_type == "md5":
+        return f"md5:{f_hash.hexdigest()}"
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
+
+def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
+    """Check whether remote and local  paths have the same checksum.
+
+    Parameters
+    ----------
+    remote_path
+        Remote path to calculate the checksum for.
+    local_path
+        Local path to compute the checksum for.
+
+    Returns
+    -------
+        Whether the two have equal checksums. The type of checksum done
+        depends on what is configured on the remote server.
+
+    """
+    remote_check = calc_checksum(remote_path)
+    local_check = calc_checksum(local_path, checksum_type=remote_check.split(":")[0])
+    return remote_check == local_check
