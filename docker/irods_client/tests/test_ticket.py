@@ -5,7 +5,7 @@ import pytest
 from pytest import mark
 
 from ibridges.tickets import Tickets
-
+from ibridges.path import IrodsPath
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 @mark.parametrize("ticket_type", ["read", "write"])
