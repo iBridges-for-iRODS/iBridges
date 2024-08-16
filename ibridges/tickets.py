@@ -10,7 +10,7 @@ import irods.ticket
 from irods.models import TicketQuery
 
 import ibridges.icat_columns as icat
-from ibridges import IrodsPath
+from ibridges.path import IrodsPath
 from ibridges.session import Session
 
 TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
