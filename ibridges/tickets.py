@@ -37,7 +37,7 @@ class Tickets:
 
     def create_ticket(
         self,
-        irods_path: IrodsPath,
+        irods_path: Union[str, IrodsPath],
         ticket_type: str = "read",
         expiry_date: Optional[Union[str, datetime, date]] = None,
     ) -> tuple:
