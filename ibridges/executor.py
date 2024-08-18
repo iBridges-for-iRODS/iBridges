@@ -385,7 +385,8 @@ def _obj_put(  # pylint: disable=too-many-branches
         if upd_put:
             options["updatables"] = [pbar.update]
 
-
+    if overwrite:
+        options[kw.FORCE_FLAG_KW] = ""
     if resc_name not in ["", None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
@@ -402,17 +403,23 @@ def _obj_put(  # pylint: disable=too-many-branches
                 raise PermissionError(err_msg) from error
             warnings.warn(err_msg)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            ) from error
+            # This should generally not occur, but a race condition might trigger this.
+            # obj does not exist -> someone else writes to object -> overwrite error
+            if not ignore_err:
+                raise FileExistsError(
+                    f"Dataset {irods_path} already exists. "
+                    "Use overwrite=True to overwrite the existing file."
+                    "This error might be the result of simultaneous writing "
+                    "to the same data object."
+                ) from error
     else:
         if not ignore_err:
             raise FileExistsError(
                 f"Dataset {irods_path} already exists. "
                 "Use overwrite=True to overwrite the existing file."
             )
-        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
+        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}',"
+                      "it already exists. Use overwrite=False to suppress this warning.")
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
 
