@@ -204,6 +204,12 @@ For example, to find all :code:`.txt` data objects:
 .. code:: shell
 
     ibridges search --path-pattern "%.txt"
+    
+Find all :code:`.txt` data objects in a collection :code:`demo`
+
+.. code:: shell
+
+    ibridges search --path-pattern "%/demo/%.txt"
 
 
 Searching by checksum
