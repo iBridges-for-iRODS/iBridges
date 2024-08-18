@@ -24,7 +24,7 @@ def test_find_path(session, item_name, request):
     assert _found(search_data(session, path_pattern=pat), item.path)
     pat = "%" + item.name[-3:]
     assert _found(search_data(session, path_pattern=pat), item.path)
-    pat = f"{ipath.parent.name}/{ipath.name}"
+    pat = f"{ipath.parent.name}/%{ipath.name[2:]}"
     assert _found(search_data(session, IrodsPath(session, "/"), path_pattern=pat), item.path)
     assert not _found(search_data(session, path_pattern="random_file"), item.path)
 
