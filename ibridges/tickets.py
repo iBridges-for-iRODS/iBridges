@@ -33,7 +33,7 @@ class Tickets:
     def __init__(self, session: Session):
         """Initialize for ticket operations."""
         self.session = session
-        self._all_tickets = self.list_tickets()
+        self._all_tickets = self.fetch_tickets()
 
     def create_ticket(
         self,
@@ -86,12 +86,12 @@ class Tickets:
             except Exception as error:
                 self.delete_ticket(ticket)
                 raise ValueError("Could not set expiration date") from error
-        self.list_tickets()
+        self.fetch_tickets()
         return ticket.ticket, expiration_set
 
     def __iter__(self) -> Iterable[TicketData]:
         """Iterate over all ticket data."""
-        yield from self.list_tickets()
+        yield from self.fetch_tickets()
 
     @property
     def all_ticket_strings(self) -> list[str]:
@@ -144,11 +144,11 @@ class Tickets:
             ticket = self.get_ticket(ticket)
         if ticket.string in self.all_ticket_strings:
             ticket.delete()
-            self.list_tickets()
+            self.fetch_tickets()
         elif check:
             raise KeyError(f"Cannot delete ticket: ticket '{ticket}' does not exist (anymore).")
 
-    def list_tickets(self) -> list[TicketData]:
+    def fetch_tickets(self) -> list[TicketData]:
         """Retrieve all tickets and their metadata belonging to the user.
 
         Parameters
@@ -186,9 +186,9 @@ class Tickets:
         This revokes all access to data objects and collections that was
         granted through these tickets.
         """
-        for tick_data in self.list_tickets():
+        for tick_data in self.fetch_tickets():
             self.delete_ticket(tick_data.name)
-        self.list_tickets()
+        self.fetch_tickets()
 
     def _id_to_path(self, itemid: str) -> str:
         """Get an iRODS path from a given an iRODS item id.
