@@ -172,7 +172,7 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
         for item in iter(lambda : file.readinto(memv), 0):
             f_hash.update(memv[:item])
     if checksum_type == "md5":
-        return f"md5:{f_hash.hexdigest()}"
+        return f"{f_hash.hexdigest()}"
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
 def _detect_checksum(checksum: str):
