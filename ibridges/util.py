@@ -175,6 +175,11 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
         return f"md5:{f_hash.hexdigest()}"
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
+def _detect_checksum(checksum: str):
+    if checksum.startswith("sha2:"):
+        return "sha2"
+    return "md5"
+
 def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
     """Check whether remote and local paths have the same checksum.
 
@@ -192,5 +197,5 @@ def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
 
     """
     remote_check = calc_checksum(remote_path)
-    local_check = calc_checksum(local_path, checksum_type=remote_check.split(":")[0])
+    local_check = calc_checksum(local_path, checksum_type=_detect_checksum(remote_check))
     return remote_check == local_check
