@@ -39,7 +39,6 @@ def config(config_dir):
 @pytest.fixture(scope="session")
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
-    ipath = IrodsPath(session, "~")
     yield session
     del session
 
