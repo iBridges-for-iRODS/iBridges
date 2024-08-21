@@ -97,7 +97,8 @@ def upload(
         if not overwrite and idest_path.exists():
             raise FileExistsError(f"{idest_path} already exists.")
         ops = _up_sync_operations(
-            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None
+            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
+            overwrite=overwrite,
         )
         ops.add_create_coll(idest_path)
         if not ipath.collection_exists():
@@ -212,7 +213,7 @@ def download(
 
         ops = _down_sync_operations(
             irods_path, local_path / irods_path.name, metadata=metadata,
-            copy_empty_folders=copy_empty_folders
+            copy_empty_folders=copy_empty_folders, overwrite=overwrite,
         )
         if not local_path.is_dir():
             ops.add_create_dir(Path(local_path))
@@ -350,12 +351,12 @@ def sync(
     if isinstance(source, IrodsPath):
         ops = _down_sync_operations(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
-            metadata=metadata
+            metadata=metadata, overwrite=True
         )
     else:
         ops = _up_sync_operations(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
-            depth=max_level)
+            depth=max_level, overwrite=True)
         if metadata is not None:
             ops.add_meta_upload(target, metadata)  # type: ignore
 
@@ -466,8 +467,11 @@ def _param_checks(source, target):
 
 
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
+                          overwrite: bool,
+                          ignore_err: bool = False,
                           copy_empty_folders: bool  =True, depth: Optional[int] = None,
-                          metadata: Union[None, str, Path] = None) -> Operations:
+                          metadata: Union[None, str, Path] = None,
+                          ignore_err: bool = False) -> Operations:
     operations = Operations()
     for ipath in isource_path.walk(depth=depth):
         if metadata is not None:
@@ -475,7 +479,15 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
+<<<<<<< HEAD
                 if not checksums_equal(ipath, lpath):
+=======
+                if not overwrite:
+                    
+                l_chksum = calc_checksum(lpath)
+                i_chksum = calc_checksum(ipath)
+                if i_chksum != l_chksum:
+>>>>>>> ef39748 (Start of work on fix)
                     operations.add_download(ipath, lpath)
             else:
                 operations.add_download(ipath, lpath)
@@ -488,7 +500,9 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
 
 
 def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
-                        copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
+                        overwrite: bool,
+                        copy_empty_folders: bool = True, depth: Optional[int] = None,
+                        ignore_err: bool = False) -> Operations:
     operations = Operations()
     session = idest_path.session
     try:
