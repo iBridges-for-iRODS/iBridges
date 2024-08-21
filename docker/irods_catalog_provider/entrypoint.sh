@@ -36,4 +36,6 @@ su irods -c 'bash -c "./irodsctl stop"'
 
 echo "Starting server"
 cd /usr/sbin
+sed 's/"irods_default_hash_scheme": "SHA256",//g' /var/lib/irods/.irods/irods_environment.json > t.json
+mv t.json /var/lib/irods/.irods/irods_environment.json
 su irods -c 'bash -c "./irodsServer -u"'

@@ -19,7 +19,7 @@ import irods.exception
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
-from ibridges.util import calc_checksum
+from ibridges.util import checksums_equal
 
 NUM_THREADS = 4
 
@@ -112,7 +112,7 @@ def upload(
                 "Use overwrite=True to overwrite the existing file."
             )
 
-        if not (obj_exists and calc_checksum(local_path) == calc_checksum(idest_path)):
+        if not (obj_exists and checksums_equal(idest_path, local_path)):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
@@ -227,7 +227,7 @@ def download(
                 "Use overwrite=True to overwrite the existing file(s)."
             )
         if not (
-            local_path.is_file() and (calc_checksum(irods_path) == calc_checksum(local_path))
+            local_path.is_file() and (checksums_equal(irods_path, local_path))
         ):
             ops.add_download(irods_path, local_path)
         if metadata is not None:
@@ -475,9 +475,7 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
-                l_chksum = calc_checksum(lpath)
-                i_chksum = calc_checksum(ipath)
-                if i_chksum != l_chksum:
+                if not checksums_equal(ipath, lpath):
                     operations.add_download(ipath, lpath)
             else:
                 operations.add_download(ipath, lpath)
@@ -512,10 +510,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
-                l_chksum = calc_checksum(lpath)
-                i_chksum = calc_checksum(ipath)
-
-                if i_chksum != l_chksum:
+                if not checksums_equal(ipath, lpath):
                     operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
