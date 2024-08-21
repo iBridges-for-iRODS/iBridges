@@ -41,10 +41,38 @@ def test_upload_download_dataset(session, testdata):
     assert not is_collection(data_obj)
     with pytest.raises(ValueError):
         _ = ipath.collection
+
+    # Check the overwrite and ignore_err parameters
+    with pytest.raises(FileExistsError):
+        upload(session, testdata/"plant.rtf", IrodsPath(session))
+    ops = upload(session, testdata/"plant.rtf", IrodsPath(session), overwrite=True)
+    assert len(ops.upload) == 0
+    with ipath.open("w") as handle:
+        handle.write("test".encode())
+    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, ignore_err=True)
+    assert len(ops.upload) == 0
+    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, ignore_err=True)
+    assert len(ops.upload) == 1
+
+    # Test downloading it back
     ops = download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
     _check_count(ops, [0, 0, 1, 0])
-    (testdata/"plant.rtf.copy").unlink()
+
+    # Check overwrite and ignore_err parameters
+    lpath = testdata/"plant.rtf.copy"
+    ops = download(session, ipath, lpath, overwrite=True)
+    assert len(ops.download) == 0
+    with pytest.raises(FileExistsError):
+        download(session, ipath, lpath)
+    ops = download(session, ipath, lpath, overwrite=False, ignore_err=True)
+    assert len(ops.download) == 0
+    with ipath.open("w") as handle:
+        handle.write("test".encode())
+    ops = download(session, ipath, lpath, overwrite=True)
+    assert len(ops.download) == 1
+    ipath.remove()
+    lpath.unlink()
 
 
 def test_upload_download_collection(session, testdata, tmpdir):
@@ -57,6 +85,22 @@ def test_upload_download_collection(session, testdata, tmpdir):
     assert not is_dataobject(collection)
     with pytest.raises(ValueError):
         ipath.dataobject
+
+    # Check overwrite and ignore_err parameters
+    with pytest.raises(FileExistsError):
+        upload(session, testdata, ipath)
+    ops = upload(session, testdata, ipath, ignore_err=True)
+    _check_count(ops, [0, 0, 0, 0])
+    bunny_ipath = (ipath / "testdata" / "bunny.rtf")
+    bunny_ipath.remove()
+    ops = upload(session, testdata, ipath, overwrite=True)
+    _check_count(ops, [0, 0, 0, 1])
+    with bunny_ipath.open("w") as handle:
+        handle.write("est".encode())
+    ops = upload(session, testdata, ipath, overwrite=True)
+    _check_count(ops, [0, 0, 0, 1])
+
+    # Check if the downloaded collection is the same again.
     ops = download(session, ipath, tmpdir/"test")
     _check_count(ops, [0, 4, 6, 0])
     files = list(testdata.glob("*"))
@@ -70,6 +114,19 @@ def test_upload_download_collection(session, testdata, tmpdir):
             with open(copy_file, "r") as handle:
                 copy_data = handle.read()
             assert copy_data == orig_data
+
+    # Check overwrite and ignore_err parameters
+    with pytest.raises(FileExistsError):
+        download(session, ipath, tmpdir/"test")
+    ops = download(session, ipath, tmpdir/"test", overwrite=True)
+    _check_count(ops, [0, 0, 0, 0])
+    with bunny_ipath.open("w") as handle:
+        handle.write("testxx".encode())
+    ops = download(session, ipath, tmpdir/"test", ignore_err=True)
+    _check_count(ops, [0, 0, 0, 0])
+    ops = download(session, ipath, tmpdir/"test", overwrite=True)
+    _check_count(ops, [0, 0, 1, 0])
+    ipath.remove()
 
 
 def test_meta_archive(session, testdata, tmpdir):
