@@ -53,6 +53,8 @@ Available subcommands:
         Create the collection and all its parent collections.
     setup:
         Create an iRODS environment file to connect to an iRODS server.
+    search:
+        Search for collections and data objects
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -66,6 +68,9 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+ibridges search --path-pattern "%.txt"
+ibridges search --metadata "key" "value" "units"
+ibridges search --metadata "key" --metadata "key2" "value2"
 ibridges setup uu-its
 
 Reuse a configuration by an alias:
