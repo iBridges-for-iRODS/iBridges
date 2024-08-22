@@ -461,6 +461,8 @@ def _transfer_needed(ipath, lpath, overwrite, ignore_err):
             raise FileExistsError(
                 f"Cannot overwrite {ipath} <-> {lpath} unless overwrite==True. "
                 f"To ignore this error and skip the files use ignore_err==True.")
+        warnings.warn(f"Skipping file/data object {ipath} <-> {lpath} since "
+                      f"both exist and overwrite == False.")
         return False
     if checksums_equal(ipath, lpath):
         return False
