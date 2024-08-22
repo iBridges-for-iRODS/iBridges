@@ -115,12 +115,11 @@ That works without any problems for textual data.
 
 .. code-block:: python
   
-    from ibrigdes import IrodsPath
+    from ibridges import IrodsPath
   
   	obj_path = IrodsPath(session, "path", "to", "object")
   	
-  	content = ''
-  	with obj_path.dataobject.open('r') as stream:
+  	with obj_path.open('r') as stream:
   	    content = stream.read().decode()
 	
 	
@@ -128,10 +127,8 @@ Some python libraries allow to be instantiated directly from such a stream. This
 
 .. code-block:: python
 
-	from io import StringIO
-    imort pandas as pd
+    import pandas as pd
 
-	df = None
-	with obj_path.dataobject.open('r') as stream:
-		df = pd.read_csv(StringIO(stream.read().decode()))
+	with obj_path.open('r') as stream:
+		df = pd.read_csv(stream)
 	print(df)

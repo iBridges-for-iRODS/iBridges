@@ -19,7 +19,7 @@ import irods.exception
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
-from ibridges.util import calc_checksum
+from ibridges.util import checksums_equal
 
 NUM_THREADS = 4
 
@@ -94,25 +94,20 @@ def upload(
     ops = Operations()
     if local_path.is_dir():
         idest_path = ipath / local_path.name
-        if not overwrite and idest_path.exists():
-            raise FileExistsError(f"{idest_path} already exists.")
+        if not overwrite and idest_path.dataobject_exists():
+            raise FileExistsError(f"Data object {idest_path} already exists.")
         ops = _up_sync_operations(
-            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None
+            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
+            overwrite=overwrite, ignore_err=ignore_err
         )
-        ops.add_create_coll(idest_path)
+        if not idest_path.collection_exists():
+            ops.add_create_coll(idest_path)
         if not ipath.collection_exists():
             ops.add_create_coll(ipath)
     elif local_path.is_file():
         idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
         obj_exists = idest_path.dataobject_exists()
-
-        if obj_exists and not overwrite:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            )
-
-        if not (obj_exists and calc_checksum(local_path) == calc_checksum(idest_path)):
+        if not obj_exists or _transfer_needed(idest_path, local_path, overwrite, ignore_err):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
@@ -212,7 +207,8 @@ def download(
 
         ops = _down_sync_operations(
             irods_path, local_path / irods_path.name, metadata=metadata,
-            copy_empty_folders=copy_empty_folders
+            copy_empty_folders=copy_empty_folders, overwrite=overwrite,
+            ignore_err=ignore_err
         )
         if not local_path.is_dir():
             ops.add_create_dir(Path(local_path))
@@ -221,14 +217,8 @@ def download(
 
         if local_path.is_dir():
             local_path = local_path / irods_path.name
-        if (not overwrite) and local_path.is_file():
-            raise FileExistsError(
-                f"File or directory {local_path} already exists. "
-                "Use overwrite=True to overwrite the existing file(s)."
-            )
-        if not (
-            local_path.is_file() and (calc_checksum(irods_path) == calc_checksum(local_path))
-        ):
+        if not local_path.is_file() or _transfer_needed(
+                irods_path, local_path, overwrite, ignore_err):
             ops.add_download(irods_path, local_path)
         if metadata is not None:
             ops.add_meta_download(irods_path, irods_path, metadata)
@@ -350,12 +340,12 @@ def sync(
     if isinstance(source, IrodsPath):
         ops = _down_sync_operations(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
-            metadata=metadata
+            metadata=metadata, overwrite=True
         )
     else:
         ops = _up_sync_operations(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
-            depth=max_level)
+            depth=max_level, overwrite=True)
         if metadata is not None:
             ops.add_meta_upload(target, metadata)  # type: ignore
 
@@ -465,7 +455,23 @@ def _param_checks(source, target):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
 
+def _transfer_needed(ipath, lpath, overwrite, ignore_err):
+    if not overwrite:
+        if not ignore_err:
+            raise FileExistsError(
+                f"Cannot overwrite {ipath} <-> {lpath} unless overwrite==True. "
+                f"To ignore this error and skip the files use ignore_err==True.")
+        warnings.warn(f"Skipping file/data object {ipath} <-> {lpath} since "
+                      f"both exist and overwrite == False.")
+        return False
+    if checksums_equal(ipath, lpath):
+        return False
+    return True
+
+
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
+                          overwrite: bool,
+                          ignore_err: bool = False,
                           copy_empty_folders: bool  =True, depth: Optional[int] = None,
                           metadata: Union[None, str, Path] = None) -> Operations:
     operations = Operations()
@@ -475,9 +481,7 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
-                l_chksum = calc_checksum(lpath)
-                i_chksum = calc_checksum(ipath)
-                if i_chksum != l_chksum:
+                if _transfer_needed(ipath, lpath, overwrite, ignore_err):
                     operations.add_download(ipath, lpath)
             else:
                 operations.add_download(ipath, lpath)
@@ -490,7 +494,9 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
 
 
 def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
-                        copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
+                        overwrite: bool,
+                        copy_empty_folders: bool = True, depth: Optional[int] = None,
+                        ignore_err: bool = False) -> Operations:
     operations = Operations()
     session = idest_path.session
     try:
@@ -512,10 +518,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
-                l_chksum = calc_checksum(lpath)
-                i_chksum = calc_checksum(ipath)
-
-                if i_chksum != l_chksum:
+                if _transfer_needed(ipath, lpath, overwrite, ignore_err):
                     operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))

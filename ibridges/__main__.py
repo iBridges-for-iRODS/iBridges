@@ -5,12 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Optional, Union
 
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
 from ibridges.path import IrodsPath
+from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.util import (
     find_environment_provider,
@@ -51,6 +53,8 @@ Available subcommands:
         Create the collection and all its parent collections.
     setup:
         Create an iRODS environment file to connect to an iRODS server.
+    search:
+        Search for collections and data objects
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify metadata on the irods server.
@@ -64,6 +68,9 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+ibridges search --path-pattern "%.txt"
+ibridges search --metadata "key" "value" "units"
+ibridges search --metadata "key" --metadata "key2" "value2"
 ibridges setup uu-its
 
 Reuse a configuration by an alias:
@@ -107,6 +114,8 @@ def main() -> None:
         ibridges_tree()
     elif subcommand == "setup":
         ibridges_setup()
+    elif subcommand == "search":
+        ibridges_search()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -672,3 +681,70 @@ def ibridges_tree():
         if args.depth is not None:
             print_str += " (possibly more at higher depths)"
         print(print_str)
+
+
+def ibridges_search():
+    """Search for collections and objects using constraints."""
+    epilog = """Examples:
+
+ibridges search --path-pattern "%.txt"
+ibridges search --checksum "sha2:5dfasd%"
+ibridges search --metadata "key" "value" "units"
+ibridges search --metadata "key" --metadata "key2" "value2"
+ibridges search irods:some_collection --item_type data_object
+ibridges search irods:some_collection --item_type collection
+"""
+    parser = argparse.ArgumentParser(
+        prog="ibridges search",
+        description="Search for dataobjects and collections.",
+        epilog=epilog,
+        formatter_class=RawTextHelpFormatter,
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Remote path to search inn. The path itself will not be matched.",
+        type=str,
+        default=None,
+        nargs="?"
+    )
+    parser.add_argument(
+        "--path-pattern",
+        default=None,
+        type=str,
+        help=("Pattern of the path constraint. For example, use '%%.txt' to find all data objects"
+              " and collections that end with .txt. You can also use the name of the item here "
+              "to find all items with that name.")
+    )
+    parser.add_argument(
+        "--checksum",
+        default=None,
+        type=str,
+        help="Checksum of the data objects to be found."
+    )
+    parser.add_argument(
+        "--metadata",
+        nargs="+",
+        action="append",
+        help="Constrain the results using metadata, see examples. Can be used multiple times.",
+    )
+    parser.add_argument(
+        "--item_type",
+        type=str,
+        default=None,
+        help="Use data_object or collection to show only items of that type. By default all items"
+        " are returned."
+    )
+
+    args = parser.parse_args()
+    with _cli_auth(ienv_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        search_res = search_data(
+            session,
+            ipath,
+            path_pattern=args.path_pattern,
+            checksum=args.checksum,
+            metadata=args.metadata,
+            item_type=args.item_type,
+        )
+        for cur_path in search_res:
+            print(cur_path)

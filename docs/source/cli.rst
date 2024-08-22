@@ -9,6 +9,15 @@ in your shell script without having to create a new python script.
 
 .. note::
 
+    All of the subcommands mentioned below have a :code:`--help` flag to explain
+    how the subcommand works:
+
+    .. code:: shell
+
+        ibridges <subcommand> --help
+
+.. note::
+
     There are no CLI commands to add/change metadata, instead use the iBridges API for this.
 
 
@@ -162,8 +171,106 @@ that are missing or have a different checksum (content).
     ibridges sync some_local_directory "irods:~/remote_collection"
 
 
-.. note::
+.. warning::
 
     The order of the directory/collection that you supply to :code:`ibridges sync` matters. The first argument is the `source`
     directory/collection, while the second argument is the `destination` directory/collection. Transfers will only happen
     from `source` to `destination`, so extra or updated files in the `destination` directory will not be transferred.
+
+
+Searching for data
+------------------
+
+It can be helpful to search for data if the exact location is not known. This is done
+using the :code:`search` subcommand. There are four different criteria types for searching:
+path pattern, checksum, metadata and item type. By default, the search is conducted in the home directory,
+but this can be modified by supplying a remote path:
+
+.. code:: shell
+
+    ibridges search irods:some_collection # Search criteria after this
+
+.. note::
+
+    The different matching criteria can be combined. If they are combined all of the
+    criteria must be true for the item to show up in the list.
+
+Searching by path pattern
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Searching by path pattern can search for full or partial names of objects and collections.
+For example, to find all :code:`.txt` data objects:
+
+.. code:: shell
+
+    ibridges search --path-pattern "%.txt"
+    
+Find all :code:`.txt` data objects in a collection :code:`demo`
+
+.. code:: shell
+
+    ibridges search --path-pattern "%/demo/%.txt"
+
+
+Searching by checksum
+^^^^^^^^^^^^^^^^^^^^^
+
+Searching for checksum can be useful to find duplicates of data objects:
+
+.. code:: shell
+
+    ibridges search --checksum "5dfasd%"
+
+
+Searching by metadata
+^^^^^^^^^^^^^^^^^^^^^
+
+Metadata can make data more findable. For example, to find all data objects and
+collections that have a metadata entry "key":
+
+
+.. code:: shell
+
+    ibridges search --metadata "key"
+
+The same can be done for finding metadata with a certain key/value pair:
+
+.. code:: shell
+
+    ibridges search --metadata "key" "value"
+
+Wildcards (:code:`%`) can be particularly useful. For example if we want to
+find items with units "kg", we can do:
+
+.. code:: shell
+
+    ibridges search --metadata "%" "%" "kg"
+
+The metadata criterium can be used multiple times:
+
+.. code:: shell
+
+    ibridges search --metadata "key" "value" --metadata "key2" "value2"
+
+Note that in the above example, it is not sufficient for the item to contain
+the keys "key" and "key2", and the values "value" and "value2": the entries
+must have the key/value pairs as indicated in the command.
+
+
+Searching by item type
+^^^^^^^^^^^^^^^^^^^^^^
+
+By default, the search will return both data objects and collections.
+Sometimes it might be useful to only search for collections or data objects.
+In this case, you can use the :code:`--item_type` flag:
+
+
+.. code:: shell
+
+    ibridges search --metadata "key" --item_type collection
+
+or
+
+.. code:: shell
+
+    ibridges search --metadata "key" --item_type data_object

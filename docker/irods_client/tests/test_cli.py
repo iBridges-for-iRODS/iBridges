@@ -4,6 +4,7 @@ import subprocess
 from pathlib import Path
 
 import pytest
+from pytest import mark
 
 from ibridges import IrodsPath
 from ibridges.data_operations import create_collection
@@ -20,7 +21,8 @@ def pass_opts(config):
             or config.get("has_cached_pw", False)):
         pass_opts = {}
     else:
-        pass_opts = {"input": config["password"].encode()}
+        pass_opts = {"input": config["password"]}
+    pass_opts["text"] = True
     pass_opts["check"] = True
     return pass_opts
 
@@ -71,6 +73,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
 
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
     (testdata/"plant2.rtf").unlink()
+    ipath.remove()
 
     # Upload a directory and check if the dataobjects and collections are created.
     ipath = IrodsPath(session, "~", "test")
@@ -91,6 +94,8 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
+    ipath.remove()
+
 
 def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_file, pass_opts):
     ipath_collection = IrodsPath(session, "meta_test")
@@ -125,8 +130,47 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
     ipath_collection.remove()
 
 
-def test_list_cli(config, pass_opts, irods_env_file):
+def test_list_cli(config, pass_opts, irods_env_file, collection):
     # Check if the listing works without any errors.
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     subprocess.run(["ibridges", "list"], **pass_opts)
-    subprocess.run(["ibridges", "list", "irods:test"], **pass_opts)
+    subprocess.run(["ibridges", "list", f"irods:{collection.path}"], **pass_opts)
+
+
+@mark.parametrize(
+    "search,nlines",
+    [
+        (["--path-pattern", "test_search"], 1),
+        (["--path-pattern", "test_search2"], 0),
+        (["--path-pattern", "test_search/%"], 6),
+        (["--path-pattern", "test_search/%/%"], 1),
+        (["--path-pattern", "%.rtf"], 4),
+        (["--checksum", "sha2:uJzC+gqi59rVJu8PoBAaTstNUUnFMxW9HsJzsJUb1ao="], 1),
+        (["--checksum", "sha2:uJzC+gqi5%"], 1),
+        (["--path-pattern", "%", "--item_type", "data_object"], 6),
+        (["--path-pattern", "%", "--item_type", "collection"], 2),
+        (["--path-pattern", "%/%", "--item_type", "collection"], 2),
+        (["--metadata", "search"], 1),
+        (["--metadata", "search", "sval", "kg"], 1),
+        (["--metadata", "search", "--metadata", "search2"], 1),
+        (["--metadata", "search", "--metadata", "does not exist"], 0),
+    ]
+)
+def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search, nlines):
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
+    ipath_coll = IrodsPath(session, "test_search_x", "test_search")
+    IrodsPath.create_collection(session, ipath_coll)
+    subprocess.run(["ibridges", "sync", testdata, "irods:test_search_x/test_search"], **pass_opts)
+    assert ipath_coll.collection_exists()
+    ipath_coll.meta.clear()
+    ipath_coll.meta.add("search", "sval", "kg")
+    ipath_coll.meta.add("search2", "small")
+
+    ret = subprocess.run(["ibridges", "search", "irods:test_search_x", *search], capture_output=True,
+                         **pass_opts)
+    stripped_str = ret.stdout.strip("\n")
+    if stripped_str == "":
+        assert nlines == 0
+    else:
+        assert len([x for x in stripped_str.split("\n") if not x.startswith("Your iRODS")]) == nlines
+    ipath_coll.remove()

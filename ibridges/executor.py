@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import warnings
 from collections import defaultdict
+from inspect import signature
 from pathlib import Path
 from typing import Optional, Union
 
@@ -12,6 +13,7 @@ import irods.data_object
 import irods.exception
 import irods.keywords as kw
 from tqdm import tqdm
+from tqdm.std import tqdm as tqdm_type
 
 from ibridges.path import IrodsPath
 from ibridges.session import Session
@@ -171,13 +173,13 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         )
         self.execute_create_dir()
         self.execute_create_coll(session)
-        self.execute_download(session, down_sizes, pbar, ignore_err=ignore_err)
-        self.execute_upload(session, up_sizes, pbar, ignore_err=ignore_err)
+        self.execute_download(session, pbar, ignore_err=ignore_err)
+        self.execute_upload(session, pbar, ignore_err=ignore_err)
         self.execute_meta_download()
         self.execute_meta_upload()
 
-    def execute_download(self, session: Session, down_sizes: list[int],
-                         pbar, ignore_err: bool = False):
+    def execute_download(self, session: Session,
+                         pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all download operations.
 
         Parameters
@@ -192,7 +194,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Whether to ignore errors when encountered, by default False.
 
         """
-        for (ipath, lpath), size in zip(self.download, down_sizes):
+        for ipath, lpath in self.download:
             _obj_get(
                 session,
                 ipath,
@@ -201,11 +203,11 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 ignore_err=ignore_err,
                 options=self.options,
                 resc_name=self.resc_name,
+                pbar=pbar,
             )
-            pbar.update(size)
 
-    def execute_upload(self, session: Session, up_sizes: list[int],
-                       pbar, ignore_err: bool = False):
+    def execute_upload(self, session: Session,
+                       pbar: Optional[tqdm_type], ignore_err: bool = False):
         """Execute all upload operations.
 
         Parameters
@@ -220,7 +222,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Whether to ignore errors when encountered, by default False.
 
         """
-        for (lpath, ipath), size in zip(self.upload, up_sizes):
+        for lpath, ipath in self.upload:
             _obj_put(
                 session,
                 lpath,
@@ -229,8 +231,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 ignore_err=ignore_err,
                 options=self.options,
                 resc_name=self.resc_name,
+                pbar=pbar,
             )
-            pbar.update(size)
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
@@ -326,7 +328,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         print("\n\n".join(summary_strings))
 
 
-def _obj_put(
+def _obj_put(  # pylint: disable=too-many-branches
     session: Session,
     local_path: Union[str, Path],
     irods_path: Union[str, IrodsPath],
@@ -334,6 +336,7 @@ def _obj_put(
     resc_name: str = "",
     options: Optional[dict] = None,
     ignore_err: bool = False,
+    pbar: Optional[tqdm_type] = None,
 ):
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
@@ -353,6 +356,8 @@ def _obj_put(
         Extra options to the python irodsclient put method.
     ignore_err:
         If True, convert errors into warnings.
+    pbar:
+        Optional progress bar.
 
     """
     local_path = Path(local_path)
@@ -375,6 +380,13 @@ def _obj_put(
         options = {}
     options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
 
+    if pbar is not None:
+        upd_put = "updatables" in signature(session.irods_session.data_objects.put).parameters
+        if upd_put:
+            options["updatables"] = [pbar.update]
+
+    if overwrite:
+        options[kw.FORCE_FLAG_KW] = ""
     if resc_name not in ["", None]:
         options[kw.RESC_NAME_KW] = resc_name
     if overwrite or not obj_exists:
@@ -391,18 +403,25 @@ def _obj_put(
                 raise PermissionError(err_msg) from error
             warnings.warn(err_msg)
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            ) from error
+            # This should generally not occur, but a race condition might trigger this.
+            # obj does not exist -> someone else writes to object -> overwrite error
+            if not ignore_err:
+                raise FileExistsError(
+                    f"Dataset {irods_path} already exists. "
+                    "Use overwrite=True to overwrite the existing file."
+                    "This error might be the result of simultaneous writing "
+                    "to the same data object."
+                ) from error
     else:
         if not ignore_err:
             raise FileExistsError(
                 f"Dataset {irods_path} already exists. "
                 "Use overwrite=True to overwrite the existing file."
             )
-        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}'.")
-
+        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}',"
+                      "it already exists. Use overwrite=False to suppress this warning.")
+    if pbar is not None and not upd_put:
+        pbar.update(IrodsPath(session, irods_path).size)
 
 
 def _obj_get(
@@ -413,6 +432,7 @@ def _obj_get(
     resc_name: Optional[str] = "",
     options: Optional[dict] = None,
     ignore_err: bool = False,
+    pbar: Optional[tqdm_type] = None,
 ):
     """Download `irods_path` to `local_path` following iRODS `options`.
 
@@ -432,6 +452,8 @@ def _obj_get(
         Extra options to the python irodsclient get method.
     ignore_err:
         If True, convert errors into warnings.
+    pbar:
+        Optional progress bar.
 
     """
     if options is None:
@@ -446,6 +468,12 @@ def _obj_get(
         options[kw.FORCE_FLAG_KW] = ""
     if resc_name not in ["", None]:
         options[kw.RESC_NAME_KW] = resc_name
+
+    # Compatibility with PRC<2.1
+    if pbar is not None:
+        upd_put = "updatables" in signature(session.irods_session.data_objects.put).parameters
+        if upd_put:
+            options["updatables"] = [pbar.update]
 
     # Quick fix for #126
     if Path(local_path).is_dir():
@@ -463,6 +491,8 @@ def _obj_get(
         if not ignore_err:
             raise PermissionError(msg) from exc
         warnings.warn(msg)
+    if pbar is not None and not upd_put:
+        pbar.update(IrodsPath(session, irods_path).size)
 
 
 def _add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):

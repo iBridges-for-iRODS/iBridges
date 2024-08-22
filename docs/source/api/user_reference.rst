@@ -55,6 +55,7 @@ Searching for data
     :toctree: generated/
 
     search_data
+    MetaSearch
 
 
 Tickets

@@ -39,7 +39,6 @@ def config(config_dir):
 @pytest.fixture(scope="session")
 def session(irods_env, config):
     session = Session(irods_env=irods_env, password=config["password"])
-    ipath = IrodsPath(session, "~")
     yield session
     del session
 
@@ -51,7 +50,9 @@ def testdata():
 
 @pytest.fixture(scope="session")
 def collection(session):
-    return create_collection(session, IrodsPath(session, "~", "test_collection"))
+    coll = create_collection(session, IrodsPath(session, "~", "test_collection"))
+    yield coll
+    IrodsPath(session, coll.path).remove()
 
 
 @pytest.fixture(scope="session")
