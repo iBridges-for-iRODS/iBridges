@@ -1,4 +1,4 @@
-# iBridges <img src="https://github.com/UtrechtUniversity/iBridges/blob/readme/docs/logo.png?raw=true" width="150" align="right">
+# iBridges <img src="https://github.com/UtrechtUniversity/iBridges/blob/main/docs/logo.png?raw=true" width="150" align="right">
 iBridges is a library for scientific programmers who are working with data in iRODS. We provide a wrapper around the [python-irodsclient](https://pypi.org/project/python-irodsclient/) to facilitate easy interaction with the iRODS server. iBridges is currently still in very active development.
 
 [![PyPI version](https://badge.fury.io/py/ibridges.svg)](https://badge.fury.io/py/ibridges)
