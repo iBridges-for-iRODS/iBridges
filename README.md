@@ -20,7 +20,7 @@ iBridges is a library for scientific programmers who are working with data in iR
 - Small number of dependencies (`python-irodsclient` and `tqdm`)
 - Safe default options when working with your data.
 
-**iBridges** also has a braphicl user interface, which you can install [here](https://github.com/chStaiger/iBridges-Gui).
+**iBridges** also has a graphical user interface, which you can install [here](https://github.com/chStaiger/iBridges-Gui).
 
 
  <p align="center">
