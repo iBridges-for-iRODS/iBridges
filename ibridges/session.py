@@ -88,12 +88,13 @@ class Session:
                 f"expected dictionary, got {type(irods_env)}."
             )
 
-        self.connection_timeout = int(irods_env.pop("connection_timeout", 25000))
-        print(self.connection_timeout)
-        if self.connection_timeout > 9208512000:
-            warnings.warn(f"'connection_timeout' too high. Setting it to 9208512000 seconds.")
-            self.connection_timeout = 9208512000
-
+        try:
+            self.connection_timeout = int(irods_env.pop("connection_timeout", 25000))
+            if self.connection_timeout > 9208512000:
+                warnings.warn(f"'connection_timeout' too high. Setting it to 9208512000 seconds.")
+                self.connection_timeout = 9208512000
+        except ValueError as err:
+            raise ValueError(f"'connection_timeout' in irods_environment settings must be integer.")
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
