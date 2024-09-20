@@ -49,4 +49,8 @@ This error is most likely to happen if you try to transfer a large file. The def
 which translates to roughly 7 hours. This should not cause issues during the actual transfer. However, if the calculation
 of the checksum takes more than 7 hours (if the iRODS server is busy for example, or the file is many terabytes), then 
 you will get a network error. The checksum itself should still be created. You can increase the timeout in your `irods_environment.json`
-file by adding a new entry with :code:`"connection_timeout": 99999999999,`. 
+file by adding a new entry with :code:`"connection_timeout": <time in seconds>,`.
+
+Note, that the **maximum number equals to 292 years**, i.e. `"connection_timeout": 9208512000,`.
+
+ 
