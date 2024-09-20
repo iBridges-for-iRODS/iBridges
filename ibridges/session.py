@@ -91,10 +91,10 @@ class Session:
         try:
             self.connection_timeout = int(irods_env.pop("connection_timeout", 25000))
             if self.connection_timeout > 9208512000:
-                warnings.warn(f"'connection_timeout' too high. Setting it to 9208512000 seconds.")
+                warnings.warn("'connection_timeout' too high. Setting it to 9208512000 seconds.")
                 self.connection_timeout = 9208512000
         except ValueError as err:
-            raise ValueError(f"'connection_timeout' in irods_environment settings must be integer.")
+            raise ValueError("'connection_timeout' in irods_environment must be integer.") from err
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
