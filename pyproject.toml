@@ -68,7 +68,7 @@ module = [
 ignore_missing_imports = true
 
 [tool.pylint.'MASTER']
- ignore-patterns="_version.py"
+ignore-patterns="_version.py"
 
 [tool.pylint.'BASIC']
 good-names=["e", "f", "m"]
@@ -78,6 +78,9 @@ good-names=["e", "f", "m"]
 max-line-length=100
 max-locals=35
 max-args=10
+
+[tool.pylint.'MESSAGES CONTROL']
+disable="too-many-positional-arguments"
 
 [tool.ruff]
 exclude = ["_version.py"]
