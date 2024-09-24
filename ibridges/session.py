@@ -87,8 +87,10 @@ class Session:
                 f"Error reading environment file '{irods_env_path}': "
                 f"expected dictionary, got {type(irods_env)}."
             )
-
-        self.connection_timeout = irods_env.pop("connection_timeout", 25000)
+        try:
+            self.connection_timeout = int(irods_env.pop("connection_timeout", 25000))
+        except TypeError as err:
+            raise ValueError("'connection_timeout' in irods_environment must be integer.") from err
 
         self._password = password
         self._irods_env: dict = irods_env
