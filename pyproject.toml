@@ -46,7 +46,6 @@ test = [
     "mypy",
     "types-tqdm",
 ]
-
 docs = [
     "sphinx<8",
     "sphinx-rtd-theme",

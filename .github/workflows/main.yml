@@ -26,14 +26,21 @@ jobs:
             python-version: "3.12"
     runs-on: ${{ matrix.os }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: |
-          pip install .[test]
+          pip install --upgrade pip
+          pip install ".[test]"
+
       - name: Test with pytest
         run: |
           pytest tests
@@ -48,7 +55,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install .[test]
+          pip install --upgrade pip
+          pip install ".[test]"
 
       - name: Lint with Ruff
         run: |
@@ -74,7 +82,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install .[docs]
+          pip install ".[docs]"
+
       - name: Check if documentation builds.
         run: |
           cd docs; make html SPHINXOPTS="--keep-going"
