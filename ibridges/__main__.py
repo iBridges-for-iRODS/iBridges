@@ -1,5 +1,6 @@
 """Command line tools for the iBridges library."""
 
+from __future__ import annotations
 
 import argparse
 import json
