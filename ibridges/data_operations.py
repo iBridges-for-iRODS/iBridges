@@ -5,7 +5,6 @@ Also includes operations for creating a local metadata archive and using this ar
 to set the metadata.
 """
 
-from __future__ import annotations
 
 import os
 import warnings

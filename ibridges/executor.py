@@ -1,5 +1,4 @@
 """Operations to be performed for upload/download/sync."""
-from __future__ import annotations
 
 import json
 import warnings

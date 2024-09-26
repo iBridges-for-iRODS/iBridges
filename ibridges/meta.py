@@ -1,6 +1,5 @@
 """Operations to directly manipulate metadata on the iRODS server."""
 
-from __future__ import annotations
 
 import re
 import warnings

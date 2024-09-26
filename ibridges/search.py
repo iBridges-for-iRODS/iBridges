@@ -1,6 +1,5 @@
 """Search for data and metadata on the iRODS server."""
 
-from __future__ import annotations
 
 from collections import namedtuple
 from typing import Optional, Union

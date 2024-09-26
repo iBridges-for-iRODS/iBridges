@@ -1,6 +1,5 @@
 """A class to handle iRODS paths."""
 
-from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import PurePosixPath
