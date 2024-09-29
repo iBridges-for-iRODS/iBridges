@@ -43,6 +43,7 @@ def search_data(  # pylint: disable=too-many-branches
     checksum: Optional[str] = None,
     metadata: Union[None, MetaSearch, list[MetaSearch], list[tuple]] = None,
     item_type: Optional[str] = None,
+    case_sensitive: bool = False
 ) -> list[IrodsPath]:
     """Search for collections, data objects and metadata.
 
@@ -72,6 +73,8 @@ def search_data(  # pylint: disable=too-many-branches
     item_type:
         Type of the item to search for, by default None indicating both data objects and collections
         are returned. Set to "data_object" for data objects and "collection" for collections.
+    case_sensitive:
+        Case sensitive search for Paths and metadata. Default: False
 
     Raises
     ------
@@ -148,17 +151,21 @@ def search_data(  # pylint: disable=too-many-branches
     queries = []
     if item_type != "data_object" and checksum is None:
         # create the query for collections; we only want to return the collection name
-        coll_query = session.irods_session.query(icat.COLL_NAME)
+        coll_query = session.irods_session.query(icat.COLL_NAME, case_sensitive = case_sensitive)
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((coll_query, "collection"))
     if item_type != "collection":
         # create the query for data objects; we need the collection name, the data name and checksum
-        data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME, icat.DATA_CHECKSUM)
+        data_query = session.irods_session.query(icat.COLL_NAME,
+                                                 icat.DATA_NAME,
+                                                 icat.DATA_CHECKSUM,
+                                                 case_sensitive = case_sensitive)
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
 
         data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
-                                                    icat.DATA_CHECKSUM)
+                                                      icat.DATA_CHECKSUM,
+                                                      case_sensitive = case_sensitive)
         data_name_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}"))
         queries.append((data_name_query, "data_object"))
 
