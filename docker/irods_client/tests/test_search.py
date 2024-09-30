@@ -73,3 +73,10 @@ def test_find_case_ins_meta(session, item_name, request, metadata, is_found):
 
     res = _found(search_data(session, metadata=metadata), ipath)
     assert res == is_found
+
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_find_case_ins_path(session, item_name, request):
+    item = request.getfixturevalue(item_name)
+    ipath = IrodsPath(session, item.path)
+    assert _found(search_data(session, path_pattern=item.name.upper()), item.path)
