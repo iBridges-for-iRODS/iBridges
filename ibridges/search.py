@@ -151,7 +151,7 @@ def search_data(  # pylint: disable=too-many-branches
     queries = []
     if item_type != "data_object" and checksum is None:
         # create the query for collections; we only want to return the collection name
-        coll_query = session.irods_session.query(icat.COLL_NAME, case_sensitive = case_sensitive)
+        coll_query = session.irods_session.query(icat.COLL_NAME, case_sensitive=case_sensitive)
         coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((coll_query, "collection"))
     if item_type != "collection":
