@@ -45,11 +45,26 @@ def test_find_checksum(session, dataobject):
     (MetaSearch(key="Author", value="10"), False),
     (MetaSearch(key="Author", units="kg"), False),
     (MetaSearch(key="Mass", units=None), False),
-    ([MetaSearch(key="Author"), MetaSearch(value="10")], True),
+    ([MetaSearch(key="author"), MetaSearch(value="10")], True),
     ([MetaSearch("Author"), MetaSearch("Random")], False),
 ])
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_find_meta(session, item_name, request, metadata, is_found):
+    item = request.getfixturevalue(item_name)
+    ipath = IrodsPath(session, item.path)
+    ipath.meta.clear()
+    ipath.meta.add("Author", "Ben")
+    ipath.meta.add("Mass", "10", "kg")
+
+    res = _found(search_data(session, metadata=metadata), ipath)
+    assert res == is_found
+
+@mark.parametrize("metadata,is_found", [
+    (MetaSearch("author", "Ben"), True),
+    (MetaSearch(units="KG"), True)
+])
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_find_case_ins_meta(session, item_name, request, metadata, is_found):
     item = request.getfixturevalue(item_name)
     ipath = IrodsPath(session, item.path)
     ipath.meta.clear()
