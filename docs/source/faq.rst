@@ -83,10 +83,10 @@ iBridges tries to prevent overwriting data by accident. However, sometimes data 
 
 Warnings can also be switched off through python's `warnings` package:
 
-```py
+.. code-block:: python
+
 import warnings
-warnings.filterwarnings("ignore")ß
-```
+warnings.filterwarnings("ignore")
 
 **My metadata with keys starting with `org_` do not show up in the iBridges metadata.**
 ---------------------------------------------------------------------------------------
