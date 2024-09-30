@@ -45,7 +45,7 @@ def test_find_checksum(session, dataobject):
     (MetaSearch(key="Author", value="10"), False),
     (MetaSearch(key="Author", units="kg"), False),
     (MetaSearch(key="Mass", units=None), False),
-    ([MetaSearch(key="author"), MetaSearch(value="10")], True),
+    ([MetaSearch(key="Author"), MetaSearch(value="10")], True),
     ([MetaSearch("Author"), MetaSearch("Random")], False),
 ])
 @mark.parametrize("item_name", ["collection", "dataobject"])
