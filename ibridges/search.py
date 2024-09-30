@@ -159,7 +159,7 @@ def search_data(  # pylint: disable=too-many-branches
         data_query = session.irods_session.query(icat.COLL_NAME,
                                                  icat.DATA_NAME,
                                                  icat.DATA_CHECKSUM,
-                                                 case_sensitive = case_sensitive)
+                                                 case_sensitive=case_sensitive)
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
 
