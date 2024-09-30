@@ -1,3 +1,4 @@
+import pytest
 from pytest import mark
 
 from ibridges import IrodsPath, search_data, upload
