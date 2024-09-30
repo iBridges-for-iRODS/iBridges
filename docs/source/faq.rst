@@ -54,3 +54,41 @@ file by adding a new entry with :code:`"connection_timeout": <time in seconds>,`
 Note, that the **maximum number equals to 292 years**, i.e. `"connection_timeout": 9208512000,`.
 
  
+**During data transfers I receive warnings or errors. How can I steer the verbosity?**
+--------------------------------------------------------------------------------------
+
+iBridges tries to prevent overwriting data by accident. However, sometimes data needs to be overwritten. In those cases iBridges informs the user that data has been overwritten. To steer the behaviour we implemented the flags `overwrite` and `ignore_err` in the data transfer functions `sync`, `upload` and `download`:
+
+.. list-table:: Data transfer flags
+   :widths: 15 15 25
+   :header-rows: 1
+   
+   * - `overwrite`
+     - `ignore_err`
+     - Outcome
+   * - `False`
+     - `False`
+     - Throws `FileExistsError` if data already exists.
+   * - `True`
+     - `False`
+     - | Overwrite existing data. 
+       | Other errors are thrown.
+   * - `False`
+     - `True`
+     - Skip the data which already exists and print a warning.
+   * - `True`
+     - `True`
+     - | Overwrite existing data.
+       | All errors are turned into warning.
+
+Warnings can also be switched off through python's `warnings` package:
+
+.. code-block:: python
+
+   import warnings
+   warnings.filterwarnings("ignore")
+
+**My metadata with keys starting with `org_` do not show up in the iBridges metadata.**
+---------------------------------------------------------------------------------------
+
+iBridges **does not show** metadata that contain a key starting with the prefix `org_`. This is due to data security reasons on `Yoda systems <https://github.com/UtrechtUniversity/yoda>`__.
