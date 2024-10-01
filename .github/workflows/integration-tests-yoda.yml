@@ -7,10 +7,12 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'tutorials/**'
+      - 'README.md'
   pull_request:
     paths-ignore:
       - 'docs/**'
       - 'tutorials/**'
+      - 'README.md'
 
 jobs:
   build:
