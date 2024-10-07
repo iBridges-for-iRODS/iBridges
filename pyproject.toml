@@ -45,11 +45,15 @@ test = [
     "ruff",
     "mypy",
     "types-tqdm",
-    "sphinx<8", "sphinx-rtd-theme", "sphinxcontrib-napoleon",
-    "sphinx-autodoc-typehints", "sphinx_inline_tabs", "sphinx_copybutton",
-    "ruff"
 ]
-
+docs = [
+    "sphinx<8",
+    "sphinx-rtd-theme",
+    "sphinxcontrib-napoleon",
+    "sphinx-autodoc-typehints",
+    "sphinx_inline_tabs",
+    "sphinx_copybutton",
+]
 
 [project.scripts]
 ibridges = "ibridges.__main__:main"
