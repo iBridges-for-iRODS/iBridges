@@ -4,6 +4,7 @@ irods-basicGUI/logs/*
 irods-iBridgesGui.spec
 *DS_Store
 docs/source/api/generated
+docs/outputdir
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

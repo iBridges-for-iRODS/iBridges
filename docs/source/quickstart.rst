@@ -7,7 +7,7 @@ Python Installation
 
 iBridges requires Python version 3.8 or higher. There are many ways to install Python, also depending on your operating system.
 Any of these methods can work, but the path/environment needs to be set correctly so that the commands below work. For users
-that are completely unfamiliar with Python and have never installed it, we recommend the installing `Anaconda <https://www.anaconda.com/download/success>`__.
+that are completely unfamiliar with Python and have never installed it, we recommend installing `Anaconda <https://www.anaconda.com/download/success>`__.
 
 .. note::
     Beware of the difference between the command line prompt and the python console. The command line prompt, which might also be called
@@ -17,7 +17,7 @@ that are completely unfamiliar with Python and have never installed it, we recom
 
 To check whether your installation works correctly you can execute the following commands on the command line:
 
-.. code::bash
+.. code:: bash
 
     python --version
     pip --version
@@ -92,7 +92,7 @@ Please ask your iRODS admin or service provider how to set up the `irods_environ
 Connecting to your iRODS server
 -------------------------------
 
-To connect to your iRods server, we will create a session. The session is the central object in the iBridges library;
+To connect to your iRODS server, we will create a session. The session is the central object in the iBridges library;
 almost all functionality is enabled with this connection to your server. Generally you will create a session,
 perform your data operations, and then delete/close the session. To create a new session, open Python:
 
@@ -115,7 +115,7 @@ You can easily upload your data with the previously created session:
 
     upload(session, "/your/local/path", "/irods/path")
 
-This upload function can upload both directories (collections in iRODS) and files (data objects in iRods).
+This upload function can upload both directories (collections in iRODS) and files (data objects in iRODS).
 
 
 Add metadata
@@ -131,7 +131,7 @@ Let's add some metadata to a collection or data object:
     ipath = IrodsPath(session, "/irods/path")
     ipath.meta.add("some_key", "some_value", "some_units")
 
-We have used the :code:`IrodsPath` class here, which is central to the iBridges API. From here we have
+We have used the :code:`IrodsPath` class here, which is another central class to the iBridges API. From here we have
 access to the metadata as shown above, but additionally there are many more convenient features directly accessible
 such as getting the size of a collection or data object. A detailed description of the features is present in
 another part of the :doc:`documentation <ipath>`.
