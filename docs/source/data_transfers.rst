@@ -13,7 +13,7 @@ collections, :meth:`IrodsPath.create_collection` can be used.
 .. note::
     By default, no data will be overwritten. If you want to overwrite data, you
     can set :code:`overwrite=True`. Beware that you can also overwrite newer data with older data this way.
-    If a file and a dataobject are exactly the same, iBridges will silently skip the transfer,
+    If a file and a dataobject are exactly the same, iBridges will skip the transfer and print a warning,
     thereby saving time.
 
 For all operations, iBridges will check that the transfer has been completed without
@@ -34,7 +34,7 @@ If the transfer concerned a folder, a new collection with the folder name will b
     from ibridges import IrodsPath
     from pathlib import Path
  
-    local_path = Path("/path/to the/data/to/upload")
+    local_path = Path("/path/to/the/data/to/upload")
     irods_path = IrodsPath(session, '~', 'new_coll')
     upload(session, local_path, irods_path)
 
@@ -114,13 +114,12 @@ With the `python-irodsclient` which `iBridges` is built on, we can open the file
 That works without any problems for textual data. 
 
 .. code-block:: python
-  
+
     from ibridges import IrodsPath
-  
-  	obj_path = IrodsPath(session, "path", "to", "object")
-  	
-  	with obj_path.open('r') as stream:
-  	    content = stream.read().decode()
+
+    obj_path = IrodsPath(session, "path", "to", "object")
+    with obj_path.open('r') as stream:
+        content = stream.read().decode()
 	
 	
 Some python libraries allow to be instantiated directly from such a stream. This is supported by e.g. `pandas`, `polars` and `whisper`.
@@ -129,6 +128,7 @@ Some python libraries allow to be instantiated directly from such a stream. This
 
     import pandas as pd
 
-	with obj_path.open('r') as stream:
-		df = pd.read_csv(stream)
-	print(df)
+    with obj_path.open('r') as stream:
+        df = pd.read_csv(stream)
+	
+    print(df)

@@ -84,7 +84,7 @@ We will have a closer look at the :class:`Session.home` below.
 The Session home
 ----------------
 
-The :class:`Session.home` denotes your iRODS working path. For any relative paths that are created using an
+The :class:`Session.home` denotes your iRODS working path and can be referred to with `~`. For any relative paths that are created using an
 :doc:`IrodsPath <ipath>`, the path will be relative to the :class:`Session.home` that you have set.
 
 There are three ways to set the irods_home:

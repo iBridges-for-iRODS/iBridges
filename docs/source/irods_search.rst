@@ -17,17 +17,17 @@ In the example below we search for a data object by its path pattern.
 The path is a string:
  	
 .. code-block:: python
-		
-        from ibridges import search_data
-	    search_data(session, path="/", path_pattern="dataobj_name")
+    
+    from ibridges import search_data
+    search_data(session, path="/", path_pattern="dataobj_name")
 	
 The result is a list of iRODS paths that indicate the locations of the found collections and data objects.
 	
 To find all subcollections and dataobjects in a collection use the `%` as wildcard:
   	
 .. code-block:: python
-  	
-  		search_data(session, path_pattern="subcoll/%")
+
+    search_data(session, path_pattern="subcoll/%")
   	
 
 Search data by metadata
@@ -42,7 +42,7 @@ To search by metadata we need to create a :class:`ibridges.search.MetaSearch` fo
 
 	MetaSearch(key="my_key", value="my_value", units="my_units")
 
-The above statement means: find all data objects and collections which is annotated with a key "my_key" where the value is "my_value" and the units is "my_units".
+The above statement means: find all data objects and collections which are annotated with a key "my_key" where the value is "my_value" and the units is "my_units".
 
 You can also omit any of the three items which will be interpreted as "anything". E.g.
 
@@ -50,10 +50,9 @@ You can also omit any of the three items which will be interpreted as "anything"
 
 	MetaSearch(value="my_value")
 
-means: find all data which is labeled with any key where the value is "my_value" and the units can also be anything. Here again you can also use wild cards.
+This translates to: find all data which are labeled with any key where the value is "my_value" and the units can also be anything. Here again you can also use wild cards.
 
 A query with metadata will look like:
-
 
 .. code-block:: python
 
