@@ -4,7 +4,7 @@ Metadata
 .. currentmodule:: ibridges.meta
 
 iRODS offers metadata as key, value, units triplets. The type of the keys, values and units is always a string.
-Below we show how to create a :doc:`Metadata <api/generated/ibridges.meta.MetaData>` object from a dataobject or collection.
+Below we show how to create a :doc:`Metadata <api/generated/ibridges.meta.MetaData>` object from a data object or collection.
 
 The Metadata object
 --------------------
@@ -21,7 +21,7 @@ With the object :code:`meta` we can now access and manipulate the metadata of th
 
 Add metadata
 ------------
-To add metadata, you always need to provide a key and a value, the unit is optional and can be left out.
+To add metadata, you always need to provide a key and a value, the units are optional and can be left out.
 
 .. code-block:: python
 
@@ -32,7 +32,7 @@ To add metadata, you always need to provide a key and a value, the unit is optio
 .. note::
     You can have several metadata entries with the same key but different values and units,
     i.e. metadata keys are not unique in iRODS but the combination of key,
-    value and unit must be unique.
+    value and units must be unique.
 
 Set metadata
 ------------
@@ -67,7 +67,7 @@ Below are examples on how to delete metadata entries:
 Export Metadata
 ---------------
 
-The method :meth:`MetaData.to_dict` will provide you with a python dictionary containing the user-defined metadata:
+The method :meth:`meta.to_dict` will provide you with a python dictionary containing the user-defined metadata:
 
 .. code-block:: python
 
