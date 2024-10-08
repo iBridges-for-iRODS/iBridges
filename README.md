@@ -2,8 +2,10 @@
 iBridges is a library for scientific programmers who are working with data in iRODS. We provide a wrapper around the [python-irodsclient](https://pypi.org/project/python-irodsclient/) to facilitate easy interaction with the iRODS server. iBridges is currently still in very active development.
 
 [![PyPI version](https://badge.fury.io/py/ibridges.svg)](https://badge.fury.io/py/ibridges)
-[![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-irods.yml) [![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml/badge.svg?branch=develop)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/main.yml) 
-[![](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/UtrechtUniversity/iBridges/actions/workflows/integration-tests-yoda.yml) ![](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
+[![Run integration tests against iRODS](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/integration-tests-irods.yml/badge.svg)](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/integration-tests-irods.yml)
+[![Run integration tests against Yoda](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/integration-tests-yoda.yml/badge.svg)](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/integration-tests-yoda.yml)
+[![Python package](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/main.yml/badge.svg)](https://github.com/iBridges-for-iRods/iBridges/actions/workflows/main.yml)
+![](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12583187.svg)](https://doi.org/10.5281/zenodo.12583187)
 
 ## Highlights
@@ -20,19 +22,18 @@ iBridges is a library for scientific programmers who are working with data in iR
 - Small number of dependencies (`python-irodsclient` and `tqdm`)
 - Safe default options when working with your data.
 
-**iBridges** also has a graphical user interface, which you can install [here](https://github.com/chStaiger/iBridges-Gui).
-
+**iBridges** also has a graphical user interface, which you can install [here](https://github.com/iBridges-for-iRods/iBridges-GUI).
 
  <p align="center">
-    <a href="https://github.com/UtrechtUniversity/iBridges/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=%5BBUG%5D">Report Bug</a>
+    <a href="https://github.com/iBridges-for-iRods/iBridges/issues/new?assignees=&labels=&projects=&template=bug_report.md&title=%5BBUG%5D">Report Bug</a>
     .
-    <a href="https://github.com/UtrechtUniversity/iBridges/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=%5BFEATURE%5D">Request Feature</a>
+    <a href="https://github.com/iBridges-for-iRods/iBridges/issues/new?assignees=&labels=&projects=&template=feature_request.md&title=%5BFEATURE%5D">Request Feature</a>
     .
-    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/ideas">Share an idea</a>
+    <a href="https://github.com/iBridges-for-iRods/iBridges/discussions/categories/ideas">Share an idea</a>
     .
-    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/general">Leave some feedback</a>
+    <a href="https://github.com/iBridges-for-iRods/iBridges/discussions/categories/general">Leave some feedback</a>
     .
-    <a href="https://github.com/UtrechtUniversity/iBridges/discussions/categories/q-a">Ask a question</a>
+    <a href="https://github.com/iBridges-for-iRods/iBridges/discussions/categories/q-a">Ask a question</a>
   </p>
 </p>
 
@@ -47,7 +48,7 @@ pip install ibridges
 If you want to install the unstable version to test out new features, you can install the development branch:
 
 ```bash
-pip install git+https://github.com/UtrechtUniversity/iBridges.git@develop
+pip install git+https://github.com/iBridges-for-iRods/iBridges.git@develop
 ```
 
 ## Configuration
