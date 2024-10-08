@@ -67,7 +67,7 @@ Below are examples on how to delete metadata entries:
 Export Metadata
 ---------------
 
-The method :meth:`meta.to_dict` will provide you with a python dictionary containing the user-defined metadata:
+The method :meth:`MetaData.to_dict` will provide you with a python dictionary containing the user-defined metadata:
 
 .. code-block:: python
 
