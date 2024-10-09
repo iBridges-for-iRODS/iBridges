@@ -40,7 +40,7 @@ jobs:
 
     - name: Clone Yoda repo for Docker Setup
       run: |
-        git clone -b v1.9.4 --single-branch https://github.com/iBridges-for-iRODS/yoda.git
+        git clone -b v1.9.4 --single-branch https://github.com/UtrechtUniversity/yoda.git
 
     - name: Prepare hosts file for integration tests
       run: |
