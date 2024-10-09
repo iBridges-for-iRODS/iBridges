@@ -34,8 +34,8 @@ dependencies = [
 dynamic = ["version"]
 
 [project.urls]
-GitHub = "https://github.com/UtrechtUniversity/iBridges"
-documentation = "https://github.com/UtrechtUniversity/iBridges"
+GitHub = "https://github.com/iBridges-for-iRODS/iBridges"
+documentation = "https://github.com/iBridges-for-iRODS/iBridges"
 
 [project.optional-dependencies]
 test = [

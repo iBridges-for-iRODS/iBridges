@@ -18,7 +18,7 @@ An advantage compared to the iCommands is that iBridges also works on Mac OS and
 
 **I found a bug or have a feature request, where do I go?**
 ------------------------------------------------------------------------
-Our development is done on `GitHub <https://github.com/UtrechtUniversity/iBridges>`__ Look under the `Issues` section
+Our development is done on `GitHub <https://github.com/iBridges-for-iRODS/iBridges>`__ Look under the `Issues` section
 whether the bug or feature request has already been reported. If not, we heartily welcome creating a new issue. We
 try to get back to you as soon as possible, at least within a few days.
 
@@ -26,7 +26,7 @@ try to get back to you as soon as possible, at least within a few days.
 **I want to contribute to iBridges, where do I go?**
 ----------------------------------------------------
 
-Our development is done on `GitHub <https://github.com/UtrechtUniversity/iBridges>`__ We are welcoming contributions
+Our development is done on `GitHub <https://github.com/iBridges-for-iRODS/iBridges>`__ We are welcoming contributions
 by pull requests. You can also ask for new features/ideas in our issue tracker.
 
 
@@ -91,4 +91,4 @@ Warnings can also be switched off through python's `warnings` package:
 **My metadata with keys starting with `org_` do not show up in the iBridges metadata.**
 ---------------------------------------------------------------------------------------
 
-iBridges **does not show** metadata that contain a key starting with the prefix `org_`. This is due to data security reasons on `Yoda systems <https://github.com/UtrechtUniversity/yoda>`__.
+iBridges **does not show** metadata that contain a key starting with the prefix `org_`. This is due to data security reasons on `Yoda systems <https://github.com/iBridges-for-iRODS/yoda>`__.

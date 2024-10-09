@@ -278,7 +278,7 @@ def ibridges_setup():
         if len(env_providers) == 0:
             print(
                 "No server information was found. To use this function, please install a plugin"
-                " such as:\n\nhttps://github.com/UtrechtUniversity/ibridges-servers-uu"
+                " such as:\n\nhttps://github.com/iBridges-for-iRODS/ibridges-servers-uu"
                 "\n\nAlternatively create an irods_environment.json by yourself or with the help "
                 "of your iRODS administrator."
             )

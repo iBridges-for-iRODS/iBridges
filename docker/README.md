@@ -10,7 +10,7 @@ Dockerised integration tests of iBridges with iRODS
 1. Clone iBridges
    
    ```sh
-   git clone --branch develop https://github.com/UtrechtUniversity/iBridges.git
+   git clone --branch develop https://github.com/iBridges-for-iRODS/iBridges.git
    ```
 
 Execute the following commands in the root ibridges directory:
