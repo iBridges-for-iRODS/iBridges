@@ -47,7 +47,7 @@ test = [
     "types-tqdm",
 ]
 docs = [
-    "sphinx<8",
+    "sphinx<9",
     "sphinx-rtd-theme",
     "sphinxcontrib-napoleon",
     "sphinx-autodoc-typehints",
