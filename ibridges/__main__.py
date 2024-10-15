@@ -391,8 +391,7 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
         return default_meta_path
     elif metadata is False:
         return None
-    else:
-        return metadata
+    return metadata
 
 
 def ibridges_download():
