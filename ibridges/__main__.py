@@ -389,7 +389,7 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
         raise ValueError("Internal error, contact the iBridges team.")
     if metadata is None:
         return default_meta_path
-    elif metadata is False:
+    if metadata is False:
         return None
     return metadata
 
