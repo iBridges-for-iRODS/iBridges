@@ -7,7 +7,7 @@ import json
 import sys
 from argparse import RawTextHelpFormatter
 from pathlib import Path
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
@@ -374,9 +374,11 @@ def _parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
         return IrodsPath(session, remote_path[7:])
     return IrodsPath(session, remote_path[6:])
 
+
 def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
                        mode: str) -> Union[None, str, Path]:
-    metadata = False if not hasattr(args, "metadata") else args.metadata
+    metadata: Union[Literal[False], Path, None
+                    ] = False if not hasattr(args, "metadata") else args.metadata
     if ipath.dataobject_exists() and metadata is None:
         raise ValueError("Supply metadata path for downloading metadata of data objects.")
     if mode == "download":
@@ -385,8 +387,10 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
         default_meta_path = Path(lpath, ".ibridges_metadata.json")
     else:
         raise ValueError("Internal error, contact the iBridges team.")
-    metadata = metadata if metadata is not None else default_meta_path
-    metadata = None if metadata is False else metadata
+    if metadata is None:
+        return default_meta_path
+    if metadata is False:
+        return None
     return metadata
 
 
