@@ -39,7 +39,7 @@ class MetaData:
     2
     >>> meta.add("Author", "Emma")
     >>> meta.set("Author", "Alice")
-    >>> meta.update("Author", "Bob")
+    >>> meta.update("Author", "Alice", mew_value="Bob")
     >>> meta.delete("Author")
     >>> print(meta)
     {Mass, 10, kg}
@@ -151,7 +151,7 @@ class MetaData:
                 raise ValueError("ADD META: Metadata already present")
             if re.match(self.blacklist, key):
                 raise ValueError(
-                        f"ADD META: Key must not start with any prefix in {self.blacklist}.")
+                        f"ADD META: Key must not start with {self.blacklist}.")
             self.item.metadata.add(key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
