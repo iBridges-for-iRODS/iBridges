@@ -230,13 +230,10 @@ class MetaData:
 
         # Check for None, allow '' for new_units
         if new_value is not None and new_units is not None:
-            print(f"self.add({key}, {new_value}, {new_units})")
             self.add(key, new_value, new_units)
         elif new_value is not None:
-            print(f"self.add({key}, {new_value}, {units})")
             self.add(key, new_value, units)
         elif new_units is not None:
-            print(f"self.add({key}, {value}, {new_units})")
             self.add(key, value, new_units)
 
         if units:
