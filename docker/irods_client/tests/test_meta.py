@@ -67,11 +67,7 @@ def test_meta(item_name, request):
     assert ("y", "z") not in meta
     assert ("y", "x") in meta
 
-@mark.parametrize("item_name", ["collection", "dataobject"])
-def test_meta_update():
-    # prepare test metadata
-    item = request.getfixturevalue(item_name)
-    meta = MetaData(item)
+    # prepare for testing meta.update
     meta.clear()
     meta.add('key', 'val')
     meta.add('key', 'val', 'unit')
