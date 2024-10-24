@@ -196,15 +196,15 @@ class MetaData:
         Parameters
         ----------
         key:
-            Key of the new entry to add to the item.
+            Key of the entry.
         value:
-            Value of the new entry to add to the item.
+            Value of the entry.
         units:
-            The units of the new entry.
+            The units of the entry.
         new_value:
             The value to replace the existing value with.
         new_units:
-            The units to rplace the existing units with. To delete the unit use ''.
+            The units to replace the existing units with. To delete the unit use ''.
 
         Raises
         ------
@@ -253,12 +253,12 @@ class MetaData:
         Parameters
         ----------
         key:
-            Key of the new entry to add to the item.
+            Key of the entry to remove.
         value:
-            Value of the new entry to add to the item. If the Ellipsis value [...] is used,
+            Value of the  entry to remove. If the Ellipsis value [...] is used,
             then all entries with this value will be deleted.
         units:
-            The units of the new entry. If the Elipsis value [...] is used, then all entries
+            The units of the entry to remove. If the Elipsis value [...] is used, then all entries
             with any units will be deleted (but still constrained to the supplied keys and values).
 
         Raises
