@@ -68,6 +68,41 @@ def test_meta(item_name, request):
     assert ("y", "x") in meta
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
+def test_meta_update():
+    # prepare test metadata
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+    meta.add('key', 'val')
+    meta.add('key', 'val', 'unit')
+    meta.add('key', 'val', 'test')
+    meta.add('key1', 'val1', 'unit1')
+
+    #tests
+    meta.update('key', 'val', 'unit', new_value='new_val')
+    assert ('key', 'new_val', 'unit') in meta and ('key', 'val', 'unit') not in meta
+    meta.update('key', 'new_val', 'unit', new_units='new_unit')
+    assert ('key', 'new_val', 'new_unit') in meta and ('key', 'new_val', 'unit') not in meta
+    meta.update('key', 'new_val', 'new_unit', new_value='val', new_units='unit')
+    assert ('key', 'val', 'unit') in meta and ('key', 'new_val', 'new_unit') not in meta
+    meta.update('key1', 'val1', 'unit1', new_units='')
+    assert ('key1', 'val1') in meta and ('key1', 'val1', 'unit1') not in meta
+
+    # test insufficient input
+    with pytest.raises(ValueError):
+        meta.update('key', 'val')
+    with pytest.raises(ValueError):
+        meta.update('key', 'val', 'unit', new_value='')
+    # test fail when new metadata would already exist
+    with pytest.raises(ValueError):
+        meta.update('key', 'val', 'unit', new_units='test')
+    # test fail when metadata does not exist
+    with pytest.raises(ValueError):
+        meta.update('Notex_key', 'Notex_val', 'Notex_unit')
+
+    
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
 def test_metadata_todict(item_name, request):
     item = request.getfixturevalue(item_name)
     meta = MetaData(item)
