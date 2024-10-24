@@ -39,6 +39,7 @@ class MetaData:
     2
     >>> meta.add("Author", "Emma")
     >>> meta.set("Author", "Alice")
+    >>> meta.update("Author", "Bob")
     >>> meta.delete("Author")
     >>> print(meta)
     {Mass, 10, kg}
@@ -182,6 +183,66 @@ class MetaData:
         """
         self.delete(key)
         self.add(key, value, units)
+
+    def update(self, key: str, value: str, units: Optional[str] = None,
+               new_value: Optional[str] = None, new_units: Optional[str] = None):
+        """Update the value or the units of a metadata entry.
+
+        Parameters
+        ----------
+        key:
+            Key of the new entry to add to the item.
+        value:
+            Value of the new entry to add to the item.
+        units:
+            The units of the new entry.
+        new_value:
+            The value to replace the existing value with.
+        new_units:
+            The units to rplace the existing units with. To delete the unit use ''.
+
+        Raises
+        ------
+        PermissionError:
+            If the user does not have sufficient permissions to set the metadata.
+        ValueError:
+            The metadata item to change does not exist or
+            The new metadata is already present or
+            The new value and the new unit are None or
+            The new value is the empty string.
+
+        Examples
+        --------
+        >>> meta.update("Author", "Ben", new_value = "Alice")
+        >>> meta.update("mass", "10", "kg", new_units = "g")
+
+        """
+        if new_value is None and new_units is None:
+            raise ValueError("No new value or new unit set.")
+        if new_value == '':
+            raise ValueError("New value cannot be empty.")
+        if units is None:
+            if (key, value) not in self:
+                raise ValueError(f"{key}, {value} does not exist.")
+        else:
+            if (key, value, units) not in self:
+                raise ValueError(f"{key}, {value} {units} does not exist.")
+
+        # Check for None, allow '' for new_units
+        if new_value is not None and new_units is not None:
+            print(f"self.add({key}, {new_value}, {new_units})")
+            self.add(key, new_value, new_units)
+        elif new_value is not None:
+            print(f"self.add({key}, {new_value}, {units})")
+            self.add(key, new_value, units)
+        elif new_units is not None:
+            print(f"self.add({key}, {value}, {new_units})")
+            self.add(key, value, new_units)
+
+        if units:
+            self.delete(key, value, units)
+        else:
+            self.delete(key, value, '')
 
     def delete(self, key: str, value: Union[None, str] = ...,  # type: ignore
                units: Union[None, str] = ...):  # type: ignore
