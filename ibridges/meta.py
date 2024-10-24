@@ -58,9 +58,11 @@ class MetaData:
     def __iter__(self) -> Iterator:
         """Iterate over all metadata key/value/units triplets."""
         if self.blacklist is None:
-            yield from self.item.metadata.items()
+            yield self.item.metadata.items()
         for meta in self.item.metadata.items():
-            if re.match(self.blacklist, meta.name) is None:
+            if self.blacklist is None:
+                yield meta
+            elif re.match(self.blacklist, meta.name) is None:
                 yield meta
             else:
                 warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
