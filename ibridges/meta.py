@@ -59,11 +59,13 @@ class MetaData:
         if self.blacklist is None:
             yield from self.item.metadata.items()
         for meta in self.item.metadata.items():
-            if re.match(self.blacklist, meta.name) is None:
-                yield meta
-            else:
-                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
-                              f"the blacklist {self.blacklist}.")
+            if self.blacklist:
+                if re.match(self.blacklist, meta.name) is None:
+                    yield meta
+                else:
+                    warnings.warn(
+                            f"Ignoring metadata entry with value {meta.name}, because it matches "
+                            f"the blacklist {self.blacklist}.")
 
     def __len__(self) -> int:
         """Get the number of non-blacklisted metadata entries."""
@@ -148,6 +150,9 @@ class MetaData:
         try:
             if (key, value, units) in self:
                 raise ValueError("ADD META: Metadata already present")
+            if self.blacklist:
+                if re.match(self.blacklist, key):
+                    raise ValueError(f"ADD META: Key must not start with {self.blacklist}.")
             self.item.metadata.add(key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
