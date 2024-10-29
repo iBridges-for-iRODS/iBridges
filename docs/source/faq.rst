@@ -86,7 +86,7 @@ Warnings can also be switched off through python's `warnings` package:
 .. code-block:: python
 
 	import warnings
-	warnings.filterwarnings("ignore")ß
+	warnings.filterwarnings("ignore")
 
 
 **My metadata with keys starting with `org_` do not show up in the iBridges metadata.**
