@@ -58,14 +58,13 @@ class MetaData:
         """Iterate over all metadata key/value/units triplets."""
         if self.blacklist is None:
             yield from self.item.metadata.items()
+            return
         for meta in self.item.metadata.items():
-            if self.blacklist:
-                if re.match(self.blacklist, meta.name) is None:
-                    yield meta
-                else:
-                    warnings.warn(
-                            f"Ignoring metadata entry with value {meta.name}, because it matches "
-                            f"the blacklist {self.blacklist}.")
+            if self.blacklist and re.match(self.blacklist, meta.name) is None:
+                yield meta
+            else:
+                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
+                              f"the blacklist {self.blacklist}.")
 
     def __len__(self) -> int:
         """Get the number of non-blacklisted metadata entries."""
