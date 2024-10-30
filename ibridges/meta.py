@@ -115,6 +115,41 @@ class MetaData:
         return "\n".join(f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}"
                          for meta in meta_list)
 
+    def __getitem__(self, key: str) -> list[tuple]:
+        """Access the metadata like a dictionary of tuples.
+
+        Parameters
+        ----------
+        key
+            The key to get all metadata for.
+
+        Raises
+        ------
+        KeyError
+            If the key does not exist.
+
+        """
+        items = [(m.name, m.value, m.units) for m in self if m.name == key]
+        if len(items) == 0:
+            raise KeyError(f"Meta data item with name '{key}' not found.")
+
+    def __setitem__(self, key: str, set_value: Union[str, tuple]):
+        """Set the value and units of a metadata key.
+
+        Parameters
+        ----------
+        key
+            The key for which to set the value and units.
+        set_value
+            Which value the metadata item is set to.
+
+        """
+        if isinstance(set_value, str) or set_value is None:
+            self.item.metadata.set(key, set_value, None)
+        else:
+            self.item.metadata.set(key, set_value[0], set_value[1])
+
+
     def add(self, key: str, value: str, units: Optional[str] = None):
         """Add metadata to an item.
 
