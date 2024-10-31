@@ -85,10 +85,23 @@ Warnings can also be switched off through python's `warnings` package:
 
 .. code-block:: python
 
-   import warnings
-   warnings.filterwarnings("ignore")
+	import warnings
+	warnings.filterwarnings("ignore")
+
 
 **My metadata with keys starting with `org_` do not show up in the iBridges metadata.**
 ---------------------------------------------------------------------------------------
 
-iBridges **does not show** metadata that contain a key starting with the prefix `org_`. This is due to data security reasons on `Yoda systems <https://github.com/iBridges-for-iRODS/yoda>`__.
+By default, iBridges **does not show** metadata that contain a key starting with the prefix `org_`. This is due to data security reasons on `Yoda systems <https://github.com/UtrechtUniversity/yoda>`__.
+
+You can omit this by the following code:
+
+.. code-block:: python
+
+    from ibridges.meta import MetaData
+    
+    # collections
+    meta = MetaData(IrodsPath(session, "~", "my_coll").collection, blacklist=None)
+    # data objects
+    meta = MetaData(IrodsPath(session, "~", "my_obj").dataobject, blacklist=None)
+    print(meta)
