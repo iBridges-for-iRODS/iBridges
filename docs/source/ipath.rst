@@ -14,7 +14,7 @@ We strongly recommend using :class:`IrodsPath` over using strings for the follow
 - :class:`IrodsPath` is **more convenient** since there are many methods and attributes available such as: the name, size and parent of the iRODS path.
 - The string representation of the :class:`IrodsPath` is available through :code:`str(ipath)`.
 
-A complete tutorial on iRODS paths can be followed `here <https://github.com/UtrechtUniversity/iBridges/tree/main/tutorials>`__. For an overview of
+A complete tutorial on iRODS paths can be followed `here <https://github.com/iBridges-for-iRODS/iBridges/tree/main/tutorials>`__. For an overview of
 all functionality connected to the :class:`IrodsPath`, see the :doc:`API documentation <api/generated/ibridges.path.IrodsPath>`. 
 
 IrodsPath

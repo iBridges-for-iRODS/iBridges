@@ -36,7 +36,7 @@ create the environment file for you. Below are the currently (known) plugins, se
     * - Organization
       - Link
     * - Utrecht University
-      - https://github.com/UtrechtUniversity/ibridges-servers-uu
+      - https://github.com/iBridges-for-iRODS/ibridges-servers-uu
 
 After installation, you will be able to create an `irods_environment.json` by simply answering questions such as which email-address
 you have. First find the server name with:
