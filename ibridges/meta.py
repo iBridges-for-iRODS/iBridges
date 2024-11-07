@@ -115,6 +115,19 @@ class MetaData:
         return "\n".join(f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}"
                          for meta in meta_list)
 
+    def find_all(self, key: Union[str, None, ...], value: Union[str, None, ...],
+                 units: Union[str, None, ...]):
+        all_items = []
+        for item in self:
+            if key is not ... and key != item.name:
+                continue
+            if value is not ... and value != item.value:
+                continue
+            if units is not ... and units != item.units:
+                continue
+            all_items.append(MetaDataItem(self, item))
+        return all_items
+
     def __getitem__(self, key: str) -> list[tuple]:
         """Access the metadata like a dictionary of tuples.
 
@@ -129,6 +142,20 @@ class MetaData:
             If the key does not exist.
 
         """
+        original_key = key
+        if isinstance(key, str):
+            key = (key, ..., ...)
+        elif len(key) == 2:
+            key = (*key, ...)
+        if len(key) > 3:
+            raise ValueError("Too many arguments for '[]', use key, value, units.")
+        all_items = self.find_all(*key)
+        if len(all_items) == 0:
+            raise KeyError(f"Cannot find metadata item with '{original_key}'")
+        if len(all_items) > 1:
+            raise ValueError(f"Found multiple items with key '{original_key}', specify value and "
+                             "units as well, for example: meta[key, value, units].")
+        return all_items[0]
         items = [(m.name, m.value, m.units) for m in self if m.name == key]
         if len(items) == 0:
             raise KeyError(f"Meta data item with name '{key}' not found.")
@@ -362,3 +389,51 @@ class MetaData:
                 self.add(*meta_tuple)
             except ValueError:
                 pass
+
+class MetaDataItem():
+    def __init__(self, ibridges_meta, prc_meta):
+        self._ibridges_meta = ibridges_meta
+        self._prc_meta = prc_meta
+
+    @property
+    def key(self) -> str:
+        return self._prc_meta.name
+
+    @key.setter
+    def key(self, new_key: str):
+        if new_key == self._prc_meta.name:
+            return
+        new_item_values = [new_key, self._prc_meta.value, self._prc_meta.units]
+        self._rename(new_item_values)
+
+    @property
+    def value(self) -> str:
+        return self._prc_meta.value
+
+    @value.setter
+    def value(self, new_value):
+        if new_value == self._prc_meta.name:
+            return
+        new_item_values = [self._prc_meta.name, new_value, self._prc_meta.units]
+        self._rename(new_item_values)
+
+    @property
+    def units(self, new_units):
+        return self._prc_meta.units
+
+    @units.setter
+    def units(self, new_units):
+        if new_units == self._prc_meta.units:
+            return
+        new_item_values = [self._prc_meta.name, self._prc_meta.value, new_units]
+        self._rename(new_item_values)
+
+    def _rename(self, new_item_key):
+        try:
+            _new_item = self._ibridges_meta[*new_item_key]
+        except KeyError:
+            self._ibridges_meta.add(*new_item_key)
+            self._ibridges_meta.item.metadata.remove(self._prc_meta)
+            self._prc_meta = self._ibridges_meta[*new_item_key]._prc_meta
+        else:
+            raise ValueError(f"Cannot change key/value/units to '{new_item_key}' metadata item already exists.")
