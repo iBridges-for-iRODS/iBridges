@@ -124,6 +124,14 @@ class MetaData:
         KeyError
             If the key does not exist.
 
+
+        Examples
+        --------
+        >>> meta["some_key"]
+        ("some_key", "some_value", "some_units")
+        >>> meta["some_key", "some_value"]
+        >>> meta["some_key", "some_value", "some_units"]
+
         """
         search_pattern = _pad_search_pattern(key)
         all_items = self.find_all(*search_pattern)
@@ -471,7 +479,6 @@ class MetaDataItem():
     def matches(self, key, value, units):
         """See whether the metadata item matches the key,value,units pattern."""
         if key is not ... and key != self.key:
-            print(key, self.key, key is self.key)
             return False
         if value is not ... and value != self.value:
             return False

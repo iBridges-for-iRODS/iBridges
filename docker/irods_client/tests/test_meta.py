@@ -5,7 +5,7 @@ import pytest
 from pytest import mark
 
 from ibridges.data_operations import Operations
-from ibridges.meta import MetaData
+from ibridges.meta import MetaData, MetaDataItem
 from ibridges.path import IrodsPath
 
 
@@ -66,6 +66,7 @@ def test_meta(item_name, request):
     assert "x" in meta
     assert ("y", "z") not in meta
     assert ("y", "x") in meta
+    meta.clear()
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_metadata_todict(item_name, request):
@@ -108,3 +109,95 @@ def test_metadata_export(item_name, request, session, tmpdir):
     with open(tmp_file, "r", encoding="utf-8"):
         new_meta_dict = json.load(tmp_file)
     assert isinstance(new_meta_dict, dict)
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_metadata_getitem(item_name, request):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+
+    assert len(meta) == 0
+    meta.add("some_key", "some_value", "some_units")
+    assert isinstance(meta["some_key"], MetaDataItem)
+    meta.add("some_key", "some_value", None)
+    meta.add("some_key", "other_value", "some_units")
+    meta.add("other_key", "third_value", "other_units")
+    with pytest.raises(ValueError):
+        meta["some_key"]
+    with pytest.raises(ValueError):
+        meta["some_key", "some_value"]
+    assert isinstance(meta["some_key", "some_value", "some_units"], MetaDataItem)
+    assert tuple(meta["other_key"]) == ("other_key", "third_value", "other_units")
+    with pytest.raises(KeyError):
+        meta["unknown"]
+    with pytest.raises(KeyError):
+        meta["some_key", "unknown"]
+    with pytest.raises(KeyError):
+        meta["some_key", "some_value", "unknown"]
+    meta.clear()
+
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_metadata_rename(item_name, request, session):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+
+
+    meta.add("some_key", "some_value", "some_units")
+    meta["some_key"].key = "new_key"
+    assert ("new_key", "some_value", "some_units") in meta
+    assert len(meta) == 1
+
+    meta["new_key"].value = "new_value"
+    assert ("new_key", "new_value", "some_units") in meta
+    assert len(meta) == 1
+
+    meta["new_key"].units = "new_units"
+    assert ("new_key", "new_value", "new_units") in meta
+    assert len(meta) == 1
+
+    meta.add("new_key", "new_value", "other_units")
+    with pytest.raises(ValueError):
+        meta["new_key", "new_value", "other_units"].units = "new_units"
+    assert len(meta) == 2
+    meta["new_key", "new_value", "other_units"].remove()
+
+    meta.add("new_key", "other_value", "new_units")
+    with pytest.raises(ValueError):
+        meta["new_key", "other_value", "new_units"].value = "new_value"
+    assert len(meta) == 2
+    meta["new_key", "other_value", "new_units"].remove()
+
+    meta.add("other_key", "new_value", "new_units")
+    with pytest.raises(ValueError):
+        meta["other_key", "new_value", "new_units"].key = "new_key"
+    assert len(meta) == 2
+
+    with pytest.raises(ValueError):
+        meta["other_key"].key = "org_something"
+    assert len(meta) == 2
+    assert "other_key" in meta
+
+    meta.clear()
+
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_metadata_findall(item_name, request, session):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+
+
+    meta.add("some_key", "some_value", "some_units")
+    meta.add("some_key", "some_value", None)
+    meta.add("some_key", "other_value", "some_units")
+    meta.add("other_key", "third_value", "other_units")
+
+    assert len(meta.find_all()) == 4
+    assert len(meta.find_all(key="some_key")) == 3
+    assert isinstance(meta.find_all(key="some_key")[0], MetaDataItem)
+    assert len(meta.find_all(key="?")) == 0
+    assert len(meta.find_all(value="some_value")) == 2
+    assert len(meta.find_all(units="some_units")) == 2
+
