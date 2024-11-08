@@ -423,7 +423,7 @@ class MetaDataItem():
                     f"Cannot rename metadata due to insufficient permission "
                     f"for path '{self.item.path}'."
                 ) from error
-            self._prc_meta = self._ibridges_meta[new_item_key]._prc_meta
+            self._prc_meta = self._ibridges_meta[new_item_key]._prc_meta  # pylint: disable=protrected-access
         else:
             raise ValueError(f"Cannot change key/value/units to '{new_item_key}' metadata item "
                              "already exists.")
