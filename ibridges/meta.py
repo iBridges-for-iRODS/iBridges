@@ -386,7 +386,7 @@ class MetaDataItem():
 
     @value.setter
     def value(self, new_value: Optional[str]):
-        if new_value == self._prc_meta.name:
+        if new_value == self._prc_meta.value:
             return
         new_item_values = [self._prc_meta.name, new_value, self._prc_meta.units]
         self._rename(new_item_values)
