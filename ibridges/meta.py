@@ -48,7 +48,7 @@ class MetaData:
     def __init__(
         self,
         item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection],
-        blacklist: Optional[str] = r"^org_*",
+        blacklist: Optional[str] = r"^org_[\s\S]+",
     ):
         """Initialize the metadata object."""
         self.item = item
