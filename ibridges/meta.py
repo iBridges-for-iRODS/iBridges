@@ -101,7 +101,7 @@ class MetaData:
         return "\n".join(f" - {meta}" for meta in meta_list)
 
     def find_all(self, key = ..., value = ..., units = ...):
-        """Find all metadata entries.
+        """Find all metadata entries belonging to the data object/collection.
 
         Wildcards can be used by leaving the key/value/units at default.
         """
