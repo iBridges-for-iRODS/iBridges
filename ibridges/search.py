@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from ibridges import icat_columns as icat
 from ibridges.path import CachedIrodsPath, IrodsPath
@@ -44,7 +44,7 @@ def search_data(  # pylint: disable=too-many-branches
     metadata: Union[None, MetaSearch, list[MetaSearch], list[tuple]] = None,
     item_type: Optional[str] = None,
     case_sensitive: bool = False
-) -> list[IrodsPath]:
+) -> list[Union[IrodsPath, CachedIrodsPath]]:
     """Search for collections, data objects and metadata.
 
     By default all accessible collections and data objects are returned.
@@ -195,7 +195,7 @@ def search_data(  # pylint: disable=too-many-branches
                 item[n_key] = item.pop(o_key)
 
     # Convert the results to IrodsPath objects.
-    ipath_results = []
+    ipath_results: List[Union[IrodsPath, CachedIrodsPath]] = []
     for res in results:
         if "DATA_NAME" in res:
             ipath_results.append(CachedIrodsPath(session,
