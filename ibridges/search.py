@@ -6,7 +6,7 @@ from collections import namedtuple
 from typing import Optional, Union
 
 from ibridges import icat_columns as icat
-from ibridges.path import IrodsPath, CachedIrodsPath
+from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
 
 META_COLS = {
@@ -83,11 +83,9 @@ def search_data(  # pylint: disable=too-many-branches
 
     Returns
     -------
-        List of dictionaries with keys:
-        COLL_NAME (absolute path of the collection),
-        DATA_NAME (name of the data object),
-        D_DATA_CHECKSUM (checksum of the data object)
-        The latter two keys are only present of the found item is a data object.
+        List of IrodsPaths for collections and CachedIrodsPaths for data objects.
+        The CachedIrodsPaths for data objects contain the size and the checksum
+        found in the search.
 
     Examples
     --------
