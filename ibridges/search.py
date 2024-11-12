@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Optional, Union, List
+from typing import List, Optional, Union
 
 from ibridges import icat_columns as icat
 from ibridges.path import CachedIrodsPath, IrodsPath
