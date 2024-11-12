@@ -10,6 +10,7 @@ DATA_NAME = imodels.DataObject.name
 DATA_PATH = imodels.DataObject.path
 DATA_ID = imodels.DataObject.id
 DATA_CHECKSUM = imodels.DataObject.checksum
+DATA_SIZE = imodels.DataObject.size
 META_COLL_ATTR_NAME = imodels.CollectionMeta.name
 META_COLL_ATTR_VALUE = imodels.CollectionMeta.value
 META_COLL_ATTR_UNITS = imodels.CollectionMeta.units

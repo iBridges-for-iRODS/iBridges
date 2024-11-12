@@ -6,7 +6,7 @@ from collections import namedtuple
 from typing import Optional, Union
 
 from ibridges import icat_columns as icat
-from ibridges.path import IrodsPath
+from ibridges.path import IrodsPath, CachedIrodsPath
 from ibridges.session import Session
 
 META_COLS = {
@@ -159,12 +159,14 @@ def search_data(  # pylint: disable=too-many-branches
         data_query = session.irods_session.query(icat.COLL_NAME,
                                                  icat.DATA_NAME,
                                                  icat.DATA_CHECKSUM,
+                                                 icat.DATA_SIZE,
                                                  case_sensitive=case_sensitive)
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
 
         data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
                                                       icat.DATA_CHECKSUM,
+                                                      icat.DATA_SIZE,
                                                       case_sensitive=case_sensitive)
         data_name_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}"))
         queries.append((data_name_query, "data_object"))
@@ -190,15 +192,20 @@ def search_data(  # pylint: disable=too-many-branches
     ]
     for item in results:
         if isinstance(item, dict):
-            new_keys = [k.icat_key for k in item.keys()]
-            for n_key, o_key in zip(new_keys, item.keys()):
+            key_map = [(k.icat_key, k) for k in item.keys()]
+            for n_key, o_key in key_map:
                 item[n_key] = item.pop(o_key)
 
     # Convert the results to IrodsPath objects.
     ipath_results = []
     for res in results:
         if "DATA_NAME" in res:
-            ipath_results.append(IrodsPath(session, res["COLL_NAME"], res["DATA_NAME"]))
+            ipath_results.append(CachedIrodsPath(session,
+                                                 res["DATA_SIZE"],
+                                                 True,
+                                                 res["D_DATA_CHECKSUM"],
+                                                 res["COLL_NAME"],
+                                                 res["DATA_NAME"]))
         else:
             ipath_results.append(IrodsPath(session, res["COLL_NAME"]))
     return ipath_results
