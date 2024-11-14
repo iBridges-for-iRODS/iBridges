@@ -160,6 +160,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         ignore_err, optional
             Whether to ignore errors when encountered, by default False
             Note that not all errors will be ignored.
+        progress_bar
+            Whether to turn on the progress bar. The progress bar will be disabled
+            if the total download + upload size is 0 regardless.
 
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
