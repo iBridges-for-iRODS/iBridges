@@ -147,7 +147,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.create_collection.add(str(new_col))
 
-    def execute(self, session: Session, ignore_err: bool = False):
+    def execute(self, session: Session, ignore_err: bool = False,
+                progress_bar: bool = True):
         """Execute all added operations.
 
         This also creates a progress bar to see the status updates.
