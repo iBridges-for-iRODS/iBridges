@@ -48,7 +48,7 @@ class MetaData:
     def __init__(
         self,
         item: Union[irods.data_object.iRODSDataObject, irods.collection.iRODSCollection],
-        blacklist: str = r"^org_*",
+        blacklist: Optional[str] = r"^org_[\s\S]+",
     ):
         """Initialize the metadata object."""
         self.item = item
@@ -56,14 +56,11 @@ class MetaData:
 
     def __iter__(self) -> Iterator:
         """Iterate over all metadata key/value/units triplets."""
-        if self.blacklist is None:
-            yield from self.item.metadata.items()
-            return
         for meta in self.item.metadata.items():
-            if self.blacklist and re.match(self.blacklist, meta.name) is None:
-                yield meta
+            if not self.blacklist or re.match(self.blacklist, meta.name) is None:
+                yield MetaDataItem(self, meta)
             else:
-                warnings.warn(f"Ignoring metadata entry with value {meta.name}, because it matches "
+                warnings.warn(f"Ignoring metadata entry with key {meta.name}, because it matches "
                               f"the blacklist {self.blacklist}.")
 
     def __len__(self) -> int:
@@ -87,19 +84,11 @@ class MetaData:
         True
 
         """
-        if isinstance(val, str):
-            val = [val]
-        all_attrs = ["name", "value", "units"][: len(val)]
-        for meta in self:
-            n_same = 0
-            for i_attr, attr in enumerate(all_attrs):
-                if getattr(meta, attr) == val[i_attr] or val[i_attr] is None:
-                    n_same += 1
-                else:
-                    break
-            if n_same == len(val):
-                return True
+        search_pattern = _pad_search_pattern(val)
+        if len(self.find_all(*search_pattern)) > 0:
+            return True
         return False
+
 
     def __repr__(self) -> str:
         """Create a sorted representation of the metadata."""
@@ -108,12 +97,50 @@ class MetaData:
     def __str__(self) -> str:
         """Return a string showing all metadata entries."""
         # Sort the list of items name -> value -> units, where None is the lowest
-        meta_list = list(self)
-        meta_list = sorted(meta_list, key=lambda m: (m.units is None, m.units))
-        meta_list = sorted(meta_list, key=lambda m: (m.value is None, m.value))
-        meta_list = sorted(meta_list, key=lambda m: (m.name is None, m.name))
-        return "\n".join(f" - {{name: {meta.name}, value: {meta.value}, units: {meta.units}}}"
-                         for meta in meta_list)
+        meta_list = sorted(list(self))
+        return "\n".join(f" - {meta}" for meta in meta_list)
+
+    def find_all(self, key = ..., value = ..., units = ...):
+        """Find all metadata entries belonging to the data object/collection.
+
+        Wildcards can be used by leaving the key/value/units at default.
+        """
+        all_items = []
+        for meta_item in self:
+            if meta_item.matches(key, value, units):
+                all_items.append(meta_item)
+        return all_items
+
+    def __getitem__(self, key: Union[str, Sequence[str]]) -> MetaDataItem:
+        """Access the metadata like a dictionary of tuples.
+
+        Parameters
+        ----------
+        key
+            The key to get all metadata for.
+
+        Raises
+        ------
+        KeyError
+            If the key does not exist.
+
+
+        Examples
+        --------
+        >>> meta["some_key"]
+        ("some_key", "some_value", "some_units")
+        >>> meta["some_key", "some_value"]
+        >>> meta["some_key", "some_value", "some_units"]
+
+        """
+        search_pattern = _pad_search_pattern(key)
+        all_items = self.find_all(*search_pattern)
+        if len(all_items) == 0:
+            raise KeyError(f"Cannot find metadata item with '{key}'")
+        if len(all_items) > 1:
+            raise ValueError(f"Found multiple items with key '{key}', specify value and "
+                             "units as well, for example: meta[key, value, units].")
+        return all_items[0]
 
     def add(self, key: str, value: str, units: Optional[str] = None):
         """Add metadata to an item.
@@ -155,6 +182,18 @@ class MetaData:
             self.item.metadata.add(key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
+        except irods.message.Bad_AVU_Field as error:
+            if key == "":
+                raise ValueError("Key cannot be of size zero.") from error
+            if value == "":
+                raise ValueError("Value cannot be of size zero.") from error
+            if not isinstance(value, (str, bytes)):
+                raise TypeError(f"Value should have type str or bytes-like, "
+                                f"not {type(value)}.") from error
+            if not isinstance(units, (str, bytes)):
+                raise TypeError(f"Units should have type str or bytes-like, "
+                                f"not {type(value)}.") from error
+            raise error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
         """Set the metadata entry.
@@ -219,24 +258,12 @@ class MetaData:
         >>> meta.delete("mass")
 
         """
-        try:
-            if value is ... or units is ...:
-                all_metas = self.item.metadata.get_all(key)
-                for meta in all_metas:
-                    if value is ... or value == meta.value and units is ... or units == meta.units:
-                        self.item.metadata.remove(meta)
-            else:
-                self.item.metadata.remove(key, value, units)
-        except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
-            raise KeyError(
-                f"Cannot delete metadata with key '{key}', value '{value}'"
-                f" and units '{units}' since it does not exist."
-            ) from error
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise ValueError(
-                f"Cannot delete metadata due to insufficient permission "
-                f"for path '{self.item.path}'."
-            ) from error
+        all_meta_items = self.find_all(key, value, units)
+        if len(all_meta_items) == 0:
+            raise KeyError(f"Cannot delete items with key={key}, value={value} and units={units}, "
+                           "since no metadata entries exist with those values.")
+        for meta_item in all_meta_items:
+            meta_item.remove()
 
     def clear(self):
         """Delete all metadata entries belonging to the item.
@@ -294,9 +321,9 @@ class MetaData:
         if isinstance(self.item, irods.data_object.iRODSDataObject):
             meta_dict["checksum"] = self.item.checksum
         if keys is None:
-            meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self]
+            meta_dict["metadata"] = [tuple(m) for m in self]
         else:
-            meta_dict["metadata"] = [(m.name, m.value, m.units) for m in self if m.name in keys]
+            meta_dict["metadata"] = [tuple(m) for m in self if m.key in keys]
         return meta_dict
 
     def from_dict(self, meta_dict: dict):
@@ -327,3 +354,169 @@ class MetaData:
                 self.add(*meta_tuple)
             except ValueError:
                 pass
+
+class MetaDataItem():
+    """Interface for metadata entries.
+
+    This is a substitute of the python-irodsclient iRODSMeta object.
+    It implements setting the key/value/units, allows for sorting and can
+    remove itself.
+
+    This class is generally created by the MetaData class, not directly
+    created by the user.
+
+    Parameters
+    ----------
+    ibridges_meta:
+        A MetaData object that the MetaDataItem is part of.
+    prc_meta:
+        A PRC iRODSMeta object that points to the entry.
+
+    """
+
+    def __init__(self, ibridges_meta: MetaData, prc_meta: irods.iRODSMeta):
+        """Initialize the MetaDataItem object."""
+        self._ibridges_meta = ibridges_meta
+        self._prc_meta: irods.iRODSMeta = prc_meta
+
+    @property
+    def key(self) -> str:
+        """Return the key of the metadata item."""
+        return self._prc_meta.name
+
+    @key.setter
+    def key(self, new_key: str):
+        if new_key == self._prc_meta.name:
+            return
+        new_item_values = [new_key, self._prc_meta.value, self._prc_meta.units]
+        self._rename(new_item_values)
+
+    @property
+    def value(self) -> Optional[str]:
+        """Return the value of the metadata item."""
+        return self._prc_meta.value
+
+    @value.setter
+    def value(self, new_value: Optional[str]):
+        if new_value == self._prc_meta.value:
+            return
+        new_item_values = [self._prc_meta.name, new_value, self._prc_meta.units]
+        self._rename(new_item_values)
+
+    @property
+    def units(self) -> Optional[str]:
+        """Return the units of the metadata item."""
+        return self._prc_meta.units
+
+    @units.setter
+    def units(self, new_units: Optional[str]):
+        if new_units == self._prc_meta.units:
+            return
+        new_item_values = [self._prc_meta.name, self._prc_meta.value, new_units]
+        self._rename(new_item_values)
+
+    def __repr__(self) -> str:
+        """Representation of the MetaDataItem."""
+        return f"<MetaDataItem ({self.key}, {self.value}, {self.units})>"
+
+    def __str__(self) -> str:
+        """User readable representation of MetaDataItem."""
+        return f"(key: {self.key}, value: {self.value}, units: {self.units})"
+
+    def __iter__(self) -> Iterator[Optional[str]]:
+        """Allow iteration over key, value, units."""
+        yield self.key
+        yield self.value
+        yield self.units
+
+    def _rename(self, new_item_key: Sequence[str]):
+        try:
+            _new_item = self._ibridges_meta[new_item_key]
+        except KeyError:
+            self._ibridges_meta.add(*new_item_key)
+            try:
+                self._ibridges_meta.item.metadata.remove(self._prc_meta)
+            # If we get an error, roll back the added metadata
+            except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+                self._ibridges_meta.delete(*new_item_key)
+                raise ValueError(
+                    f"Cannot rename metadata due to insufficient permission "
+                    f"for path '{self.item.path}'."
+                ) from error
+            self._prc_meta = self._ibridges_meta[new_item_key]._prc_meta  # pylint: disable=protected-access
+        else:
+            raise ValueError(f"Cannot change key/value/units to '{new_item_key}' metadata item "
+                             "already exists.")
+
+    def __getattribute__(self, attr: str):
+        """Add name attribute and check if the metadata item is already removed."""
+        if attr == "name":
+            return self.__getattribute__("key")
+        if attr == "_prc_meta" and super().__getattribute__(attr) is None:
+            raise KeyError("Cannot remove metadata item: it has already been removed.")
+        return super().__getattribute__(attr)
+
+    def remove(self):
+        """Remove the metadata item."""
+        try:
+            self._ibridges_meta.item.metadata.remove(self._prc_meta)
+        except irods.exception.CAT_SUCCESS_BUT_WITH_NO_INFO as error:
+            raise KeyError(
+                f"Cannot delete metadata with key '{self.key}', value '{self.value}'"
+                f" and units '{self.units}' since it does not exist."
+            ) from error
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
+            raise ValueError(
+                f"Cannot delete metadata due to insufficient permission "
+                f"for path '{self.item.path}'."
+            ) from error
+        self._prc_meta = None
+
+    def __lt__(self, other: MetaDataItem) -> bool:
+        """Compare two metadata items for sorting mainly."""
+        if not isinstance(other, MetaDataItem):
+            raise TypeError(f"Comparison between MetaDataItem and {type(other)} "
+                            "not supported.")
+        comp_key = _comp_str_none(self.key, other.key)
+        if comp_key is not None:
+            return comp_key
+        comp_value = _comp_str_none(self.value, other.value)
+        if comp_value is not None:
+            return comp_value
+        comp_units = _comp_str_none(self.units, other.units)
+        if comp_units is not True:
+            return False
+        return True
+
+    def matches(self, key, value, units):
+        """See whether the metadata item matches the key,value,units pattern."""
+        units = None if units == "" else units
+        if key is not ... and key != self.key:
+            return False
+        if value is not ... and value != self.value:
+            return False
+        if units is not ... and units != self.units:
+            return False
+        return True
+
+def _comp_str_none(obj: Optional[str], other: Optional[str]) -> Optional[bool]:
+    if obj is None and other is not None:
+        return True
+    if obj is not None and other is None:
+        return False
+    if str(obj) == str(other):
+        return None
+    return str(obj) < str(other)
+
+def _pad_search_pattern(search_pattern) -> tuple:
+    if isinstance(search_pattern, str):
+        padded_pattern = (search_pattern, ..., ...)
+    elif len(search_pattern) == 1:
+        padded_pattern = (*search_pattern, ..., ...)
+    elif len(search_pattern) == 2:
+        padded_pattern = (*search_pattern, ...)
+    elif len(search_pattern) > 3:
+        raise ValueError("Too many arguments for '[]', use key, value, units.")
+    else:
+        padded_pattern = tuple(search_pattern)
+    return padded_pattern
