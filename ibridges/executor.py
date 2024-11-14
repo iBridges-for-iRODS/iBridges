@@ -164,7 +164,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
         down_sizes = [ipath.size for ipath, _ in self.download]
-        disable = len(up_sizes) + len(down_sizes) == 0
+        disable = len(up_sizes) + len(down_sizes) == 0 or not progress_bar
         pbar = tqdm(
             total=sum(up_sizes) + sum(down_sizes),
             unit="B",
