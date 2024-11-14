@@ -182,6 +182,18 @@ class MetaData:
             self.item.metadata.add(key, value, units)
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
+        except irods.message.Bad_AVU_Field as error:
+            if key == "":
+                raise ValueError("Key cannot be of size zero.") from error
+            if value == "":
+                raise ValueError("Value cannot be of size zero.") from error
+            if not isinstance(value, (str, bytes)):
+                raise TypeError(f"Value should have type str or bytes-like, "
+                                f"not {type(value)}.") from error
+            if not isinstance(units, (str, bytes)):
+                raise TypeError(f"Value should have type str or bytes-like, "
+                                f"not {type(value)}.") from error
+            raise error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
         """Set the metadata entry.
@@ -478,6 +490,7 @@ class MetaDataItem():
 
     def matches(self, key, value, units):
         """See whether the metadata item matches the key,value,units pattern."""
+        units = None if units == "" else units
         if key is not ... and key != self.key:
             return False
         if value is not ... and value != self.value:
