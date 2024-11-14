@@ -201,27 +201,9 @@ def test_metadata_findall(item_name, request, session):
     assert len(meta.find_all(value="some_value")) == 2
     assert len(meta.find_all(units="some_units")) == 2
 
-@mark.parametrize("item_name", ["collection", "dataobject"])
-def test_metadata_findall(item_name, request, session):
-    item = request.getfixturevalue(item_name)
-    meta = MetaData(item)
-    meta.clear()
-
-
-    meta.add("some_key", "some_value", "some_units")
-    meta.add("some_key", "some_value", None)
-    meta.add("some_key", "other_value", "some_units")
-    meta.add("other_key", "third_value", "other_units")
-
-    assert len(meta.find_all()) == 4
-    assert len(meta.find_all(key="some_key")) == 3
-    assert isinstance(meta.find_all(key="some_key")[0], MetaDataItem)
-    assert len(meta.find_all(key="?")) == 0
-    assert len(meta.find_all(value="some_value")) == 2
-    assert len(meta.find_all(units="some_units")) == 2
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
-def test_metadata_findall(item_name, request, session):
+def test_metadata_errors(item_name, request, session):
     item = request.getfixturevalue(item_name)
     meta = MetaData(item)
     meta.clear()
