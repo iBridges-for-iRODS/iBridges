@@ -191,7 +191,7 @@ class MetaData:
                 raise TypeError(f"Value should have type str or bytes-like, "
                                 f"not {type(value)}.") from error
             if not isinstance(units, (str, bytes)):
-                raise TypeError(f"Value should have type str or bytes-like, "
+                raise TypeError(f"Units should have type str or bytes-like, "
                                 f"not {type(value)}.") from error
             raise error
 
