@@ -620,6 +620,10 @@ class CachedIrodsPath(IrodsPath):
             return super().checksum
         return self._checksum
 
+    def __repr__(self) -> str:
+        """Representation of the CachedIrodsPath object in line with a Path object."""
+        return f"CachedIrodsPath({', '.join(self._path.parts)})"
+
     def dataobject_exists(self) -> bool:
         """See IrodsPath."""
         return self._is_dataobj
