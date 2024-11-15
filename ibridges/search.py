@@ -192,8 +192,8 @@ def search_data(  # pylint: disable=too-many-branches
     results = [dict(s) for s in set(frozenset(d.items()) for d in query_results)]
     for item in results:
         if isinstance(item, dict):
-            for key in item.keys():
-                item[key.icat_key] = item.pop(key)
+            for meta_key in list(item.keys()):
+                item[meta_key.icat_key] = item.pop(meta_key)
 
     # Convert the results to IrodsPath objects.
     ipath_results: List[CachedIrodsPath] = []
