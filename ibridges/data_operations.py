@@ -35,6 +35,7 @@ def upload(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
+    **kwargs
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -62,6 +63,8 @@ def upload(
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, it should point to a file that contains the metadata for the upload.
+    kwargs:
+        Extra arguments for executing the upload operation, e.g. progress_bar = False.
 
     Returns
     -------
@@ -121,7 +124,7 @@ def upload(
     if metadata is not None:
         ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err, **kwargs)
     return ops
 
 
@@ -136,6 +139,7 @@ def download(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
+    **kwargs
 ) -> Operations:
     """Download a collection or data object to the local filesystem.
 
@@ -165,6 +169,8 @@ def download(
     metadata:
         If not None, the path to store the metadata to in JSON format.
         It is recommended to use the .json suffix.
+    kwargs:
+        Extra arguments for executing the download operation, e.g. progress_bar = False.
 
     Returns
     -------
@@ -229,7 +235,7 @@ def download(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err, **kwargs)
     return ops
 
 
@@ -272,6 +278,7 @@ def sync(
     resc_name: str = "",
     options: Optional[dict] = None,
     metadata: Union[None, str, Path] = None,
+    **kwargs
 ) -> Operations:
     """Synchronize data between local and remote copies.
 
@@ -313,6 +320,8 @@ def sync(
         More options for the download/upload
     metadata:
         If not None, the location to get the metadata from or store it to.
+    kwargs:
+        Extra arguments for executing the sync operation, e.g. progress_bar = False.
 
 
     Returns
@@ -352,7 +361,7 @@ def sync(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err)
+        ops.execute(session, ignore_err=ignore_err, **kwargs)
 
     return ops
 
