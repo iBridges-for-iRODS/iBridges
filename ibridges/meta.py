@@ -111,7 +111,7 @@ class MetaData:
                 all_items.append(meta_item)
         return all_items
 
-    def __getitem__(self, key: Union[str, Sequence[str]]) -> MetaDataItem:
+    def __getitem__(self, key: Union[str, Sequence[Union[str, None]]]) -> MetaDataItem:
         """Access the metadata like a dictionary of tuples.
 
         Parameters
@@ -142,7 +142,7 @@ class MetaData:
                              "units as well, for example: meta[key, value, units].")
         return all_items[0]
 
-    def __setitem__(self, key: Union[str, Sequence[str]], other: Sequence[str]):
+    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]], other: Sequence[str]):
         """Set metadata items like a dictionary of tuples.
 
         Parameters
