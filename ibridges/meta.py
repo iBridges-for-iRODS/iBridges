@@ -111,7 +111,7 @@ class MetaData:
                 all_items.append(meta_item)
         return all_items
 
-    def __getitem__(self, key: Union[str, Sequence[str]]) -> MetaDataItem:
+    def __getitem__(self, key: Union[str, Sequence[Union[str, None]]]) -> MetaDataItem:
         """Access the metadata like a dictionary of tuples.
 
         Parameters
@@ -141,6 +141,36 @@ class MetaData:
             raise ValueError(f"Found multiple items with key '{key}', specify value and "
                              "units as well, for example: meta[key, value, units].")
         return all_items[0]
+
+    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]], other: Sequence[str]):
+        """Set metadata items like a dictionary of tuples.
+
+        Parameters
+        ----------
+        key
+            The key to get the metadata for.
+        other
+            Key, value, units to set the metadata item to. Units is optional.
+
+        Raises
+        ------
+        TypeError:
+            If the other parameter is a string.
+        ValueError:
+            If the item already exists.
+
+        Examples
+        --------
+        >>> meta["key"] = ("key", "new_value", "new_units")
+        >>> meta["key"] = ("new_key", "old_value")
+
+        """
+        if isinstance(other, str):
+            raise TypeError("Cannot set the metadata item to a single string value. "
+                            f"Use meta[{key}].key = \"{other}\" to change only the key "
+                            "for example.")
+        self[key].update(*other)
+
 
     def add(self, key: str, value: str, units: Optional[str] = None):
         """Add metadata to an item.
@@ -389,7 +419,7 @@ class MetaDataItem():
         if new_key == self._prc_meta.name:
             return
         new_item_values = [new_key, self._prc_meta.value, self._prc_meta.units]
-        self._rename(new_item_values)
+        self.update(*new_item_values)
 
     @property
     def value(self) -> Optional[str]:
@@ -401,7 +431,7 @@ class MetaDataItem():
         if new_value == self._prc_meta.value:
             return
         new_item_values = [self._prc_meta.name, new_value, self._prc_meta.units]
-        self._rename(new_item_values)
+        self.update(*new_item_values)
 
     @property
     def units(self) -> Optional[str]:
@@ -413,7 +443,7 @@ class MetaDataItem():
         if new_units == self._prc_meta.units:
             return
         new_item_values = [self._prc_meta.name, self._prc_meta.value, new_units]
-        self._rename(new_item_values)
+        self.update(*new_item_values)
 
     def __repr__(self) -> str:
         """Representation of the MetaDataItem."""
@@ -429,7 +459,26 @@ class MetaDataItem():
         yield self.value
         yield self.units
 
-    def _rename(self, new_item_key: Sequence[str]):
+    def update(self, new_key: str, new_value: str, new_units: Optional[str] = None):
+        """Update the metadata item changing the key/value/units.
+
+        Parameters
+        ----------
+        new_key:
+            New key to set the metadata item to.
+        new_value:
+            New value to set the metadata item to.
+        new_units:
+            New units to set the metadata item to, optional.
+
+        Raises
+        ------
+        ValueError:
+            If the operation could not be completed because of permission error.
+            Or if the new to be created item already exists.
+
+        """
+        new_item_key = (new_key, new_value, new_units)
         try:
             _new_item = self._ibridges_meta[new_item_key]
         except KeyError:
