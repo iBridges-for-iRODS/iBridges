@@ -204,9 +204,9 @@ class MetaData:
 
         """
         if key is None or key == "":
-            raise ValueError("Key cannot be None or an empty string.")
+            raise TypeError("Key cannot be None or an empty string.")
         if value is None or value == "":
-            raise ValueError("Value cannot be None or an empty string.")
+            raise TypeError("Value cannot be None or an empty string.")
         try:
             if (key, value, units) in self:
                 raise ValueError("ADD META: Metadata already present")
