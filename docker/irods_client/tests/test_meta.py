@@ -138,6 +138,23 @@ def test_metadata_getitem(item_name, request):
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
+def test_metadata_setitem(item_name, request):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+
+    meta.add("some_key", "some_value", "some_units")
+    meta["some_key"] = ("some_key", "new_value", "new_units")
+    meta["some_key"] = ("some_key", "new_value")
+
+    with pytest.raises(TypeError):
+        meta["some_key"] = "new_value"
+
+    with pytest.raises(ValueError):
+        meta["some_key"] = ("some_key", "new_value")
+
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
 def test_metadata_rename(item_name, request, session):
     item = request.getfixturevalue(item_name)
     meta = MetaData(item)
