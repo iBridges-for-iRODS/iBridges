@@ -204,7 +204,7 @@ class MetaData:
 
         """
         if key is None or key == "":
-            raise ValueError("Key cannot be None or empty.")
+            raise ValueError("Key cannot be None or an empty string.")
         if value is None or value == "":
             raise ValueError("Value cannot be None or empty.")
         try:
