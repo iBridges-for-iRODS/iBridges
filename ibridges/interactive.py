@@ -61,7 +61,7 @@ def interactive_auth(
     n_tries = 0
     success = False
     while not success and n_tries < 3:
-        if sys.stdin.isatty():
+        if sys.stdin.isatty() or 'ipykernel' in sys.modules:
             password = getpass('Your iRODS password: ')
         else:
             print('Your iRODS password: ')
