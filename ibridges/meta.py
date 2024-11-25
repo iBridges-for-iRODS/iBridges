@@ -203,6 +203,10 @@ class MetaData:
         >>> meta.add("Mass", "10", "kg")
 
         """
+        if key is None or key == "":
+            raise ValueError("Key cannot be None or empty.")
+        if value is None or value == "":
+            raise ValueError("Value cannot be None or empty.")
         try:
             if (key, value, units) in self:
                 raise ValueError("ADD META: Metadata already present")
@@ -213,10 +217,6 @@ class MetaData:
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
         except irods.message.Bad_AVU_Field as error:
-            if key == "":
-                raise ValueError("Key cannot be of size zero.") from error
-            if value == "":
-                raise ValueError("Value cannot be of size zero.") from error
             if not isinstance(value, (str, bytes)):
                 raise TypeError(f"Value should have type str or bytes-like, "
                                 f"not {type(value)}.") from error
