@@ -225,14 +225,14 @@ def test_metadata_errors(item_name, request, session):
     meta = MetaData(item)
     meta.clear()
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         meta.add("", "some_value")
     with pytest.raises(TypeError):
         meta.add(None, "some_value")
     with pytest.raises(TypeError):
         meta.add(10, "some_value")
 
-    with pytest.raises(ValueError):
+    with pytest.raises(TypeError):
         meta.add("key", "")
     with pytest.raises(TypeError):
         meta.add("key", None)
