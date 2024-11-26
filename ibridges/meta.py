@@ -5,11 +5,24 @@ from __future__ import annotations
 import re
 import warnings
 from typing import Any, Iterator, Optional, Sequence, Union
+from types import NoneType
 
 import irods
 import irods.exception
 import irods.meta
 
+
+def _parse_tuple(key, value, units = None):
+    if key == "":
+        raise ValueError("Key cannot be of size zero.")
+    elif not isinstance(key, (str, bytes)):
+        raise TypeError(f"Key should have type str or bytes-like, " f"not {type(key)}.")
+    if value == "":
+        raise ValueError("Value cannot be of size zero.")
+    elif not isinstance(value, (str, bytes)):
+        raise TypeError(f"Value should have type str or bytes-like, " f"not {type(value)}.")
+    if not isinstance(units, (str, bytes, NoneType)):
+        raise TypeError(f"Key should have type str, bytes-like or None, " f"not {type(units)}.")
 
 class MetaData:
     """iRODS metadata operations.
@@ -207,31 +220,20 @@ class MetaData:
         >>> meta.add("Mass", "10", "kg")
 
         """
+        _parse_tuple(key, value, units)
         try:
             if (key, value, units) in self:
                 raise ValueError("ADD META: Metadata already present")
             if self.blacklist:
-                if re.match(self.blacklist, key):
-                    raise ValueError(f"ADD META: Key must not start with {self.blacklist}.")
+                try:
+                    if re.match(self.blacklist, key):
+                        raise ValueError(f"ADD META: Key must not start with {self.blacklist}.")
+                except TypeError as error:
+                    raise TypeError(
+                            f"Key {key} must be of type string, found {type(key)}") from error
             self.item.metadata.add(key, value, units)
-        except TypeError as error:
-            # catch TypeError from regex comparison between key and blacklist
-            raise TypeError(f"Key {key} must be of type string, found {type(key)}") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
-        except irods.message.Bad_AVU_Field as error:
-            # catch all other TypeErrors on key, value and units
-            if "attribute" in repr(error):
-                raise irods.message.Bad_AVU_Field(repr(error).replace("attribute", "key"))
-            if not isinstance(value, (str, bytes)):
-                raise TypeError(
-                    f"Value should have type str or bytes-like, " f"not {type(value)}."
-                ) from error
-            if not isinstance(units, (str, bytes)):
-                raise TypeError(
-                    f"Units should have type str or bytes-like, " f"not {type(units)}."
-                ) from error
-            raise error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
         """Set the metadata entry.
@@ -448,9 +450,9 @@ class MetaDataItem:
         self.update(*new_item_values)
 
     @property
-    def units(self) -> Optional[str]:
+    def units(self) -> str:
         """Return the units of the metadata item."""
-        return self._prc_meta.units
+        return "" if self._prc_meta.units is None else self._prc_meta.units
 
     @units.setter
     def units(self, new_units: Optional[str]):
@@ -465,7 +467,8 @@ class MetaDataItem:
 
     def __str__(self) -> str:
         """User readable representation of MetaDataItem."""
-        return f"(key: {self.key}, value: {self.value}, units: {self.units})"
+        units = "" if self.units is None else self.units 
+        return f"(key: '{self.key}', value: '{self.value}', units: '{units}')"
 
     def __iter__(self) -> Iterator[Optional[str]]:
         """Allow iteration over key, value, units."""
@@ -493,9 +496,9 @@ class MetaDataItem:
 
         """
         new_item_key = (new_key, new_value, new_units)
+        print(new_item_key)
         try:
             _new_item = self._ibridges_meta[new_item_key]
-            print(type(_new_item))
         except KeyError:
             try:
                 self._ibridges_meta.add(*new_item_key)
@@ -557,7 +560,7 @@ class MetaDataItem:
 
     def matches(self, key, value, units):
         """See whether the metadata item matches the key,value,units pattern."""
-        units = None if units == "" else units
+        units = "" if units is None else units
         if key is not ... and key != self.key:
             return False
         if value is not ... and value != self.value:
