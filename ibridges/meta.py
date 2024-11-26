@@ -466,8 +466,7 @@ class MetaDataItem:
 
     def __str__(self) -> str:
         """User readable representation of MetaDataItem."""
-        units = "" if self.units is None else self.units
-        return f"(key: '{self.key}', value: '{self.value}', units: '{units}')"
+        return f"(key: '{self.key}', value: '{self.value}', units: '{self.units}')"
 
     def __iter__(self) -> Iterator[Optional[str]]:
         """Allow iteration over key, value, units."""
