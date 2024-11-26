@@ -497,8 +497,8 @@ class MetaDataItem:
         try:
             _new_item = self._ibridges_meta[new_item_key]
         except KeyError:
+            self._ibridges_meta.add(*new_item_key)
             try:
-                self._ibridges_meta.add(*new_item_key)
                 self._ibridges_meta.item.metadata.remove(self._prc_meta)
             # If we get an error, roll back the added metadata
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
