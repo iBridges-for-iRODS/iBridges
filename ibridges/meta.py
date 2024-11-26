@@ -60,8 +60,10 @@ class MetaData:
             if not self.blacklist or re.match(self.blacklist, meta.name) is None:
                 yield MetaDataItem(self, meta)
             else:
-                warnings.warn(f"Ignoring metadata entry with key {meta.name}, because it matches "
-                              f"the blacklist {self.blacklist}.")
+                warnings.warn(
+                    f"Ignoring metadata entry with key {meta.name}, because it matches "
+                    f"the blacklist {self.blacklist}."
+                )
 
     def __len__(self) -> int:
         """Get the number of non-blacklisted metadata entries."""
@@ -89,7 +91,6 @@ class MetaData:
             return True
         return False
 
-
     def __repr__(self) -> str:
         """Create a sorted representation of the metadata."""
         return f"MetaData<{self.item.path}>"
@@ -100,7 +101,7 @@ class MetaData:
         meta_list = sorted(list(self))
         return "\n".join(f" - {meta}" for meta in meta_list)
 
-    def find_all(self, key = ..., value = ..., units = ...):
+    def find_all(self, key=..., value=..., units=...):
         """Find all metadata entries belonging to the data object/collection.
 
         Wildcards can be used by leaving the key/value/units at default.
@@ -138,8 +139,10 @@ class MetaData:
         if len(all_items) == 0:
             raise KeyError(f"Cannot find metadata item with key '{key}'.")
         if len(all_items) > 1:
-            raise ValueError(f"Found multiple items with key '{key}', specify value and "
-                             "units as well, for example: meta[key, value, units].")
+            raise ValueError(
+                f"Found multiple items with key '{key}', specify value and "
+                "units as well, for example: meta[key, value, units]."
+            )
         return all_items[0]
 
     def __setitem__(self, key: Union[str, Sequence[Union[str, None]]], other: Sequence[str]):
@@ -166,11 +169,12 @@ class MetaData:
 
         """
         if isinstance(other, str):
-            raise TypeError("Cannot set the metadata item to a single string value. "
-                            f"Use meta[{key}].key = \"{other}\" to change only the key "
-                            "for example.")
+            raise TypeError(
+                "Cannot set the metadata item to a single string value. "
+                f'Use meta[{key}].key = "{other}" to change only the key '
+                "for example."
+            )
         self[key].update(*other)
-
 
     def add(self, key: str, value: str, units: Optional[str] = None):
         """Add metadata to an item.
@@ -212,7 +216,7 @@ class MetaData:
             self.item.metadata.add(key, value, units)
         except TypeError as error:
             # catch TypeError from regex comparison between key and blacklist
-            raise TypeError(f"Key {key} must be of type string, found {type(key)}") from TypeError
+            raise TypeError(f"Key {key} must be of type string, found {type(key)}") from error
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
         except irods.message.Bad_AVU_Field as error:
@@ -220,11 +224,13 @@ class MetaData:
             if "attribute" in repr(error):
                 raise irods.message.Bad_AVU_Field(repr(error).replace("attribute", "key"))
             if not isinstance(value, (str, bytes)):
-                raise TypeError(f"Value should have type str or bytes-like, "
-                                f"not {type(value)}.") from error
+                raise TypeError(
+                    f"Value should have type str or bytes-like, " f"not {type(value)}."
+                ) from error
             if not isinstance(units, (str, bytes)):
-                raise TypeError(f"Units should have type str or bytes-like, "
-                                f"not {type(units)}.") from error
+                raise TypeError(
+                    f"Units should have type str or bytes-like, " f"not {type(units)}."
+                ) from error
             raise error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
@@ -258,8 +264,12 @@ class MetaData:
         self.delete(key)
         self.add(key, value, units)
 
-    def delete(self, key: str, value: Union[None, str] = ...,  # type: ignore
-               units: Union[None, str] = ...):  # type: ignore
+    def delete(
+        self,
+        key: str,
+        value: Union[None, str] = ...,  # type: ignore
+        units: Union[None, str] = ...,
+    ):  # type: ignore
         """Delete a metadata entry of an item.
 
         Parameters
@@ -292,8 +302,10 @@ class MetaData:
         """
         all_meta_items = self.find_all(key, value, units)
         if len(all_meta_items) == 0:
-            raise KeyError(f"Cannot delete items with key={key}, value={value} and units={units}, "
-                           "since no metadata entries exist with those values.")
+            raise KeyError(
+                f"Cannot delete items with key={key}, value={value} and units={units}, "
+                "since no metadata entries exist with those values."
+            )
         for meta_item in all_meta_items:
             meta_item.remove()
 
@@ -387,7 +399,8 @@ class MetaData:
             except ValueError:
                 pass
 
-class MetaDataItem():
+
+class MetaDataItem:
     """Interface for metadata entries.
 
     This is a substitute of the python-irodsclient iRODSMeta object.
@@ -499,8 +512,10 @@ class MetaDataItem():
                 ) from error
             self._prc_meta = self._ibridges_meta[new_item_key]._prc_meta  # pylint: disable=protected-access
         else:
-            raise ValueError(f"Cannot change key/value/units to '{new_item_key}' metadata item "
-                             "already exists.")
+            raise ValueError(
+                f"Cannot change key/value/units to '{new_item_key}' metadata item "
+                "already exists."
+            )
 
     def __getattribute__(self, attr: str):
         """Add name attribute and check if the metadata item is already removed."""
@@ -529,8 +544,7 @@ class MetaDataItem():
     def __lt__(self, other: MetaDataItem) -> bool:
         """Compare two metadata items for sorting mainly."""
         if not isinstance(other, MetaDataItem):
-            raise TypeError(f"Comparison between MetaDataItem and {type(other)} "
-                            "not supported.")
+            raise TypeError(f"Comparison between MetaDataItem and {type(other)} " "not supported.")
         comp_key = _comp_str_none(self.key, other.key)
         if comp_key is not None:
             return comp_key
@@ -553,6 +567,7 @@ class MetaDataItem():
             return False
         return True
 
+
 def _comp_str_none(obj: Optional[str], other: Optional[str]) -> Optional[bool]:
     if obj is None and other is not None:
         return True
@@ -561,6 +576,7 @@ def _comp_str_none(obj: Optional[str], other: Optional[str]) -> Optional[bool]:
     if str(obj) == str(other):
         return None
     return str(obj) < str(other)
+
 
 def _pad_search_pattern(search_pattern) -> tuple:
     if isinstance(search_pattern, str):
