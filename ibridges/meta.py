@@ -5,7 +5,6 @@ from __future__ import annotations
 import re
 import warnings
 from typing import Any, Iterator, Optional, Sequence, Union
-from types import NoneType
 
 import irods
 import irods.exception
@@ -21,7 +20,7 @@ def _parse_tuple(key, value, units = None):
         raise ValueError("Value cannot be of size zero.")
     elif not isinstance(value, (str, bytes)):
         raise TypeError(f"Value should have type str or bytes-like, " f"not {type(value)}.")
-    if not isinstance(units, (str, bytes, NoneType)):
+    if not isinstance(units, (str, bytes, type(None))):
         raise TypeError(f"Key should have type str, bytes-like or None, " f"not {type(units)}.")
 
 class MetaData:
