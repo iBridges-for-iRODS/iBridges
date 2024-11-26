@@ -11,7 +11,7 @@ import irods.exception
 import irods.meta
 
 
-def _parse_tuple(key, value, units = None):
+def _parse_tuple(key, value, units = ""):
     if key == "":
         raise ValueError("Key cannot be of size zero.")
     if not isinstance(key, (str, bytes)):
@@ -188,7 +188,7 @@ class MetaData:
             )
         self[key].update(*other)
 
-    def add(self, key: str, value: str, units: Optional[str] = None):
+    def add(self, key: str, value: str, units: Optional[str] = ""):
         """Add metadata to an item.
 
         This will never overwrite an existing entry. If the triplet already exists
@@ -234,7 +234,7 @@ class MetaData:
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
 
-    def set(self, key: str, value: str, units: Optional[str] = None):
+    def set(self, key: str, value: str, units: Optional[str] = ""):
         """Set the metadata entry.
 
         If the metadata entry already exists, then all metadata entries with
@@ -475,7 +475,7 @@ class MetaDataItem:
         yield self.value
         yield self.units
 
-    def update(self, new_key: str, new_value: str, new_units: Optional[str] = None):
+    def update(self, new_key: str, new_value: str, new_units: Optional[str] = ""):
         """Update the metadata item changing the key/value/units.
 
         Parameters
