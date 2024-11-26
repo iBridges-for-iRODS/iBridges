@@ -303,7 +303,7 @@ class MetaData:
         all_meta_items = self.find_all(key, value, units)
         if len(all_meta_items) == 0:
             raise KeyError(
-                f"Cannot delete items with key={key}, value={value} and units={units}, "
+                f"Cannot delete items with key='{key}', value='{value}' and units='{units}', "
                 "since no metadata entries exist with those values."
             )
         for meta_item in all_meta_items:
