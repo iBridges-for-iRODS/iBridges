@@ -19,7 +19,7 @@ def _parse_tuple(key, value, units = ""):
     if value == "":
         raise ValueError("Value cannot be of size zero.")
     if not isinstance(value, (str, bytes)):
-        raise TypeError(f"Value should have type str or bytes-like, " f"not {type(value)}.")
+        raise TypeError(f"Value should have type str or bytes-like, not {type(value)}.")
     if not isinstance(units, (str, bytes, type(None))):
         raise TypeError(f"Key should have type str, bytes-like or None, " f"not {type(units)}.")
 
