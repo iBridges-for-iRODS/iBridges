@@ -136,7 +136,7 @@ class MetaData:
         search_pattern = _pad_search_pattern(key)
         all_items = self.find_all(*search_pattern)
         if len(all_items) == 0:
-            raise KeyError(f"Cannot find metadata item with '{key}'")
+            raise KeyError(f"Cannot find metadata item with key '{key}'.")
         if len(all_items) > 1:
             raise ValueError(f"Found multiple items with key '{key}', specify value and "
                              "units as well, for example: meta[key, value, units].")
@@ -203,10 +203,6 @@ class MetaData:
         >>> meta.add("Mass", "10", "kg")
 
         """
-        if key is None or key == "":
-            raise TypeError("Key cannot be None or an empty string.")
-        if value is None or value == "":
-            raise TypeError("Value cannot be None or an empty string.")
         try:
             if (key, value, units) in self:
                 raise ValueError("ADD META: Metadata already present")
@@ -214,15 +210,21 @@ class MetaData:
                 if re.match(self.blacklist, key):
                     raise ValueError(f"ADD META: Key must not start with {self.blacklist}.")
             self.item.metadata.add(key, value, units)
+        except TypeError as error:
+            # catch TypeError from regex comparison between key and blacklist
+            raise TypeError(f"Key {key} must be of type string, found {type(key)}") from TypeError
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             raise PermissionError("UPDATE META: no permissions") from error
         except irods.message.Bad_AVU_Field as error:
+            # catch all other TypeErrors on key, value and units
+            if "attribute" in repr(error):
+                raise irods.message.Bad_AVU_Field(repr(error).replace("attribute", "key"))
             if not isinstance(value, (str, bytes)):
                 raise TypeError(f"Value should have type str or bytes-like, "
                                 f"not {type(value)}.") from error
             if not isinstance(units, (str, bytes)):
                 raise TypeError(f"Units should have type str or bytes-like, "
-                                f"not {type(value)}.") from error
+                                f"not {type(units)}.") from error
             raise error
 
     def set(self, key: str, value: str, units: Optional[str] = None):
@@ -481,11 +483,14 @@ class MetaDataItem():
         new_item_key = (new_key, new_value, new_units)
         try:
             _new_item = self._ibridges_meta[new_item_key]
+            print(type(_new_item))
         except KeyError:
-            self._ibridges_meta.add(*new_item_key)
             try:
+                self._ibridges_meta.add(*new_item_key)
                 self._ibridges_meta.item.metadata.remove(self._prc_meta)
             # If we get an error, roll back the added metadata
+            except TypeError as error:
+                raise TypeError(repr(error)) from error
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 self._ibridges_meta.delete(*new_item_key)
                 raise ValueError(
