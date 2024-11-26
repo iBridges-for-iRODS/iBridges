@@ -501,8 +501,6 @@ class MetaDataItem:
                 self._ibridges_meta.add(*new_item_key)
                 self._ibridges_meta.item.metadata.remove(self._prc_meta)
             # If we get an error, roll back the added metadata
-            except TypeError as error:
-                raise TypeError(repr(error)) from error
             except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
                 self._ibridges_meta.delete(*new_item_key)
                 raise ValueError(
