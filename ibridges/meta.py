@@ -268,8 +268,7 @@ class MetaData:
         self,
         key: str,
         value: Union[None, str] = ...,  # type: ignore
-        units: Union[None, str] = ...,
-    ):  # type: ignore
+        units: Union[None, str] = ...,):  # type: ignore
         """Delete a metadata entry of an item.
 
         Parameters
@@ -582,11 +581,11 @@ def _pad_search_pattern(search_pattern) -> tuple:
     if isinstance(search_pattern, str):
         padded_pattern = (search_pattern, ..., ...)
     elif len(search_pattern) == 1:
-        padded_pattern = (*search_pattern, ..., ...)
+        padded_pattern = (*search_pattern, ..., ...) # type: ignore
     elif len(search_pattern) == 2:
-        padded_pattern = (*search_pattern, ...)
+        padded_pattern = (*search_pattern, ...) # type: ignore
     elif len(search_pattern) > 3:
         raise ValueError("Too many arguments for '[]', use key, value, units.")
     else:
-        padded_pattern = tuple(search_pattern)
+        padded_pattern = tuple(search_pattern) # type: ignore
     return padded_pattern

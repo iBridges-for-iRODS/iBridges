@@ -139,7 +139,7 @@ def search_data(  # pylint: disable=too-many-branches
     path = IrodsPath(session, path)
 
     if metadata is None:
-        metadata = []
+        metadata = [] # type: ignore
     if isinstance(metadata, MetaSearch):
         metadata = [metadata]
 
@@ -178,7 +178,7 @@ def search_data(  # pylint: disable=too-many-branches
     if path_pattern is not None:
         _path_filter(path_pattern, queries)
 
-    for mf in metadata:
+    for mf in metadata: # type: ignore
         _meta_filter(mf, queries)
 
     if checksum is not None:
