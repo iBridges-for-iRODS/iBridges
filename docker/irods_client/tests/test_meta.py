@@ -23,7 +23,7 @@ def test_meta(item_name, request):
     assert len(meta) == 1
     assert list(meta)[0].name == "x"
     assert list(meta)[0].value == "y"
-    assert list(meta)[0].units is None
+    assert list(meta)[0].units == ""
     assert "x" in meta
     assert ("x", "y") in meta
     assert "y" not in meta

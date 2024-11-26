@@ -135,7 +135,7 @@ def test_meta_archive(session, testdata, tmpdir):
     sync(session, testdata, ipath)
     assert len(list(ipath.meta)) == 0
     meta_list = [
-        (ipath, ("root", "true", None)),
+        (ipath, ("root", "true", "")),
         (ipath / "more_data", ("more_data", "false", "kg")),
         (ipath / "more_data" / "polarbear.txt", ("is_polar", "true", "bool")),
     ]
