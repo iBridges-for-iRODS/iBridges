@@ -14,11 +14,11 @@ import irods.meta
 def _parse_tuple(key, value, units = None):
     if key == "":
         raise ValueError("Key cannot be of size zero.")
-    elif not isinstance(key, (str, bytes)):
+    if not isinstance(key, (str, bytes)):
         raise TypeError(f"Key should have type str or bytes-like, " f"not {type(key)}.")
     if value == "":
         raise ValueError("Value cannot be of size zero.")
-    elif not isinstance(value, (str, bytes)):
+    if not isinstance(value, (str, bytes)):
         raise TypeError(f"Value should have type str or bytes-like, " f"not {type(value)}.")
     if not isinstance(units, (str, bytes, type(None))):
         raise TypeError(f"Key should have type str, bytes-like or None, " f"not {type(units)}.")
@@ -466,7 +466,7 @@ class MetaDataItem:
 
     def __str__(self) -> str:
         """User readable representation of MetaDataItem."""
-        units = "" if self.units is None else self.units 
+        units = "" if self.units is None else self.units
         return f"(key: '{self.key}', value: '{self.value}', units: '{units}')"
 
     def __iter__(self) -> Iterator[Optional[str]]:
