@@ -147,7 +147,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.create_collection.add(str(new_col))
 
-    def execute(self, session: Session, ignore_err: bool = False):
+    def execute(self, session: Session, ignore_err: bool = False,
+                progress_bar: bool = True):
         """Execute all added operations.
 
         This also creates a progress bar to see the status updates.
@@ -159,11 +160,14 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         ignore_err, optional
             Whether to ignore errors when encountered, by default False
             Note that not all errors will be ignored.
+        progress_bar
+            Whether to turn on the progress bar. The progress bar will be disabled
+            if the total download + upload size is 0 regardless.
 
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
         down_sizes = [ipath.size for ipath, _ in self.download]
-        disable = len(up_sizes) + len(down_sizes) == 0
+        disable = len(up_sizes) + len(down_sizes) == 0 or not progress_bar
         pbar = tqdm(
             total=sum(up_sizes) + sum(down_sizes),
             unit="B",

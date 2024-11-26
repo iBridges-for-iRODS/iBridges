@@ -6,8 +6,8 @@ Metadata
 iRODS offers metadata as key, value, units triplets. The type of the keys, values and units is always a string.
 Below we show how to create a :doc:`Metadata <api/generated/ibridges.meta.MetaData>` object from a data object or collection.
 
-The Metadata object
---------------------
+The MetaData class
+------------------
 
 .. code-block:: python
 
@@ -17,7 +17,22 @@ The Metadata object
     session = interactive_auth()
     meta = IrodsPath(session, "~", "collection_or_dataobject").meta
 
+    # Show all metadata entries with print.
+    print(meta)
+
 With the object :code:`meta` we can now access and manipulate the metadata of the data object.
+
+The MetaDataItem class
+----------------------
+
+As explained above, the metadata of a collection or dataobject can have multiple entries. You can iterate over
+these entries as follows:
+
+.. code-block:: python
+
+    for item in meta:
+        print(item.key, item.value, item.units)
+
 
 Add metadata
 ------------
@@ -26,8 +41,6 @@ To add metadata, you always need to provide a key and a value, the units are opt
 .. code-block:: python
 
     meta.add('NewKey', 'NewValue', 'NewUnit')
-    print(meta)
-
 	
 .. note::
     You can have several metadata entries with the same key but different values and units,
@@ -45,6 +58,51 @@ same key first. This mirrors the implementation of the `iCommands <https://rdm-d
 
     meta.set('ExistingKey', 'Value', 'Unit')
 
+
+Find metadata items
+-------------------
+
+If you want to find all items with a certain key/value/units, you can use the ``find_all`` method
+which returns a list of items:
+
+.. code-block:: python
+
+
+    # Find all metadata items with key "some_key".
+    items = meta.find_all(key="some_key")
+
+    # Find all metadata items with value "some_value".
+    items = meta.find_all(value="some_value")
+
+    # Find all metadata items with some units "some_units".
+    items = meta.find_all(units="some_units")
+
+    # Find all metadata items with key == "some_key" and value == "some_value"
+    items = meta.find_all(key="some_key", value="some_value")
+
+If you are searching for one specific metadata item, then you can also use the following notation,
+which will either give back one metadata item, raise a ``KeyError`` if no item matches the criteria, or
+a ``ValueError`` if more than one value matches the criteria:
+
+.. code-block:: python
+
+    item = meta["some_key"]
+    item = meta["some_key", "some_value", "some_units"]
+
+Modify metadata items
+---------------------
+
+You can also rename the ``key``, ``value`` and ``units`` of a metadata item, by setting it to a new value:
+
+.. code-block:: python
+
+    item = metadata["some_key"]
+    item.key = "new_key"
+    item.value = "new_value"
+    item.units = "new_units"
+
+If you are trying to rename the metadata item so that it would overwrite an existing metadata item,
+ibridges will throw an error.
 
 Delete metadata
 ---------------

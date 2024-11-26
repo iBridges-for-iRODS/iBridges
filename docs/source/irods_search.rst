@@ -2,7 +2,7 @@ iRODS Search
 ============
 
 `iBridges` offers an easy way to search for data. You can pass a combination of path, metadata,
-item type and checksum. The output will be a list of :class:`ibridges.path.IrodsPath`, which contain information where to find the item on the iRODS server.
+item type and checksum. The output will be a list of :class:`ibridges.path.CachedIrodsPath`, which contain information where to find the item on the iRODS server.
 
 .. note::
 
@@ -29,6 +29,11 @@ To find all subcollections and dataobjects in a collection use the `%` as wildca
 
     search_data(session, path_pattern="subcoll/%")
   	
+.. note::
+
+    The output of a search is a :class:`ibridges.path.CachedIrodsPath`. It contains the information about the data object or collection at the time of the search.
+    This information is not refetched from the server, i.e. the size of the path will always remain the size at the time of the search. 
+
 
 Search data by metadata
 -----------------------
@@ -66,7 +71,7 @@ A query with metadata will look like:
 	# and one metadata entry that has value=="value", but they do not have to be
 	# for the same entry as in the above.
 	search_data(session, metadata=[MetaSearch(key="key"), MetaSearch(value="value")])
-	
+
 Use the `%` as a wild card again to match any combination of characters.
 	
 

@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from ibridges import icat_columns as icat
-from ibridges.path import IrodsPath
+from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
 
 META_COLS = {
     "collection": (icat.META_COLL_ATTR_NAME, icat.META_COLL_ATTR_VALUE, icat.META_COLL_ATTR_UNITS),
-    "data_object": (icat.META_DATA_ATTR_NAME, icat.META_DATA_ATTR_VALUE, icat.META_DATA_ATTR_UNITS)
+    "data_object": (icat.META_DATA_ATTR_NAME, icat.META_DATA_ATTR_VALUE, icat.META_DATA_ATTR_UNITS),
 }
 
 
@@ -28,8 +28,9 @@ class MetaSearch(namedtuple("MetaSearch", ["key", "value", "units"], defaults=[.
     def __new__(cls, key=..., value=..., units=...):
         """Create a new MetaSearch object."""
         if key is ... and value is ... and units is ...:
-            raise ValueError("Cannot create metasearch without specifying either key, value or "
-                             "units.")
+            raise ValueError(
+                "Cannot create metasearch without specifying either key, value or units."
+            )
         key = "%" if key is ... else key
         value = "%" if value is ... else value
         units = "%" if units is ... else units
@@ -43,8 +44,8 @@ def search_data(  # pylint: disable=too-many-branches
     checksum: Optional[str] = None,
     metadata: Union[None, MetaSearch, list[MetaSearch], list[tuple]] = None,
     item_type: Optional[str] = None,
-    case_sensitive: bool = False
-) -> list[IrodsPath]:
+    case_sensitive: bool = False,
+) -> list[CachedIrodsPath]:
     """Search for collections, data objects and metadata.
 
     By default all accessible collections and data objects are returned.
@@ -83,11 +84,9 @@ def search_data(  # pylint: disable=too-many-branches
 
     Returns
     -------
-        List of dictionaries with keys:
-        COLL_NAME (absolute path of the collection),
-        DATA_NAME (name of the data object),
-        D_DATA_CHECKSUM (checksum of the data object)
-        The latter two keys are only present of the found item is a data object.
+        List of CachedIrodsPaths.
+        The CachedIrodsPaths for data objects contain the size and the checksum
+        found in the search.
 
     Examples
     --------
@@ -156,22 +155,28 @@ def search_data(  # pylint: disable=too-many-branches
         queries.append((coll_query, "collection"))
     if item_type != "collection":
         # create the query for data objects; we need the collection name, the data name and checksum
-        data_query = session.irods_session.query(icat.COLL_NAME,
-                                                 icat.DATA_NAME,
-                                                 icat.DATA_CHECKSUM,
-                                                 case_sensitive=case_sensitive)
+        data_query = session.irods_session.query(
+            icat.COLL_NAME,
+            icat.DATA_NAME,
+            icat.DATA_CHECKSUM,
+            icat.DATA_SIZE,
+            case_sensitive=case_sensitive,
+        )
         data_query = data_query.filter(icat.LIKE(icat.COLL_NAME, _postfix_wildcard(path)))
         queries.append((data_query, "data_object"))
 
-        data_name_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME,
-                                                      icat.DATA_CHECKSUM,
-                                                      case_sensitive=case_sensitive)
+        data_name_query = session.irods_session.query(
+            icat.COLL_NAME,
+            icat.DATA_NAME,
+            icat.DATA_CHECKSUM,
+            icat.DATA_SIZE,
+            case_sensitive=case_sensitive,
+        )
         data_name_query.filter(icat.LIKE(icat.COLL_NAME, f"{path}"))
         queries.append((data_name_query, "data_object"))
 
     if path_pattern is not None:
         _path_filter(path_pattern, queries)
-
 
     for mf in metadata:
         _meta_filter(mf, queries)
@@ -184,23 +189,28 @@ def search_data(  # pylint: disable=too-many-branches
         query_results.extend(list(q[0]))
 
     # gather results, data_query and data_name_query can contain the same results
-    results = [
-        dict(s) for s in set(frozenset(d.items())
-                for d in query_results)
-    ]
+    results = [dict(s) for s in set(frozenset(d.items()) for d in query_results)]
     for item in results:
         if isinstance(item, dict):
-            new_keys = [k.icat_key for k in item.keys()]
-            for n_key, o_key in zip(new_keys, item.keys()):
-                item[n_key] = item.pop(o_key)
+            for meta_key in list(item.keys()):
+                item[meta_key.icat_key] = item.pop(meta_key)
 
     # Convert the results to IrodsPath objects.
-    ipath_results = []
+    ipath_results: List[CachedIrodsPath] = []
     for res in results:
         if "DATA_NAME" in res:
-            ipath_results.append(IrodsPath(session, res["COLL_NAME"], res["DATA_NAME"]))
+            ipath_results.append(
+                CachedIrodsPath(
+                    session,
+                    res["DATA_SIZE"],
+                    True,
+                    res["D_DATA_CHECKSUM"],
+                    res["COLL_NAME"],
+                    res["DATA_NAME"],
+                )
+            )
         else:
-            ipath_results.append(IrodsPath(session, res["COLL_NAME"]))
+            ipath_results.append(CachedIrodsPath(session, None, False, None, res["COLL_NAME"]))
     return ipath_results
 
 
@@ -209,10 +219,12 @@ def _prefix_wildcard(pattern):
         return pattern
     return f"%/{pattern}"
 
+
 def _postfix_wildcard(path):
     if str(path).endswith("/"):
         return f"{path}%"
     return f"{path}/%"
+
 
 def _path_filter(path_pattern, queries):
     for q, q_type in queries:
@@ -232,6 +244,7 @@ def _meta_filter(metadata, queries):
     for q, q_type in queries:
         for i_elem, elem in enumerate(MetaSearch(*metadata)):
             q.filter(icat.LIKE(META_COLS[q_type][i_elem], elem))
+
 
 def _checksum_filter(checksum, queries):
     for q, q_type in queries:
