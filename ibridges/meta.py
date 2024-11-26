@@ -544,7 +544,7 @@ class MetaDataItem:
     def __lt__(self, other: MetaDataItem) -> bool:
         """Compare two metadata items for sorting mainly."""
         if not isinstance(other, MetaDataItem):
-            raise TypeError(f"Comparison between MetaDataItem and {type(other)} " "not supported.")
+            raise TypeError(f"Comparison between MetaDataItem and {type(other)} not supported.")
         comp_key = _comp_str_none(self.key, other.key)
         if comp_key is not None:
             return comp_key
