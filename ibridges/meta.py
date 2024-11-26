@@ -494,7 +494,6 @@ class MetaDataItem:
 
         """
         new_item_key = (new_key, new_value, new_units)
-        print(new_item_key)
         try:
             _new_item = self._ibridges_meta[new_item_key]
         except KeyError:
