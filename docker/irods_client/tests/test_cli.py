@@ -185,12 +185,12 @@ def test_meta_cli(item_name, request, pass_opts):
     meta.clear()
     cli_path = f"irods:{item.path}"
 
-    ret = subprocess.run(["ibridges", "meta-list", cli_path])
+    ret = subprocess.run(["ibridges", "meta-list", cli_path], capture_output=True, **pass_opts)
     assert len(ret.stdout.strip("\n")) == 0
 
-    subprocess.run(["ibridges", "meta-add", cli_path, "key", "value", "units"])
+    subprocess.run(["ibridges", "meta-add", cli_path, "key", "value", "units"], **pass_opts)
     assert ("key", "value", "units") in meta
 
-    subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"])
+    subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"], **pass_opts)
 
     assert len(meta) == 0
