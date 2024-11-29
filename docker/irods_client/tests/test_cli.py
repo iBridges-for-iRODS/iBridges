@@ -8,6 +8,7 @@ from pytest import mark
 
 from ibridges import IrodsPath
 from ibridges.data_operations import create_collection
+from ibridges.meta import MetaData
 
 
 @pytest.fixture(scope="module")
@@ -135,6 +136,8 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     subprocess.run(["ibridges", "list"], **pass_opts)
     subprocess.run(["ibridges", "list", f"irods:{collection.path}"], **pass_opts)
+    subprocess.run(["ibridges", "list", "-s"], **pass_opts)
+    subprocess.run(["ibridges", "list", "-l"], **pass_opts)
 
 
 @mark.parametrize(
@@ -174,3 +177,20 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     else:
         assert len([x for x in stripped_str.split("\n") if not x.startswith("Your iRODS")]) == nlines
     ipath_coll.remove()
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_meta_cli(item_name, request, pass_opts):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+    cli_path = f"irods:{item.path}"
+
+    ret = subprocess.run(["ibridges", "meta-list", cli_path])
+    assert len(ret.strip("\n")) == 0
+
+    subprocess.run(["ibridges", "meta-add", cli_path, "key", "value", "units"])
+    assert ("key", "value", "units") in meta
+
+    subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"])
+
+    assert len(meta) == 0

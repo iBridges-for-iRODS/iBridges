@@ -334,3 +334,4 @@ collection or data object with:
     ibridges meta-del "irods:some_collection"
 
 You will be asked to confirm this operation.
+
