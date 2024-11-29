@@ -340,10 +340,32 @@ def ibridges_list():
         help="Show metadata for each iRODS location.",
         action="store_true",
     )
+    parser.add_argument(
+        "-s", "--short",
+        help="Display available data objects/collections in short form.",
+        action="store_true"
+    )
+    parser.add_argument(
+        "-l", "--long",
+        help="Display available data objects/collections in long form.",
+        action="store_true",
+    )
 
     args, _ = parser.parse_known_args()
     with _cli_auth(ienv_path=_get_ienv_path()) as session:
-        _list_coll(session, _parse_remote(args.remote_path, session), args.metadata)
+        ipath =  _parse_remote(args.remote_path, session)
+        if args.long:
+            for cur_path in ipath.walk(depth=1):
+                if str(cur_path) == str(ipath):
+                    continue
+                if cur_path.collection_exists():
+                    print(f"C- {cur_path.name}")
+                else:
+                    print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
+        elif args.short:
+            print(" ".join([x.name for x in ipath.walk(depth=1) if str(x) != str(ipath)]))
+        else:
+            _list_coll(session, ipath, args.metadata)
 
 
 def ibridges_meta_show():
