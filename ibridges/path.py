@@ -646,6 +646,8 @@ def _get_data_objects(
         Session to get the data objects with.
     coll : irods.collection.iRODSCollection
         The collection to search for all data objects
+    depth:
+        Depth of the data object search, only used for depth==1.
 
     Returns
     -------

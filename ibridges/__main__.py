@@ -116,8 +116,8 @@ def main() -> None:  #pylint: disable=too-many-branches
         ibridges_setup()
     elif subcommand == "search":
         ibridges_search()
-    elif subcommand in ["meta", "meta-show"]:
-        ibridges_meta_show()
+    elif subcommand in ["meta", "meta-list"]:
+        ibridges_meta_list()
     elif subcommand == "meta-add":
         ibridges_meta_add()
     elif subcommand == "meta-del":
@@ -368,10 +368,10 @@ def ibridges_list():
             _list_coll(session, ipath, args.metadata)
 
 
-def ibridges_meta_show():
+def ibridges_meta_list():
     """List metadata of a a collection on iRODS."""
     parser = argparse.ArgumentParser(
-        prog="ibridges meta-show", description="List a collection on iRODS."
+        prog="ibridges meta-list", description="List a collection on iRODS."
     )
     parser.add_argument(
         "remote_path",
