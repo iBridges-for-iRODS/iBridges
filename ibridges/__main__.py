@@ -49,6 +49,12 @@ Available subcommands:
         List the content of a collections, if no path is given, the home collection will be listed.
     tree:
         List a collection and subcollections in a hierarchical way.
+    meta-list:
+        List the metadata of a collection or data object.
+    meta-add:
+        Add a new metadata entry to a collection or data object.
+    meta-del:
+        Delete metadata entries for a collection or data object.
     mkcoll:
         Create the collection and all its parent collections.
     setup:
@@ -68,6 +74,9 @@ ibridges sync ~/directory "irods:~/collection"
 ibridges list irods:~/collection
 ibridges mkcoll irods://~/bli/bla/blubb
 ibridges tree irods:~/collection
+ibridges meta-list irods:~/collection
+ibridges meta-add irods:~/collection key value units
+ibridges meta-del irods:~/collection key value units
 ibridges search --path-pattern "%.txt"
 ibridges search --metadata "key" "value" "units"
 ibridges search --metadata "key" --metadata "key2" "value2"
@@ -120,7 +129,7 @@ def main() -> None:  #pylint: disable=too-many-branches
         ibridges_meta_list()
     elif subcommand == "meta-add":
         ibridges_meta_add()
-    elif subcommand == "meta-del":
+    elif subcommand in ["meta-del", "meta-rm"]:
         ibridges_meta_del()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
