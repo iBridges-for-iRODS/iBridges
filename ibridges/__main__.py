@@ -84,7 +84,7 @@ Program information:
 
 
 
-def main() -> None:
+def main() -> None:  #pylint: disable=too-many-branches
     """CLI pointing to different entrypoints."""
     # ensure .irods folder
     irods_loc = Path.home() / ".irods"
@@ -436,7 +436,8 @@ def ibridges_meta_del():
         if args.ignore_blacklist:
             meta.blacklist = None
         if args.key is ... and args.value is ... and args.units is ...:
-            answer = input("This command will delete all metadata for path {ipath}, are you sure? [y/n]")
+            answer = input("This command will delete all metadata for path {ipath},"
+                           " are you sure? [y/n]")
             if answer.lower() != "y":
                 return
         meta.delete(args.key, args.value, args.units)
