@@ -262,6 +262,10 @@ class MetaData:
         >>> meta.set("mass", "10", "kg")
 
         """
+        warnings.warn("The 'set' method is deprecated and will be removed in iBridges 2.0. "
+                      f"You can mimick the old behavior with meta.delete('{key}'); "
+                      f"meta.add('{key}', '{value}', '{units}')",
+                      DeprecationWarning, stacklevel=2)
         self.delete(key)
         self.add(key, value, units)
 
@@ -269,7 +273,8 @@ class MetaData:
         self,
         key: str,
         value: Union[None, str] = ...,  # type: ignore
-        units: Union[None, str] = ...,):  # type: ignore
+        units: Union[None, str] = ...,  # type: ignore
+    ):
         """Delete a metadata entry of an item.
 
         Parameters

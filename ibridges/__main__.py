@@ -106,7 +106,7 @@ def main() -> None:
         ibridges_sync()
     elif subcommand == "init":
         ibridges_init()
-    elif subcommand == "list":
+    elif subcommand in ["list", "ls"]:
         ibridges_list()
     elif subcommand == "mkcoll":
         ibridges_mkcoll()
@@ -116,6 +116,12 @@ def main() -> None:
         ibridges_setup()
     elif subcommand == "search":
         ibridges_search()
+    elif subcommand in ["meta", "meta-show"]:
+        ibridges_meta_show()
+    elif subcommand == "meta-add":
+        ibridges_meta_add()
+    elif subcommand == "meta-del":
+        ibridges_meta_del()
     else:
         print(f"Invalid subcommand ({subcommand}). For help see ibridges --help")
         sys.exit(1)
@@ -230,23 +236,6 @@ def ibridges_init():
     print("ibridges init was succesful.")
 
 
-def _list_coll(session: Session, remote_path: IrodsPath):
-    if remote_path.collection_exists():
-        print(str(remote_path) + ":")
-        coll = get_collection(session, remote_path)
-        print("\n".join(["  " + sub.path for sub in coll.data_objects]))
-        print(
-            "\n".join(
-                [
-                    "  C- " + sub.path
-                    for sub in coll.subcollections
-                    if not str(remote_path) == sub.path
-                ]
-            )
-        )
-    else:
-        raise ValueError(f"Irods path '{remote_path}' is not a collection.")
-
 
 def ibridges_setup():
     """Use templates to create an iRODS environment json."""
@@ -311,6 +300,29 @@ def ibridges_setup():
             handle.write(json_str)
 
 
+def _list_coll(session: Session, remote_path: IrodsPath, metadata: bool = False):
+    if remote_path.collection_exists():
+        print(str(remote_path) + ":")
+        if metadata:
+            print(remote_path.meta)
+            print()
+        coll = get_collection(session, remote_path)
+        for data_obj in coll.data_objects:
+            print("  " + data_obj.path)
+            if metadata and len((remote_path / data_obj.name).meta) > 0:
+                print((remote_path / data_obj.name).meta)
+                print()
+        for sub_coll in coll.subcollections:
+            if str(remote_path) == sub_coll.path:
+                continue
+            print("  C- " + sub_coll.path)
+            if metadata and len((remote_path / sub_coll.name).meta) > 0:
+                print((remote_path / sub_coll.name).meta)
+                print()
+    else:
+        raise ValueError(f"Irods path '{remote_path}' is not a collection.")
+
+
 def ibridges_list():
     """List a collection on iRODS."""
     parser = argparse.ArgumentParser(
@@ -323,10 +335,111 @@ def ibridges_list():
         default=None,
         nargs="?",
     )
+    parser.add_argument(
+        "-m", "--metadata",
+        help="Show metadata for each iRODS location.",
+        action="store_true",
+    )
 
     args, _ = parser.parse_known_args()
     with _cli_auth(ienv_path=_get_ienv_path()) as session:
-        _list_coll(session, _parse_remote(args.remote_path, session))
+        _list_coll(session, _parse_remote(args.remote_path, session), args.metadata)
+
+
+def ibridges_meta_show():
+    """List metadata of a a collection on iRODS."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges meta-show", description="List a collection on iRODS."
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Path to remote iRODS location starting with 'irods:'",
+        type=str,
+        default=None,
+        nargs="?",
+    )
+
+    args, _ = parser.parse_known_args()
+    with _cli_auth(ienv_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        print(str(ipath) + ":\n")
+        print(ipath.meta)
+
+def ibridges_meta_add():
+    """Add new metadata to an iRODS item."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges meta-add", description="Add metadata entry."
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Path to add a new metadata item to.",
+        type=str,
+    )
+    parser.add_argument(
+        "key",
+        help="Key for the new metadata item.",
+        type=str,
+    )
+    parser.add_argument(
+        "value",
+        help="Value for the new metadata item.",
+        type=str
+    )
+    parser.add_argument(
+        "units",
+        help="Units for the new metadata item.",
+        type=str,
+        default="",
+        nargs="?"
+    )
+    args = parser.parse_args()
+    with _cli_auth(ienv_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        ipath.meta.add(args.key, args.value, args.units)
+
+def ibridges_meta_del():
+    """Delete metadata from an iRODS item."""
+    parser = argparse.ArgumentParser(
+        prog="ibridges meta-del", description="Delete metadata entries.",
+    )
+    parser.add_argument(
+        "remote_path",
+        help="Path to delete metadata entries from.",
+    )
+    parser.add_argument(
+        "--key",
+        help="Key for which to delete the entries.",
+        type=str,
+        default=...,
+    )
+    parser.add_argument(
+        "--value",
+        help="Value for which to delete the entries.",
+        type=str,
+        default=...,
+    )
+    parser.add_argument(
+        "--units",
+        help="Units for which to delete the entries.",
+        type=str,
+        default=...,
+    )
+    parser.add_argument(
+        "--ignore-blacklist",
+        help="Ignore the metadata blacklist.",
+        action="store_true"
+    )
+    args = parser.parse_args()
+    with _cli_auth(ienv_path=_get_ienv_path()) as session:
+        ipath = _parse_remote(args.remote_path, session)
+        meta = ipath.meta
+        if args.ignore_blacklist:
+            meta.blacklist = None
+        if args.key is ... and args.value is ... and args.units is ...:
+            answer = input("This command will delete all metadata for path {ipath}, are you sure? [y/n]")
+            if answer.lower() != "y":
+                return
+        meta.delete(args.key, args.value, args.units)
 
 
 def _create_coll(session: Session, remote_path: IrodsPath):
