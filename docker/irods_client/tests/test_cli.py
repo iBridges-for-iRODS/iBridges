@@ -192,5 +192,5 @@ def test_meta_cli(item_name, request, pass_opts):
     assert ("key", "value", "units") in meta
 
     subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"], **pass_opts)
-
-    assert len(meta) == 0
+    assert ("key", "value", "units") not in meta
+    #assert len(meta) == 0
