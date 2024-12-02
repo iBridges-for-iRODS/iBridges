@@ -80,7 +80,7 @@ useful to cache the password so that the next commands will no longer ask for yo
 Listing remote files
 --------------------
 
-To list the dataobjects and collections that are available on the iRODS server, you can use the :code:`ibridges list` command:
+To list the data objects and collections that are available on the iRODS server, you can use the :code:`ibridges list` command:
 
 .. code:: shell
 
@@ -94,9 +94,19 @@ If you want to list a collection relative to your `irods_home`, you can use `~` 
 
     ibridges list "irods:~/collection_in_home"
 
-
 It is generally best to avoid spaces in collection and data object names. If you really need them, you must enclose the path with `"`. That also holds true for local paths.
 
+If you want to have a list that is easier to parse with other command line tools, you can use:
+
+.. code:: shell
+
+    ibridges list --short
+
+You can also see the checksums and sizes of data objects with the long format:
+
+.. code:: shell
+
+    ibridges list --long
 
 .. note::
     Note that all data objects and collections on the iRODS server are always preceded with "irods:". This is done to distinguish local and remote files.
@@ -274,3 +284,54 @@ or
 .. code:: shell
 
     ibridges search --metadata "key" --item_type data_object
+
+
+Metadata commands
+-----------------
+
+Listing metadata
+^^^^^^^^^^^^^^^^
+
+Listing metadata entries for a single collection or data object can be done with the :code:`meta-list`
+subcommand:
+
+.. code:: shell
+
+    ibridges meta-list "irods:some_collection"
+
+Adding new metadata
+^^^^^^^^^^^^^^^^^^^
+
+To add new metadata for a single collection or data object, you can use the :code:`meta-add` subcommand:
+
+.. code:: shell
+
+    ibridges meta-add "irods:some_collection" some_key some_value, some_units
+
+The :code:`some_units` argument can be left out, in which case the units will be set to the empty string.
+
+Deleting metadata
+^^^^^^^^^^^^^^^^^
+
+Metadata can also again be deleted with the CLI using the :code:`meta-del` subcommand:
+
+.. code:: shell
+
+    ibridges meta-del "irods:some_collection" --key some_key --value some_value --units some_units
+
+All of the :code:`--key`, :code:`--value` and :code:`--units` are optional. They serve to constrain
+which metadata items will be deleted. For example, if you only set the key:
+
+.. code:: shell
+
+    ibridges meta-del "irods:some_collection" --key some_key
+
+then **all** metadata items with that key will be deleted. You can delete all metadata for a single
+collection or data object with:
+
+.. code:: shell
+
+    ibridges meta-del "irods:some_collection"
+
+You will be asked to confirm this operation.
+

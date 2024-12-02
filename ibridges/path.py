@@ -455,11 +455,12 @@ class IrodsPath:
 
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
-        for path, name, size, checksum in _get_data_objects(self.session, self.collection):
+        prc_data_objects = _get_data_objects(self.session, self.collection, depth=depth)
+        for path, name, size, checksum in prc_data_objects:
             abs_path = IrodsPath(self.session, path).absolute()
             ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
             all_data_objects[str(abs_path)].append(ipath)
-        all_collections = _get_subcoll_paths(self.session, self.collection)
+        all_collections = _get_subcoll_paths(self.session, self.collection, depth=depth)
         all_collections = sorted(all_collections, key=str)
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
@@ -634,7 +635,8 @@ class CachedIrodsPath(IrodsPath):
 
 
 def _get_data_objects(
-    session, coll: irods.collection.iRODSCollection
+    session, coll: irods.collection.iRODSCollection,
+    depth: Optional[int] = None,
 ) -> list[tuple[str, str, int, str]]:
     """Retrieve all data objects in a collection and all its subcollections.
 
@@ -644,6 +646,8 @@ def _get_data_objects(
         Session to get the data objects with.
     coll : irods.collection.iRODSCollection
         The collection to search for all data objects
+    depth:
+        Depth of the data object search, only used for depth==1.
 
     Returns
     -------
@@ -653,6 +657,8 @@ def _get_data_objects(
     """
     # all objects in the collection
     objs = [(obj.collection.path, obj.name, obj.size, obj.checksum) for obj in coll.data_objects]
+    if depth == 1:
+        return objs
 
     # all objects in subcollections
     data_query = session.irods_session.query(
@@ -666,8 +672,13 @@ def _get_data_objects(
     return objs
 
 
-def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection) -> list:
+def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection,
+                       depth: Optional[int] = None) -> list:
     """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
+    if depth == 1:
+        return [CachedIrodsPath(session, None, False, None, subcol.path)
+                for subcol in coll.subcollections]
+
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path + "/%"))
 
