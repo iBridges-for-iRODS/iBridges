@@ -189,10 +189,10 @@ def test_meta_cli(item_name, request, pass_opts):
     assert len(ret.stdout.strip("\n").split("\n")) == 1
 
     subprocess.run(["ibridges", "meta-add", cli_path, "key", "value", "units"], **pass_opts)
-    meta = MetaData(item)
+    meta.refresh()
     assert ("key", "value", "units") in meta
 
     subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"], **pass_opts)
+    meta.refresh()
     meta = MetaData(item)
     assert ("key", "value", "units") not in meta
-    #assert len(meta) == 0

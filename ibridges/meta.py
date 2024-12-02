@@ -334,6 +334,7 @@ class MetaData:
             If the user has insufficient permissions to delete the metadata.
 
         """
+        self.refresh()
         for meta in self:
             self.item.metadata.remove(meta)
 
@@ -403,6 +404,16 @@ class MetaData:
                 self.add(*meta_tuple)
             except ValueError:
                 pass
+
+    def refresh(self):
+        """Refresh the metadata of the item.
+
+        This is only necessary if the metadata has been modified by another session.
+        """
+        if isinstance(self.item, irods.collection.iRODSCollection):
+            self.item = self.item.manager.sess.collections.get(self.item.path)
+        else:
+            self.item = self.item.manager.sess.data_objects.get(self.item.path)
 
 
 class MetaDataItem:
