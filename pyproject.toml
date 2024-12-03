@@ -28,7 +28,7 @@ classifiers = [
 dependencies = [
     "python-irodsclient>=2.0.0",
     "tqdm",
-    "importlib-metadata=>8.5.0;python_version<'3.10'",
+    "importlib-metadata>=4.6;python_version<'3.10'",
 ]
 
 dynamic = ["version"]
