@@ -10,6 +10,7 @@ import irods
 from irods.models import DataObject
 
 import ibridges.icat_columns as icat
+from ibridges.exception import NotACollection, NotADataObject, CollectionDoesNotExist, DataObjectDoesNotExist, DoesNotExist
 from ibridges.meta import MetaData
 
 
@@ -239,7 +240,7 @@ class IrodsPath:
             If the new path already exists, or the path is in a different zone.
         PermissionError:
             If the new collection cannot be created.
-        FileNotFoundError:
+        DoesNotExist:
             If the path does not exist.
 
         Examples
@@ -248,7 +249,7 @@ class IrodsPath:
 
         """
         if not self.exists():
-            raise FileNotFoundError(f"{str(self)} does not exist.")
+            raise DoesNotExist(f"{str(self)} does not exist.")
 
         # Build new path
         if str(new_name).startswith("/" + self.session.zone):
@@ -346,11 +347,11 @@ class IrodsPath:
         if self.collection_exists():
             return self.session.irods_session.collections.get(str(self))
         if self.dataobject_exists():
-            raise NotADirectoryError(
+            raise NotACollection(
                 "Error retrieving collection, path is linked to a data object."
                 " Use get_dataobject instead to retrieve the data object."
             )
-        raise irods.exception.CollectionDoesNotExist(str(self))
+        raise CollectionDoesNotExist(str(self))
 
     @property
     def dataobject(self) -> irods.data_object.iRODSDataObject:
@@ -358,7 +359,7 @@ class IrodsPath:
 
         Raises
         ------
-        IsADirectoryError:
+        NotADataObject:
             If the path is pointing to a collection and not a data object.
 
         Returns
@@ -375,7 +376,7 @@ class IrodsPath:
         if self.dataobject_exists():
             return self.session.irods_session.data_objects.get(str(self))
         if self.collection_exists():
-            raise IsADirectoryError(
+            raise NotADataObject(
                 "Error retrieving data object, path is linked to a collection."
                 " Use get_collection instead to retrieve the collection."
             )
@@ -403,7 +404,7 @@ class IrodsPath:
 
         Raises
         ------
-        IsADirectoryError:
+        NotADataobject:
             When the IrodsPath points to a collection.
         DataObjectDoesNotExist:
             When the data object does not exist and the read mode is given.
@@ -421,7 +422,7 @@ class IrodsPath:
 
         """
         if self.collection_exists():
-            raise IsADirectoryError("Cannot open collection, only data objects can be opened.")
+            raise NotACollection("Cannot open collection, onsly data objects can be opened.")
         # Create the data object if it does not exist.
         if mode == "w" and not self.dataobject_exists():
             self.session.irods_session.data_objects.create(str(self))
@@ -525,9 +526,9 @@ class IrodsPath:
 
         Raises
         ------
-        FileNotFoundError:
+        DoesNotExist:
             When the path does not exist.
-        IsADirectoryError:
+        NotADataObject:
             When the path points to a collection.
 
         Examples
@@ -540,8 +541,8 @@ class IrodsPath:
             dataobj = self.dataobject
             return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
         if self.collection_exists():
-            raise IsADirectoryError("Cannot take checksum of a collection.")
-        raise FileNotFoundError("Cannot take checksum of irods path neither a dataobject or collection.")
+            raise NotADataObject("Cannot take checksum of a collection.")
+        raise DoesNotExist(f"Cannot take checksum of {str(self)} irods path which does not exist.")
 
     @property
     def meta(self) -> MetaData:
@@ -553,7 +554,7 @@ class IrodsPath:
 
         Raises
         ------
-        FileNotFoundError:
+        DoesNotExist:
             When the path does not point to a data object or collection.
 
         """
@@ -561,8 +562,8 @@ class IrodsPath:
             return MetaData(self.dataobject)
         if self.collection_exists():
             return MetaData(self.collection)
-        raise FileNotFoundError("Cannot get metadata for path that is neither dataobject or collection:"
-                                f" {self}")
+        raise DoesNotExist("Cannot get metadata for path that is neither dataobject or collection:"
+                           f" {self}")
 
 
 
