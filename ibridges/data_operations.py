@@ -18,6 +18,7 @@ import irods.exception
 
 from ibridges.exception import (
     CollectionDoesNotExistError,
+    DataObjectExistsError,
     DoesNotExistError,
     NotACollectionError,
 )
@@ -79,7 +80,7 @@ def upload(
     ------
     FileNotFoundError:
         If the local_path is not a valid filename of directory.
-    FileExistsError:
+    DataObjectExistsError:
         If the data object to be uploaded already exists without using overwrite==True.
     PermissionError:
         If the iRODS server does not allow the collection or data object to be created.
@@ -105,7 +106,7 @@ def upload(
     if local_path.is_dir():
         idest_path = ipath / local_path.name
         if not overwrite and idest_path.dataobject_exists():
-            raise FileExistsError(f"Data object {idest_path} already exists.")
+            raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         ops = _up_sync_operations(
             local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, ignore_err=ignore_err

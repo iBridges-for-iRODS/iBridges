@@ -428,7 +428,7 @@ class IrodsPath:
 
         """
         if self.collection_exists():
-            raise NotACollectionError("Cannot open collection, onsly data objects can be opened.")
+            raise NotACollectionError("Cannot open collection, only data objects can be opened.")
         # Create the data object if it does not exist.
         if mode == "w" and not self.dataobject_exists():
             self.session.irods_session.data_objects.create(str(self))

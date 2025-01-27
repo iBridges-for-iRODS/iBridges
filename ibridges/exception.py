@@ -13,3 +13,6 @@ class NotACollectionError(DoesNotExistError):
 
 class NotADataObjectError(DoesNotExistError):
     """When the path is not a data object."""
+
+class DataObjectExistsError(DoesNotExistError):
+    """When the data object already exists."""
