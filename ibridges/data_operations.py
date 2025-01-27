@@ -540,7 +540,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
     session = idest_path.session
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
-    except irods.exception.CollectionDoesNotExistError:
+    except irods.exception.CollectionDoesNotExist:
         remote_ipaths = {}
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)

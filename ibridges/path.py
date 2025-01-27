@@ -12,6 +12,7 @@ from irods.models import DataObject
 import ibridges.icat_columns as icat
 from ibridges.exception import (
     CollectionDoesNotExistError,
+    DataObjectDoesNotExistError,
     DoesNotExistError,
     NotACollectionError,
     NotADataObjectError,
@@ -386,7 +387,7 @@ class IrodsPath:
                 " Use get_collection instead to retrieve the collection."
             )
 
-        raise irods.exception.DataObjectDoesNotExistError(str(IrodsPath))
+        raise DataObjectDoesNotExistError(str(IrodsPath))
 
     def open(self, mode="r", **kwargs):
         """Open a data object for reading or writing.

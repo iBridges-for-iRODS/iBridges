@@ -10,9 +10,6 @@ __all__ = ["CollectionDoesNotExistError", "DataObjectDoesNotExistError"]
 class NotACollectionError(DoesNotExistError):
     """When the path is not a collection."""
 
-    pass
 
 class NotADataObjectError(DoesNotExistError):
     """When the path is not a data object."""
-
-    pass
