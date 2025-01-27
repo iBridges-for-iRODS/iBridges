@@ -10,7 +10,12 @@ import irods
 from irods.models import DataObject
 
 import ibridges.icat_columns as icat
-from ibridges.exception import NotACollectionError, NotADataObjectError, CollectionDoesNotExistError, DataObjectDoesNotExistError, DoesNotExistError
+from ibridges.exception import (
+    CollectionDoesNotExistError,
+    DoesNotExistError,
+    NotACollectionError,
+    NotADataObjectError,
+)
 from ibridges.meta import MetaData
 
 
@@ -542,7 +547,8 @@ class IrodsPath:
             return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
         if self.collection_exists():
             raise NotADataObjectError("Cannot take checksum of a collection.")
-        raise DoesNotExistError(f"Cannot take checksum of {str(self)} irods path which does not exist.")
+        raise DoesNotExistError(
+            f"Cannot take checksum of {str(self)} irods path which does not exist.")
 
     @property
     def meta(self) -> MetaData:
@@ -562,8 +568,9 @@ class IrodsPath:
             return MetaData(self.dataobject)
         if self.collection_exists():
             return MetaData(self.collection)
-        raise DoesNotExistError("Cannot get metadata for path that is neither dataobject or collection:"
-                           f" {self}")
+        raise DoesNotExistError(
+            "Cannot get metadata for path that is neither dataobject or collection:"
+            f" {self}")
 
 
 
