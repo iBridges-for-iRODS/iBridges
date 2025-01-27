@@ -410,7 +410,7 @@ class IrodsPath:
 
         Raises
         ------
-        NotADataobject:
+        NotADataobjectError:
             When the IrodsPath points to a collection.
         DataObjectDoesNotExistError:
             When the data object does not exist and the read mode is given.
@@ -428,7 +428,7 @@ class IrodsPath:
 
         """
         if self.collection_exists():
-            raise NotACollectionError("Cannot open collection, only data objects can be opened.")
+            raise NotADataObjectError("Cannot open collection, only data objects can be opened.")
         # Create the data object if it does not exist.
         if mode == "w" and not self.dataobject_exists():
             self.session.irods_session.data_objects.create(str(self))

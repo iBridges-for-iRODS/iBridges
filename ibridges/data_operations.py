@@ -495,13 +495,23 @@ def _param_checks(source, target):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
 
-def _transfer_needed(ipath, lpath, overwrite, ignore_err):
+def _transfer_needed(source, dest, overwrite, ignore_err):
+    if isinstance(source, IrodsPath):
+        ipath = source
+        lpath = dest
+    else:
+        ipath = dest
+        lpath = source
+
     if not overwrite:
         if not ignore_err:
-            raise FileExistsError(
-                f"Cannot overwrite {ipath} <-> {lpath} unless overwrite==True. "
-                f"To ignore this error and skip the files use ignore_err==True.")
-        warnings.warn(f"Skipping file/data object {ipath} <-> {lpath} since "
+            err_msg = (f"Cannot overwrite {source} -> {dest} unless overwrite==True. "
+                       f"To ignore this error and skip the files use ignore_err==True.")
+            if isinstance(dest, IrodsPath):
+                raise DataObjectExistsError(err_msg)
+            else:
+                raise FileExistsError(err_msg)
+        warnings.warn(f"Skipping file/data object {source} -> {dest} since "
                       f"both exist and overwrite == False.")
         return False
     if checksums_equal(ipath, lpath):
