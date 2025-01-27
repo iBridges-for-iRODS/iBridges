@@ -1,9 +1,18 @@
-from irods.exception import CollectionDoesNotExist
-from irods.exception import DataObjectDoesNotExist
-from irods.exception import DoesNotExist
+"""iBridges exceptions dealing with missing paths."""
 
-class NotACollection(DoesNotExist):
+from irods.exception import CollectionDoesNotExist as CollectionDoesNotExistError
+from irods.exception import DataObjectDoesNotExist as DataObjectDoesNotExistError
+from irods.exception import DoesNotExist as DoesNotExistError
+
+__all__ = ["CollectionDoesNotExistError", "DataObjectDoesNotExistError"]
+
+
+class NotACollectionError(DoesNotExistError):
+    """When the path is not a collection."""
+
     pass
 
-class NotADataObject(DoesNotExist):
+class NotADataObjectError(DoesNotExistError):
+    """When the path is not a data object."""
+
     pass

@@ -16,8 +16,11 @@ import irods.collection
 import irods.data_object
 import irods.exception
 
-from ibridges.exception import CollectionDoesNotExist, DataObjectDoesNotExist, DoesNotExist
-from ibridges.exception import NotACollection, NotADataObject
+from ibridges.exception import (
+    CollectionDoesNotExistError,
+    DoesNotExistError,
+    NotACollectionError,
+)
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
@@ -185,7 +188,7 @@ def download(
     PermissionError:
         If the iRODS server (for whatever reason) forbids downloading the file or
         (part of the) collection.
-    DoesNotExist:
+    DoesNotExistError:
         If the irods_path is not pointing to either a collection or a data object.
     FileExistsError:
         If the irods_path points to a data object and the local file already exists.
@@ -234,7 +237,7 @@ def download(
             ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
-        raise DoesNotExist(f"Data object or collection not found: '{irods_path}'")
+        raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
     ops.resc_name = resc_name
     ops.options = options
@@ -329,9 +332,9 @@ def sync(
 
     Raises
     ------
-    CollectionDoesNotExist:
+    CollectionDoesNotExistError:
         If the source collection does not exist
-    NotACollection:
+    NotACollectionError:
         If the source is a data object.
     NotADirectoryError:
         If the local source is not a directory.
@@ -354,9 +357,10 @@ def sync(
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
             if source.dataobject_exists():
-                raise NotACollection(f"Source '{source.absolute()}' is a data object, "
+                raise NotACollectionError(f"Source '{source.absolute()}' is a data object, "
                                      "can only sync collections.")
-            raise CollectionDoesNotExist(f"Source collection '{source.absolute()}' does not exist")
+            raise CollectionDoesNotExistError(
+                f"Source collection '{source.absolute()}' does not exist")
     else:
         if not Path(source).is_dir():
             raise NotADirectoryError(f"Source folder '{source}' is not a directory or "
@@ -407,9 +411,9 @@ def create_meta_archive(session: Session, source: Union[str, IrodsPath],
 
     Raises
     ------
-    CollectionDoesNotExist:
+    CollectionDoesNotExistError:
         If the source collection does not exist.
-    NotACollection:
+    NotACollectionError:
         If the source is not a collection but a data object.
 
     Examples
@@ -420,9 +424,9 @@ def create_meta_archive(session: Session, source: Union[str, IrodsPath],
     root_ipath = IrodsPath(session, source)
     if not root_ipath.collection_exists():
         if root_ipath.dataobject_exists():
-            raise NotACollection("Cannot download metadata archive: "
+            raise NotACollectionError("Cannot download metadata archive: "
                                  f"'{root_ipath}' is a data object, need a collection.")
-        raise CollectionDoesNotExist("Cannot download metadata archive: "
+        raise CollectionDoesNotExistError("Cannot download metadata archive: "
                                     f"'{root_ipath}' does not exist.")
     operations = Operations()
     for ipath in root_ipath.walk():
@@ -458,9 +462,9 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
 
     Raises
     ------
-    CollectionDoesNotExist:
+    CollectionDoesNotExistError:
         If the ipath does not exist.
-    NotACollection:
+    NotACollectionError:
         If the ipath is not a collection.
 
     Examples
@@ -471,9 +475,10 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
     ipath = IrodsPath(session, ipath)
     if not ipath.collection_exists():
         if ipath.dataobject_exists():
-            raise NotACollection(f"Cannot apply metadata archive, since '{ipath}' "
+            raise NotACollectionError(f"Cannot apply metadata archive, since '{ipath}' "
                                      "is a data object and not a collection.")
-        raise CollectionDoesNotExist(f"Cannot apply metadata archive, '{ipath}' does not exist.")
+        raise CollectionDoesNotExistError(
+            f"Cannot apply metadata archive, '{ipath}' does not exist.")
     operations = Operations()
     operations.add_meta_upload(ipath, meta_fp)
     if not dry_run:
@@ -535,7 +540,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
     session = idest_path.session
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
-    except irods.exception.CollectionDoesNotExist:
+    except irods.exception.CollectionDoesNotExistError:
         remote_ipaths = {}
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)

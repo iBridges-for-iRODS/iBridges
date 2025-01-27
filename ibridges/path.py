@@ -10,7 +10,7 @@ import irods
 from irods.models import DataObject
 
 import ibridges.icat_columns as icat
-from ibridges.exception import NotACollection, NotADataObject, CollectionDoesNotExist, DataObjectDoesNotExist, DoesNotExist
+from ibridges.exception import NotACollectionError, NotADataObjectError, CollectionDoesNotExistError, DataObjectDoesNotExistError, DoesNotExistError
 from ibridges.meta import MetaData
 
 
@@ -240,7 +240,7 @@ class IrodsPath:
             If the new path already exists, or the path is in a different zone.
         PermissionError:
             If the new collection cannot be created.
-        DoesNotExist:
+        DoesNotExistError:
             If the path does not exist.
 
         Examples
@@ -249,7 +249,7 @@ class IrodsPath:
 
         """
         if not self.exists():
-            raise DoesNotExist(f"{str(self)} does not exist.")
+            raise DoesNotExistError(f"{str(self)} does not exist.")
 
         # Build new path
         if str(new_name).startswith("/" + self.session.zone):
@@ -330,7 +330,7 @@ class IrodsPath:
         ------
         NotADirectoryError:
             If the path points to a dataobject and not a collection.
-        CollectionDoesNotExist:
+        CollectionDoesNotExistError:
             If the path does not point to a dataobject or a collection.
 
         Returns
@@ -347,11 +347,11 @@ class IrodsPath:
         if self.collection_exists():
             return self.session.irods_session.collections.get(str(self))
         if self.dataobject_exists():
-            raise NotACollection(
+            raise NotACollectionError(
                 "Error retrieving collection, path is linked to a data object."
                 " Use get_dataobject instead to retrieve the data object."
             )
-        raise CollectionDoesNotExist(str(self))
+        raise CollectionDoesNotExistError(str(self))
 
     @property
     def dataobject(self) -> irods.data_object.iRODSDataObject:
@@ -359,7 +359,7 @@ class IrodsPath:
 
         Raises
         ------
-        NotADataObject:
+        NotADataObjectError:
             If the path is pointing to a collection and not a data object.
 
         Returns
@@ -376,12 +376,12 @@ class IrodsPath:
         if self.dataobject_exists():
             return self.session.irods_session.data_objects.get(str(self))
         if self.collection_exists():
-            raise NotADataObject(
+            raise NotADataObjectError(
                 "Error retrieving data object, path is linked to a collection."
                 " Use get_collection instead to retrieve the collection."
             )
 
-        raise irods.exception.DataObjectDoesNotExist(str(IrodsPath))
+        raise irods.exception.DataObjectDoesNotExistError(str(IrodsPath))
 
     def open(self, mode="r", **kwargs):
         """Open a data object for reading or writing.
@@ -406,7 +406,7 @@ class IrodsPath:
         ------
         NotADataobject:
             When the IrodsPath points to a collection.
-        DataObjectDoesNotExist:
+        DataObjectDoesNotExistError:
             When the data object does not exist and the read mode is given.
 
         Examples
@@ -422,7 +422,7 @@ class IrodsPath:
 
         """
         if self.collection_exists():
-            raise NotACollection("Cannot open collection, onsly data objects can be opened.")
+            raise NotACollectionError("Cannot open collection, onsly data objects can be opened.")
         # Create the data object if it does not exist.
         if mode == "w" and not self.dataobject_exists():
             self.session.irods_session.data_objects.create(str(self))
@@ -526,9 +526,9 @@ class IrodsPath:
 
         Raises
         ------
-        DoesNotExist:
+        DoesNotExistError:
             When the path does not exist.
-        NotADataObject:
+        NotADataObjectError:
             When the path points to a collection.
 
         Examples
@@ -541,8 +541,8 @@ class IrodsPath:
             dataobj = self.dataobject
             return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
         if self.collection_exists():
-            raise NotADataObject("Cannot take checksum of a collection.")
-        raise DoesNotExist(f"Cannot take checksum of {str(self)} irods path which does not exist.")
+            raise NotADataObjectError("Cannot take checksum of a collection.")
+        raise DoesNotExistError(f"Cannot take checksum of {str(self)} irods path which does not exist.")
 
     @property
     def meta(self) -> MetaData:
@@ -554,7 +554,7 @@ class IrodsPath:
 
         Raises
         ------
-        DoesNotExist:
+        DoesNotExistError:
             When the path does not point to a data object or collection.
 
         """
@@ -562,7 +562,7 @@ class IrodsPath:
             return MetaData(self.dataobject)
         if self.collection_exists():
             return MetaData(self.collection)
-        raise DoesNotExist("Cannot get metadata for path that is neither dataobject or collection:"
+        raise DoesNotExistError("Cannot get metadata for path that is neither dataobject or collection:"
                            f" {self}")
 
 
