@@ -14,6 +14,10 @@ on:
       - 'tutorials/**'
       - 'README.md'
 
+
+env:
+  YODA_BRANCH: release-1.9
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -40,7 +44,7 @@ jobs:
 
     - name: Clone Yoda repo for Docker Setup
       run: |
-        git clone -b v1.9.4 --single-branch https://github.com/UtrechtUniversity/yoda.git
+        git clone -b "$YODA_BRANCH" --single-branch https://github.com/UtrechtUniversity/yoda.git
 
     - name: Prepare hosts file for integration tests
       run: |
@@ -64,7 +68,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec provider.yoda sh -c 'set -x ; cd /etc/irods/yoda-ruleset && sudo chown irods:irods -R /etc/irods/yoda-ruleset && sudo -u irods git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" && sudo -u irods git pull && sudo -u irods git status'
-        docker exec provider.yoda sh -c "set -x ; cd /etc/irods/yoda-ruleset && sudo -u irods git checkout development && sudo -u irods python -m pip --no-cache-dir install --user -r /etc/irods/yoda-ruleset/requirements.txt && sudo -u irods make && sudo -u irods make install"
+        docker exec provider.yoda sh -c "set -x ; cd /etc/irods/yoda-ruleset && sudo -u irods git checkout \"$YODA_BRANCH\" && sudo -u irods python -m pip --no-cache-dir install --user -r /etc/irods/yoda-ruleset/requirements.txt && sudo -u irods make && sudo -u irods make install"
         docker exec provider.yoda sh -c "set -x ; sudo -u irods /var/lib/irods/irodsctl restart"
 
     - name: Pull and install latest version of portal
@@ -72,7 +76,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git config remote.origin.fetch  "+refs/heads/*:refs/remotes/origin/*" && git pull'
-        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout development || git checkout development'
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout "$YODA_BRANCH"'
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git status'
         docker exec portal.yoda sh -c 'set -x ; touch /var/www/yoda/*.wsgi'
 
