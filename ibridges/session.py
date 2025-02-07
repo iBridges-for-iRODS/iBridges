@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import warnings
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Optional, Union
 
 import irods.session
@@ -251,11 +253,25 @@ class Session:
         Internal use only.
         """
         try:
-            irods_session = irods.session.iRODSSession(
-                irods_env_file=self._irods_env_path,
-                application_name=APP_NAME,
-                connection_timeout=self.connection_timeout,
-            )
+            if self._irods_env_path is not None:
+                irods_session = irods.session.iRODSSession(
+                    irods_env_file=self._irods_env_path,
+                    application_name=APP_NAME,
+                    connection_timeout=self.connection_timeout,
+                )
+            else:
+                with NamedTemporaryFile(delete=False, mode="w") as handle:
+                    temp_ienv_path = handle.name
+                    try:
+                        handle.write(json.dumps(self._irods_env))
+                        handle.close()
+                        irods_session = irods.session.iRODSSession(
+                            irods_env_file=temp_ienv_path,
+                            application_name=APP_NAME,
+                            connection_timeout=self.connection_timeout,
+                        )
+                    finally:
+                        os.unlink(temp_ienv_path)
             _ = irods_session.server_version
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
