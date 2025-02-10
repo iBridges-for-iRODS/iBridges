@@ -260,6 +260,8 @@ class Session:
                     connection_timeout=self.connection_timeout,
                 )
             else:
+                # Create a temporary file for the irods environment dictionary.
+                # From Python 3.12 we could use the delete_on_close parameter.
                 with NamedTemporaryFile(delete=False, mode="w") as handle:
                     temp_ienv_path = handle.name
                     try:
@@ -272,7 +274,7 @@ class Session:
                         )
                     finally:
                         os.unlink(temp_ienv_path)
-            _ = irods_session.server_version
+            _ = irods_session.server_version  # pylint: disable=possibly-used-before-assignment
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
