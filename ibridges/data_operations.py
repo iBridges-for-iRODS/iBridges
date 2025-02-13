@@ -118,7 +118,7 @@ def upload(
     elif local_path.is_file():
         idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
         obj_exists = idest_path.dataobject_exists()
-        if not obj_exists or _transfer_needed(idest_path, local_path, overwrite, ignore_err):
+        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, ignore_err):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
@@ -495,7 +495,9 @@ def _param_checks(source, target):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
 
-def _transfer_needed(source, dest, overwrite, ignore_err):
+def _transfer_needed(source: Union[IrodsPath, Path],
+                     dest: Union[IrodsPath, Path],
+                     overwrite: bool, ignore_err: bool):
     if isinstance(source, IrodsPath):
         ipath = source
         lpath = dest
@@ -567,7 +569,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
-                if _transfer_needed(ipath, lpath, overwrite, ignore_err):
+                if _transfer_needed(lpath, ipath, overwrite, ignore_err):
                     operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
