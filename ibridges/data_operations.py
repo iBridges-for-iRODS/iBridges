@@ -509,8 +509,7 @@ def _transfer_needed(source, dest, overwrite, ignore_err):
                        f"To ignore this error and skip the files use ignore_err==True.")
             if isinstance(dest, IrodsPath):
                 raise DataObjectExistsError(err_msg)
-            else:
-                raise FileExistsError(err_msg)
+            raise FileExistsError(err_msg)
         warnings.warn(f"Skipping file/data object {source} -> {dest} since "
                       f"both exist and overwrite == False.")
         return False
