@@ -499,9 +499,14 @@ def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
                      overwrite: bool, ignore_err: bool):
     if isinstance(source, IrodsPath):
+        # Ensure that if the source is remote, the dest should be local.
+        if not isinstance(dest, Path):
+            raise ValueError("Internal error: source and destination should be local/remote.")
         ipath = source
         lpath = dest
     else:
+        if not isinstance(dest, IrodsPath):
+            raise ValueError("Internal error: source and destination should be local/remote.")
         ipath = dest
         lpath = source
 
