@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 project = 'iBridges'
 copyright = '2024, 2025, Utrecht University'
-author = 'Christine Staiger'
+author = 'Christine Staiger, Raoul Schram'
 release = '1.3.0'
 
 # -- General configuration ---------------------------------------------------
