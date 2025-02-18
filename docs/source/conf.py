@@ -13,7 +13,7 @@ sys.path.insert(0, os.path.abspath('..'))
 
 
 project = 'iBridges'
-copyright = '2024, 2025, Christine Staiger'
+copyright = '2024, 2025, Utrecht University'
 author = 'Christine Staiger'
 release = '1.3.0'
 
