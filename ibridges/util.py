@@ -45,6 +45,7 @@ def get_size(
     """
     return IrodsPath(session, item.path).size
 
+
 def is_dataobject(item) -> bool:
     """Determine if item is an iRODS data object.
 
@@ -78,7 +79,13 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
         replica status of the replica
 
     """
-    repl_states = {"0": "stale", "1": "good", "2": "intermediate", "3": "read-locked", "4": "write-locked"}
+    repl_states = {
+        "0": "stale",
+        "1": "good",
+        "2": "intermediate",
+        "3": "read-locked",
+        "4": "write-locked",
+    }
 
     replicas = [
         (r.number, r.resource_name, r.checksum, r.size, repl_states.get(r.status, r.status))
@@ -144,6 +151,7 @@ def find_environment_provider(env_providers: list, server_name: str) -> object:
         "Cannot find provider with name {server_name} ensure that the plugin is installed."
     )
 
+
 def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
     """Calculate the checksum for an iRODS dataobject or local file.
 
@@ -167,18 +175,20 @@ def calc_checksum(filepath: Union[Path, str, IrodsPath], checksum_type="sha2"):
         f_hash = sha256()
     else:
         f_hash = md5()
-    memv=memoryview(bytearray(128*1024))
-    with open(filepath, 'rb', buffering=0) as file:
-        for item in iter(lambda : file.readinto(memv), 0):
+    memv = memoryview(bytearray(128 * 1024))
+    with open(filepath, "rb", buffering=0) as file:
+        for item in iter(lambda: file.readinto(memv), 0):
             f_hash.update(memv[:item])
     if checksum_type == "md5":
         return f"{f_hash.hexdigest()}"
     return f"sha2:{str(base64.b64encode(f_hash.digest()), encoding='utf-8')}"
 
+
 def _detect_checksum(checksum: str):
     if checksum.startswith("sha2:"):
         return "sha2"
     return "md5"
+
 
 def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
     """Check whether remote and local paths have the same checksum.
