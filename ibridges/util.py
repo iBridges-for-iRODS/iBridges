@@ -78,7 +78,7 @@ def obj_replicas(obj: irods.data_object.iRODSDataObject) -> list[tuple[int, str,
         replica status of the replica
 
     """
-    repl_states = {"0": "stale", "1": "good", "2": "intermediate", "3": "write-locked"}
+    repl_states = {"0": "stale", "1": "good", "2": "intermediate", "3": "read-locked", "4": "write-locked"}
 
     replicas = [
         (r.number, r.resource_name, r.checksum, r.size, repl_states.get(r.status, r.status))
