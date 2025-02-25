@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import cmd
 import json
 import sys
 from argparse import RawTextHelpFormatter
@@ -108,6 +109,8 @@ def main() -> None:  #pylint: disable=too-many-branches
         print(f"iBridges version {version('ibridges')}")
 
     # find the subcommand in this module and run it!
+    elif subcommand == "shell":
+        IBridgesShell().cmdloop()
     elif subcommand == "download":
         ibridges_download()
     elif subcommand == "upload":
@@ -166,6 +169,55 @@ def ibridges_cd():
         entry = ibridges_conf.get_entry()
         entry[1]["cwd"] = str(new_ipath)
         ibridges_conf.save()
+
+
+class IBridgesShell(cmd.Cmd):
+    prompt = "ibridges> "
+
+    def __init__(self):
+        self.session = _cli_auth(None)
+        super().__init__()
+
+    def do_list(self, arg):
+        _list_coll(self.session, remote_path=IrodsPath(self.session, arg))
+
+    def complete_list(self, text, line, begidx, endidx):
+        session = self.session
+
+        cmd, *args = line.split()
+        if len(args) == 0:
+            path_list = []
+            for ipath in IrodsPath(session).walk(depth=1):
+                path_list.append(ipath.name)
+            return path_list
+
+        if len(args) > 1:
+            return []
+
+        base_path = IrodsPath(session, args[0])
+        if base_path.collection_exists():
+            if line.endswith("/"):
+                prefix = text
+            else:
+                prefix = f"{text}/"
+            return [f"{prefix}{ipath.name}" for ipath in base_path.walk(depth=1)]
+        elif base_path.dataobject_exists():
+            return []
+
+        last_part = base_path.parts[-1]
+        base_path = IrodsPath(session, *base_path.parts[:-1])
+        completions = []
+        for ipath in base_path.walk(depth=1):
+            if ipath.name.startswith(last_part):
+                completions.append(text + ipath.name[len(last_part):])
+        return completions
+
+    def do_EOF(self, arg):
+        self.close()
+        return True
+
+    def close(self):
+        self.session.close()
 
 
 def ibridges_pwd():
@@ -357,6 +409,8 @@ def _list_coll(session: Session, remote_path: IrodsPath, metadata: bool = False)
             if metadata and len((remote_path / sub_coll.name).meta) > 0:
                 print((remote_path / sub_coll.name).meta)
                 print()
+    elif remote_path.dataobject_exists():
+        print(remote_path)
     else:
         raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
