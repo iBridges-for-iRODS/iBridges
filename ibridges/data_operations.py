@@ -64,7 +64,9 @@ def upload(
     copy_empty_folders:
         Create respective iRODS collection for empty folders. Default: True.
     options:
-        More options for the upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHECKSUM_KW, VERIFY_CHECKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
@@ -327,7 +329,9 @@ def sync(
     resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
     options:
-        More options for the download/upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHECKSUM_KW, VERIFY_CHECKSUM_KW.
     metadata:
         If not None, the location to get the metadata from or store it to.
     progress_bar:
