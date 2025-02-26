@@ -182,6 +182,6 @@ def test_meta_archive(session, testdata, tmpdir):
 
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
-        download(session, dataobject.path, tmpdir, options={kw.NUM_THREADs: 3})
+        download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
     with pytest.warns(UserWarning):
-        upload(session, str(tmpdir/"bunny.rtf"), "~", options={kw.NUM_THREADs: 3})
+        upload(session, str(tmpdir/"bunny.rtf"), "~", options={kw.NUM_THREADS_KW: 3})
