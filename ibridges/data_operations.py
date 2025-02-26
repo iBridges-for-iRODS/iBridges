@@ -66,7 +66,7 @@ def upload(
     options:
         Python-irodsclient options found in ``irods.keywords``. The following keywords will be
         ignored since they are set by iBridges:
-        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHCKSUM_KW, VERIFY_CHCKSUM_KW.
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
@@ -175,7 +175,7 @@ def download(
     options:
         Python-irodsclient options found in ``irods.keywords``. The following keywords will be
         ignored since they are set by iBridges:
-        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHCKSUM_KW, VERIFY_CHCKSUM_KW.
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
@@ -331,7 +331,7 @@ def sync(
     options:
         Python-irodsclient options found in ``irods.keywords``. The following keywords will be
         ignored since they are set by iBridges:
-        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHCKSUM_KW, VERIFY_CHCKSUM_KW.
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     metadata:
         If not None, the location to get the metadata from or store it to.
     progress_bar:
