@@ -184,4 +184,5 @@ def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
         download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
     with pytest.warns(UserWarning):
-        upload(session, str(tmpdir/"bunny.rtf"), "~", options={kw.NUM_THREADS_KW: 3})
+        upload(session, str(tmpdir/"bunny.rtf"), "~/tmp.rtf", options={kw.NUM_THREADS_KW: 3})
+    IrodsPath(session, "~/tmp.rtf").remove()
