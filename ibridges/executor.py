@@ -336,8 +336,8 @@ def _warn_ignored_keywords(options: Optional[dict]):
     if options is None:
         return
 
-    all_ignored_set = set(kw.FORCE_FLAG_KW, kw.RESC_NAME_KW, kw.NUM_THREADS_KW, kw.REG_CHECKSUM_KW,
-                      kw.VERIFY_CHECKSUM_KW)
+    all_ignored_set = set(kw.FORCE_FLAG_KW, kw.RESC_NAME_KW, kw.NUM_THREADS_KW, kw.REG_CHCKSUM_KW,
+                      kw.VERIFY_CHCKSUM_KW)
     cur_ignored_set = set(options) - set(all_ignored_set)
     if len(cur_ignored_set) > 0:
         warnings.warn(f"Some options will be ignored: {cur_ignored_set}", UserWarning)

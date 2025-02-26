@@ -82,7 +82,7 @@ good-names=["e", "f", "m"]
 [tool.pylint.'FORMAT']
 max-line-length=100
 max-locals=35
-max-args=10
+max-args=11
 
 [tool.pylint.'MESSAGES CONTROL']
 disable="too-many-positional-arguments"
