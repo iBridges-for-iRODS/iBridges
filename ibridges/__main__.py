@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import warnings
 from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Literal, Optional, Union
@@ -202,68 +203,105 @@ def ibridges_alias():
     args = parser.parse_args()
     ibridges_conf = _get_ibridges_conf()
     if args.alias is None:
-        for entry in ibridges_conf["servers"]:
+        for ienv_path, entry in ibridges_conf["servers"].items():
             prefix = " "
-            if ibridges_conf["cur_ienv"] in (entry.get("alias", None), entry["path"]):
+            if ibridges_conf["cur_ienv"] in (entry.get("alias", None), ienv_path):
                 prefix = "*"
-            if "alias" in entry:
-                print(f"{prefix} {entry['alias']} -> {entry['path']}")
+            cur_alias = entry.get("alias", "[no alias]")
+            print(f"{prefix} {cur_alias} -> {ienv_path}")
         return
 
     if args.delete:
-        new_servers = [entry for entry in ibridges_conf["servers"]
-                       if entry.get("alias", None) != args.alias]
+        new_servers = {ienv_path: entry for ienv_path, entry in ibridges_conf["servers"].items()
+                       if entry.get("alias", None) != args.alias}
+
+
         if len(new_servers) < len(ibridges_conf["servers"]):
+            if len(new_servers) == 0:
+                new_servers = {str(DEFAULT_IENV_PATH): {"alias": "default"}}
             ibridges_conf["servers"] = new_servers
+            if ibridges_conf["cur_ienv"] not in ibridges_conf["servers"]:
+                ibridges_conf["cur_ienv"] = list(ibridges_conf["servers"])[0]
             _set_ibridges_conf(ibridges_conf)
             return
         print(f"Error: cannot find alias '{args.alias}'.")
         sys.exit(123)
 
     if args.env_path is None:
-        env_path = _get_ienv_entry(ibridges_conf.get("cur_ienv", str(DEFAULT_IENV_PATH)),
-                                   ibridges_conf)["path"]
+        ienv_path, _ = _get_ienv_entry(ibridges_conf.get("cur_ienv", str(DEFAULT_IENV_PATH)),
+                                      ibridges_conf)
     else:
-        env_path = str(args.env_path)
+        ienv_path = str(args.env_path)
 
     try:
         # Alias already exists change the path
-        entry = _get_ienv_entry(args.alias, ibridges_conf)
-        entry["path"] = env_path
+        old_ienv_path, entry = _get_ienv_entry(args.alias, ibridges_conf)
+        ibridges_conf["servers"][ienv_path] = ibridges_conf["servers"].pop(old_ienv_path)
+        if ibridges_conf["cur_ienv"] == old_ienv_path:
+            ibridges_conf["cur_ienv"] = ienv_path
+        print("Reconfigure existing alias")
     except KeyError:
         try:
             # Path already exists change the alias
-            entry = _get_ienv_entry(env_path, ibridges_conf)
+            ienv_path, entry = _get_ienv_entry(ienv_path, ibridges_conf)
             entry["alias"] = args.alias
+            print("Change alias for path")
         except KeyError:
             # Neither exists, create a new entry
-            ibridges_conf["servers"].append({"alias": args.alias, "path": env_path})
+            ibridges_conf["servers"][ienv_path] = {"alias": args.alias}
+            print("New entry")
 
     _set_ibridges_conf(ibridges_conf)
 
 
 def _set_ibridges_conf(config: dict):
+    config = _prune_ibridges_conf(config)
+    if config["cur_ienv"] not in config["servers"]:
+        warnings.warn("resetting current irods environment file, since it has been removed.")
+        config["cur_ienv"] = list(config["servers"])[0]
     with open(IBRIDGES_CONFIG_FP, "w", encoding="utf-8") as handle:
         json.dump(config, handle, indent=4)
+
+def _prune_ibridges_conf(ibridges_conf):
+    new_ibridges_conf = {"cur_ienv": ibridges_conf["cur_ienv"], "servers": {}}
+    for ienv_path, entry in ibridges_conf["servers"].items():
+        if ienv_path == ibridges_conf["cur_ienv"] or "alias" in entry:
+            new_ibridges_conf["servers"][ienv_path] = entry
+    return new_ibridges_conf
 
 def _get_ibridges_conf() -> dict:
     try:
         with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
             ibridges_conf = json.load(handle)
             if "servers" not in ibridges_conf:
-                ibridges_conf["servers"] = []
+                ibridges_conf["servers"] = {}
     except (FileNotFoundError, json.JSONDecodeError):
         env_path = str(DEFAULT_IENV_PATH)
-        ibridges_conf = {"cur_ienv": env_path, "servers": [{"path": env_path}]}
+        ibridges_conf = {"cur_ienv": env_path, "servers": {env_path: {"alias": "default"}}}
         IBRIDGES_CONFIG_FP.parent.mkdir(exist_ok=True)
         _set_ibridges_conf(ibridges_conf)
     return ibridges_conf
 
 
-def _set_ienv_path(ienv_path: Union[str, Path]) -> Optional[str]:
-
+def _set_ienv_path(ienv_path_or_alias: Union[None, str, Path]):
     ibridges_conf = _get_ibridges_conf()
+
+    if ienv_path_or_alias is None:
+        ienv_path = str(DEFAULT_IENV_PATH)
+    else:
+        try:
+            ienv_path, _ = _get_ienv_entry(ienv_path_or_alias, ibridges_conf)
+        except KeyError:
+            ienv_path = str(ienv_path_or_alias)
+            if not Path(ienv_path).is_file():
+                raise FileNotFoundError(f"Cannot find iRODS environment file {ienv_path}.")
+
     ibridges_conf["cur_ienv"] = str(ienv_path)
+    if str(ienv_path) not in ibridges_conf["servers"]:
+        if str(ienv_path) == str(DEFAULT_IENV_PATH):
+            ibridges_conf["servers"] = {str(ienv_path): {"alias": "default"}}
+        else:
+            ibridges_conf["servers"][str(ienv_path)] = {ienv_path: {}}
     _set_ibridges_conf(ibridges_conf)
 
 
@@ -272,35 +310,30 @@ def _get_ienv_path() -> Union[None, str]:
     return ibridges_conf["cur_ienv"]
 
 
-def _get_ienv_entry(alias_or_path, ibridges_conf):
+def _get_ienv_entry(alias_or_path: Optional[str], ibridges_conf: dict) -> tuple[str, dict]:
     if alias_or_path is None:
         alias_or_path = ibridges_conf["cur_ienv"]
-    for entry in ibridges_conf["servers"]:
-        if entry["path"] == str(alias_or_path):
-            return entry
-    for entry in ibridges_conf["servers"]:
+
+    for ienv_path, entry in ibridges_conf["servers"].items():
+        if ienv_path == str(alias_or_path):
+            return ienv_path, entry
+
+    for ienv_path, entry in ibridges_conf["servers"].items():
         if entry.get("alias", None) == str(alias_or_path):
-            return entry
+            return ienv_path, entry
     raise KeyError(f"Cannot find entry with name/path '{alias_or_path}'")
 
-def _cli_auth(ienv_path: Union[None, str, Path]):
+def _cli_auth(ienv_path: Union[None, str, Path] = None):
     ibridges_conf = _get_ibridges_conf()
 
-    try:
-        ienv_entry = _get_ienv_entry(ienv_path, ibridges_conf)
-    except KeyError:
-        if ienv_path is None:
-            ienv_path = DEFAULT_IENV_PATH
-        ibridges_conf["servers"].append({"path": str(ienv_path)})
-        ienv_entry = _get_ienv_entry(ienv_path, ibridges_conf)
+    ienv_path, ienv_entry = _get_ienv_entry(ienv_path, ibridges_conf)
 
-    ienv_path = ienv_entry['path']
     ienv_cwd = ienv_entry.get("cwd", None)
     if "irodsa_backup" in ienv_entry:
         with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
             handle.write(ienv_entry["irodsa_backup"])
-    if not Path(ienv_entry["path"]).exists():
-        print(f"Error: Irods environment file or alias '{ienv_entry['path']}' does not exist.")
+    if not Path(ienv_path).exists():
+        print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
         sys.exit(124)
     session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
 
@@ -669,7 +702,7 @@ def ibridges_download():
         nargs="?",
     )
     args = parser.parse_args()
-    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+    with _cli_auth(ienv_path=_get_ienv_path()) as session:
         ipath = _parse_remote(args.remote_path, session)
         lpath = _parse_local(args.local_path)
         metadata = _get_metadata_path(args, ipath, lpath, "download")
@@ -728,7 +761,7 @@ def ibridges_upload():
     )
     args = parser.parse_args()
 
-    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+    with _cli_auth() as session:
         lpath = _parse_local(args.local_path)
         ipath = _parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
@@ -780,7 +813,7 @@ def ibridges_sync():
     )
     args = parser.parse_args()
 
-    with interactive_auth(irods_env_path=_get_ienv_path()) as session:
+    with _cli_auth() as session:
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
