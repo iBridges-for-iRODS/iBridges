@@ -238,12 +238,6 @@ def ibridges_alias():
         old_ienv_path, old_entry = _get_ienv_entry(args.alias, ibridges_conf)
         print(f"Alias '{args.alias}' already exists. To rename, delete the alias first.")
         sys.exit(1)
-        # new_ienv_path, new_entry = _get_ienv_entry(ienv_path, ibridges_conf)
-        # ibridges_conf["servers"].pop(old_ienv_path)
-        # ibridges_conf["servers"][ienv_path] = 
-        # if ibridges_conf["cur_ienv"] == old_ienv_path:
-        #     ibridges_conf["cur_ienv"] = ienv_path
-        # print("Reconfigure existing alias")
     except KeyError:
         try:
             # Path already exists change the alias
@@ -860,7 +854,8 @@ _tree_elements = {
 
 def _print_build_list(build_list: list[str], prefix: str, pels: dict[str, str], show_max: int = 10):
     if len(build_list) > show_max:
-        n_half = (show_max - 1) // 2
+        n_half = (show_max) // 2
+        n_half = max(n_half, 1)
         for item in build_list[:n_half]:
             print(prefix + pels["tee"] + item)
         print(prefix + pels["skip"])
