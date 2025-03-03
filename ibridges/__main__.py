@@ -163,17 +163,17 @@ def ibridges_cd():
             print(f"Collection {new_ipath} does not exist.")
             sys.exit(125)
         entry = _get_ienv_entry(ibridges_conf["cur_ienv"], ibridges_conf)
-        entry["cwd"] = str(new_ipath)
+        entry[1]["cwd"] = str(new_ipath)
         _set_ibridges_conf(ibridges_conf)
 
 
 def ibridges_pwd():
     ibridges_conf = _get_ibridges_conf()
     entry = _get_ienv_entry(ibridges_conf["cur_ienv"], ibridges_conf)
-    if "cwd" in entry:
-        cwd = entry["cwd"]
+    if "cwd" in entry[1]:
+        cwd = entry[1]["cwd"]
     else:
-        with open(entry["path"], "r", encoding="utf-8") as handle:
+        with open(entry[0], "r", encoding="utf-8") as handle:
             cwd = json.load(handle).get("irods_home", "unknown")
     print(cwd)
 
