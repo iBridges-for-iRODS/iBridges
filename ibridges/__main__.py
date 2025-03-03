@@ -8,7 +8,7 @@ import sys
 import warnings
 from argparse import RawTextHelpFormatter
 from pathlib import Path
-from typing import Literal, Optional, Union
+from typing import Literal, Union
 
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
@@ -314,7 +314,6 @@ def _set_ienv_path(ienv_path_or_alias: Union[None, str, Path]):
 def _get_ienv_path() -> Union[None, str]:
     ibridges_conf = _get_ibridges_conf()
     return ibridges_conf["cur_ienv"]
-
 
 def _get_ienv_entry(alias_or_path: Union[None, str, Path], ibridges_conf: dict) -> tuple[str, dict]:
     if alias_or_path is None:
