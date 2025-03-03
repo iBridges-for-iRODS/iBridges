@@ -1,4 +1,4 @@
-"""Command line tools for the iBridges library."""
+"""Command line tools for the iBridges library."""  # pylint: disable=too-many-lines
 
 from __future__ import annotations
 
@@ -168,6 +168,7 @@ def ibridges_cd():
 
 
 def ibridges_pwd():
+    """Print current working directory."""
     ibridges_conf = _get_ibridges_conf()
     entry = _get_ienv_entry(ibridges_conf["cur_ienv"], ibridges_conf)
     if "cwd" in entry[1]:
@@ -178,8 +179,10 @@ def ibridges_pwd():
     print(cwd)
 
 def ibridges_alias():
+    """Print existing aliases or create new ones."""
     parser = argparse.ArgumentParser(
-        prog="ibridges alias", description="Cache your iRODS password to be used later."
+        prog="ibridges alias",
+        description="Create and list aliases for your iRODS environment files."
     )
     parser.add_argument(
         "alias",
@@ -228,14 +231,19 @@ def ibridges_alias():
         sys.exit(123)
 
     if args.env_path is None:
-        ienv_path, _ = _get_ienv_entry(ibridges_conf.get("cur_ienv", str(DEFAULT_IENV_PATH)),
-                                      ibridges_conf)
+        print("Error: supply env_path to your iRODS environment file to set the alias.")
+        parser.print_help()
+        sys.exit(1)
     else:
-        ienv_path = str(args.env_path)
+        ienv_path = str(args.env_path.absolute())
+
+    if not Path(args.env_path).is_file():
+        print("Error: supplied env_path does not exist.")
+        sys.exit(1)
 
     try:
         # Alias already exists change the path
-        old_ienv_path, old_entry = _get_ienv_entry(args.alias, ibridges_conf)
+        _, _ = _get_ienv_entry(args.alias, ibridges_conf)
         print(f"Alias '{args.alias}' already exists. To rename, delete the alias first.")
         sys.exit(1)
     except KeyError:
@@ -292,7 +300,7 @@ def _set_ienv_path(ienv_path_or_alias: Union[None, str, Path]):
         except KeyError:
             ienv_path = str(ienv_path_or_alias)
             if not Path(ienv_path).is_file():
-                raise FileNotFoundError(f"Cannot find iRODS environment file {ienv_path}.")
+                raise FileNotFoundError(f"Cannot find iRODS environment file {ienv_path}.")  # pylint:disable=raise-missing-from
 
     ibridges_conf["cur_ienv"] = str(ienv_path)
     if str(ienv_path) not in ibridges_conf["servers"]:

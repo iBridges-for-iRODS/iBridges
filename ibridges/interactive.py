@@ -29,6 +29,8 @@ def interactive_auth(
         Password to make the connection with. If not supplied, you will be asked interactively.
     irods_env_path:
         Path to the irods environment.
+    kwargs:
+        Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
     Raises
     ------

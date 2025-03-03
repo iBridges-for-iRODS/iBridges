@@ -12,6 +12,7 @@ class MockIrodsSession:
     server_version = "test_version"
     port = 9876
     home = "/testzone/home/testuser"
+    cwd = "/testzone/home/testuser/sub"
     irods_session = None
 
 
@@ -26,16 +27,16 @@ linux_path = "linux/or/mac/path"
 @mark.parametrize(
     "input,abs_path,name,parent",
     [
-        ([], "/testzone/home/testuser", "testuser", "/testzone/home"),
+        ([], "/testzone/home/testuser/sub", "sub", "/testzone/home/testuser"),
         (["~"], "/testzone/home/testuser", "testuser", "/testzone/home"),
-        ([""], "/testzone/home/testuser", "testuser", "/testzone/home"),
-        (["."], "/testzone/home/testuser", "testuser", "/testzone/home"),
-        ([PurePosixPath(".")], "/testzone/home/testuser", "testuser", "/testzone/home"),
+        ([""], "/testzone/home/testuser/sub", "sub", "/testzone/home/testuser"),
+        (["."], "/testzone/home/testuser/sub", "sub", "/testzone/home/testuser"),
+        ([PurePosixPath(".")], "/testzone/home/testuser/sub", "sub", "/testzone/home/testuser"),
         (["~", "xyz"], "/testzone/home/testuser/xyz", "xyz", "/testzone/home/testuser"),
-        (["xyz"], "/testzone/home/testuser/xyz", "xyz", "/testzone/home/testuser"),
-        ([".", "xyz"], "/testzone/home/testuser/xyz", "xyz", "/testzone/home/testuser"),
-        ([PurePosixPath("."), "xyz"], "/testzone/home/testuser/xyz", "xyz", "/testzone/home/testuser"),
-        ([PurePosixPath(".", "xyz")], "/testzone/home/testuser/xyz", "xyz", "/testzone/home/testuser"),
+        (["xyz"], "/testzone/home/testuser/sub/xyz", "xyz", "/testzone/home/testuser/sub"),
+        ([".", "xyz"], "/testzone/home/testuser/sub/xyz", "xyz", "/testzone/home/testuser/sub"),
+        ([PurePosixPath("."), "xyz"], "/testzone/home/testuser/sub/xyz", "xyz", "/testzone/home/testuser/sub"),
+        ([PurePosixPath(".", "xyz")], "/testzone/home/testuser/sub/xyz", "xyz", "/testzone/home/testuser/sub"),
         (["/x/y/z"], "/x/y/z", "z", "/x/y"),
         (["/x/y", "z"], "/x/y/z", "z", "/x/y"),
         ([IrodsPath(MockIrodsSession(), "/x/y"), "z"], "/x/y/z", "z", "/x/y")
