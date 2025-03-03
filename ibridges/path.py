@@ -101,7 +101,7 @@ class IrodsPath:
             begin, end = self.session.cwd, self._path.parts
 
         all_parts = PurePosixPath(begin, *end).parts
-        new_parts = []
+        new_parts: list[str] = []
         for part in all_parts:
             if part == "..":
                 if len(new_parts) == 0:

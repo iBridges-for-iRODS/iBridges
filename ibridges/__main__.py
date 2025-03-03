@@ -316,7 +316,7 @@ def _get_ienv_path() -> Union[None, str]:
     return ibridges_conf["cur_ienv"]
 
 
-def _get_ienv_entry(alias_or_path: Optional[str], ibridges_conf: dict) -> tuple[str, dict]:
+def _get_ienv_entry(alias_or_path: Union[None, str, Path], ibridges_conf: dict) -> tuple[str, dict]:
     if alias_or_path is None:
         alias_or_path = ibridges_conf["cur_ienv"]
 
