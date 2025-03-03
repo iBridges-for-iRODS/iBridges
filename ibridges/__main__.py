@@ -236,7 +236,7 @@ def ibridges_alias():
     try:
         # Alias already exists change the path
         old_ienv_path, old_entry = _get_ienv_entry(args.alias, ibridges_conf)
-        print("Alias '{args.alias}' already exists. To rename, delete the alias first.")
+        print(f"Alias '{args.alias}' already exists. To rename, delete the alias first.")
         sys.exit(1)
         # new_ienv_path, new_entry = _get_ienv_entry(ienv_path, ibridges_conf)
         # ibridges_conf["servers"].pop(old_ienv_path)
