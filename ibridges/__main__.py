@@ -915,6 +915,8 @@ def ibridges_tree():
         "remote_path",
         help="Path to collection to make a tree of.",
         type=str,
+        nargs="?",
+        default="irods:.",
     )
     parser.add_argument(
         "--show-max",
@@ -936,13 +938,13 @@ def ibridges_tree():
     args, _ = parser.parse_known_args()
     with _cli_auth(ienv_path=_get_ienv_path()) as session:
         ipath = _parse_remote(args.remote_path, session)
+        print(ipath)
         if args.ascii:
             pels = _tree_elements["ascii"]
         else:
             pels = _tree_elements["pretty"]
         ipath_list = [cur_path for cur_path in ipath.walk(depth=args.depth)
                       if str(cur_path) != str(ipath)]
-        print(ipath)
         _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col

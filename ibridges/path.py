@@ -90,7 +90,7 @@ class IrodsPath:
         """
         # absolute path
         if len(self._path.parts) == 0:
-            return IrodsPath(self.session, self.session.home)
+            return IrodsPath(self.session, self.session.cwd)
         if self._path.parts[0] == "~":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == ".":
