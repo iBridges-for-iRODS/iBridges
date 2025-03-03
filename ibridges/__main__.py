@@ -235,11 +235,15 @@ def ibridges_alias():
 
     try:
         # Alias already exists change the path
-        old_ienv_path, entry = _get_ienv_entry(args.alias, ibridges_conf)
-        ibridges_conf["servers"][ienv_path] = ibridges_conf["servers"].pop(old_ienv_path)
-        if ibridges_conf["cur_ienv"] == old_ienv_path:
-            ibridges_conf["cur_ienv"] = ienv_path
-        print("Reconfigure existing alias")
+        old_ienv_path, old_entry = _get_ienv_entry(args.alias, ibridges_conf)
+        print("Alias '{args.alias}' already exists. To rename, delete the alias first.")
+        sys.exit(1)
+        # new_ienv_path, new_entry = _get_ienv_entry(ienv_path, ibridges_conf)
+        # ibridges_conf["servers"].pop(old_ienv_path)
+        # ibridges_conf["servers"][ienv_path] = 
+        # if ibridges_conf["cur_ienv"] == old_ienv_path:
+        #     ibridges_conf["cur_ienv"] = ienv_path
+        # print("Reconfigure existing alias")
     except KeyError:
         try:
             # Path already exists change the alias
