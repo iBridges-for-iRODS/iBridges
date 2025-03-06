@@ -145,7 +145,7 @@ def main() -> None:  #pylint: disable=too-many-branches
 def ibridges_cd():
     """Change current working collection to another path."""
     parser = argparse.ArgumentParser(
-        prog="ibridges cd", description="Change collection to another path."
+        prog="ibridges cd", description="Change collection to another path. Default will be your irods_home."
     )
     parser.add_argument(
         "collection",
