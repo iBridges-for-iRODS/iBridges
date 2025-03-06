@@ -1,5 +1,5 @@
 password = "rods"
-server_version = "4.3.3"
+server_version = "4.3.4"
 can_write_pam_pass = false
 has_cached_pw = true
 resources = ["demoResc", "resc2"]
