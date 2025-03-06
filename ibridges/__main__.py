@@ -317,7 +317,7 @@ def _get_ibridges_conf() -> dict:
         ibridges_conf = {"cur_ienv": env_path, "servers": {env_path: {"alias": "default"}}}
         IBRIDGES_CONFIG_FP.parent.mkdir(exist_ok=True)
         _set_ibridges_conf(ibridges_conf)
-    return ibridges_conf
+    return _validate_ibridges_conf(ibridges_conf)
 
 
 def _set_ienv_path(ienv_path_or_alias: Union[None, str, Path]):
