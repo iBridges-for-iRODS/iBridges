@@ -41,7 +41,7 @@ def upload(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -64,13 +64,15 @@ def upload(
     copy_empty_folders:
         Create respective iRODS collection for empty folders. Default: True.
     options:
-        More options for the upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, it should point to a file that contains the metadata for the upload.
-    kwargs:
-        Extra arguments for executing the upload operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
     Returns
     -------
@@ -132,7 +134,7 @@ def upload(
     if metadata is not None:
         ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
     return ops
 
 
@@ -147,7 +149,7 @@ def download(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Download a collection or data object to the local filesystem.
 
@@ -171,14 +173,16 @@ def download(
     copy_empty_folders:
         Create respective local directory for empty collections.
     options:
-        More options for the download
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, the path to store the metadata to in JSON format.
         It is recommended to use the .json suffix.
-    kwargs:
-        Extra arguments for executing the download operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
     Returns
     -------
@@ -243,7 +247,7 @@ def download(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
     return ops
 
 
@@ -286,7 +290,7 @@ def sync(
     resc_name: str = "",
     options: Optional[dict] = None,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Synchronize data between local and remote copies.
 
@@ -325,11 +329,13 @@ def sync(
     resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
     options:
-        More options for the download/upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     metadata:
         If not None, the location to get the metadata from or store it to.
-    kwargs:
-        Extra arguments for executing the sync operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
     Raises
     ------
@@ -382,7 +388,7 @@ def sync(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
 
     return ops
 

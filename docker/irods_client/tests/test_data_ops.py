@@ -2,6 +2,7 @@ import hashlib
 import json
 from pathlib import Path
 
+import irods.keywords as kw
 import pytest
 
 from ibridges.data_operations import apply_meta_archive, create_meta_archive, download, sync, upload
@@ -178,3 +179,10 @@ def test_meta_archive(session, testdata, tmpdir):
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
+
+def test_ignored_keyword(session, tmpdir, dataobject):
+    with pytest.warns(UserWarning):
+        download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
+    with pytest.warns(UserWarning):
+        upload(session, str(tmpdir/"bunny.rtf"), "~/tmp.rtf", options={kw.NUM_THREADS_KW: 3})
+    IrodsPath(session, "~/tmp.rtf").remove()
