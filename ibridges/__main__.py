@@ -214,6 +214,9 @@ def ibridges_alias():
             print(f"{prefix} {cur_alias} -> {ienv_path}")
         return
 
+    if args.alias == "default":
+        parser.error("Cannot change 'default' alias.")
+
     if args.delete:
         new_servers = {ienv_path: entry for ienv_path, entry in ibridges_conf["servers"].items()
                        if entry.get("alias", None) != args.alias}
@@ -227,8 +230,7 @@ def ibridges_alias():
                 ibridges_conf["cur_ienv"] = list(ibridges_conf["servers"])[0]
             _set_ibridges_conf(ibridges_conf)
             return
-        print(f"Error: cannot find alias '{args.alias}'.")
-        sys.exit(123)
+        parser.error(f"Cannot find alias '{args.alias}'.")
 
     if args.env_path is None:
         print("Error: supply env_path to your iRODS environment file to set the alias.")
@@ -274,6 +276,34 @@ def _prune_ibridges_conf(ibridges_conf):
         if ienv_path == ibridges_conf["cur_ienv"] or "alias" in entry:
             new_ibridges_conf["servers"][ienv_path] = entry
     return new_ibridges_conf
+
+def _default_ibridges_conf() -> dict:
+    return {"cur_ienv": str(DEFAULT_IENV_PATH),
+            "servers": {str(DEFAULT_IENV_PATH): {"alias": "default"}}}
+
+def _validate_ibridges_conf(ibridges_conf: dict) -> dict:
+    try:
+        assert str(DEFAULT_IENV_PATH) in ibridges_conf
+        cur_aliases = set()
+        new_servers = {}
+        for ienv_path, entry in ibridges_conf["servers"]:
+            if ienv_path != str(DEFAULT_IENV_PATH) and not Path(ienv_path).is_file():
+                warnings.warn(f"Environment with file '{ienv_path}' does not exist anymore, "
+                              "removing the entry.")
+            elif entry.get("alias", None) in cur_aliases:
+                warnings.warn(f"Environment with file '{ienv_path}' has a duplicate alias, "
+                              "removing...")
+            else:
+                new_servers[ienv_path] = entry
+                if "alias" in entry:
+                    cur_aliases.add(entry["alias"])
+        ibridges_conf["servers"] = new_servers
+        if ibridges_conf["cur_ienv"] not in ibridges_conf:
+            warnings.warn("Current environment is not available, switching to first available.")
+            ibridges_conf["cur_ienv"] = list(ibridges_conf["servers"])[0]
+    except Exception:
+        return _default_ibridges_conf()
+    return ibridges_conf
 
 def _get_ibridges_conf() -> dict:
     try:
