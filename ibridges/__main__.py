@@ -279,7 +279,8 @@ def _get_ibridges_conf() -> dict:
     try:
         with open(IBRIDGES_CONFIG_FP, "r", encoding="utf-8") as handle:
             ibridges_conf = json.load(handle)
-            if "servers" not in ibridges_conf:
+            # Reset aliases for old versions.
+            if "servers" not in ibridges_conf or not isinstance(ibridges_conf["servers"], dict):
                 ibridges_conf["servers"] = {}
     except (FileNotFoundError, json.JSONDecodeError):
         env_path = str(DEFAULT_IENV_PATH)
@@ -305,7 +306,7 @@ def _set_ienv_path(ienv_path_or_alias: Union[None, str, Path]):
     ibridges_conf["cur_ienv"] = str(ienv_path)
     if str(ienv_path) not in ibridges_conf["servers"]:
         if str(ienv_path) == str(DEFAULT_IENV_PATH):
-            ibridges_conf["servers"] = {str(ienv_path): {"alias": "default"}}
+            ibridges_conf["servers"][str(ienv_path)] = {"alias": "default"}
         else:
             ibridges_conf["servers"][str(ienv_path)] = {ienv_path: {}}
     _set_ibridges_conf(ibridges_conf)
