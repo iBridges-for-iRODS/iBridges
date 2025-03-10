@@ -57,7 +57,7 @@ class IbridgesConf():
                 self.servers = ibridges_conf["servers"]
                 self.cur_env = ibridges_conf["cur_env"]
         except Exception as exc:
-            print(exc)
+            print(repr(exc))
             self.reset()
 
 
