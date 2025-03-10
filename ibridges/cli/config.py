@@ -111,7 +111,10 @@ class IbridgesConf():
             self.parser.error(f"Cannot delete alias '{alias}'; does not exist.")
 
         if ienv_path == str(DEFAULT_IENV_PATH):
-            entry.pop("alias")
+            try:
+                entry.pop("alias")
+            except KeyError:
+                self.parser.error("Cannot remove default irods path from configuration.")
         else:
             self.servers.pop(ienv_path)
         self.save()
