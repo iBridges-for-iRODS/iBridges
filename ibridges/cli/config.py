@@ -15,6 +15,9 @@ class IbridgesConf():
         self.validate()
 
     def reset(self):
+        answer = input("The ibridges configuration file cannot be read, delete? (Y/N)")
+        if answer != "Y":
+            self.parser.error("Cannot continue without reading the ibridges configuration file.")
         self.cur_env = str(DEFAULT_IENV_PATH)
         self.servers = {str(DEFAULT_IENV_PATH): {"alias": "default"}}
         self.save()
