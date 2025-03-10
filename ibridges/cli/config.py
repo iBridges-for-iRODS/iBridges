@@ -24,8 +24,10 @@ class IbridgesConf():
 
     def validate(self):
         try:
-            assert str(DEFAULT_IENV_PATH) in self.servers
-            assert isinstance(self.servers, dict)
+            if str(DEFAULT_IENV_PATH) not in self.servers:
+                raise ValueError("Default iRODS path not in configuration file.")
+            if not isinstance(self.servers, dict):
+                raise ValueError("Servers list not a dictionary (old version of iBridges?).")
             cur_aliases = set()
             new_servers = {}
             for ienv_path, entry in self.servers.items():
@@ -43,7 +45,7 @@ class IbridgesConf():
             if self.cur_env not in self.servers:
                 warnings.warn("Current environment is not available, switching to first available.")
                 self.cur_env = list(self.servers)[0]
-        except AssertionError as exc:
+        except ValueError as exc:
             print(exc)
             self.reset()
         self.save()
@@ -54,8 +56,8 @@ class IbridgesConf():
                 ibridges_conf = json.load(handle)
                 self.servers = ibridges_conf["servers"]
                 self.cur_env = ibridges_conf["cur_env"]
-        except Exception:
-            print("Warning: could not read CLI configuration file, resetting.")
+        except Exception as exc:
+            print(exc)
             self.reset()
 
 
