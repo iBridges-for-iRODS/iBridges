@@ -76,7 +76,7 @@ class IbridgesConf():
         raise KeyError(f"Cannot find entry with name/path '{path_or_alias}'")
 
     def set_env(self, ienv_path_or_alias = None):
-        ienv_path_or_alias = "default" if ienv_path_or_alias is None else ienv_path_or_alias
+        ienv_path_or_alias = str(DEFAULT_IENV_PATH) if ienv_path_or_alias is None else ienv_path_or_alias
         try:
             ienv_path, _ = self.get_entry(ienv_path_or_alias)
         except KeyError:
