@@ -24,10 +24,10 @@ class IbridgesConf():
 
     def validate(self):
         try:
-            if str(DEFAULT_IENV_PATH) not in self.servers:
-                raise ValueError("Default iRODS path not in configuration file.")
             if not isinstance(self.servers, dict):
                 raise ValueError("Servers list not a dictionary (old version of iBridges?).")
+            if str(DEFAULT_IENV_PATH) not in self.servers:
+                raise ValueError("Default iRODS path not in configuration file.")
             cur_aliases = set()
             new_servers = {}
             for ienv_path, entry in self.servers.items():
@@ -55,7 +55,7 @@ class IbridgesConf():
             with open(self.config_fp, "r", encoding="utf-8") as handle:
                 ibridges_conf = json.load(handle)
                 self.servers = ibridges_conf["servers"]
-                self.cur_env = ibridges_conf.get("cur_env", ibridges_conf["cur_ienv"])
+                self.cur_env = ibridges_conf.get("cur_env", ibridges_conf.get("cur_ienv"))
         except Exception as exc:
             print(repr(exc))
             self.reset()
