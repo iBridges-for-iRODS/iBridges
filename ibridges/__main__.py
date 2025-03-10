@@ -217,8 +217,8 @@ def ibridges_alias():
             print(f"{prefix} {cur_alias} -> {ienv_path}")
         return
 
-    if args.alias == "default":
-        parser.error("Cannot change 'default' alias.")
+    # if args.alias == "default":
+        # parser.error("Cannot change 'default' alias.")
 
     if args.delete:
         ibridges_conf.delete_alias(args.alias)
