@@ -301,7 +301,7 @@ def ibridges_setup():
         print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
         print("\n")
         print(json_str)
-    if args.output.is_dir():
+    elif args.output.is_dir():
         print(f"Output {args.output} is a directory, cannot export irods_environment" " file.")
         sys.exit(234)
     else:
