@@ -230,8 +230,7 @@ def ibridges_alias():
         ienv_path = str(args.env_path.absolute())
 
     if not Path(args.env_path).is_file():
-        parser.error("Supplied env_path '{args.env_path}' does not exist.")
-        sys.exit(1)
+        parser.error(f"Supplied env_path '{args.env_path}' does not exist.")
 
     ibridges_conf.set_alias(args.alias, ienv_path)
 
