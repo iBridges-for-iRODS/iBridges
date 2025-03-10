@@ -55,7 +55,7 @@ class IbridgesConf():
             with open(self.config_fp, "r", encoding="utf-8") as handle:
                 ibridges_conf = json.load(handle)
                 self.servers = ibridges_conf["servers"]
-                self.cur_env = ibridges_conf["cur_env"]
+                self.cur_env = ibridges_conf.get("cur_env", ibridges_conf["cur_ienv"])
         except Exception as exc:
             print(repr(exc))
             self.reset()
