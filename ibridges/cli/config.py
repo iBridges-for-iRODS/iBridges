@@ -106,8 +106,12 @@ class IbridgesConf():
 
     def delete_alias(self, alias):
         try:
-            _, entry = self.get_entry(alias)
+            ienv_path, entry = self.get_entry(alias)
         except KeyError:
             self.parser.error(f"Cannot delete alias '{alias}'; does not exist.")
-        entry.pop("alias")
+
+        if ienv_path == str(DEFAULT_IENV_PATH):
+            entry.pop("alias")
+        else:
+            self.servers.pop(ienv_path)
         self.save()

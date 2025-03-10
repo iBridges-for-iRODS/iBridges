@@ -222,6 +222,7 @@ def ibridges_alias():
 
     if args.delete:
         ibridges_conf.delete_alias(args.alias)
+        return
 
     if args.env_path is None:
         parser.error("Supply env_path to your iRODS environment file to set the alias.")
