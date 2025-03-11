@@ -9,7 +9,7 @@ from argparse import RawTextHelpFormatter
 from pathlib import Path
 from typing import Literal, Union
 
-from ibridges.cli import IbridgesConf
+from ibridges.cli.config import IbridgesConf
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
 from ibridges.path import IrodsPath

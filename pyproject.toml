@@ -83,9 +83,10 @@ good-names=["e", "f", "m"]
 max-line-length=100
 max-locals=35
 max-args=11
+max-positional-arguments=10
 
-[tool.pylint.'MESSAGES CONTROL']
-disable="too-many-positional-arguments"
+# [tool.pylint.'MESSAGES CONTROL']
+# disable="too-many-positional-arguments"
 
 [tool.ruff]
 exclude = ["_version.py"]
