@@ -100,6 +100,7 @@ class IbridgesConf():
 
     def save(self):
         """Save the configuration back to the configuration file."""
+        Path(self.config_fp).parent.mkdir(exist_ok=True, parents=True)
         with open(self.config_fp, "w", encoding="utf-8") as handle:
             json.dump(
                 {"cur_env": self.cur_env,
