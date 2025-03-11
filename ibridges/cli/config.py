@@ -1,6 +1,9 @@
+"""Interface to the ibridges CLI configuration file."""
+import argparse
 import json
 import warnings
 from pathlib import Path
+from typing import Union
 
 from ibridges.interactive import DEFAULT_IENV_PATH
 
@@ -8,26 +11,69 @@ IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 
 
 class IbridgesConf():
-    def __init__(self, parser, config_fp=IBRIDGES_CONFIG_FP):
+    """Interface to the iBridges configuration file class."""
+
+    def __init__(self, parser: argparse.ArgumentParser,
+                 config_fp: Union[str, Path]=IBRIDGES_CONFIG_FP):
+        """Read configuration file and validate it.
+
+        Parameters
+        ----------
+        parser
+            Argument parser to display error messages.
+        config_fp, optional
+            Path to configuration file, by default ~/.ibridges/ibridges_cli.json
+
+        """
         self.config_fp = config_fp
         self.parser = parser
-        self._load()
+        try:
+            with open(self.config_fp, "r", encoding="utf-8") as handle:
+                ibridges_conf = json.load(handle)
+                self.servers = ibridges_conf["servers"]
+                self.cur_env = ibridges_conf.get("cur_env", ibridges_conf.get("cur_ienv"))
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            if isinstance(exc, FileNotFoundError):
+                # Don't worry if the ibridges configuration can't be found.
+                self.reset(ask=False)
+            else:
+                print(repr(exc))
+                self.reset()
         self.validate()
 
-    def reset(self):
-        answer = input("The ibridges configuration file cannot be read, delete? (Y/N)")
-        if answer != "Y":
-            self.parser.error("Cannot continue without reading the ibridges configuration file.")
+    def reset(self, ask: bool=True):
+        """Reset the configuration file to its defaults.
+
+        Parameters
+        ----------
+        ask, optional
+            Ask whether to overwrite the current configuration file, by default True
+
+        """
+        if ask:
+            answer = input(f"The ibridges configuration file {self.config_fp} cannot be read, "
+                        "delete? (Y/N)")
+            if answer != "Y":
+                self.parser.error(
+                    "Cannot continue without reading the ibridges configuration file.")
         self.cur_env = str(DEFAULT_IENV_PATH)
         self.servers = {str(DEFAULT_IENV_PATH): {"alias": "default"}}
         self.save()
 
     def validate(self):
+        """Validate the ibridges configuration.
+
+        Check whether the types are correct, the default iRODS path has not been removed,
+        aliases are unique and more. If the assumptions are violated, try to reset the configuration
+        to create a working configuration file.
+        """
         try:
             if not isinstance(self.servers, dict):
-                raise ValueError("Servers list not a dictionary (old version of iBridges?).")
+                raise ValueError("Servers list is not a dictionary (old version of iBridges?).")
             if str(DEFAULT_IENV_PATH) not in self.servers:
                 raise ValueError("Default iRODS path not in configuration file.")
+            if not isinstance(self.cur_env, str):
+                raise ValueError(f"Current environment should be a string not {type(self.cur_env)}")
             cur_aliases = set()
             new_servers = {}
             for ienv_path, entry in self.servers.items():
@@ -50,25 +96,36 @@ class IbridgesConf():
             self.reset()
         self.save()
 
-    def _load(self):
-        try:
-            with open(self.config_fp, "r", encoding="utf-8") as handle:
-                ibridges_conf = json.load(handle)
-                self.servers = ibridges_conf["servers"]
-                self.cur_env = ibridges_conf.get("cur_env", ibridges_conf.get("cur_ienv"))
-        except Exception as exc:
-            print(repr(exc))
-            self.reset()
-
-
     def save(self):
-        with open(IBRIDGES_CONFIG_FP, "w", encoding="utf-8") as handle:
+        """Save the configuration back to the configuration file."""
+        with open(self.config_fp, "w", encoding="utf-8") as handle:
             json.dump(
                 {"cur_env": self.cur_env,
                  "servers": self.servers},
                 handle, indent=4)
 
-    def get_entry(self, path_or_alias = None):
+    def get_entry(self, path_or_alias: Union[Path, str, None] = None) -> tuple[str, dict]:
+        """Get the path and contents that belongs to a path or alias.
+
+        Parameters
+        ----------
+        path_or_alias, optional
+            Either an absolute path or an alias, by default None in which
+            case the currently selected environment is chosen.
+
+        Returns
+        -------
+        ienv_path:
+            The absolute path to the iRODS environment file.
+        entry:
+            Entry for the environment file containing, cwd, alias, cached password.
+
+        Raises
+        ------
+        KeyError
+            If the entry can't be found.
+
+        """
         path_or_alias = self.cur_env if path_or_alias is None else path_or_alias
         for ienv_path, entry in self.servers.items():
             if ienv_path == str(path_or_alias):
@@ -80,8 +137,23 @@ class IbridgesConf():
 
         raise KeyError(f"Cannot find entry with name/path '{path_or_alias}'")
 
-    def set_env(self, ienv_path_or_alias = None):
-        ienv_path_or_alias = str(DEFAULT_IENV_PATH) if ienv_path_or_alias is None else ienv_path_or_alias
+    def set_env(self, ienv_path_or_alias: Union[str, Path, None] = None):
+        """Change the currently selected iRODS environment file.
+
+        Parameters
+        ----------
+        ienv_path_or_alias, optional
+            Either a path to the iRODS environment file or an alias, by default None
+            in which case the default location for the iRODS environment file will be chosen.
+
+        Raises
+        ------
+        self.parser.error
+            If the iRODS environment file does not exist.
+
+        """
+        ienv_path_or_alias = (str(DEFAULT_IENV_PATH) if ienv_path_or_alias is None
+                              else ienv_path_or_alias)
         try:
             ienv_path, _ = self.get_entry(ienv_path_or_alias)
         except KeyError:
@@ -92,7 +164,17 @@ class IbridgesConf():
         self.cur_env = ienv_path
         self.save()
 
-    def set_alias(self, alias, ienv_path):
+    def set_alias(self, alias: str, ienv_path: Union[Path, str]):
+        """Set an alias for an iRODS environment file.
+
+        Parameters
+        ----------
+        alias
+            Alias to be created.
+        ienv_path
+            Path to the iRODS environment file for the new alias.
+
+        """
         try:
             # Alias already exists change the path
             self.get_entry(alias)
@@ -109,7 +191,15 @@ class IbridgesConf():
                 print(f"Created alias '{alias}'")
         self.save()
 
-    def delete_alias(self, alias):
+    def delete_alias(self, alias: str):
+        """Delete an alias.
+
+        Parameters
+        ----------
+        alias
+            The alias to be deleted. Can also be an iRODS environment file path.
+
+        """
         try:
             ienv_path, entry = self.get_entry(alias)
         except KeyError:
