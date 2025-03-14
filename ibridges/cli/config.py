@@ -69,6 +69,7 @@ class IbridgesConf():
         aliases are unique and more. If the assumptions are violated, try to reset the configuration
         to create a working configuration file.
         """
+        changed = False
         try:
             if not isinstance(self.servers, dict):
                 raise ValueError("Servers list is not a dictionary (old version of iBridges?).")
@@ -82,9 +83,11 @@ class IbridgesConf():
                 if ienv_path != str(DEFAULT_IENV_PATH) and not Path(ienv_path).is_file():
                     warnings.warn(f"Environment with file '{ienv_path}' does not exist anymore, "
                                    "removing the entry.")
+                    changed = True
                 elif entry.get("alias", None) in cur_aliases:
                     warnings.warn(f"Environment with file '{ienv_path}' has a duplicate alias, "
                                   "removing...")
+                    changed = True
                 else:
                     new_servers[ienv_path] = entry
                     if "alias" in entry:
@@ -93,10 +96,13 @@ class IbridgesConf():
             if self.cur_env not in self.servers:
                 warnings.warn("Current environment is not available, switching to first available.")
                 self.cur_env = list(self.servers)[0]
+                changed = True
         except ValueError as exc:
             print(exc)
             self.reset()
-        self.save()
+            changed = True
+        if changed:
+            self.save()
 
     def save(self):
         """Save the configuration back to the configuration file."""
@@ -164,8 +170,9 @@ class IbridgesConf():
             self.servers[ienv_path] = {}
             if not Path(ienv_path).is_file():
                 raise self.parser.error(f"Cannot find iRODS environment file {ienv_path}.")  # pylint:disable=raise-missing-from
-        self.cur_env = ienv_path
-        self.save()
+        if self.cur_env != ienv_path:
+            self.cur_env = ienv_path
+            self.save()
 
     def set_alias(self, alias: str, ienv_path: Union[Path, str]):
         """Set an alias for an iRODS environment file.
@@ -186,6 +193,8 @@ class IbridgesConf():
             try:
                 # Path already exists change the alias
                 ienv_path, entry = self.get_entry(ienv_path)
+                if entry.get("alias", None) == alias:
+                    return
                 entry["alias"] = alias
                 print("Change alias for path")
             except KeyError:
