@@ -111,4 +111,4 @@ The Session cwd
 Apart from the home collection, you can also set the current working collection (:class:`Session.cwd`).
 By default this is not set, and it will be equal to your :class:`Session.home`.
 To directly refer to your current working collection, you can use the :code:`.`
-symbol in your :class:`ibridges.path.IrodsPath`. 
+symbol in your :class:`ibridges.path.IrodsPath`.

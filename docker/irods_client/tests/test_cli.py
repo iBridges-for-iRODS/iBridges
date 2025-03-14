@@ -196,3 +196,34 @@ def test_meta_cli(item_name, request, pass_opts):
     meta.refresh()
     meta = MetaData(item)
     assert ("key", "value", "units") not in meta
+
+
+
+def test_aliases(pass_opts, irods_env_file, tmpdir):
+    irods_env_file_2 = f"{tmpdir}/{irods_env_file}"
+    subprocess.run(["cp", irods_env_file, f"{irods_env_file_2}"], **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file_2], **pass_opts)
+    subprocess.run(["ibridges", "alias", "first", irods_env_file], **pass_opts)
+    subprocess.run(["ibridges", "alias", "second", irods_env_file_2], **pass_opts)
+    subprocess.run(["ibridges", "init", "first"], **pass_opts)
+    subprocess.run(["ibridges", "init", "second"], **pass_opts)
+    ret = subprocess.run(["ibridges", "alias"], **pass_opts, capture_output=True)
+    assert len(ret.out.strip("\n").split("\n")) == 2
+    subprocess.run(["ibridges", "cd", "more_data"], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.out.strip("\n").split("/")[-1] == "more_data"
+    subprocess.run(["ibridges", "init", "first"], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.out.strip("\n").split("/")[-1] == "testdata"
+
+    subprocess.run(["ibridges", "init", "second"], **pass_opts)
+    subprocess.run(["ibridges", "cd"], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.out.strip("\n").split("/")[-1] == "testdata"
+
+    subprocess.run(["ibridges", "alias", "--delete", "first"], **pass_opts)
+    subprocess.run(["ibridges", "alias", "--delete", "second"], **pass_opts)
+
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.out.strip("\n").split("/")[-1] == "testdata"
