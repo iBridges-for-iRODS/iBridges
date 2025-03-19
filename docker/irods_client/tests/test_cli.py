@@ -209,21 +209,21 @@ def test_aliases(pass_opts, irods_env_file, tmpdir):
     subprocess.run(["ibridges", "init", "first"], **pass_opts)
     subprocess.run(["ibridges", "init", "second"], **pass_opts)
     ret = subprocess.run(["ibridges", "alias"], **pass_opts, capture_output=True)
-    assert len(ret.out.strip("\n").split("\n")) == 2
+    assert len(ret.stdout.strip("\n").split("\n")) == 2
     subprocess.run(["ibridges", "cd", "more_data"], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.out.strip("\n").split("/")[-1] == "more_data"
+    assert ret.stdout.strip("\n").split("/")[-1] == "more_data"
     subprocess.run(["ibridges", "init", "first"], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.out.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
 
     subprocess.run(["ibridges", "init", "second"], **pass_opts)
     subprocess.run(["ibridges", "cd"], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.out.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
 
     subprocess.run(["ibridges", "alias", "--delete", "first"], **pass_opts)
     subprocess.run(["ibridges", "alias", "--delete", "second"], **pass_opts)
 
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.out.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
