@@ -200,7 +200,7 @@ def test_meta_cli(item_name, request, pass_opts):
 
 
 def test_aliases(pass_opts, irods_env_file, tmpdir):
-    irods_env_file_2 = f"{tmpdir}/{irods_env_file}"
+    irods_env_file_2 = f"{tmpdir}/{irods_env_file.name}"
     subprocess.run(["cp", irods_env_file, f"{irods_env_file_2}"], **pass_opts)
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     subprocess.run(["ibridges", "init", irods_env_file_2], **pass_opts)
