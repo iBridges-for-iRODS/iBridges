@@ -211,7 +211,9 @@ def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
     subprocess.run(["ibridges", "init", "first"], **pass_opts)
     subprocess.run(["ibridges", "init", "second"], **pass_opts)
     ret = subprocess.run(["ibridges", "alias"], **pass_opts, capture_output=True)
-    assert len(ret.stdout.strip("\n").split("\n")) == 2
+    assert f"first -> {Path(irods_env_file).absolute()}" in ret.stdout
+    assert f"second -> {Path(irods_env_file_2).absolute()}" in ret.stdout
+    # assert len(ret.stdout.strip("\n").split("\n")) == 2
     subprocess.run(["ibridges", "cd", str(coll_ipath)], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
     assert ret.stdout.strip("\n").split("/")[-1] == coll_ipath.name
