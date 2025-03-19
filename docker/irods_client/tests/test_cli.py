@@ -199,7 +199,9 @@ def test_meta_cli(item_name, request, pass_opts):
 
 
 
-def test_aliases(pass_opts, irods_env_file, tmpdir):
+def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
+    coll_ipath = IrodsPath(session, collection.path)
+    base_path = IrodsPath(session, "~")
     irods_env_file_2 = f"{tmpdir}/{Path(irods_env_file).name}"
     subprocess.run(["cp", irods_env_file, f"{irods_env_file_2}"], **pass_opts)
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
@@ -210,20 +212,20 @@ def test_aliases(pass_opts, irods_env_file, tmpdir):
     subprocess.run(["ibridges", "init", "second"], **pass_opts)
     ret = subprocess.run(["ibridges", "alias"], **pass_opts, capture_output=True)
     assert len(ret.stdout.strip("\n").split("\n")) == 2
-    subprocess.run(["ibridges", "cd", "more_data"], **pass_opts)
+    subprocess.run(["ibridges", "cd", str(coll_ipath)], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.stdout.strip("\n").split("/")[-1] == "more_data"
+    assert ret.stdout.strip("\n").split("/")[-1] == coll_ipath.name
     subprocess.run(["ibridges", "init", "first"], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
 
     subprocess.run(["ibridges", "init", "second"], **pass_opts)
     subprocess.run(["ibridges", "cd"], **pass_opts)
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
 
     subprocess.run(["ibridges", "alias", "--delete", "first"], **pass_opts)
     subprocess.run(["ibridges", "alias", "--delete", "second"], **pass_opts)
 
     ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
-    assert ret.stdout.strip("\n").split("/")[-1] == "testdata"
+    assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
