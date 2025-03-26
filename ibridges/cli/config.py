@@ -7,7 +7,7 @@ import warnings
 from pathlib import Path
 from typing import Union
 
-from ibridges.interactive import DEFAULT_IENV_PATH
+from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH
 
 IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 
@@ -172,6 +172,10 @@ class IbridgesConf():
                 raise self.parser.error(f"Cannot find iRODS environment file {ienv_path}.")  # pylint:disable=raise-missing-from
         if self.cur_env != ienv_path:
             self.cur_env = ienv_path
+            ienv_entry = self.servers[ienv_path]
+            if "irodsa_backup" in ienv_entry:
+                with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
+                    handle.write(ienv_entry["irodsa_backup"])
             self.save()
 
     def set_alias(self, alias: str, ienv_path: Union[Path, str]):

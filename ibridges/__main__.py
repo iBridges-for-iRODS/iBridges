@@ -239,9 +239,7 @@ def _cli_auth(parser):
     ibridges_conf = IbridgesConf(parser)
     ienv_path, ienv_entry = ibridges_conf.get_entry()
     ienv_cwd = ienv_entry.get("cwd", None)
-    if "irodsa_backup" in ienv_entry:
-        with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
-            handle.write(ienv_entry["irodsa_backup"])
+
     if not Path(ienv_path).exists():
         print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
         sys.exit(124)
@@ -261,14 +259,14 @@ def ibridges_init():
         prog="ibridges init", description="Cache your iRODS password to be used later."
     )
     parser.add_argument(
-        "irods_env_path",
+        "irods_env_path_or_alias",
         help="The path to your iRODS environment JSON file.",
         type=Path,
         default=None,
         nargs="?",
     )
     args, _ = parser.parse_known_args()
-    IbridgesConf(parser).set_env(args.irods_env_path)
+    IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
 
     with _cli_auth(parser) as session:
         if not isinstance(session, Session):
