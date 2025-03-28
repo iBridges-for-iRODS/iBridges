@@ -25,7 +25,7 @@ from ibridges import icat_columns as icat
 APP_NAME = "ibridges"
 
 
-class Session:
+class Session:  # pylint: disable=too-many-instance-attributes
     """Session to connect and perform operations on the iRODS server.
 
     When the session is initialized, you are connected succesfully to the iRODS server.
@@ -104,10 +104,9 @@ class Session:
         if "irods_home" not in self._irods_env:
             self.home = "/" + self.zone + "/home/" + self.username
 
+        self._cwd = self.home
         if cwd is not None:
             self.cwd = cwd
-        else:
-            self.cwd = self.home
 
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
@@ -121,15 +120,15 @@ class Session:
 
     @property
     def home(self) -> str:
-        """Current working directory for irods.
+        """Home directory for irods.
 
         In the iRODS community this is known as 'irods_home', in file system terms
-        it would be the current working directory.
+        it would be your home directory.
 
         Returns
         -------
         str:
-            The current working directory in the current session.
+            The home directory in the current session.
 
         Examples
         --------
@@ -142,6 +141,32 @@ class Session:
     @home.setter
     def home(self, value: str):
         self._irods_env["irods_home"] = str(value)
+
+    @property
+    def cwd(self) -> str:
+        """Current working directory for irods.
+
+        This is your current working directory to which other IrodsPaths
+        are relative to. By default this is the same as your working directory.
+        In IrodsPaths, a path relative to the current working directory can be denoted by the '.'.
+
+        Returns
+        -------
+        str:
+            The current working directory in the current session.
+
+        Examples
+        --------
+        >>> session.cwd
+        /zone/home/user
+
+        """
+        return self._cwd
+
+    @cwd.setter
+    def cwd(self, value: str):
+        self._cwd = str(value)
+
 
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
