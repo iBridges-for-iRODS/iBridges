@@ -26,6 +26,10 @@ in your shell script without having to create a new python script.
 Setup
 -----
 
+
+Create your environment file
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 As with the ibridges API, you will need to create an `irods_environment.json`. We have created a plugin system to automatically
 create the environment file for you. Below are the currently (known) plugins, see the links for installation instructions:
 
@@ -51,17 +55,37 @@ Then finish the setup using the server name you just found:
 
     ibridges setup server_name
 
+If you want to create in a different location, you can use the :code:`--output` flag:
+
+.. code:: shell
+
+    ibridges setup server_name --output path/to/some/file.json
+
+
 If your organization does not provide a plugin, then you will have to create the `irods_environment.json` yourself (with 
 the help of your iRODS administrator).
 
 It is the easiest if you put this file
-in the default location: `~/.irods/irods_environment.json`, because then it will be automatically detected. However,
-if you have it in another location for some reason (let's say you have multiple environments), then you can tell the
-ibridges CLI where it is:
+in the default location: `~/.irods/irods_environment.json`, because then it will be automatically detected.
+
+
+
+Initialize connection to iRODS
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Before you start working with your data, you should select and test your connection with
+the iRODS server. This can be done with the :code:`ibridges init` command
 
 .. code:: shell
 
     ibridges init path/to/some_irods_env_file.json
+
+
+If you have your iRODS environment file in the default location, then you can simply:
+
+.. code:: shell
+
+    ibridges init
 
 This will most likely ask for your password. After filling this in, iBridges will cache your password, so that
 you will not have to type it in every time you use an iBridges operation. This is especially useful if you want
@@ -72,15 +96,49 @@ iBridges stores the location of your iRODS environment file in `~/.ibridges/ibri
 this file if somehow it gets corrupted. If you have the iRODS environment in the default location, it can still be
 useful to cache the password so that the next commands will no longer ask for your password until the cached password expires.
 
+Multiple iRODS environment files
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When you have access to multiple iRODS servers or otherwise need to use multiple environment
+files, switching between them can become cumbersome. For that purpose, there is the :code:`ibridges alias`
+command:
+
 .. code:: shell
 
-    ibridges init
+    ibridges alias env1 some/irods_environment_file.json
+    ibridges alias env2 other/irods_environment_file.json
+
+Now you can easily switch between different environment files with :code:`ibridges init`:
+
+.. code:: shell
+
+    ibridges init env1 # Now some/irods_environment_file.json is selected
+    ibridges init env2 # Now the other environment file is selected.
+
+To see which irods environment file is currently selected:
+
+.. code:: shell
+
+    ibridges alias
+
+This will list all your aliases and used environment files, where the one with the `*`
+is the environment currently selected.
+
+To delete an alias, use:
+
+.. code:: shell
+
+    ibridges alias --delete env1
 
 
-Listing remote files
---------------------
+Navigation
+----------
 
-To list the data objects and collections that are available on the iRODS server, you can use the :code:`ibridges list` command:
+Listing remote data
+^^^^^^^^^^^^^^^^^^^
+
+
+To list the data objects and collections that are available on the iRODS server, you can use the :code:`ibridges list` (or :code:`ibridges ls`) command:
 
 .. code:: shell
 
@@ -110,6 +168,30 @@ You can also see the checksums and sizes of data objects with the long format:
 
 .. note::
     Note that all data objects and collections on the iRODS server are always preceded with "irods:". This is done to distinguish local and remote files.
+
+Change working collection
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+With the iBridges CLI you can change your working collection. This is equivalent to
+the command line tool :code:`cd`:
+
+.. code:: shell
+
+    ibridges cd some/path/to/collection
+    ibridges list  # This will list some/path/to/collection
+    ibridges list "./sub" # This will list some/path/to/collection/sub
+    ibridges list "sub" # Same as above
+
+To return the current working directory to the home collection simply type :code:`ibridges cd`.
+
+Print current working collection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+This command is equivalent to the Unix `pwd` command and will show the current working collection:
+
+.. code:: shell
+
+    ibridges pwd
 
 Show collection and data object tree
 ------------------------------------

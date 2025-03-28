@@ -84,7 +84,7 @@ We will have a closer look at the :class:`Session.home` below.
 The Session home
 ----------------
 
-The :class:`Session.home` denotes your iRODS working path and can be referred to with `~`. For any relative paths that are created using an
+The :class:`Session.home` denotes your iRODS working path and can be referred to with :code:`~`. For any relative paths that are created using an
 :doc:`IrodsPath <ipath>`, the path will be relative to the :class:`Session.home` that you have set.
 
 There are three ways to set the irods_home:
@@ -102,3 +102,13 @@ If you did not set any :class:`Session.home` the home will default to `/<zone_na
 	.. code-block:: python
 			
 		IrodsPath(session, session.home).collection_exists()
+
+.. _session cwd:
+
+The Session cwd
+---------------
+
+Apart from the home collection, you can also set the current working collection (:class:`Session.cwd`).
+By default this is not set, and it will be equal to your :class:`Session.home`.
+To directly refer to your current working collection, you can use the :code:`.`
+symbol in your :class:`ibridges.path.IrodsPath`.
