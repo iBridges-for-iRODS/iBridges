@@ -332,6 +332,17 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         print("\n\n".join(summary_strings))
 
 
+def _warn_ignored_keywords(options: Optional[dict]):
+    if options is None:
+        return
+
+    all_ignored_set = set((kw.FORCE_FLAG_KW, kw.RESC_NAME_KW, kw.NUM_THREADS_KW, kw.REG_CHKSUM_KW,
+                           kw.VERIFY_CHKSUM_KW))
+    cur_ignored_set = set(options).intersection(all_ignored_set)
+    if len(cur_ignored_set) > 0:
+        warnings.warn(f"Some options will be ignored: {cur_ignored_set}", UserWarning)
+
+
 def _obj_put(  # pylint: disable=too-many-branches
     session: Session,
     local_path: Union[str, Path],
@@ -379,6 +390,8 @@ def _obj_put(  # pylint: disable=too-many-branches
         IrodsPath(session, irods_path / local_path.name).dataobject_exists()
         or irods_path.dataobject_exists()
     )
+
+    _warn_ignored_keywords(options)
 
     if options is None:
         options = {}
@@ -460,6 +473,8 @@ def _obj_get(
         Optional progress bar.
 
     """
+    _warn_ignored_keywords(options)
+
     if options is None:
         options = {}
     options.update(

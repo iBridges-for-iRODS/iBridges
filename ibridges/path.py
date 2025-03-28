@@ -10,6 +10,13 @@ import irods
 from irods.models import DataObject
 
 import ibridges.icat_columns as icat
+from ibridges.exception import (
+    CollectionDoesNotExistError,
+    DataObjectDoesNotExistError,
+    DoesNotExistError,
+    NotACollectionError,
+    NotADataObjectError,
+)
 from ibridges.meta import MetaData
 
 
@@ -83,14 +90,26 @@ class IrodsPath:
         """
         # absolute path
         if len(self._path.parts) == 0:
-            return IrodsPath(self.session, self.session.home)
-        if self._path.parts[0] == "~" or self._path.parts[0] == ".":
+            return IrodsPath(self.session, self.session.cwd)
+        if self._path.parts[0] == "~":
             begin, end = self.session.home, self._path.parts[1:]
+        elif self._path.parts[0] == ".":
+            begin, end = self.session.cwd, self._path.parts[1:]
         elif self._path.parts[0] == "/":
             begin, end = "/", self._path.parts[1:]
         else:
-            begin, end = self.session.home, self._path.parts
-        abs_str = str(PurePosixPath(begin, *end))
+            begin, end = self.session.cwd, self._path.parts
+
+        all_parts = PurePosixPath(begin, *end).parts
+        new_parts: list[str] = []
+        for part in all_parts:
+            if part == "..":
+                if len(new_parts) == 0:
+                    raise ValueError(f"Cannot create path with {self._parts} too many '..'.")
+                new_parts.pop()
+            else:
+                new_parts.append(part)
+        abs_str = str(PurePosixPath(*new_parts))
         return IrodsPath(self.session, abs_str)
 
     def __str__(self) -> str:
@@ -239,6 +258,8 @@ class IrodsPath:
             If the new path already exists, or the path is in a different zone.
         PermissionError:
             If the new collection cannot be created.
+        DoesNotExistError:
+            If the path does not exist.
 
         Examples
         --------
@@ -246,7 +267,7 @@ class IrodsPath:
 
         """
         if not self.exists():
-            raise ValueError(f"str{self} does not exist.")
+            raise DoesNotExistError(f"{str(self)} does not exist.")
 
         # Build new path
         if str(new_name).startswith("/" + self.session.zone):
@@ -325,9 +346,9 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError:
+        NotADirectoryError:
             If the path points to a dataobject and not a collection.
-        CollectionDoesNotExist:
+        CollectionDoesNotExistError:
             If the path does not point to a dataobject or a collection.
 
         Returns
@@ -344,11 +365,11 @@ class IrodsPath:
         if self.collection_exists():
             return self.session.irods_session.collections.get(str(self))
         if self.dataobject_exists():
-            raise ValueError(
+            raise NotACollectionError(
                 "Error retrieving collection, path is linked to a data object."
                 " Use get_dataobject instead to retrieve the data object."
             )
-        raise irods.exception.CollectionDoesNotExist(str(self))
+        raise CollectionDoesNotExistError(str(self))
 
     @property
     def dataobject(self) -> irods.data_object.iRODSDataObject:
@@ -356,7 +377,7 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError:
+        NotADataObjectError:
             If the path is pointing to a collection and not a data object.
 
         Returns
@@ -373,12 +394,12 @@ class IrodsPath:
         if self.dataobject_exists():
             return self.session.irods_session.data_objects.get(str(self))
         if self.collection_exists():
-            raise ValueError(
+            raise NotADataObjectError(
                 "Error retrieving data object, path is linked to a collection."
                 " Use get_collection instead to retrieve the collection."
             )
 
-        raise irods.exception.DataObjectDoesNotExist(str(IrodsPath))
+        raise DataObjectDoesNotExistError(str(IrodsPath))
 
     def open(self, mode="r", **kwargs):
         """Open a data object for reading or writing.
@@ -401,9 +422,9 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError
+        NotADataobjectError:
             When the IrodsPath points to a collection.
-        DataObjectDoesNotExist:
+        DataObjectDoesNotExistError:
             When the data object does not exist and the read mode is given.
 
         Examples
@@ -419,7 +440,7 @@ class IrodsPath:
 
         """
         if self.collection_exists():
-            raise ValueError("Cannot open collection, only data objects can be opened.")
+            raise NotADataObjectError("Cannot open collection, only data objects can be opened.")
         # Create the data object if it does not exist.
         if mode == "w" and not self.dataobject_exists():
             self.session.irods_session.data_objects.create(str(self))
@@ -455,11 +476,12 @@ class IrodsPath:
 
         """
         all_data_objects: dict[str, list[IrodsPath]] = defaultdict(list)
-        for path, name, size, checksum in _get_data_objects(self.session, self.collection):
+        prc_data_objects = _get_data_objects(self.session, self.collection, depth=depth)
+        for path, name, size, checksum in prc_data_objects:
             abs_path = IrodsPath(self.session, path).absolute()
             ipath = CachedIrodsPath(self.session, size, True, checksum, path, name)
             all_data_objects[str(abs_path)].append(ipath)
-        all_collections = _get_subcoll_paths(self.session, self.collection)
+        all_collections = _get_subcoll_paths(self.session, self.collection, depth=depth)
         all_collections = sorted(all_collections, key=str)
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
@@ -489,7 +511,7 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError:
+        FileNotFoundError:
             If the path is neither a collection or data object.
 
         Examples
@@ -501,7 +523,7 @@ class IrodsPath:
 
         """
         if not self.exists():
-            raise ValueError(
+            raise FileNotFoundError(
                 f"Path '{str(self)}' does not exist;"
                 " it is neither a collection nor a dataobject."
             )
@@ -522,8 +544,10 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError
-            When the path does not point to a data object.
+        DoesNotExistError:
+            When the path does not exist.
+        NotADataObjectError:
+            When the path points to a collection.
 
         Examples
         --------
@@ -535,8 +559,9 @@ class IrodsPath:
             dataobj = self.dataobject
             return dataobj.checksum if dataobj.checksum is not None else dataobj.chksum()
         if self.collection_exists():
-            raise ValueError("Cannot take checksum of a collection.")
-        raise ValueError("Cannot take checksum of irods path neither a dataobject or collection.")
+            raise NotADataObjectError("Cannot take checksum of a collection.")
+        raise DoesNotExistError(
+            f"Cannot take checksum of {str(self)} irods path which does not exist.")
 
     @property
     def meta(self) -> MetaData:
@@ -548,7 +573,7 @@ class IrodsPath:
 
         Raises
         ------
-        ValueError
+        DoesNotExistError:
             When the path does not point to a data object or collection.
 
         """
@@ -556,8 +581,9 @@ class IrodsPath:
             return MetaData(self.dataobject)
         if self.collection_exists():
             return MetaData(self.collection)
-        raise ValueError("Cannot get metadata for path that is neither dataobject or collection:"
-                         f" {self}")
+        raise DoesNotExistError(
+            "Cannot get metadata for path that is neither dataobject or collection:"
+            f" {self}")
 
 
 
@@ -634,7 +660,8 @@ class CachedIrodsPath(IrodsPath):
 
 
 def _get_data_objects(
-    session, coll: irods.collection.iRODSCollection
+    session, coll: irods.collection.iRODSCollection,
+    depth: Optional[int] = None,
 ) -> list[tuple[str, str, int, str]]:
     """Retrieve all data objects in a collection and all its subcollections.
 
@@ -644,6 +671,8 @@ def _get_data_objects(
         Session to get the data objects with.
     coll : irods.collection.iRODSCollection
         The collection to search for all data objects
+    depth:
+        Depth of the data object search, only used for depth==1.
 
     Returns
     -------
@@ -653,6 +682,8 @@ def _get_data_objects(
     """
     # all objects in the collection
     objs = [(obj.collection.path, obj.name, obj.size, obj.checksum) for obj in coll.data_objects]
+    if depth == 1:
+        return objs
 
     # all objects in subcollections
     data_query = session.irods_session.query(
@@ -666,8 +697,13 @@ def _get_data_objects(
     return objs
 
 
-def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection) -> list:
+def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection,
+                       depth: Optional[int] = None) -> list:
     """Retrieve all sub collections in a sub tree starting at coll and returns their IrodsPaths."""
+    if depth == 1:
+        return [CachedIrodsPath(session, None, False, None, subcol.path)
+                for subcol in coll.subcollections]
+
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.LIKE(icat.COLL_NAME, coll.path + "/%"))
 

@@ -8,6 +8,7 @@ from pytest import mark
 
 from ibridges import IrodsPath
 from ibridges.data_operations import create_collection
+from ibridges.meta import MetaData
 
 
 @pytest.fixture(scope="module")
@@ -135,6 +136,8 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     subprocess.run(["ibridges", "list"], **pass_opts)
     subprocess.run(["ibridges", "list", f"irods:{collection.path}"], **pass_opts)
+    subprocess.run(["ibridges", "list", "-s"], **pass_opts)
+    subprocess.run(["ibridges", "list", "-l"], **pass_opts)
 
 
 @mark.parametrize(
@@ -174,3 +177,57 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
     else:
         assert len([x for x in stripped_str.split("\n") if not x.startswith("Your iRODS")]) == nlines
     ipath_coll.remove()
+
+@mark.parametrize("item_name", ["collection", "dataobject"])
+def test_meta_cli(item_name, request, pass_opts):
+    item = request.getfixturevalue(item_name)
+    meta = MetaData(item)
+    meta.clear()
+    cli_path = f"irods:{item.path}"
+
+    ret = subprocess.run(["ibridges", "meta-list", cli_path], capture_output=True, **pass_opts)
+    assert len(ret.stdout.strip("\n").split("\n")) == 1
+
+    subprocess.run(["ibridges", "meta-add", cli_path, "key", "value", "units"], **pass_opts)
+    meta.refresh()
+    assert ("key", "value", "units") in meta
+
+    subprocess.run(["ibridges", "meta-del", cli_path, "--key", "key"], **pass_opts)
+    meta.refresh()
+    meta = MetaData(item)
+    assert ("key", "value", "units") not in meta
+
+
+
+def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
+    coll_ipath = IrodsPath(session, collection.path)
+    base_path = IrodsPath(session, "~")
+    irods_env_file_2 = f"{tmpdir}/{Path(irods_env_file).name}"
+    subprocess.run(["cp", irods_env_file, f"{irods_env_file_2}"], **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
+    subprocess.run(["ibridges", "init", irods_env_file_2], **pass_opts)
+    subprocess.run(["ibridges", "alias", "first", irods_env_file], **pass_opts)
+    subprocess.run(["ibridges", "alias", "second", irods_env_file_2], **pass_opts)
+    subprocess.run(["ibridges", "init", "first"], **pass_opts)
+    subprocess.run(["ibridges", "init", "second"], **pass_opts)
+    ret = subprocess.run(["ibridges", "alias"], **pass_opts, capture_output=True)
+    assert f"first -> {Path(irods_env_file).absolute()}" in ret.stdout
+    assert f"second -> {Path(irods_env_file_2).absolute()}" in ret.stdout
+    # assert len(ret.stdout.strip("\n").split("\n")) == 2
+    subprocess.run(["ibridges", "cd", str(coll_ipath)], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.stdout.strip("\n").split("/")[-1] == coll_ipath.name
+    subprocess.run(["ibridges", "init", "first"], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
+
+    subprocess.run(["ibridges", "init", "second"], **pass_opts)
+    subprocess.run(["ibridges", "cd"], **pass_opts)
+    ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
+
+    subprocess.run(["ibridges", "alias", "--delete", "first"], **pass_opts)
+    subprocess.run(["ibridges", "alias", "--delete", "second"], **pass_opts)
+
+    # ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
+    # assert ret.stdout.strip("\n").split("/")[-1] == base_path.name

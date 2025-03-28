@@ -16,6 +16,12 @@ import irods.collection
 import irods.data_object
 import irods.exception
 
+from ibridges.exception import (
+    CollectionDoesNotExistError,
+    DataObjectExistsError,
+    DoesNotExistError,
+    NotACollectionError,
+)
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.session import Session
@@ -35,7 +41,7 @@ def upload(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -58,13 +64,15 @@ def upload(
     copy_empty_folders:
         Create respective iRODS collection for empty folders. Default: True.
     options:
-        More options for the upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, it should point to a file that contains the metadata for the upload.
-    kwargs:
-        Extra arguments for executing the upload operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
     Returns
     -------
@@ -72,8 +80,10 @@ def upload(
 
     Raises
     ------
-    ValueError:
+    FileNotFoundError:
         If the local_path is not a valid filename of directory.
+    DataObjectExistsError:
+        If the data object to be uploaded already exists without using overwrite==True.
     PermissionError:
         If the iRODS server does not allow the collection or data object to be created.
 
@@ -98,7 +108,7 @@ def upload(
     if local_path.is_dir():
         idest_path = ipath / local_path.name
         if not overwrite and idest_path.dataobject_exists():
-            raise FileExistsError(f"Data object {idest_path} already exists.")
+            raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         ops = _up_sync_operations(
             local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, ignore_err=ignore_err
@@ -110,12 +120,12 @@ def upload(
     elif local_path.is_file():
         idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
         obj_exists = idest_path.dataobject_exists()
-        if not obj_exists or _transfer_needed(idest_path, local_path, overwrite, ignore_err):
+        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, ignore_err):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
         raise FileNotFoundError(
-            f"Cannot upload symbolic link {local_path}, please supply a direct " "path."
+            f"Cannot upload symbolic link {local_path}, please supply a direct path."
         )
     else:
         raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
@@ -124,7 +134,7 @@ def upload(
     if metadata is not None:
         ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
     return ops
 
 
@@ -139,7 +149,7 @@ def download(
     options: Optional[dict] = None,
     dry_run: bool = False,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Download a collection or data object to the local filesystem.
 
@@ -163,14 +173,16 @@ def download(
     copy_empty_folders:
         Create respective local directory for empty collections.
     options:
-        More options for the download
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
     metadata:
         If not None, the path to store the metadata to in JSON format.
         It is recommended to use the .json suffix.
-    kwargs:
-        Extra arguments for executing the download operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
     Returns
     -------
@@ -181,7 +193,7 @@ def download(
     PermissionError:
         If the iRODS server (for whatever reason) forbids downloading the file or
         (part of the) collection.
-    ValueError:
+    DoesNotExistError:
         If the irods_path is not pointing to either a collection or a data object.
     FileExistsError:
         If the irods_path points to a data object and the local file already exists.
@@ -230,12 +242,12 @@ def download(
             ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
-        raise ValueError(f"Data object or collection not found: '{irods_path}'")
+        raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
     return ops
 
 
@@ -278,7 +290,7 @@ def sync(
     resc_name: str = "",
     options: Optional[dict] = None,
     metadata: Union[None, str, Path] = None,
-    **kwargs
+    progress_bar: bool = True,
 ) -> Operations:
     """Synchronize data between local and remote copies.
 
@@ -317,12 +329,22 @@ def sync(
     resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
     options:
-        More options for the download/upload
+        Python-irodsclient options found in ``irods.keywords``. The following keywords will be
+        ignored since they are set by iBridges:
+        FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     metadata:
         If not None, the location to get the metadata from or store it to.
-    kwargs:
-        Extra arguments for executing the sync operation, e.g. progress_bar = False.
+    progress_bar:
+        Whether to display a progress bar.
 
+    Raises
+    ------
+    CollectionDoesNotExistError:
+        If the source collection does not exist
+    NotACollectionError:
+        If the source is a data object.
+    NotADirectoryError:
+        If the local source is not a directory.
 
     Returns
     -------
@@ -341,10 +363,15 @@ def sync(
 
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
-            raise ValueError(f"Source collection '{source.absolute()}' does not exist")
+            if source.dataobject_exists():
+                raise NotACollectionError(f"Source '{source.absolute()}' is a data object, "
+                                     "can only sync collections.")
+            raise CollectionDoesNotExistError(
+                f"Source collection '{source.absolute()}' does not exist")
     else:
         if not Path(source).is_dir():
-            raise ValueError(f"Source folder '{source}' does not exist")
+            raise NotADirectoryError(f"Source folder '{source}' is not a directory or "
+                                     "does not exist.")
 
     if isinstance(source, IrodsPath):
         ops = _down_sync_operations(
@@ -361,7 +388,7 @@ def sync(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, **kwargs)
+        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
 
     return ops
 
@@ -391,8 +418,10 @@ def create_meta_archive(session: Session, source: Union[str, IrodsPath],
 
     Raises
     ------
-    ValueError
-        If the source is not a collection.
+    CollectionDoesNotExistError:
+        If the source collection does not exist.
+    NotACollectionError:
+        If the source is not a collection but a data object.
 
     Examples
     --------
@@ -401,8 +430,11 @@ def create_meta_archive(session: Session, source: Union[str, IrodsPath],
     """
     root_ipath = IrodsPath(session, source)
     if not root_ipath.collection_exists():
-        raise ValueError("Cannot download metadata archive, no collection present at "
-                         f"'{root_ipath}'.")
+        if root_ipath.dataobject_exists():
+            raise NotACollectionError("Cannot download metadata archive: "
+                                 f"'{root_ipath}' is a data object, need a collection.")
+        raise CollectionDoesNotExistError("Cannot download metadata archive: "
+                                    f"'{root_ipath}' does not exist.")
     operations = Operations()
     for ipath in root_ipath.walk():
         operations.add_meta_download(root_ipath, ipath, meta_fp)
@@ -437,8 +469,10 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
 
     Raises
     ------
-    ValueError
-        If the ipath is not an iRODS collection.
+    CollectionDoesNotExistError:
+        If the ipath does not exist.
+    NotACollectionError:
+        If the ipath is not a collection.
 
     Examples
     --------
@@ -447,8 +481,11 @@ def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, Iro
     """
     ipath = IrodsPath(session, ipath)
     if not ipath.collection_exists():
-        raise ValueError("Cannot apply metadata archive, since there is no collection"
-                         f" present at '{ipath}")
+        if ipath.dataobject_exists():
+            raise NotACollectionError(f"Cannot apply metadata archive, since '{ipath}' "
+                                     "is a data object and not a collection.")
+        raise CollectionDoesNotExistError(
+            f"Cannot apply metadata archive, '{ipath}' does not exist.")
     operations = Operations()
     operations.add_meta_upload(ipath, meta_fp)
     if not dry_run:
@@ -464,13 +501,29 @@ def _param_checks(source, target):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
 
-def _transfer_needed(ipath, lpath, overwrite, ignore_err):
+def _transfer_needed(source: Union[IrodsPath, Path],
+                     dest: Union[IrodsPath, Path],
+                     overwrite: bool, ignore_err: bool):
+    if isinstance(source, IrodsPath):
+        # Ensure that if the source is remote, the dest should be local.
+        if not isinstance(dest, Path):
+            raise ValueError("Internal error: source and destination should be local/remote.")
+        ipath = source
+        lpath = dest
+    else:
+        if not isinstance(dest, IrodsPath):
+            raise ValueError("Internal error: source and destination should be local/remote.")
+        ipath = dest
+        lpath = source
+
     if not overwrite:
         if not ignore_err:
-            raise FileExistsError(
-                f"Cannot overwrite {ipath} <-> {lpath} unless overwrite==True. "
-                f"To ignore this error and skip the files use ignore_err==True.")
-        warnings.warn(f"Skipping file/data object {ipath} <-> {lpath} since "
+            err_msg = (f"Cannot overwrite {source} -> {dest} unless overwrite==True. "
+                       f"To ignore this error and skip the files use ignore_err==True.")
+            if isinstance(dest, IrodsPath):
+                raise DataObjectExistsError(err_msg)
+            raise FileExistsError(err_msg)
+        warnings.warn(f"Skipping file/data object {source} -> {dest} since "
                       f"both exist and overwrite == False.")
         return False
     if checksums_equal(ipath, lpath):
@@ -527,7 +580,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
-                if _transfer_needed(ipath, lpath, overwrite, ignore_err):
+                if _transfer_needed(lpath, ipath, overwrite, ignore_err):
                     operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))

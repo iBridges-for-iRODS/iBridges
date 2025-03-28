@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import os
 import socket
 import warnings
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from typing import Optional, Union
 
 import irods.session
@@ -23,7 +25,7 @@ from ibridges import icat_columns as icat
 APP_NAME = "ibridges"
 
 
-class Session:
+class Session:  # pylint: disable=too-many-instance-attributes
     """Session to connect and perform operations on the iRODS server.
 
     When the session is initialized, you are connected succesfully to the iRODS server.
@@ -73,6 +75,7 @@ class Session:
         irods_env: Union[dict, str, Path],
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
+        cwd: Optional[str] = None,
     ):
         """Authenticate and connect to the iRODS server."""
         irods_env_path = None
@@ -101,6 +104,10 @@ class Session:
         if "irods_home" not in self._irods_env:
             self.home = "/" + self.zone + "/home/" + self.username
 
+        self._cwd = self.home
+        if cwd is not None:
+            self.cwd = cwd
+
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
         if not self.has_valid_irods_session():
@@ -113,15 +120,15 @@ class Session:
 
     @property
     def home(self) -> str:
-        """Current working directory for irods.
+        """Home directory for irods.
 
         In the iRODS community this is known as 'irods_home', in file system terms
-        it would be the current working directory.
+        it would be your home directory.
 
         Returns
         -------
         str:
-            The current working directory in the current session.
+            The home directory in the current session.
 
         Examples
         --------
@@ -132,8 +139,34 @@ class Session:
         return self._irods_env["irods_home"]
 
     @home.setter
-    def home(self, value):
-        self._irods_env["irods_home"] = value
+    def home(self, value: str):
+        self._irods_env["irods_home"] = str(value)
+
+    @property
+    def cwd(self) -> str:
+        """Current working directory for irods.
+
+        This is your current working directory to which other IrodsPaths
+        are relative to. By default this is the same as your working directory.
+        In IrodsPaths, a path relative to the current working directory can be denoted by the '.'.
+
+        Returns
+        -------
+        str:
+            The current working directory in the current session.
+
+        Examples
+        --------
+        >>> session.cwd
+        /zone/home/user
+
+        """
+        return self._cwd
+
+    @cwd.setter
+    def cwd(self, value: str):
+        self._cwd = str(value)
+
 
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
@@ -251,12 +284,28 @@ class Session:
         Internal use only.
         """
         try:
-            irods_session = irods.session.iRODSSession(
-                irods_env_file=self._irods_env_path,
-                application_name=APP_NAME,
-                connection_timeout=self.connection_timeout,
-            )
-            _ = irods_session.server_version
+            if self._irods_env_path is not None:
+                irods_session = irods.session.iRODSSession(
+                    irods_env_file=self._irods_env_path,
+                    application_name=APP_NAME,
+                    connection_timeout=self.connection_timeout,
+                )
+            else:
+                # Create a temporary file for the irods environment dictionary.
+                # From Python 3.12 we could use the delete_on_close parameter.
+                with NamedTemporaryFile(delete=False, mode="w") as handle:
+                    temp_ienv_path = handle.name
+                    try:
+                        handle.write(json.dumps(self._irods_env))
+                        handle.close()
+                        irods_session = irods.session.iRODSSession(
+                            irods_env_file=temp_ienv_path,
+                            application_name=APP_NAME,
+                            connection_timeout=self.connection_timeout,
+                        )
+                    finally:
+                        os.unlink(temp_ienv_path)
+            _ = irods_session.server_version  # pylint: disable=possibly-used-before-assignment
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:

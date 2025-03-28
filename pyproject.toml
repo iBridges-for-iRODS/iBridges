@@ -21,14 +21,15 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.13",
+    "Development Status :: 5 - Production/Stable",
     "License :: OSI Approved :: MIT License",
 ]
 
 dependencies = [
     "python-irodsclient>=2.0.0",
     "tqdm",
-    "importlib-metadata;python_version<'3.10'",
+    "importlib-metadata>=4.6;python_version<'3.10'",
 ]
 
 dynamic = ["version"]
@@ -81,10 +82,11 @@ good-names=["e", "f", "m"]
 [tool.pylint.'FORMAT']
 max-line-length=100
 max-locals=35
-max-args=10
+max-args=11
+max-positional-arguments=11
 
-[tool.pylint.'MESSAGES CONTROL']
-disable="too-many-positional-arguments"
+# [tool.pylint.'MESSAGES CONTROL']
+# disable="too-many-positional-arguments"
 
 [tool.ruff]
 exclude = ["_version.py"]

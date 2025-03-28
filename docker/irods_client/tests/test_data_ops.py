@@ -2,9 +2,11 @@ import hashlib
 import json
 from pathlib import Path
 
+import irods.keywords as kw
 import pytest
 
 from ibridges.data_operations import apply_meta_archive, create_meta_archive, download, sync, upload
+from ibridges.exception import DataObjectExistsError, NotACollectionError, NotADataObjectError
 from ibridges.path import IrodsPath
 from ibridges.util import is_collection, is_dataobject
 
@@ -39,11 +41,11 @@ def test_upload_download_dataset(session, testdata):
     data_obj = ipath.dataobject
     assert is_dataobject(data_obj)
     assert not is_collection(data_obj)
-    with pytest.raises(ValueError):
+    with pytest.raises(NotACollectionError):
         _ = ipath.collection
 
     # Check the overwrite and ignore_err parameters
-    with pytest.raises(FileExistsError):
+    with pytest.raises(DataObjectExistsError):
         upload(session, testdata/"plant.rtf", IrodsPath(session))
     ops = upload(session, testdata/"plant.rtf", IrodsPath(session), overwrite=True)
     assert len(ops.upload) == 0
@@ -83,11 +85,11 @@ def test_upload_download_collection(session, testdata, tmpdir):
     collection = ipath.collection
     assert is_collection(collection)
     assert not is_dataobject(collection)
-    with pytest.raises(ValueError):
+    with pytest.raises(NotADataObjectError):
         ipath.dataobject
 
     # Check overwrite and ignore_err parameters
-    with pytest.raises(FileExistsError):
+    with pytest.raises(DataObjectExistsError):
         upload(session, testdata, ipath)
     ops = upload(session, testdata, ipath, ignore_err=True)
     _check_count(ops, [0, 0, 0, 0])
@@ -177,3 +179,10 @@ def test_meta_archive(session, testdata, tmpdir):
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
+
+def test_ignored_keyword(session, tmpdir, dataobject):
+    with pytest.warns(UserWarning):
+        download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
+    with pytest.warns(UserWarning):
+        upload(session, str(tmpdir/"bunny.rtf"), "~/tmp.rtf", options={kw.NUM_THREADS_KW: 3})
+    IrodsPath(session, "~/tmp.rtf").remove()

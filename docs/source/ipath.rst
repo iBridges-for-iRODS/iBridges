@@ -20,14 +20,14 @@ all functionality connected to the :class:`IrodsPath`, see the :doc:`API documen
 IrodsPath
 ---------
 
-In iRODS the `/` is used as separator and all paths on an iRODS server start with `/<zone_name>`.
+In iRODS the :code:`/` is used as separator and all paths on an iRODS server start with `/<zone_name>`.
 Users usually have a personal `home` collection in iRODS: `/<zone_name>/home/<user name>`.
 Group-based iRODS instances such as Yoda will give you access to a group `home` collection: `/<zone_name>/home/<group name>`
 
 iBridges implements a selection of functions which are comparable to their counterparts in :code:`pathlib`.
 
 Apart from absolute paths, :class:`IrodsPath` supports relative paths. Relative paths are always
-defined with respect to the session :ref:`home <session home>`. The session home is marked by the ~:
+defined with respect to the session :ref:`home <session home>`. The session home is marked by the :code:`~``:
 
 .. code-block:: python
 
@@ -35,6 +35,18 @@ defined with respect to the session :ref:`home <session home>`. The session home
     home = IrodsPath(session, '~')
     print(home)
 
+Another form or relative path is defined with respect to the session :ref:`working collection <session_cwd>`.
+This is denoted by the :code:`.` symbol or the absence of the :code:`/` or :code:`.`:
+
+.. code-block:: python
+
+    IrodsPath(session)  # Current working directory
+    IrodsPath(session, ".") # Same
+    IrodsPath(session, session.cwd) # Same
+
+    IrodsPath(session, "sub")  # session.cwd / sub
+    IrodsPath(session, ".", "sub")  # Same
+    IrodsPath(session "./sub")  # Same
 
 Below we present a selection of possible iRODS path manipulations, some of which are similar to those in pathlib:
 
