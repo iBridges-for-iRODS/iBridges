@@ -140,8 +140,8 @@ class Session:
         return self._irods_env["irods_home"]
 
     @home.setter
-    def home(self, value):
-        self._irods_env["irods_home"] = value
+    def home(self, value: str):
+        self._irods_env["irods_home"] = str(value)
 
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
