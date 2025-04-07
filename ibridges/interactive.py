@@ -76,7 +76,7 @@ def interactive_auth(
             return session
         except PasswordError as e:
             print(repr(e))
-            print("INFO: The provided password and/or username is wrong.")
+            print("INFO: The provided username and/or password is wrong.")
             n_tries += 1
     raise LoginError("Connection to iRODS could not be established.")
 
@@ -98,5 +98,5 @@ def _from_password(irods_env_path, password, **kwargs):
         session.write_pam_password()
         return session
     except PasswordError:
-        print("INFO: The provided password and/or username is wrong.")
+        print("INFO: The provided username and/or password is wrong.")
     return None
