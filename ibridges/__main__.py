@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import cmd
 import json
 import sys
 from argparse import RawTextHelpFormatter
@@ -11,14 +10,14 @@ from pathlib import Path
 from typing import Literal, Union
 
 from ibridges.cli.config import IbridgesConf
+from ibridges.cli.shell import IBridgesShell
 from ibridges.data_operations import download, sync, upload
-from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
+from ibridges.interactive import DEFAULT_IENV_PATH
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.util import (
     find_environment_provider,
-    get_collection,
     get_environment_providers,
     print_environment_providers,
 )
@@ -171,54 +170,6 @@ def ibridges_cd():
         ibridges_conf.save()
 
 
-class IBridgesShell(cmd.Cmd):
-    prompt = "ibridges> "
-
-    def __init__(self):
-        self.session = _cli_auth(None)
-        super().__init__()
-
-    def do_list(self, arg):
-        _list_coll(self.session, remote_path=IrodsPath(self.session, arg))
-
-    def complete_list(self, text, line, begidx, endidx):
-        session = self.session
-
-        cmd, *args = line.split()
-        if len(args) == 0:
-            path_list = []
-            for ipath in IrodsPath(session).walk(depth=1):
-                path_list.append(ipath.name)
-            return path_list
-
-        if len(args) > 1:
-            return []
-
-        base_path = IrodsPath(session, args[0])
-        if base_path.collection_exists():
-            if line.endswith("/"):
-                prefix = text
-            else:
-                prefix = f"{text}/"
-            return [f"{prefix}{ipath.name}" for ipath in base_path.walk(depth=1)]
-        elif base_path.dataobject_exists():
-            return []
-
-        last_part = base_path.parts[-1]
-        base_path = IrodsPath(session, *base_path.parts[:-1])
-        completions = []
-        for ipath in base_path.walk(depth=1):
-            if ipath.name.startswith(last_part):
-                completions.append(text + ipath.name[len(last_part):])
-        return completions
-
-    def do_EOF(self, arg):
-        self.close()
-        return True
-
-    def close(self):
-        self.session.close()
-
 
 def ibridges_pwd():
     """Print current working directory."""
@@ -287,23 +238,6 @@ def ibridges_alias():
     ibridges_conf.set_alias(args.alias, ienv_path)
 
 
-def _cli_auth(parser):
-    ibridges_conf = IbridgesConf(parser)
-    ienv_path, ienv_entry = ibridges_conf.get_entry()
-    ienv_cwd = ienv_entry.get("cwd", None)
-
-    if not Path(ienv_path).exists():
-        print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
-        sys.exit(124)
-    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
-
-    with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
-        irodsa_content = handle.read()
-    if irodsa_content != ienv_entry.get("irodsa_backup"):
-        ienv_entry["irodsa_backup"] = irodsa_content
-        ibridges_conf.save()
-
-    return session
 
 def ibridges_init():
     """Create a cached password for future use."""
@@ -388,31 +322,6 @@ def ibridges_setup():
     else:
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(json_str)
-
-
-def _list_coll(session: Session, remote_path: IrodsPath, metadata: bool = False):
-    if remote_path.collection_exists():
-        print(str(remote_path) + ":")
-        if metadata:
-            print(remote_path.meta)
-            print()
-        coll = get_collection(session, remote_path)
-        for data_obj in coll.data_objects:
-            print("  " + data_obj.path)
-            if metadata and len((remote_path / data_obj.name).meta) > 0:
-                print((remote_path / data_obj.name).meta)
-                print()
-        for sub_coll in coll.subcollections:
-            if str(remote_path) == sub_coll.path:
-                continue
-            print("  C- " + sub_coll.path)
-            if metadata and len((remote_path / sub_coll.name).meta) > 0:
-                print((remote_path / sub_coll.name).meta)
-                print()
-    elif remote_path.dataobject_exists():
-        print(remote_path)
-    else:
-        raise ValueError(f"Irods path '{remote_path}' is not a collection.")
 
 
 def ibridges_list():

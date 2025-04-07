@@ -1,0 +1,50 @@
+from pathlib import Path
+
+from ibridges.cli.config import IbridgesConf
+from ibridges.exception import NotACollectionError
+from ibridges.interactive import DEFAULT_IRODSA_PATH, interactive_auth
+from ibridges.path import IrodsPath
+from ibridges.session import Session
+from ibridges.util import get_collection
+
+
+def cli_authenticate(parser):
+    ibridges_conf = IbridgesConf(parser)
+    ienv_path, ienv_entry = ibridges_conf.get_entry()
+    ienv_cwd = ienv_entry.get("cwd", None)
+
+    if not Path(ienv_path).exists():
+        parser.error(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
+    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
+
+    with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
+        irodsa_content = handle.read()
+    if irodsa_content != ienv_entry.get("irodsa_backup"):
+        ienv_entry["irodsa_backup"] = irodsa_content
+        ibridges_conf.save()
+
+    return session
+
+def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = False):
+    if remote_path.collection_exists():
+        print(str(remote_path) + ":")
+        if metadata:
+            print(remote_path.meta)
+            print()
+        coll = get_collection(session, remote_path)
+        for data_obj in coll.data_objects:
+            print("  " + data_obj.path)
+            if metadata and len((remote_path / data_obj.name).meta) > 0:
+                print((remote_path / data_obj.name).meta)
+                print()
+        for sub_coll in coll.subcollections:
+            if str(remote_path) == sub_coll.path:
+                continue
+            print("  C- " + sub_coll.path)
+            if metadata and len((remote_path / sub_coll.name).meta) > 0:
+                print((remote_path / sub_coll.name).meta)
+                print()
+    elif remote_path.dataobject_exists():
+        print(remote_path)
+    else:
+        raise NotACollectionError(f"Irods path '{remote_path}' is not a collection.")
