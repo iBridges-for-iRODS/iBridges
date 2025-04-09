@@ -11,6 +11,8 @@ from typing import Literal, Union
 
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.shell import IBridgesShell
+from ibridges.cli.util import cli_authenticate as _cli_auth
+from ibridges.cli.util import list_collection
 from ibridges.data_operations import download, sync, upload
 from ibridges.interactive import DEFAULT_IENV_PATH
 from ibridges.path import IrodsPath
@@ -333,7 +335,7 @@ def ibridges_list():
         "remote_path",
         help="Path to remote iRODS location starting with 'irods:'",
         type=str,
-        default=None,
+        default=".",
         nargs="?",
     )
     parser.add_argument(
@@ -366,7 +368,7 @@ def ibridges_list():
         elif args.short:
             print(" ".join([x.name for x in ipath.walk(depth=1) if str(x) != str(ipath)]))
         else:
-            _list_coll(session, ipath, args.metadata)
+            list_collection(session, ipath, args.metadata)
 
 
 def ibridges_meta_list():
