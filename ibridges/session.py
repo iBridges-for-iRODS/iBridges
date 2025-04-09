@@ -410,9 +410,9 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, TypeError):
         return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
-        return PasswordError("User credentials are not accepted")
+        return PasswordError("The provided username and/or password is wrong.")
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
-        return PasswordError("Wrong password")
+        return PasswordError("The provided username and/or password is wrong.")
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
         return PasswordError("Cached password is expired")
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
