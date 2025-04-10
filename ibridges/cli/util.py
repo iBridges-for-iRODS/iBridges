@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Union
 
 from ibridges.cli.config import IbridgesConf
 from ibridges.exception import NotACollectionError
@@ -48,3 +49,15 @@ def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = F
         print(remote_path)
     else:
         raise NotACollectionError(f"Irods path '{remote_path}' is not a collection.")
+
+def parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
+    if remote_path is None:
+        return IrodsPath(session, session.cwd)
+    if not remote_path.startswith("irods:") or IrodsPath(session, remote_path).collection_exists():
+        return IrodsPath(session, remote_path)
+    if remote_path.startswith("irods://"):
+        remainder = remote_path[8:]
+        if remainder.startswith("~"):
+            return IrodsPath(session, remainder)
+        return IrodsPath(session, remote_path[7:])
+    return IrodsPath(session, remote_path[6:])

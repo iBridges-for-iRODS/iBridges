@@ -1,17 +1,18 @@
 import cmd
 import os
+import readline
 import subprocess
 from pathlib import Path
-import readline
 
-from ibridges.cli.util import cli_authenticate, list_collection
-from ibridges.exception import NotACollectionError
+from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliUpload
+from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
+from ibridges.cli.navigation import CliSearch, IbridgesList, IbridgesPwd, IbridgesTree
+from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
-from ibridges.cli.navigation import IbridgesList, IbridgesPwd, IbridgesTree
-from ibridges.cli.meta import CliMetaList, CliMetaAdd
 
 ALL_BUILTIN_COMMANDS=[IbridgesList, IbridgesPwd, IbridgesTree, CliMetaList,
-                      CliMetaAdd]
+                      CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
+                      CliUpload, CliSearch]
 
 
 class IBridgesShell(cmd.Cmd):
@@ -60,10 +61,11 @@ class IBridgesShell(cmd.Cmd):
             return complete_lpath(text, line, directories_only=False)
         if command_class.autocomplete[len(arg_list)-1] == "local_dir":
             return complete_lpath(text, line, directories_only=True)
+        return []
 
     def _universal_do(self, arg, command_class):
         parser = command_class.get_parser()
-        args, extra_args = parser.parse_known_args(_prepare_args(arg))
+        args = parser.parse_args(_prepare_args(arg))
         if not getattr(parser, "printed_help", False):
             command_class.run_command(self.session, parser, args)
 
@@ -132,21 +134,33 @@ class IBridgesShell(cmd.Cmd):
 def main():
     IBridgesShell().cmdloop()
 
+def _escape(line):
+    if isinstance(line, str):
+        return line.replace(" ", "\\ ")
+    return [_escape(l) for l in line]
 
+def _unescape(line):
+    if isinstance(line, str):
+        return line.replace("\\ ", " ")
+    return [_unescape(l) for l in line]
 
-def _prepare_args(args, add_last_space=False):
+def _prepare_args(args, add_last_space=False, unescape=True):
     split_args = args.split()
     new_args = []
     cur_arg = ""
     for i_args, str_arg in enumerate(split_args):
-        cur_arg += str_arg
-        if not str_arg.endswith("\\ "):
-            new_args.append(cur_arg.replace("\\ ", " "))
+        if not str_arg.endswith("\\"):
+            cur_arg += str_arg
+            new_args.append(cur_arg)
             cur_arg = ""
+        else:
+            cur_arg += str_arg[:-1] + " "
     if cur_arg != "":
-        new_args.append(cur_arg.replace("\\ ", " "))
+        new_args.append(cur_arg)
     if add_last_space and args.endswith(" ") and not args.endswith("\\ "):
         new_args.append("")
+    if unescape:
+        return _unescape(new_args)
     return new_args
 
 def _filter(ipaths, collections_only, base_path):
@@ -158,11 +172,11 @@ def _filter(ipaths, collections_only, base_path):
 
 def complete_ipath(session, text, line, collections_only=False):
     # print(line)
-    args = _prepare_args(line)[1:]
+    args = _prepare_args(line, unescape=False)[1:]
     # print(args)
     if len(args) == 0 or args[-1] == "":
         ipath_list = list(IrodsPath(session).walk(depth=1))
-        return _filter(ipath_list, collections_only, IrodsPath(session))
+        return _escape(_filter(ipath_list, collections_only, IrodsPath(session)))
 
     base_path = IrodsPath(session, args[-1])
     if base_path.collection_exists():
@@ -171,7 +185,7 @@ def complete_ipath(session, text, line, collections_only=False):
         else:
             prefix = f"{text}/"
         path_list = _filter(base_path.walk(depth=1), collections_only, base_path)
-        return [f"{prefix}{ipath}" for ipath in path_list]
+        return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
     elif base_path.dataobject_exists():
         return []
 
@@ -183,7 +197,7 @@ def complete_ipath(session, text, line, collections_only=False):
             continue
         if ipath.name.startswith(last_part) and not (
                 collections_only and not ipath.collection_exists()):
-            completions.append(text + ipath.name[len(last_part):])
+            completions.append(text + _escape(ipath.name[len(last_part):]))
     return completions
 
 def _find_paths(base_path, directories_only):
@@ -196,9 +210,9 @@ def _find_paths(base_path, directories_only):
 
 
 def complete_lpath(text, line, directories_only=False):
-    args = _prepare_args(line)[1:]
+    args = _prepare_args(line, unescape=False)[1:]
     if len(args) == 0:
-        return _find_paths(Path.cwd(), directories_only)
+        return _escape(_find_paths(Path.cwd(), directories_only))
 
     base_path = Path(args[-1])
     if base_path.is_dir():
@@ -207,7 +221,7 @@ def complete_lpath(text, line, directories_only=False):
         else:
             prefix = f"{text}/"
         path_list = _find_paths(base_path, directories_only)
-        return [f"{prefix}{ipath}" for ipath in path_list]
+        return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
     elif base_path.is_file():
         return []
 
@@ -219,5 +233,5 @@ def complete_lpath(text, line, directories_only=False):
         lpath = parent_path / lpath_str
         if lpath_str.startswith(last_part) and not (
                 directories_only and not lpath.is_dir()):
-            completions.append(text + lpath_str[len(last_part):])
+            completions.append(text + _escape(lpath_str[len(last_part):]))
     return completions
