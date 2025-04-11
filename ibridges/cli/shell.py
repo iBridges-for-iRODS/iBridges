@@ -4,7 +4,7 @@ import readline
 import subprocess
 from pathlib import Path
 
-from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliUpload, CliRm
+from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
 from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
 from ibridges.cli.util import cli_authenticate

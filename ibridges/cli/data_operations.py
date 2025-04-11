@@ -31,7 +31,7 @@ class CliMakeCollection(BaseCliCommand):
 
 class CliRm(BaseCliCommand):
     autocomplete = ["remote_path"]
-    names = ["rm", "del"]
+    names = ["rm", "remove", "del"]
     description = "Remove collection or data object."
 
     @classmethod
