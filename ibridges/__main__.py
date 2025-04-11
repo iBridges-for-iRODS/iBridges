@@ -10,14 +10,16 @@ from pathlib import Path
 from typing import Literal, Union
 
 from ibridges.cli.config import IbridgesConf
+from ibridges.cli.shell import IBridgesShell
+from ibridges.cli.util import cli_authenticate as _cli_auth
+from ibridges.cli.util import list_collection
 from ibridges.data_operations import download, sync, upload
-from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, interactive_auth
+from ibridges.interactive import DEFAULT_IENV_PATH
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.util import (
     find_environment_provider,
-    get_collection,
     get_environment_providers,
     print_environment_providers,
 )
@@ -108,6 +110,8 @@ def main() -> None:  #pylint: disable=too-many-branches
         print(f"iBridges version {version('ibridges')}")
 
     # find the subcommand in this module and run it!
+    elif subcommand == "shell":
+        IBridgesShell().cmdloop()
     elif subcommand == "download":
         ibridges_download()
     elif subcommand == "upload":
@@ -166,6 +170,7 @@ def ibridges_cd():
         entry = ibridges_conf.get_entry()
         entry[1]["cwd"] = str(new_ipath)
         ibridges_conf.save()
+
 
 
 def ibridges_pwd():
@@ -235,23 +240,6 @@ def ibridges_alias():
     ibridges_conf.set_alias(args.alias, ienv_path)
 
 
-def _cli_auth(parser):
-    ibridges_conf = IbridgesConf(parser)
-    ienv_path, ienv_entry = ibridges_conf.get_entry()
-    ienv_cwd = ienv_entry.get("cwd", None)
-
-    if not Path(ienv_path).exists():
-        print(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
-        sys.exit(124)
-    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
-
-    with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
-        irodsa_content = handle.read()
-    if irodsa_content != ienv_entry.get("irodsa_backup"):
-        ienv_entry["irodsa_backup"] = irodsa_content
-        ibridges_conf.save()
-
-    return session
 
 def ibridges_init():
     """Create a cached password for future use."""
@@ -338,29 +326,6 @@ def ibridges_setup():
             handle.write(json_str)
 
 
-def _list_coll(session: Session, remote_path: IrodsPath, metadata: bool = False):
-    if remote_path.collection_exists():
-        print(str(remote_path) + ":")
-        if metadata:
-            print(remote_path.meta)
-            print()
-        coll = get_collection(session, remote_path)
-        for data_obj in coll.data_objects:
-            print("  " + data_obj.path)
-            if metadata and len((remote_path / data_obj.name).meta) > 0:
-                print((remote_path / data_obj.name).meta)
-                print()
-        for sub_coll in coll.subcollections:
-            if str(remote_path) == sub_coll.path:
-                continue
-            print("  C- " + sub_coll.path)
-            if metadata and len((remote_path / sub_coll.name).meta) > 0:
-                print((remote_path / sub_coll.name).meta)
-                print()
-    else:
-        raise ValueError(f"Irods path '{remote_path}' is not a collection.")
-
-
 def ibridges_list():
     """List a collection on iRODS."""
     parser = argparse.ArgumentParser(
@@ -370,7 +335,7 @@ def ibridges_list():
         "remote_path",
         help="Path to remote iRODS location starting with 'irods:'",
         type=str,
-        default=None,
+        default=".",
         nargs="?",
     )
     parser.add_argument(
@@ -403,7 +368,7 @@ def ibridges_list():
         elif args.short:
             print(" ".join([x.name for x in ipath.walk(depth=1) if str(x) != str(ipath)]))
         else:
-            _list_coll(session, ipath, args.metadata)
+            list_collection(session, ipath, args.metadata)
 
 
 def ibridges_meta_list():
