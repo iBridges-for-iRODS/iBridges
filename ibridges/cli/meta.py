@@ -1,18 +1,16 @@
-from ibridges.cli.base import ShellArgumentParser
+from ibridges.cli.base import BaseCliCommand, ShellArgumentParser
 from ibridges.cli.util import parse_remote
-from ibridges.path import IrodsPath
 from ibridges.exception import DoesNotExistError
+from ibridges.path import IrodsPath
 
 
-class CliMetaList():
+class CliMetaList(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-list"]
+    description = "List a collection on iRODS."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges meta-list", description="List a collection on iRODS."
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
             help="Path to remote iRODS location starting with 'irods:'",
@@ -23,7 +21,7 @@ class CliMetaList():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = IrodsPath(session, args.remote_path)
         if not ipath.exists():
             parser.error(f"Path {ipath} does not exist, can't list metadata.")
@@ -32,15 +30,13 @@ class CliMetaList():
         print(ipath.meta)
 
 
-class CliMetaAdd():
+class CliMetaAdd(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-add"]
+    description = "Add a metadata item to a collection or data object."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges meta-add", description="Add metadata entry."
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
             help="Path to add a new metadata item to.",
@@ -66,7 +62,7 @@ class CliMetaAdd():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = IrodsPath(session, args.remote_path)
         try:
             ipath.meta.add(args.key, args.value, args.units)
@@ -74,15 +70,13 @@ class CliMetaAdd():
             parser.error(f"Cannot add metadata: {ipath} does not exist.")
 
 
-class CliMetaDel():
+class CliMetaDel(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-del"]
+    description = "Delete metadata for one collection or data object."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges meta-del", description="Delete metadata entries.",
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
             help="Path to delete metadata entries from.",
@@ -113,7 +107,7 @@ class CliMetaDel():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = parse_remote(args.remote_path, session)
         try:
             meta = ipath.meta

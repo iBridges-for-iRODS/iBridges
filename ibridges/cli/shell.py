@@ -4,19 +4,18 @@ import readline
 import subprocess
 from pathlib import Path
 
-from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliUpload
+from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliUpload, CliRm
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
-from ibridges.cli.navigation import CliSearch, IbridgesList, IbridgesPwd, IbridgesTree
+from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
 from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
-ALL_BUILTIN_COMMANDS=[IbridgesList, IbridgesPwd, IbridgesTree, CliMetaList,
+ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
                       CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
-                      CliUpload, CliSearch]
+                      CliUpload, CliSearch, CliCd, CliRm]
 
 
 class IBridgesShell(cmd.Cmd):
-    # prompt = "ibridges> "
     identchars = cmd.Cmd.identchars + "-"
 
     def __init__(self):
@@ -39,15 +38,15 @@ class IBridgesShell(cmd.Cmd):
         else:
             subprocess.run(arg, shell=True)
 
-    def do_cd(self, arg):
-        new_path = IrodsPath(self.session, arg)
-        if new_path.collection_exists():
-            self.session.cwd = new_path
-        else:
-            print(f"Error: {new_path} is not a collection.")
+    # def do_cd(self, arg):
+    #     new_path = IrodsPath(self.session, arg)
+    #     if new_path.collection_exists():
+    #         self.session.cwd = new_path
+    #     else:
+    #         print(f"Error: {new_path} is not a collection.")
 
-    def complete_cd(self, text, line, begidx, endidx):
-        return complete_ipath(self.session, text, line, collections_only=True)
+    # def complete_cd(self, text, line, begidx, endidx):
+    #     return complete_ipath(self.session, text, line, collections_only=True)
 
     def _universal_complete(self, text, line, begidx, endidx, command_class):
         arg_list = _prepare_args(line, add_last_space=True)[1:]
@@ -67,7 +66,7 @@ class IBridgesShell(cmd.Cmd):
         parser = command_class.get_parser()
         args = parser.parse_args(_prepare_args(arg))
         if not getattr(parser, "printed_help", False):
-            command_class.run_command(self.session, parser, args)
+            command_class.run_shell(self.session, parser, args)
 
     def _universal_help(self, command_class):
         command_class.get_parser().print_help()

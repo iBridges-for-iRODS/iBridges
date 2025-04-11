@@ -1,23 +1,20 @@
 import argparse
 from pathlib import Path
-from typing import Union
+from typing import Literal, Union
 
-from ibridges.cli.base import ShellArgumentParser
+from ibridges.cli.base import ShellArgumentParser, BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.data_operations import download, sync, upload
 from ibridges.path import IrodsPath
 
 
-class CliMakeCollection():
+class CliMakeCollection(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["mkcoll"]
+    description = "Create a new collecion with all its parent collections."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges mkcoll",
-            description="Create a new collecion with all its parent collections.",
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_coll",
             help="Path to a new collection, should start with 'irods:'.",
@@ -26,11 +23,41 @@ class CliMakeCollection():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = parse_remote(args.remote_coll, session)
         if ipath.exists():
             parser.error(f"Cannot create collection {ipath}: already exists.")
         ipath.create_collection(session, ipath)
+
+class CliRm(BaseCliCommand):
+    autocomplete = ["remote_path"]
+    names = ["rm", "del"]
+    description = "Remove collection or data object."
+
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument(
+            "remote_path",
+            help="Collection or data object to remove.",
+            type=str,
+        )
+        parser.add_argument(
+            "-r", "--recursive",
+            help="Remove collections and their content recursively.",
+            action="store_true"
+        )
+        return parser
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        ipath = parse_remote(args.remote_path, session)
+        if ipath.dataobject_exists():
+            ipath.remove()
+        elif ipath.collection_exists():
+            if args.recursive:
+                ipath.remove()
+            else:
+                parser.error("Cannot remove {ipath}: is a collection. Use -r to remove collections.")
 
 def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
                        mode: str) -> Union[None, str, Path]:
@@ -50,16 +77,13 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
         return None
     return metadata
 
-class CliDownload():
+class CliDownload(BaseCliCommand):
     autocomplete = ["remote_path", "local_dir"]
     names = ["download"]
+    description="Download a data object or collection from an iRODS server."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges download",
-            description="Download a data object or collection from an iRODS server.",
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
             help="Path to remote iRODS location starting with 'irods:'",
@@ -99,7 +123,7 @@ class CliDownload():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         print(args.local_path)
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
@@ -117,16 +141,13 @@ class CliDownload():
             ops.print_summary()
 
 
-class CliUpload():
+class CliUpload(BaseCliCommand):
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
+    description = "Upload a data object or collection from an iRODS server."
 
-    @staticmethod
-    def get_parser():
-        parser = argparse.ArgumentParser(
-            prog="ibridges upload",
-            description="Upload a data object or collection from an iRODS server.",
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "local_path",
             help="Local path to upload the data object/collection from.",
@@ -166,7 +187,7 @@ class CliUpload():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
@@ -189,15 +210,13 @@ def _parse_str(remote_or_local: str, session) -> Union[Path, IrodsPath]:
     return Path(remote_or_local)
 
 
-class CliSync():
+class CliSync(BaseCliCommand):
     autocomplete = ["any_path", "any_path"]
     names = ["sync"]
+    description = "Synchronize files/directories between local and remote."
 
-    @staticmethod
-    def get_parser():
-        parser = argparse.ArgumentParser(
-            prog="ibridges sync", description="Synchronize files/directories between local and remote."
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
         parser.add_argument(
             "source",
             help="Source path to synchronize from (collection on irods server or local directory).",
@@ -223,7 +242,7 @@ class CliSync():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):

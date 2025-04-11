@@ -57,7 +57,7 @@ docs = [
 ]
 
 [project.scripts]
-ibridges = "ibridges.__main__:main"
+ibridges = "ibridges.cli.__main__:main"
 
 [tool.setuptools]
 packages = ["ibridges"]

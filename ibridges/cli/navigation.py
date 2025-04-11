@@ -1,22 +1,25 @@
+import argparse
 from argparse import RawTextHelpFormatter
 
-from ibridges.cli.base import ShellArgumentParser
-from ibridges.cli.util import list_collection, parse_remote
+from ibridges.cli.base import BaseCliCommand, ShellArgumentParser
+from ibridges.cli.config import IbridgesConf
+from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
 from ibridges.exception import NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
 
 
-class IbridgesList():
+class CliList(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["ls", "list", "l"]
+    description = "List a collection on iRODS."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges list", description="List a collection on iRODS.",
-            exit_on_error=False,
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
+        # parser = parser_func(
+        #     "list", description="List a collection on iRODS.",
+        #     exit_on_error=False,
+        # )
         parser.add_argument(
             "remote_coll",
             help="Path to remote iRODS location starting with 'irods:'",
@@ -42,9 +45,9 @@ class IbridgesList():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
-        # ipath =  _parse_remote(args.remote_path, session)
-        ipath = IrodsPath(session, args.remote_coll)
+    def run_shell(session, parser, args):
+        ipath =  parse_remote(args.remote_coll, session)
+        # ipath = IrodsPath(session, args.remote_coll)
         try:
             if args.long:
                 for cur_path in ipath.walk(depth=1):
@@ -61,17 +64,50 @@ class IbridgesList():
         except NotACollectionError:
             parser.error(f"{ipath} is not a collection")
 
-class IbridgesPwd():
+class CliCd(BaseCliCommand):
+    autocomplete = ["remote_coll"]
+    names = ["cd"]
+    description = "Change current working collection for the iRODS server."
+
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument(
+            "remote_coll",
+            help="Path to remote iRODS location.",
+            type=str,
+            default="~",
+            nargs="?",
+        )
+        return parser
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        new_path = parse_remote(args.remote_coll, session)
+        if new_path.collection_exists():
+            session.cwd = new_path
+        else:
+            parser.error(f"{new_path} is not a collection.")
+
+    @classmethod
+    def run_command(cls, args):
+        parser = cls.get_parser(argparse.ArgumentParser)
+        with cli_authenticate(parser) as session:
+            new_ipath = parse_remote(args.remote_coll, session)
+            if not new_ipath.collection_exists():
+                parser.error(f"Collection {new_ipath} does not exist.")
+            ibridges_conf = IbridgesConf(parser)
+            entry = ibridges_conf.get_entry()
+            entry[1]["cwd"] = str(new_ipath)
+            ibridges_conf.save()
+
+
+class CliPwd(BaseCliCommand):
     autocomplete = []
     names = ["pwd"]
+    description = "Show current working collection."
 
     @staticmethod
-    def get_parser():
-        return ShellArgumentParser(prog="ibridges pwd",
-                                  description="Show current working collection.")
-
-    @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         print(session.cwd)
 
 
@@ -150,15 +186,16 @@ def _tree(
 
 
 
-class IbridgesTree():
+class CliTree(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["tree"]
+    description = "Show collection/directory tree."
 
-    @staticmethod
-    def get_parser():
-        parser = ShellArgumentParser(
-            prog="ibridges tree", description="Show collection/directory tree."
-        )
+    @classmethod
+    def _mod_parser(cls, parser):
+        # parser = parser_func(
+        #     "tree", 
+        # )
         parser.add_argument(
             "remote_coll",
             help="Path to collection to make a tree of.",
@@ -186,7 +223,7 @@ class IbridgesTree():
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = IrodsPath(session, args.remote_coll)
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
@@ -206,27 +243,36 @@ class IbridgesTree():
         print(print_str)
 
 
-class CliSearch():
+class CliSearch(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["search"]
+    description = "Search for dataobjects and collections."
+    examples = [
+        'ibridges search --path-pattern "%.txt"'
+        'ibridges search --checksum "sha2:5dfasd%"'
+        'ibridges search --metadata "key" "value" "units"'
+        'ibridges search --metadata "key" --metadata "key2" "value2"'
+        'ibridges search irods:some_collection --item_type data_object'
+        'ibridges search irods:some_collection --item_type collection'
+    ]
 
-    @staticmethod
-    def get_parser():
-        epilog = """Examples:
+    @classmethod
+    def _mod_parser(cls, parser):
+#         epilog = """Examples:
 
-ibridges search --path-pattern "%.txt"
-ibridges search --checksum "sha2:5dfasd%"
-ibridges search --metadata "key" "value" "units"
-ibridges search --metadata "key" --metadata "key2" "value2"
-ibridges search irods:some_collection --item_type data_object
-ibridges search irods:some_collection --item_type collection
-"""
-        parser = ShellArgumentParser(
-            prog="ibridges search",
-            description="Search for dataobjects and collections.",
-            epilog=epilog,
-            formatter_class=RawTextHelpFormatter,
-        )
+# ibridges search --path-pattern "%.txt"
+# ibridges search --checksum "sha2:5dfasd%"
+# ibridges search --metadata "key" "value" "units"
+# ibridges search --metadata "key" --metadata "key2" "value2"
+# ibridges search irods:some_collection --item_type data_object
+# ibridges search irods:some_collection --item_type collection
+# """
+        # parser = parser_func(
+        #     "search",
+        #     description="Search for dataobjects and collections.",
+        #     # epilog=epilog,
+        #     # formatter_class=RawTextHelpFormatter,
+        # )
         parser.add_argument(
             "remote_path",
             help="Remote path to search inn. The path itself will not be matched.",
@@ -264,7 +310,7 @@ ibridges search irods:some_collection --item_type collection
         return parser
 
     @staticmethod
-    def run_command(session, parser, args):
+    def run_shell(session, parser, args):
         ipath = parse_remote(args.remote_path, session)
         search_res = search_data(
             session,
