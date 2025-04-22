@@ -61,8 +61,8 @@ class CliRm(BaseCliCommand):
 
 def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
                        mode: str) -> Union[None, str, Path]:
-    metadata: Union[Literal[False], Path, None
-                    ] = False if not hasattr(args, "metadata") else args.metadata
+    metadata: Union[Literal[False], Path, None]
+    metadata = False if not hasattr(args, "metadata") else args.metadata
     if ipath.dataobject_exists() and metadata is None:
         raise ValueError("Supply metadata path for downloading metadata of data objects.")
     if mode == "download":
@@ -206,7 +206,7 @@ class CliUpload(BaseCliCommand):
 
 def _parse_str(remote_or_local: str, session) -> Union[Path, IrodsPath]:
     if remote_or_local.startswith("irods:"):
-        return parse_remote(remote_or_local)
+        return parse_remote(remote_or_local, session)
     return Path(remote_or_local)
 
 

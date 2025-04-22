@@ -4,7 +4,7 @@ import readline
 import subprocess
 from pathlib import Path
 
-from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliUpload
+from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliUpload, CliSync
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
 from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
 from ibridges.cli.util import cli_authenticate
@@ -12,7 +12,7 @@ from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
                       CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
-                      CliUpload, CliSearch, CliCd, CliRm]
+                      CliUpload, CliSearch, CliCd, CliRm, CliSync]
 
 
 class IBridgesShell(cmd.Cmd):
