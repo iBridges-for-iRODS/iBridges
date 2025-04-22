@@ -83,7 +83,7 @@ good-names=["e", "f", "m"]
 max-line-length=100
 max-locals=35
 max-args=11
-max-positional-arguments=11
+max-positional-arguments=11  # pylint: disable=unrecognized-option
 
 # [tool.pylint.'MESSAGES CONTROL']
 # disable="too-many-positional-arguments"

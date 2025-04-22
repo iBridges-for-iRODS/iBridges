@@ -1,4 +1,7 @@
 """Navigational subcommands for the shell and CLI."""
+
+from __future__ import annotations
+
 import argparse
 
 from ibridges.cli.base import BaseCliCommand
