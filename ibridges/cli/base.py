@@ -1,4 +1,7 @@
 """Base tools for the CLI and shell subcommands."""
+
+from __future__ import annotations
+
 import abc
 import argparse
 from abc import abstractmethod
