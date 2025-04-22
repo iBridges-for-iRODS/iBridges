@@ -327,6 +327,8 @@ class Session:  # pylint: disable=too-many-instance-attributes
             actual_password = self._password
         if actual_password:
             irods_auth_file = self.irods_session.get_irods_password_file()
+            if not Path(irods_auth_file).parent.exists():
+                Path(irods_auth_file).parent.mkdir(parents=True)
             with open(irods_auth_file, "w", encoding="utf-8") as authfd:
                 authfd.write(irods.password_obfuscation.encode(actual_password))
         else:
