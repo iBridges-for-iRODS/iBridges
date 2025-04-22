@@ -1,3 +1,4 @@
+"""Other subcommands that do not fall in a particular category."""
 import argparse
 import sys
 from pathlib import Path
@@ -16,18 +17,24 @@ from ibridges.util import (
 
 
 class CliShell(BaseCliCommand):
+    """Subcommand to start the shell."""
+
     names = ["shell"]
     description = "Shell for ibridges commands with autocomplete"
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Run shell inside the shell is not available."""
         raise NotImplementedError()
 
     @classmethod
     def run_command(cls, args):
+        """Run the shell from the command line."""
         IBridgesShell().cmdloop()
 
 class CliAlias(BaseCliCommand):
+    """Subcommand to manage aliases for CLI."""
+
     names = ["alias"]
     description = "Print existing aliases or create new ones."
     examples = ["some_alias ~/.irods/irods_environment.json",
@@ -57,12 +64,16 @@ class CliAlias(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Run alias command not available in the shell."""
         raise NotImplementedError()
 
     @classmethod
     def run_command(cls, args):
+        """Create and manage aliases in the CLI."""
         parser = cls.get_parser(argparse.ArgumentParser)
         ibridges_conf = IbridgesConf(parser)
+
+        # Show available and selected aliases.
         if args.alias is None:
             for ienv_path, entry in ibridges_conf.servers.items():
                 prefix = " "
@@ -72,6 +83,7 @@ class CliAlias(BaseCliCommand):
                 print(f"{prefix} {cur_alias} -> {ienv_path}")
             return
 
+        # Delete alias
         if args.delete:
             ibridges_conf.delete_alias(args.alias)
             return
@@ -88,6 +100,8 @@ class CliAlias(BaseCliCommand):
 
 
 class CliInit(BaseCliCommand):
+    """Subcommand to initialize ibridges."""
+
     names = ["init"]
     description = "Create a cached password for future use."
     examples = ["", "~/.irods/another_env_path.json", "some_alias"]
@@ -105,10 +119,12 @@ class CliInit(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Run init is not available for shell."""
         raise NotImplementedError()
 
     @classmethod
     def run_command(cls, args):
+        """Initialize ibridges by logging in."""
         parser = cls.get_parser(argparse.ArgumentParser)
         IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
 
@@ -119,6 +135,8 @@ class CliInit(BaseCliCommand):
 
 
 class CliSetup(BaseCliCommand):
+    """Subcommand to create an irods environment file."""
+
     names = ["setup"]
     description = "Use templates to create an iRODS environment json."
     examples = ["some-servername -o ~/.irods/some_server.json"]
@@ -148,10 +166,12 @@ class CliSetup(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Run setup is not implemented for the shell."""
         raise NotImplementedError()
 
     @classmethod
     def run_command(cls, args):
+        """Run the setup to create a new iRODS environment file."""
         parser = cls.get_parser(argparse.ArgumentParser)
         env_providers = get_environment_providers()
         if args.list:
@@ -159,8 +179,8 @@ class CliSetup(BaseCliCommand):
                 print(
                     "No server information was found. To use this function, please install a plugin"
                     " such as:\n\nhttps://github.com/iBridges-for-iRODS/ibridges-servers-uu"
-                    "\n\nAlternatively create an irods_environment.json by yourself or with the help "
-                    "of your iRODS administrator."
+                    "\n\nAlternatively create an irods_environment.json by yourself or with the "
+                    "help of your iRODS administrator."
                 )
             print_environment_providers(env_providers)
             return
@@ -183,7 +203,8 @@ class CliSetup(BaseCliCommand):
             print("\n")
             print(json_str)
         elif args.output.is_dir():
-            parser.error(f"Output {args.output} is a directory, cannot export irods_environment" " file.")
+            parser.error(f"Output {args.output} is a directory, cannot export irods_environment"
+                         " file.")
             sys.exit(234)
         else:
             with open(args.output, "w", encoding="utf-8") as handle:

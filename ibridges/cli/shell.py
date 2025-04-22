@@ -1,3 +1,4 @@
+"""Module with implementation of ibridges shell command."""
 import cmd
 import os
 import readline
@@ -16,9 +17,12 @@ ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
 
 
 class IBridgesShell(cmd.Cmd):
+    """Command class implementation for iBridges."""
+
     identchars = cmd.Cmd.identchars + "-"
 
     def __init__(self):
+        """Initialize the shell creating the session."""
         readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
         self.session = cli_authenticate(None)
         self.commands = {}
@@ -28,6 +32,8 @@ class IBridgesShell(cmd.Cmd):
         super().__init__()
 
     def do_shell(self, arg):
+        """Run commands in the bash/zsh shell directly for local operations."""
+        # cd command doesn't work properly with subprocess, so use Python chdir.
         if arg.startswith("cd "):
             try:
                 os.chdir(arg[3:])
@@ -37,16 +43,6 @@ class IBridgesShell(cmd.Cmd):
                 print(f"Error: {arg[3:]} does not exist.")
         else:
             subprocess.run(arg, shell=True)
-
-    # def do_cd(self, arg):
-    #     new_path = IrodsPath(self.session, arg)
-    #     if new_path.collection_exists():
-    #         self.session.cwd = new_path
-    #     else:
-    #         print(f"Error: {new_path} is not a collection.")
-
-    # def complete_cd(self, text, line, begidx, endidx):
-    #     return complete_ipath(self.session, text, line, collections_only=True)
 
     def _universal_complete(self, text, line, begidx, endidx, command_class):
         arg_list = _prepare_args(line, add_last_space=True)[1:]
@@ -71,38 +67,46 @@ class IBridgesShell(cmd.Cmd):
     def _universal_help(self, command_class):
         command_class.get_parser().print_help()
 
-    def do_EOF(self, arg):
+    def do_quit(self, arg):
+        """Quit the shell."""
         self.close()
         return True
 
+    def do_EOF(self, arg):  # noqa 
+        """Quit the shell with ctrl+D shortcut."""
+        return self.do_quit()
+
     def close(self):
+        """Close the session."""
         self.session.close()
 
-    def wrap_complete(self, command_class):
+    def _wrap_complete(self, command_class):
         def _wrap(*args):
             return self._universal_complete(*args, command_class)
         return _wrap
 
-    def wrap_do(self, command_class):
+    def _wrap_do(self, command_class):
         def _wrap(*args):
             self._universal_do(*args, command_class)
         return _wrap
 
-    def wrap_help(self, command_class):
+    def _wrap_help(self, command_class):
         def _wrap(*args):
             self._universal_help(*args, command_class)
         return _wrap
 
     def __getattribute__(self, attr):
-        if attr.startswith("do_") and attr[3:] in self.commands:
-            return self.wrap_do(self.commands[attr[3:]])
+        """Catch the do_, complete_ and help_ methods and replace them with a wrapper."""
+        if attr.startswith("do_") and attr[ 3:] in self.commands:
+            return self._wrap_do(self.commands[attr[3:]])
         if attr.startswith("complete_") and attr[9:] in self.commands:
-            return self.wrap_complete(self.commands[attr[9:]])
+            return self._wrap_complete(self.commands[attr[9:]])
         if attr.startswith("help_") and attr[5:] in self.commands:
-            return self.wrap_help(self.commands[attr[5:]])
+            return self._wrap_help(self.commands[attr[5:]])
         return super().__getattribute__(attr)
 
     def get_names(self):
+        """Get all available subcommands."""
         fake_names = [f"do_{cmd}" for cmd in self.commands]
         fake_names = fake_names + [f"complete_{cmd}" for cmd in self.commands]
         fake_names = fake_names + [f"help_{cmd}" for cmd in self.commands]
@@ -110,20 +114,18 @@ class IBridgesShell(cmd.Cmd):
 
     @property
     def prompt(self):
+        """Modify the prompt to show the current collection."""
         return f"ibshell:{IrodsPath(self.session).name}> "
-
-def main():
-    IBridgesShell().cmdloop()
 
 def _escape(line):
     if isinstance(line, str):
         return line.replace(" ", "\\ ")
-    return [_escape(l) for l in line]
+    return [_escape(x) for x in line]
 
 def _unescape(line):
     if isinstance(line, str):
         return line.replace("\\ ", " ")
-    return [_unescape(l) for l in line]
+    return [_unescape(x) for x in line]
 
 def _prepare_args(args, add_last_space=False, unescape=True):
     split_args = args.split()
@@ -152,9 +154,8 @@ def _filter(ipaths, collections_only, base_path):
 
 
 def complete_ipath(session, text, line, collections_only=False):
-    # print(line)
+    """Complete an IrodsPath."""
     args = _prepare_args(line, unescape=False)[1:]
-    # print(args)
     if len(args) == 0 or args[-1] == "":
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session)))
@@ -191,6 +192,7 @@ def _find_paths(base_path, directories_only):
 
 
 def complete_lpath(text, line, directories_only=False):
+    """Complete a local path."""
     args = _prepare_args(line, unescape=False)[1:]
     if len(args) == 0:
         return _escape(_find_paths(Path.cwd(), directories_only))

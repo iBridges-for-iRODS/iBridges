@@ -1,3 +1,4 @@
+"""Utilities for the CLI and shell."""
 from pathlib import Path
 from typing import Union
 
@@ -10,6 +11,7 @@ from ibridges.util import get_collection
 
 
 def cli_authenticate(parser):
+    """Authenticate for the CLI and shell."""
     ibridges_conf = IbridgesConf(parser)
     ienv_path, ienv_entry = ibridges_conf.get_entry()
     ienv_cwd = ienv_entry.get("cwd", None)
@@ -27,6 +29,7 @@ def cli_authenticate(parser):
     return session
 
 def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = False):
+    """List a collection with default formatting."""
     if remote_path.collection_exists():
         print(str(remote_path) + ":")
         if metadata:
@@ -51,6 +54,7 @@ def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = F
         raise NotACollectionError(f"Irods path '{remote_path}' is not a collection.")
 
 def parse_remote(remote_path: Union[None, str], session: Session) -> IrodsPath:
+    """Parse a remote path."""
     if remote_path is None:
         return IrodsPath(session, session.cwd)
     if not remote_path.startswith("irods:") or IrodsPath(session, remote_path).collection_exists():

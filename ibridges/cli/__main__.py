@@ -1,3 +1,5 @@
+"""Entry point for CLI interface."""
+
 import argparse
 import sys
 
@@ -6,6 +8,13 @@ from ibridges.cli.shell import ALL_BUILTIN_COMMANDS
 
 
 def create_parser():
+    """Create an argparse parser for the CLI.
+
+    Returns
+    -------
+        An argparse.ArgumentParser object with all the subcommands.
+
+    """
     main_parser = argparse.ArgumentParser(prog="ibridges")
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
@@ -15,6 +24,7 @@ def create_parser():
     return main_parser
 
 def main():
+    """Start main function of the CLI."""
     parser = create_parser()
     args = parser.parse_args(sys.argv[1:])
     args.func(args)

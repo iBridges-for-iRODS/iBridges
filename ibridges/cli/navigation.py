@@ -1,3 +1,4 @@
+"""Navigational subcommands for the shell and CLI."""
 import argparse
 
 from ibridges.cli.base import BaseCliCommand
@@ -9,6 +10,8 @@ from ibridges.search import search_data
 
 
 class CliList(BaseCliCommand):
+    """Subcommand to list a collection on an iRODS server."""
+
     autocomplete = ["remote_coll"]
     names = ["ls", "list", "l"]
     description = "List a collection on iRODS."
@@ -16,10 +19,6 @@ class CliList(BaseCliCommand):
 
     @classmethod
     def _mod_parser(cls, parser):
-        # parser = parser_func(
-        #     "list", description="List a collection on iRODS.",
-        #     exit_on_error=False,
-        # )
         parser.add_argument(
             "remote_coll",
             help="Path to remote iRODS location starting with 'irods:'",
@@ -46,6 +45,7 @@ class CliList(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """List a collection on an iRODS server."""
         ipath =  parse_remote(args.remote_coll, session)
         # ipath = IrodsPath(session, args.remote_coll)
         try:
@@ -65,6 +65,8 @@ class CliList(BaseCliCommand):
             parser.error(f"{ipath} is not a collection")
 
 class CliCd(BaseCliCommand):
+    """Subcommand to change collection."""
+
     autocomplete = ["remote_coll"]
     names = ["cd"]
     description = "Change current working collection for the iRODS server."
@@ -83,6 +85,7 @@ class CliCd(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Change collection in the shell."""
         new_path = parse_remote(args.remote_coll, session)
         if new_path.collection_exists():
             session.cwd = new_path
@@ -91,6 +94,7 @@ class CliCd(BaseCliCommand):
 
     @classmethod
     def run_command(cls, args):
+        """Change collection in the cli."""
         parser = cls.get_parser(argparse.ArgumentParser)
         with cli_authenticate(parser) as session:
             new_ipath = parse_remote(args.remote_coll, session)
@@ -103,6 +107,8 @@ class CliCd(BaseCliCommand):
 
 
 class CliPwd(BaseCliCommand):
+    """Subcommand to show the current working collection."""
+
     autocomplete = []
     names = ["pwd"]
     description = "Show current working collection."
@@ -110,6 +116,7 @@ class CliPwd(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Show the current working collection."""
         print(session.cwd)
 
 
@@ -189,10 +196,13 @@ def _tree(
 
 
 class CliTree(BaseCliCommand):
+    """Subcommand to show the tree of a collection."""
+
     autocomplete = ["remote_coll"]
     names = ["tree"]
     description = "Show collection/directory tree."
     examples = ["", "irods:some_collection"]
+
     @classmethod
     def _mod_parser(cls, parser):
         parser.add_argument(
@@ -223,6 +233,7 @@ class CliTree(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Show the tree of a collection."""
         ipath = IrodsPath(session, args.remote_coll)
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
@@ -243,6 +254,8 @@ class CliTree(BaseCliCommand):
 
 
 class CliSearch(BaseCliCommand):
+    """Subcommand to search for kdata objects and collections."""
+
     autocomplete = ["remote_path"]
     names = ["search"]
     description = "Search for dataobjects and collections."
@@ -268,9 +281,10 @@ class CliSearch(BaseCliCommand):
             "--path-pattern",
             default=None,
             type=str,
-            help=("Pattern of the path constraint. For example, use '%%.txt' to find all data objects"
-                " and collections that end with .txt. You can also use the name of the item here "
-                "to find all items with that name.")
+            help=("Pattern of the path constraint. For example, use '%%.txt' "
+                  "to find all data objects"
+                  " and collections that end with .txt. You can also use the name of the item here "
+                  "to find all items with that name.")
         )
         parser.add_argument(
             "--checksum",
@@ -288,13 +302,14 @@ class CliSearch(BaseCliCommand):
             "--item_type",
             type=str,
             default=None,
-            help="Use data_object or collection to show only items of that type. By default all items"
-            " are returned."
+            help="Use data_object or collection to show only items of that type. "
+            "By default all items are returned."
         )
         return parser
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Search for data objects and collections."""
         ipath = parse_remote(args.remote_path, session)
         search_res = search_data(
             session,

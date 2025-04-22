@@ -1,3 +1,4 @@
+"""Subcommands that do data operations."""
 import argparse
 from pathlib import Path
 from typing import Literal, Union
@@ -9,6 +10,8 @@ from ibridges.path import IrodsPath
 
 
 class CliMakeCollection(BaseCliCommand):
+    """Subcommand for creating a new collection."""
+
     autocomplete = ["remote_coll"]
     names = ["mkcoll"]
     description = "Create a new collecion with all its parent collections."
@@ -25,12 +28,15 @@ class CliMakeCollection(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Create the new collection with the arguments."""
         ipath = parse_remote(args.remote_coll, session)
         if ipath.exists():
             parser.error(f"Cannot create collection {ipath}: already exists.")
         ipath.create_collection(session, ipath)
 
 class CliRm(BaseCliCommand):
+    """Subcommand for removing a data object or collection."""
+
     autocomplete = ["remote_path"]
     names = ["rm", "remove", "del"]
     description = "Remove collection or data object."
@@ -52,6 +58,7 @@ class CliRm(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Remove a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         if ipath.dataobject_exists():
             ipath.remove()
@@ -59,7 +66,8 @@ class CliRm(BaseCliCommand):
             if args.recursive:
                 ipath.remove()
             else:
-                parser.error("Cannot remove {ipath}: is a collection. Use -r to remove collections.")
+                parser.error("Cannot remove {ipath}: is a collection. "
+                             "Use -r to remove collections.")
 
 def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
                        mode: str) -> Union[None, str, Path]:
@@ -80,6 +88,8 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
     return metadata
 
 class CliDownload(BaseCliCommand):
+    """Subcommand for downloading a data object or collection."""
+
     autocomplete = ["remote_path", "local_dir"]
     names = ["download"]
     description = "Download a data object or collection from an iRODS server."
@@ -127,6 +137,7 @@ class CliDownload(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Download the data object or collection."""
         print(args.local_path)
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
@@ -145,6 +156,8 @@ class CliDownload(BaseCliCommand):
 
 
 class CliUpload(BaseCliCommand):
+    """Subcommand to upload data to an iRODS server."""
+
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
     description = "Upload a data object or collection from an iRODS server."
@@ -193,6 +206,7 @@ class CliUpload(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Upload a data object or collection to the iRODS server."""
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
@@ -216,6 +230,8 @@ def _parse_str(remote_or_local: str, session) -> Union[Path, IrodsPath]:
 
 
 class CliSync(BaseCliCommand):
+    """Subcommand to synchronize collections and directories."""
+
     autocomplete = ["any_path", "any_path"]
     names = ["sync"]
     description = "Synchronize files/directories between local and remote."
@@ -231,7 +247,8 @@ class CliSync(BaseCliCommand):
         )
         parser.add_argument(
             "destination",
-            help="Destination path to synchronize to (collection on irods server or local directory).",
+            help="Destination path to synchronize to "
+            "(collection on irods server or local directory).",
             type=str,
         )
         parser.add_argument(
@@ -250,6 +267,7 @@ class CliSync(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Synchronize a directory and collection."""
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):

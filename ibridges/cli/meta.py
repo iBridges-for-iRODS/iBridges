@@ -1,9 +1,12 @@
+"""Subcommands for metadata operations."""
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.exception import DoesNotExistError
 
 
 class CliMetaList(BaseCliCommand):
+    """Subcommand for listing the metadata of a data object or collection."""
+
     autocomplete = ["remote_path"]
     names = ["meta-list"]
     description = "List a collection on iRODS."
@@ -23,6 +26,7 @@ class CliMetaList(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """List the metadata of a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         if not ipath.exists():
             parser.error(f"Path {ipath} does not exist, can't list metadata.")
@@ -32,6 +36,8 @@ class CliMetaList(BaseCliCommand):
 
 
 class CliMetaAdd(BaseCliCommand):
+    """Subcommand to add metadata to a data object or collection."""
+
     autocomplete = ["remote_path"]
     names = ["meta-add"]
     description = "Add a metadata item to a collection or data object."
@@ -65,6 +71,7 @@ class CliMetaAdd(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Add metadata to a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         try:
             ipath.meta.add(args.key, args.value, args.units)
@@ -73,6 +80,8 @@ class CliMetaAdd(BaseCliCommand):
 
 
 class CliMetaDel(BaseCliCommand):
+    """Subcommand to delete metadata for a data object or collection."""
+
     autocomplete = ["remote_path"]
     names = ["meta-del"]
     description = "Delete metadata for one collection or data object."
@@ -112,6 +121,7 @@ class CliMetaDel(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Delete metadata for a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         try:
             meta = ipath.meta
