@@ -1,7 +1,6 @@
 """Module with implementation of ibridges shell command."""
 import cmd
 import os
-import readline
 import subprocess
 from pathlib import Path
 
@@ -23,7 +22,13 @@ class IBridgesShell(cmd.Cmd):
 
     def __init__(self):
         """Initialize the shell creating the session."""
-        readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
+
+        # Autocomplete is not available on windows.
+        try:
+            import readline
+            readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
+        except ImportError:
+            pass
         self.session = cli_authenticate(None)
         self.commands = {}
         for command_class in ALL_BUILTIN_COMMANDS:
