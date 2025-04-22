@@ -36,10 +36,10 @@ class BaseCliCommand(abc.ABC):
     to enable the shell to autocomplete remote or local paths.
     """
 
-    autocomplete = []  # Autocompletion for positional arguments
-    names = []  # Names of the subcommand, need at least one name.
-    description = "No description available."  # Description of the subcommand.
-    examples = []  # Examples to be shown in the help, remove ibridges and the subcommand name.
+    autocomplete: list[str] = []  # Autocompletion for positional arguments
+    names: list[str] = []  # Names of the subcommand, need at least one name.
+    description: str = "No description available."  # Description of the subcommand.
+    examples: list[str] = []  # Examples to be shown in the help, omit ibridges and subcommand name.
 
     @classmethod
     def get_parser(cls, parser_func=ShellArgumentParser):
