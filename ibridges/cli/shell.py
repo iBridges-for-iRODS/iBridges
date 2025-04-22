@@ -24,7 +24,7 @@ class IBridgesShell(cmd.Cmd):
         """Initialize the shell creating the session."""
         # Autocomplete is not available on windows.
         try:
-            import readline
+            import readline  # pylint: disable=import-outside-toplevel
             readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
         except ImportError:
             pass
