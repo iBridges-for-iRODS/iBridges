@@ -1,7 +1,6 @@
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.exception import DoesNotExistError
-from ibridges.path import IrodsPath
 
 
 class CliMetaList(BaseCliCommand):
@@ -24,7 +23,7 @@ class CliMetaList(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
-        ipath = IrodsPath(session, args.remote_path)
+        ipath = parse_remote(args.remote_path, session)
         if not ipath.exists():
             parser.error(f"Path {ipath} does not exist, can't list metadata.")
             return
@@ -66,7 +65,7 @@ class CliMetaAdd(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
-        ipath = IrodsPath(session, args.remote_path)
+        ipath = parse_remote(args.remote_path, session)
         try:
             ipath.meta.add(args.key, args.value, args.units)
         except DoesNotExistError:
