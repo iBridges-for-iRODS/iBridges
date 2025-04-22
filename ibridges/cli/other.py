@@ -4,11 +4,10 @@ from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
-from ibridges.cli.meta import CliMetaList
-from ibridges.cli.shell import ALL_BUILTIN_COMMANDS, IBridgesShell
+from ibridges.cli.shell import IBridgesShell
 from ibridges.cli.util import cli_authenticate
-from ibridges.session import Session
 from ibridges.interactive import DEFAULT_IENV_PATH
+from ibridges.session import Session
 from ibridges.util import (
     find_environment_provider,
     get_environment_providers,
@@ -31,7 +30,8 @@ class CliShell(BaseCliCommand):
 class CliAlias(BaseCliCommand):
     names = ["alias"]
     description = "Print existing aliases or create new ones."
-
+    examples = ["some_alias ~/.irods/irods_environment.json",
+                "other_alias --delete"]
     @classmethod
     def _mod_parser(cls, parser):
         parser.add_argument(
@@ -72,9 +72,6 @@ class CliAlias(BaseCliCommand):
                 print(f"{prefix} {cur_alias} -> {ienv_path}")
             return
 
-        # if args.alias == "default":
-            # parser.error("Cannot change 'default' alias.")
-
         if args.delete:
             ibridges_conf.delete_alias(args.alias)
             return
@@ -93,6 +90,7 @@ class CliAlias(BaseCliCommand):
 class CliInit(BaseCliCommand):
     names = ["init"]
     description = "Create a cached password for future use."
+    examples = ["", "~/.irods/another_env_path.json", "some_alias"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -123,6 +121,7 @@ class CliInit(BaseCliCommand):
 class CliSetup(BaseCliCommand):
     names = ["setup"]
     description = "Use templates to create an iRODS environment json."
+    examples = ["some-servername -o ~/.irods/some_server.json"]
 
     @classmethod
     def _mod_parser(cls, parser):

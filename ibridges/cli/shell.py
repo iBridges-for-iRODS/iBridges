@@ -4,7 +4,7 @@ import readline
 import subprocess
 from pathlib import Path
 
-from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliUpload, CliSync
+from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
 from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
 from ibridges.cli.util import cli_authenticate
@@ -111,24 +111,6 @@ class IBridgesShell(cmd.Cmd):
     @property
     def prompt(self):
         return f"ibshell:{IrodsPath(self.session).name}> "
-
-    # def default(self, line):
-        # raise ValueError(line)
-
-    # def completenames(self, text, *ignored):
-    #     print(text, "|", ignored, super().completenames(text, *ignored))
-    #     return super().completenames(text, *ignored)
-
-    # def completedefault(*ignored):
-    #     print("failed complette", ignored)
-    #     import traceback as tb
-    #     print(tb.print_stack())
-    #     # raise ValueError(ignored)
-    #     # return []
-
-    # def complete(self, text, state):
-    #     print(text, state)
-    #     return super().complete(text, state)
 
 def main():
     IBridgesShell().cmdloop()

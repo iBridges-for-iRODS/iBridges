@@ -1,13 +1,8 @@
 import argparse
 import sys
 
-from ibridges.cli.shell import ALL_BUILTIN_COMMANDS, IBridgesShell
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
-from ibridges.cli.meta import CliMetaList
-from ibridges.cli.base import BaseCliCommand
-
-# ALL_BUILTIN_COMMANDS=[CliMetaList]
-
+from ibridges.cli.shell import ALL_BUILTIN_COMMANDS
 
 
 def create_parser():

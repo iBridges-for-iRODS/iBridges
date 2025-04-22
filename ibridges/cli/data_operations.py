@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 from typing import Literal, Union
 
-from ibridges.cli.base import ShellArgumentParser, BaseCliCommand
+from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.data_operations import download, sync, upload
 from ibridges.path import IrodsPath
@@ -12,6 +12,7 @@ class CliMakeCollection(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["mkcoll"]
     description = "Create a new collecion with all its parent collections."
+    examples = ["irods:~/test"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -33,6 +34,7 @@ class CliRm(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["rm", "remove", "del"]
     description = "Remove collection or data object."
+    examples = ["irods:~/test.txt", "-r irods:~/test_collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -80,7 +82,8 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
 class CliDownload(BaseCliCommand):
     autocomplete = ["remote_path", "local_dir"]
     names = ["download"]
-    description="Download a data object or collection from an iRODS server."
+    description = "Download a data object or collection from an iRODS server."
+    examples = ["irods:~/test.txt", "irods:~/some_collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -145,6 +148,8 @@ class CliUpload(BaseCliCommand):
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
     description = "Upload a data object or collection from an iRODS server."
+    examples = ["local_file.txt", "local_file.txt irods:remote_collection",
+                "local_dir irods:remote_collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -214,6 +219,8 @@ class CliSync(BaseCliCommand):
     autocomplete = ["any_path", "any_path"]
     names = ["sync"]
     description = "Synchronize files/directories between local and remote."
+    examples = ["local_dir irods:remote_collection", "irods:remote_collection local_dir"]
+
 
     @classmethod
     def _mod_parser(cls, parser):

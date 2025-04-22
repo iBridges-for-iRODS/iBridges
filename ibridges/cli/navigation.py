@@ -1,7 +1,6 @@
 import argparse
-from argparse import RawTextHelpFormatter
 
-from ibridges.cli.base import BaseCliCommand, ShellArgumentParser
+from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
 from ibridges.exception import NotACollectionError
@@ -13,6 +12,7 @@ class CliList(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["ls", "list", "l"]
     description = "List a collection on iRODS."
+    examples = ["", "irods:some_collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -68,6 +68,7 @@ class CliCd(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["cd"]
     description = "Change current working collection for the iRODS server."
+    examples = ["", "irods:some_collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -105,6 +106,7 @@ class CliPwd(BaseCliCommand):
     autocomplete = []
     names = ["pwd"]
     description = "Show current working collection."
+    examples = [""]
 
     @staticmethod
     def run_shell(session, parser, args):
@@ -190,12 +192,9 @@ class CliTree(BaseCliCommand):
     autocomplete = ["remote_coll"]
     names = ["tree"]
     description = "Show collection/directory tree."
-
+    examples = ["", "irods:some_collection"]
     @classmethod
     def _mod_parser(cls, parser):
-        # parser = parser_func(
-        #     "tree", 
-        # )
         parser.add_argument(
             "remote_coll",
             help="Path to collection to make a tree of.",
@@ -248,31 +247,16 @@ class CliSearch(BaseCliCommand):
     names = ["search"]
     description = "Search for dataobjects and collections."
     examples = [
-        'ibridges search --path-pattern "%.txt"'
-        'ibridges search --checksum "sha2:5dfasd%"'
-        'ibridges search --metadata "key" "value" "units"'
-        'ibridges search --metadata "key" --metadata "key2" "value2"'
-        'ibridges search irods:some_collection --item_type data_object'
-        'ibridges search irods:some_collection --item_type collection'
+        '--path-pattern "%.txt"',
+        '--checksum "sha2:5dfasd%"',
+        '--metadata "key" "value" "units"',
+        '--metadata "key" --metadata "key2" "value2"',
+        'irods:some_collection --item_type data_object',
+        'irods:some_collection --item_type collection',
     ]
 
     @classmethod
     def _mod_parser(cls, parser):
-#         epilog = """Examples:
-
-# ibridges search --path-pattern "%.txt"
-# ibridges search --checksum "sha2:5dfasd%"
-# ibridges search --metadata "key" "value" "units"
-# ibridges search --metadata "key" --metadata "key2" "value2"
-# ibridges search irods:some_collection --item_type data_object
-# ibridges search irods:some_collection --item_type collection
-# """
-        # parser = parser_func(
-        #     "search",
-        #     description="Search for dataobjects and collections.",
-        #     # epilog=epilog,
-        #     # formatter_class=RawTextHelpFormatter,
-        # )
         parser.add_argument(
             "remote_path",
             help="Remote path to search inn. The path itself will not be matched.",

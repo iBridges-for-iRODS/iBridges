@@ -1,4 +1,4 @@
-from ibridges.cli.base import BaseCliCommand, ShellArgumentParser
+from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.exception import DoesNotExistError
 from ibridges.path import IrodsPath
@@ -8,6 +8,8 @@ class CliMetaList(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-list"]
     description = "List a collection on iRODS."
+    examples = ["", "irods:remote_collection"]
+
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -34,6 +36,7 @@ class CliMetaAdd(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-add"]
     description = "Add a metadata item to a collection or data object."
+    examples = ["irods:some_dataobj_or_collection new_key new_value new_units"]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -74,6 +77,8 @@ class CliMetaDel(BaseCliCommand):
     autocomplete = ["remote_path"]
     names = ["meta-del"]
     description = "Delete metadata for one collection or data object."
+    examples = ["irods:remote_dataobj_or_coll", "irods:remote_dataobj_or_coll --key some_key",
+                "irods:some_obj --key some_key --value some_val --units some_units"]
 
     @classmethod
     def _mod_parser(cls, parser):
