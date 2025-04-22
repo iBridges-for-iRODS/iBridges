@@ -211,5 +211,3 @@ class CliSetup(BaseCliCommand):
                 handle.write(json_str)
 
 CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
-
-

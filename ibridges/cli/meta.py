@@ -9,7 +9,7 @@ class CliMetaList(BaseCliCommand):
 
     autocomplete = ["remote_path"]
     names = ["meta-list"]
-    description = "List a collection on iRODS."
+    description = "List the metadata of a data object or collection on iRODS."
     examples = ["", "irods:remote_collection"]
 
 
@@ -17,7 +17,7 @@ class CliMetaList(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
-            help="Path to remote iRODS location starting with 'irods:'",
+            help="iRODS path for metadata listing, starting with 'irods:'",
             type=str,
             default=".",
             nargs="?",

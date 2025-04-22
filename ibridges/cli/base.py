@@ -17,7 +17,7 @@ class ShellArgumentParser(argparse.ArgumentParser):
         """Fake exit when an error is raised."""
         if status:
             print(f'Error: {message}')
-        self.printed_help = True
+        self.printed_help = True  # pylint: disable=attribute-defined-outside-init
 
 
 class BaseCliCommand(abc.ABC):
@@ -57,7 +57,7 @@ class BaseCliCommand(abc.ABC):
         """
         extra_kwargs = cls.get_examples(parser_func)
 
-        if parser_func == ShellArgumentParser or parser_func == argparse.ArgumentParser:
+        if parser_func in [ShellArgumentParser, argparse.ArgumentParser]:
             parser = parser_func(cls.names[0], description=cls.description, **extra_kwargs,
                                  formatter_class=argparse.RawTextHelpFormatter
                                  )

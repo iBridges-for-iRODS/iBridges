@@ -42,9 +42,9 @@ class IBridgesShell(cmd.Cmd):
             except FileNotFoundError:
                 print(f"Error: {arg[3:]} does not exist.")
         else:
-            subprocess.run(arg, shell=True)
+            subprocess.run(arg, shell=True, check=False)
 
-    def _universal_complete(self, text, line, begidx, endidx, command_class):
+    def _universal_complete(self, text, line, begidx, endidx, command_class):  # pylint: disable=unused-argument
         arg_list = _prepare_args(line, add_last_space=True)[1:]
         if len(arg_list) > len(command_class.autocomplete):
             return []
@@ -67,14 +67,14 @@ class IBridgesShell(cmd.Cmd):
     def _universal_help(self, command_class):
         command_class.get_parser().print_help()
 
-    def do_quit(self, arg):
+    def do_quit(self, arg):  # pylint: disable=unused-argument
         """Quit the shell."""
         self.close()
         return True
 
-    def do_EOF(self, arg):  # noqa 
+    def do_EOF(self, arg):  # noqa # pylint: disable=invalid-name
         """Quit the shell with ctrl+D shortcut."""
-        return self.do_quit()
+        return self.do_quit(arg)
 
     def close(self):
         """Close the session."""
@@ -131,7 +131,7 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     split_args = args.split()
     new_args = []
     cur_arg = ""
-    for i_args, str_arg in enumerate(split_args):
+    for str_arg in split_args:
         if not str_arg.endswith("\\"):
             cur_arg += str_arg
             new_args.append(cur_arg)
@@ -168,7 +168,8 @@ def complete_ipath(session, text, line, collections_only=False):
             prefix = f"{text}/"
         path_list = _filter(base_path.walk(depth=1), collections_only, base_path)
         return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
-    elif base_path.dataobject_exists():
+
+    if base_path.dataobject_exists():
         return []
 
     last_part = base_path.parts[-1]
@@ -205,7 +206,8 @@ def complete_lpath(text, line, directories_only=False):
             prefix = f"{text}/"
         path_list = _find_paths(base_path, directories_only)
         return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
-    elif base_path.is_file():
+
+    if base_path.is_file():
         return []
 
     last_part = base_path.name
