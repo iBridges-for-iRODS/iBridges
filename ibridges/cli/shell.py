@@ -22,7 +22,6 @@ class IBridgesShell(cmd.Cmd):
 
     def __init__(self):
         """Initialize the shell creating the session."""
-
         # Autocomplete is not available on windows.
         try:
             import readline
