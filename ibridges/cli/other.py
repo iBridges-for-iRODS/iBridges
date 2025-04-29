@@ -1,8 +1,8 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
 import sys
-from pathlib import Path
 import traceback
+from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
@@ -34,10 +34,10 @@ class CliShell(BaseCliCommand):
         try:
             IBridgesShell().cmdloop()
         except Exception as exc:
-            # print(exc.message)
-            # cls.get_parser().error(exc)
             traceback.print_exception(exc)
             cls.run_command(args)
+        except KeyboardInterrupt:
+            pass
 
 class CliAlias(BaseCliCommand):
     """Subcommand to manage aliases for CLI."""
