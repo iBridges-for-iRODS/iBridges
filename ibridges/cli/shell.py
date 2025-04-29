@@ -63,6 +63,9 @@ class IBridgesShell(cmd.Cmd):
             return complete_lpath(text, line, directories_only=False)
         if command_class.autocomplete[len(arg_list)-1] == "local_dir":
             return complete_lpath(text, line, directories_only=True)
+        if command_class.autocomplete[len(arg_list)-1] == "any_dir":
+            return (complete_lpath(text, line, directories_only=True)
+                    + complete_ipath(self.session, text, line, collections_only=True))
         return []
 
     def _universal_do(self, arg, command_class):

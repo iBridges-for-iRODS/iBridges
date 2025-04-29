@@ -232,7 +232,7 @@ def _parse_str(remote_or_local: str, session) -> Union[Path, IrodsPath]:
 class CliSync(BaseCliCommand):
     """Subcommand to synchronize collections and directories."""
 
-    autocomplete = ["any_path", "any_path"]
+    autocomplete = ["any_dir", "any_dir"]
     names = ["sync"]
     description = "Synchronize files/directories between local and remote."
     examples = ["local_dir irods:remote_collection", "irods:remote_collection local_dir"]
