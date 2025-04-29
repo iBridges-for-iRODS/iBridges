@@ -131,24 +131,52 @@ def _unescape(line):
         return line.replace("\\ ", " ")
     return [_unescape(x) for x in line]
 
+# def _prepare_args(args, add_last_space=False, unescape=True):
+#     split_args = args.split()
+#     new_args = []
+#     cur_arg = ""
+#     for str_arg in split_args:
+#         if not str_arg.endswith("\\"):
+#             cur_arg += str_arg
+#             new_args.append(cur_arg)
+#             cur_arg = ""
+#         else:
+#             cur_arg += str_arg[:-1] + " "
+#     if cur_arg != "":
+#         new_args.append(cur_arg)
+#     if add_last_space and args.endswith(" ") and not args.endswith("\\ "):
+#         new_args.append("")
+#     if unescape:
+#         return _unescape(new_args)
+#     return new_args
+
 def _prepare_args(args, add_last_space=False, unescape=True):
-    split_args = args.split()
-    new_args = []
-    cur_arg = ""
-    for str_arg in split_args:
-        if not str_arg.endswith("\\"):
-            cur_arg += str_arg
-            new_args.append(cur_arg)
-            cur_arg = ""
+    split_args = [""]
+    cur_pos = 0
+    cur_quote = None
+    # for cur_pos in range(len(args)):
+    while cur_pos < len(args):
+        if args[cur_pos:].startswith("\\ "):
+            if unescape:
+                split_args[-1] += " "
+            else:
+                split_args[-1] += "\\ "
+            cur_pos += 1
+        elif args[cur_pos] == " " and cur_quote is None:
+            split_args.append("")
+        elif args[cur_pos] in ["'", '"'] and cur_quote is None:
+            cur_quote = args[cur_pos]
+        elif args[cur_pos] == cur_quote:
+            cur_quote = None
         else:
-            cur_arg += str_arg[:-1] + " "
-    if cur_arg != "":
-        new_args.append(cur_arg)
-    if add_last_space and args.endswith(" ") and not args.endswith("\\ "):
-        new_args.append("")
-    if unescape:
-        return _unescape(new_args)
-    return new_args
+            split_args[-1] += args[cur_pos]
+        cur_pos += 1
+    if not add_last_space and split_args[-1] == "":
+        return split_args[:-1]
+    return split_args
+    # if cur_quote is not None:
+        # parser.error()
+
 
 def _filter(ipaths, collections_only, base_path):
     ipaths = [p for p in ipaths if str(p) != str(base_path)]
