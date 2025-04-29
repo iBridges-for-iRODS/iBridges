@@ -179,15 +179,20 @@ def _prepare_args(args, add_last_space=False, unescape=True):
 
 
 
-def _filter(ipaths, collections_only, base_path):
+def _filter(ipaths, collections_only, base_path, add_prefix=False):
     ipaths = [p for p in ipaths if str(p) != str(base_path)]
     if collections_only:
-        return [p.name for p in ipaths if p.collection_exists()]
-    return [p.name for p in ipaths]
+        col_names = [p.name for p in ipaths if p.collection_exists()]
+    else:
+        col_names = [p.name for p in ipaths]
+    if add_prefix:
+        return [f"irods:{c}" for c in col_names]
+    return col_names
 
 
 def complete_ipath(session, text, line, collections_only=False):
     """Complete an IrodsPath."""
+    # print("||", text, "|", line, "||\n")
     args = _prepare_args(line, unescape=False)[1:]
     args = [x for x in args if not x.startswith("-")]
 
@@ -195,17 +200,29 @@ def complete_ipath(session, text, line, collections_only=False):
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session)))
 
-    base_path = IrodsPath(session, args[-1])
+    base_arg = args[-1]
+    base_completion = []
+    if args[-1].startswith("irods"[:len(args[-1])]):
+        if len(args[-1]) < len("irods:"):
+            base_completion = [text[:len(text)-len(args[-1])] + "irods:"]
+        else:
+            base_arg = args[-1][len("irods:"):]
+
+    if len(base_arg) == 0:
+        ipath_list = list(IrodsPath(session).walk(depth=1))
+        return _escape(_filter(ipath_list, collections_only, IrodsPath(session), add_prefix=False))
+
+    base_path = IrodsPath(session, base_arg)
     if base_path.collection_exists():
         if line.endswith("/"):
             prefix = text
         else:
             prefix = f"{text}/"
         path_list = _filter(base_path.walk(depth=1), collections_only, base_path)
-        return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
+        return base_completion + [f"{prefix}{_escape(ipath)}" for ipath in path_list]
 
     if base_path.dataobject_exists():
-        return []
+        return base_completion
 
     last_part = base_path.parts[-1]
     base_path = IrodsPath(session, *base_path.parts[:-1])
@@ -216,7 +233,7 @@ def complete_ipath(session, text, line, collections_only=False):
         if ipath.name.startswith(last_part) and not (
                 collections_only and not ipath.collection_exists()):
             completions.append(text + _escape(ipath.name[len(last_part):]))
-    return completions
+    return base_completion + completions
 
 def _find_paths(base_path, directories_only):
     all_paths = []
