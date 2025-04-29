@@ -50,6 +50,9 @@ class IBridgesShell(cmd.Cmd):
 
     def _universal_complete(self, text, line, begidx, endidx, command_class):  # pylint: disable=unused-argument
         arg_list = _prepare_args(line, add_last_space=True)[1:]
+        if arg_list[-1].startswith("-"):
+            return [text+" "]
+        arg_list = [x for x in arg_list if not x.startswith("-")]
         if len(arg_list) > len(command_class.autocomplete):
             return []
         if command_class.autocomplete[len(arg_list)-1] == "remote_path":
@@ -154,7 +157,6 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     split_args = [""]
     cur_pos = 0
     cur_quote = None
-    # for cur_pos in range(len(args)):
     while cur_pos < len(args):
         if args[cur_pos:].startswith("\\ "):
             if unescape:
@@ -174,8 +176,7 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     if not add_last_space and split_args[-1] == "":
         return split_args[:-1]
     return split_args
-    # if cur_quote is not None:
-        # parser.error()
+
 
 
 def _filter(ipaths, collections_only, base_path):
@@ -188,6 +189,8 @@ def _filter(ipaths, collections_only, base_path):
 def complete_ipath(session, text, line, collections_only=False):
     """Complete an IrodsPath."""
     args = _prepare_args(line, unescape=False)[1:]
+    args = [x for x in args if not x.startswith("-")]
+
     if len(args) == 0 or args[-1] == "":
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session)))
@@ -227,6 +230,8 @@ def _find_paths(base_path, directories_only):
 def complete_lpath(text, line, directories_only=False):
     """Complete a local path."""
     args = _prepare_args(line, unescape=False)[1:]
+    args = [x for x in args if not x.startswith("-")]
+
     if len(args) == 0:
         return _escape(_find_paths(Path.cwd(), directories_only))
 
