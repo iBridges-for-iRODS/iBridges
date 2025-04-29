@@ -33,7 +33,7 @@ class CliShell(BaseCliCommand):
         """Run the shell from the command line."""
         try:
             IBridgesShell().cmdloop()
-        except Exception as exc:
+        except Exception as exc:  # pylint: disable=broad-exception-caught
             traceback.print_exception(exc)
             cls.run_command(args)
         except KeyboardInterrupt:

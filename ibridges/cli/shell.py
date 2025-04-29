@@ -53,20 +53,24 @@ class IBridgesShell(cmd.Cmd):
         if arg_list[-1].startswith("-"):
             return [text+" "]
         arg_list = [x for x in arg_list if not x.startswith("-")]
+
+        # Don't have completions for positional argument.
         if len(arg_list) > len(command_class.autocomplete):
             return []
+
+        complete = []
         if command_class.autocomplete[len(arg_list)-1] == "remote_path":
-            return complete_ipath(self.session, text, line, collections_only=False)
-        if command_class.autocomplete[len(arg_list)-1] == "remote_coll":
-            return complete_ipath(self.session, text, line, collections_only=True)
-        if command_class.autocomplete[len(arg_list)-1] == "local_path":
-            return complete_lpath(text, line, directories_only=False)
-        if command_class.autocomplete[len(arg_list)-1] == "local_dir":
-            return complete_lpath(text, line, directories_only=True)
-        if command_class.autocomplete[len(arg_list)-1] == "any_dir":
-            return (complete_lpath(text, line, directories_only=True)
-                    + complete_ipath(self.session, text, line, collections_only=True))
-        return []
+            complete = complete_ipath(self.session, text, line, collections_only=False)
+        elif command_class.autocomplete[len(arg_list)-1] == "remote_coll":
+            complete = complete_ipath(self.session, text, line, collections_only=True)
+        elif command_class.autocomplete[len(arg_list)-1] == "local_path":
+            complete = complete_lpath(text, line, directories_only=False)
+        elif command_class.autocomplete[len(arg_list)-1] == "local_dir":
+            complete = complete_lpath(text, line, directories_only=True)
+        elif command_class.autocomplete[len(arg_list)-1] == "any_dir":
+            complete = (complete_lpath(text, line, directories_only=True)
+                        + complete_ipath(self.session, text, line, collections_only=True))
+        return complete
 
     def _universal_do(self, arg, command_class):
         parser = command_class.get_parser()

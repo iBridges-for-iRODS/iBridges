@@ -294,7 +294,8 @@ class CliSync(BaseCliCommand):
                 dry_run=args.dry_run,
                 metadata=metadata,
             )
-        except (FileNotFoundError, NotACollectionError, NotADirectoryError, DoesNotExistError) as exc:
+        except (FileNotFoundError, NotACollectionError, NotADirectoryError,
+                DoesNotExistError) as exc:
             parser.error(exc)
             return
         if args.dry_run:
