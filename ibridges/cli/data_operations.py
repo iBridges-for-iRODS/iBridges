@@ -66,7 +66,7 @@ class CliRm(BaseCliCommand):
             if args.recursive:
                 ipath.remove()
             else:
-                parser.error("Cannot remove {ipath}: is a collection. "
+                parser.error(f"Cannot remove {ipath}: is a collection. "
                              "Use -r to remove collections.")
 
 def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
