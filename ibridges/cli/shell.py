@@ -4,6 +4,11 @@ import os
 import subprocess
 from pathlib import Path
 
+try:
+    from importlib_metadata import entry_points
+except ImportError:
+    from importlib.metadata import entry_points  # type: ignore
+
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
 from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
@@ -30,7 +35,7 @@ class IBridgesShell(cmd.Cmd):
             pass
         self.session = cli_authenticate(None)
         self.commands = {}
-        for command_class in ALL_BUILTIN_COMMANDS:
+        for command_class in get_all_shell_commands():
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
@@ -142,24 +147,6 @@ def _unescape(line):
         return line.replace("\\ ", " ")
     return [_unescape(x) for x in line]
 
-# def _prepare_args(args, add_last_space=False, unescape=True):
-#     split_args = args.split()
-#     new_args = []
-#     cur_arg = ""
-#     for str_arg in split_args:
-#         if not str_arg.endswith("\\"):
-#             cur_arg += str_arg
-#             new_args.append(cur_arg)
-#             cur_arg = ""
-#         else:
-#             cur_arg += str_arg[:-1] + " "
-#     if cur_arg != "":
-#         new_args.append(cur_arg)
-#     if add_last_space and args.endswith(" ") and not args.endswith("\\ "):
-#         new_args.append("")
-#     if unescape:
-#         return _unescape(new_args)
-#     return new_args
 
 def _prepare_args(args, add_last_space=False, unescape=True):
     split_args = [""]
@@ -200,7 +187,6 @@ def _filter(ipaths, collections_only, base_path, add_prefix=False):
 
 def complete_ipath(session, text, line, collections_only=False):
     """Complete an IrodsPath."""
-    # print("||", text, "|", line, "||\n")
     args = _prepare_args(line, unescape=False)[1:]
     args = [x for x in args if not x.startswith("-")]
 
@@ -282,3 +268,11 @@ def complete_lpath(text, line, directories_only=False):
                 directories_only and not lpath.is_dir()):
             completions.append(text + _escape(lpath_str[len(last_part):]))
     return completions
+
+
+def get_all_shell_commands():
+    """Get all available shell commands."""
+    external_commands = []
+    for entry in entry_points(group="ibridges.shell"):
+        external_commands.extend(entry.load())
+    return external_commands

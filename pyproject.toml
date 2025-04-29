@@ -59,6 +59,9 @@ docs = [
 [project.scripts]
 ibridges = "ibridges.cli.__main__:main"
 
+[project.entry-points."ibridges.shell"]
+builtin = "ibridges.cli.shell:ALL_BUILTIN_COMMANDS"
+
 [tool.setuptools]
 packages = ["ibridges"]
 

@@ -4,7 +4,7 @@ import argparse
 import sys
 
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
-from ibridges.cli.shell import ALL_BUILTIN_COMMANDS
+from ibridges.cli.shell import get_all_shell_commands
 
 
 def create_parser():
@@ -18,7 +18,7 @@ def create_parser():
     main_parser = argparse.ArgumentParser(prog="ibridges")
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
-    for command_class in ALL_BUILTIN_COMMANDS+CLI_BULTIN_COMMANDS:
+    for command_class in get_all_shell_commands()+CLI_BULTIN_COMMANDS:
         subpar = command_class.get_parser(subparsers.add_parser)
         subpar.set_defaults(func=command_class.run_command)
     return main_parser
