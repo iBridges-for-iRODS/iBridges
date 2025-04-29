@@ -48,6 +48,10 @@ Available subcommands:
         Only updated files will be downloaded/uploaded.
     list:
         List the content of a collections, if no path is given, the home collection will be listed.
+    cd:
+        Change directory.
+    pwd:
+        Print the current working directory.
     tree:
         List a collection and subcollections in a hierarchical way.
     meta-list:
