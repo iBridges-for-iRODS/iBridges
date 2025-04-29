@@ -119,7 +119,8 @@ class IBridgesShell(cmd.Cmd):
         """Get all available subcommands."""
         fake_names = [f"do_{cmd}" for cmd in self.commands]
         fake_names = fake_names + [f"complete_{cmd}" for cmd in self.commands]
-        fake_names = fake_names + [f"help_{cmd}" for cmd in self.commands]
+        fake_names = fake_names + [f"help_{cmd_name}" for cmd_name, cmd in self.commands.items()
+                                   if cmd_name == cmd.names[0]]
         return fake_names + super().get_names()
 
     @property

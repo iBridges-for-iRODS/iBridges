@@ -2,6 +2,7 @@
 import argparse
 import sys
 from pathlib import Path
+import traceback
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
@@ -30,7 +31,13 @@ class CliShell(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Run the shell from the command line."""
-        IBridgesShell().cmdloop()
+        try:
+            IBridgesShell().cmdloop()
+        except Exception as exc:
+            # print(exc.message)
+            # cls.get_parser().error(exc)
+            traceback.print_exception(exc)
+            cls.run_command(args)
 
 class CliAlias(BaseCliCommand):
     """Subcommand to manage aliases for CLI."""

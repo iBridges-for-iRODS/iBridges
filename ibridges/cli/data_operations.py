@@ -6,6 +6,7 @@ from typing import Literal, Union
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.data_operations import download, sync, upload
+from ibridges.exception import DoesNotExistError, NotACollectionError
 from ibridges.path import IrodsPath
 
 
@@ -138,19 +139,21 @@ class CliDownload(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Download the data object or collection."""
-        print(args.local_path)
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
         metadata = _get_metadata_path(args, ipath, lpath, "download")
-        ops = download(
-            session,
-            ipath,
-            lpath,
-            overwrite=args.overwrite,
-            resc_name=args.resource,
-            dry_run=args.dry_run,
-            metadata=metadata,
-        )
+        try:
+            ops = download(
+                session,
+                ipath,
+                lpath,
+                overwrite=args.overwrite,
+                resc_name=args.resource,
+                dry_run=args.dry_run,
+                metadata=metadata,
+            )
+        except DoesNotExistError as exc:
+            parser.error(str(exc))
         if args.dry_run:
             ops.print_summary()
 
@@ -210,15 +213,20 @@ class CliUpload(BaseCliCommand):
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
-        ops = upload(
-            session,
-            lpath,
-            ipath,
-            overwrite=args.overwrite,
-            resc_name=args.resource,
-            dry_run=args.dry_run,
-            metadata=metadata,
-        )
+        try:
+            ops = upload(
+                session,
+                lpath,
+                ipath,
+                overwrite=args.overwrite,
+                resc_name=args.resource,
+                dry_run=args.dry_run,
+                metadata=metadata,
+            )
+        except FileNotFoundError as exc:
+            parser.error(exc)
+            return
+
         if args.dry_run:
             ops.print_summary()
 
@@ -278,12 +286,16 @@ class CliSync(BaseCliCommand):
             parser.error("Please provide as the source and destination exactly one local path,"
                          " and one remote path.")
             return
-        ops = sync(
-            session,
-            src_path,
-            dest_path,
-            dry_run=args.dry_run,
-            metadata=metadata,
-        )
+        try:
+            ops = sync(
+                session,
+                src_path,
+                dest_path,
+                dry_run=args.dry_run,
+                metadata=metadata,
+            )
+        except (FileNotFoundError, NotACollectionError, NotADirectoryError, DoesNotExistError) as exc:
+            parser.error(exc)
+            return
         if args.dry_run:
             ops.print_summary()
