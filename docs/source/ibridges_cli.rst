@@ -131,6 +131,30 @@ To delete an alias, use:
     ibridges alias --delete env1
 
 
+The iBridges shell
+------------------
+
+After setting up the connection to your iRODS server, you can use the iBridges CLI directly as will
+be shown below. There is also another way, which is by using the :code:`ibridges shell` command.
+This is a subshell, where instead of typing for example :code:`ibridges ls`, you would type :code:`ls`.
+Apart from that, the commands do basically the same as in the CLI. Advantages of using the shell instead
+of the CLI are:
+
+- Autocompletion of remote and local paths: use the :code:`TAB` key to complete the path. Unfortunately, this is not available on Windows.
+- Short commands such as :code:`ls` are much faster, since the session can be maintained between commands.
+- You can look through your iBridges shell history with :code:`up` and :code:`down` key.
+- You don't have to type :code:`ibridges` for every command.
+
+More tips and tricks:
+
+- The command :code:`cd` in the :code:`shell` has no effect on the CLI, but the CLI does affect your starting collection in the :code:`shell`.
+- Type :code:`?` and :code:`?command` for help on how to use a command.
+- Type :code:`!` run something in the bash/zsh shell. For example :code:`!cd some_dir` and :code:`!ls` can be very useful to navigate locally.
+- Type :code:`ctrl+d`, :code:`ctrl+c` or :code:`quit` to quit the shell.
+- Similarly to the normal shell, use quotes (:code:`''` or :code:`""`) for locations with spaces: :code:`ls "some col with spaces"`.
+- The :code:`shell`, :code:`alias`, :code:`init` and :code:`setup` commands are not available.
+
+
 Navigation
 ----------
 
@@ -268,6 +292,27 @@ that are missing or have a different checksum (content).
     The order of the directory/collection that you supply to :code:`ibridges sync` matters. The first argument is the `source`
     directory/collection, while the second argument is the `destination` directory/collection. Transfers will only happen
     from `source` to `destination`, so extra or updated files in the `destination` directory will not be transferred.
+
+
+Removing data
+-------------
+
+You can remove data objects and collections with the :code:`ibridges rm` command:
+
+.. code:: shell
+
+    ibridges rm irods:some_data_object
+
+.. warning::
+
+    Needless to say, removing data has the potential of data loss. Be careful to check the path before you remove anything.
+
+Collections with underlying subcollections and data objects can also be removed, but similarly to the Unix `rm` you will have to
+supply the `-r` flag for recursive removal:
+
+.. code:: shell
+
+    ibridges rm -r irods:some_collection
 
 
 Searching for data
