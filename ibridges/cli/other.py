@@ -32,8 +32,8 @@ class CliShell(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Run the shell from the command line."""
+        start = time.time()
         try:
-            start = time.time()
             IBridgesShell().cmdloop()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             traceback.print_exception(exc)

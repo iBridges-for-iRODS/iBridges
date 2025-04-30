@@ -104,12 +104,12 @@ class IBridgesShell(cmd.Cmd):
         """Close the session."""
         self.session.close()
         try:
-            import readline
+            import readline  # pylint: disable=import-outside-toplevel
             IBSHELL_HISTORY_FILE.parent.mkdir(exist_ok=True, parents=True)
             readline.write_history_file(IBSHELL_HISTORY_FILE)
         except ImportError:
             pass
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())
 
     def _wrap_complete(self, command_class):
