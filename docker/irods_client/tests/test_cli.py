@@ -240,9 +240,10 @@ def test_shell(pass_opts):
                    capture_output=True)
 
 
-def test_rm(pass_opts, testdata, session):
+def test_rm(pass_opts, testdata, session, irods_env_file):
     if IrodsPath(session, "rm_test").exists():
         IrodsPath(session, "rm_test").remove()
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts, capture_output=True)
     subprocess.run(["ibridges", "mkcoll", "rm_test"], **pass_opts, capture_output=True)
     subprocess.run(["ibridges", "upload", str(testdata), "irods:rm_test"], **pass_opts)
     assert IrodsPath(session, "rm_test").exists()
