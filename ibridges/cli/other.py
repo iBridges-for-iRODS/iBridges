@@ -1,6 +1,7 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
 import sys
+import time
 import traceback
 from pathlib import Path
 
@@ -32,10 +33,12 @@ class CliShell(BaseCliCommand):
     def run_command(cls, args):
         """Run the shell from the command line."""
         try:
+            start = time.time()
             IBridgesShell().cmdloop()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             traceback.print_exception(exc)
-            cls.run_command(args)
+            if time.time() - start > 2:
+                cls.run_command(args)
         except KeyboardInterrupt:
             pass
 

@@ -2,7 +2,9 @@
 import cmd
 import os
 import subprocess
+import traceback
 from pathlib import Path
+import sys
 
 try:
     from importlib_metadata import entry_points
@@ -18,7 +20,7 @@ from ibridges.path import IrodsPath
 ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
                       CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
                       CliUpload, CliSearch, CliCd, CliRm, CliSync]
-
+IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
 class IBridgesShell(cmd.Cmd):
     """Command class implementation for iBridges."""
@@ -31,6 +33,9 @@ class IBridgesShell(cmd.Cmd):
         try:
             import readline  # pylint: disable=import-outside-toplevel
             readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
+            if IBSHELL_HISTORY_FILE.is_file():
+                readline.read_history_file(IBSHELL_HISTORY_FILE)
+            readline.set_history_length(1000)
         except ImportError:
             pass
         self.session = cli_authenticate(None)
@@ -98,6 +103,14 @@ class IBridgesShell(cmd.Cmd):
     def close(self):
         """Close the session."""
         self.session.close()
+        try:
+            import readline
+            IBSHELL_HISTORY_FILE.parent.mkdir(exist_ok=True, parents=True)
+            readline.write_history_file(IBSHELL_HISTORY_FILE)
+        except ImportError:
+            pass
+        except Exception:
+            traceback.print_exception(*sys.exc_info())
 
     def _wrap_complete(self, command_class):
         def _wrap(*args):
@@ -153,11 +166,11 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     cur_pos = 0
     cur_quote = None
     while cur_pos < len(args):
-        if args[cur_pos:].startswith("\\ "):
+        if args[cur_pos:cur_pos+2] in ["\\ ", "\\'", '\\"']:
             if unescape:
-                split_args[-1] += " "
+                split_args[-1] += args[cur_pos+1]
             else:
-                split_args[-1] += "\\ "
+                split_args[-1] += args[cur_pos:cur_pos+2]
             cur_pos += 1
         elif args[cur_pos] == " " and cur_quote is None:
             split_args.append("")
