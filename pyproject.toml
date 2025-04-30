@@ -54,6 +54,7 @@ docs = [
     "sphinx-autodoc-typehints",
     "sphinx_inline_tabs",
     "sphinx_copybutton",
+    "sphinx-argparse"
 ]
 
 [project.scripts]

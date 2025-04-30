@@ -22,7 +22,7 @@ release = '1.3.0'
 
 extensions = ['sphinx.ext.napoleon', "sphinx.ext.autodoc", "sphinx_autodoc_typehints",
               'sphinx_rtd_theme', "sphinx_inline_tabs", "sphinx_copybutton",
-              "sphinx.ext.autosummary"]
+              "sphinx.ext.autosummary", "sphinxarg.ext"]
 
 templates_path = ['_templates']
 exclude_patterns = []
