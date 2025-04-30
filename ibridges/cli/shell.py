@@ -2,9 +2,9 @@
 import cmd
 import os
 import subprocess
+import sys
 import traceback
 from pathlib import Path
-import sys
 
 try:
     from importlib_metadata import entry_points
@@ -110,7 +110,7 @@ class IBridgesShell(cmd.Cmd):
         except ImportError:
             pass
         except Exception:  # pylint: disable=broad-exception-caught
-            traceback.print_exception(*sys.exc_info())
+            traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
 
     def _wrap_complete(self, command_class):
         def _wrap(*args):

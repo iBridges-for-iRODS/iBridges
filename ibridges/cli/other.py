@@ -35,8 +35,8 @@ class CliShell(BaseCliCommand):
         start = time.time()
         try:
             IBridgesShell().cmdloop()
-        except Exception as exc:  # pylint: disable=broad-exception-caught
-            traceback.print_exception(exc)
+        except Exception:  # pylint: disable=broad-exception-caught
+            traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:
                 cls.run_command(args)
         except KeyboardInterrupt:
