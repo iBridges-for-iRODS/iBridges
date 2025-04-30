@@ -22,7 +22,7 @@ def pass_opts(config):
             or config.get("has_cached_pw", False)):
         pass_opts = {}
     else:
-        pass_opts = {"input": config["password"]}
+        pass_opts = {"input": config["password"]+"\n"}
     pass_opts["text"] = True
     pass_opts["check"] = True
     return pass_opts
@@ -233,7 +233,10 @@ def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
     # assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
 
 def test_shell(pass_opts):
-    subprocess.run(["ibridges", "shell"], **pass_opts, input="?\n?ls\n!ls\n!cd\nls\nquit\n",
+    input_str = pass_opts.get("input", "")
+    input_str += "\n?\n?ls\n!ls\n!cd\nls\nquit\n"
+    new_pass_opts = {k: v for k, v in pass_opts.items() if k != "input"}
+    subprocess.run(["ibridges", "shell"], **new_pass_opts, input=input_str,
                    capture_output=True)
 
 
