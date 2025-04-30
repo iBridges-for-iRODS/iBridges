@@ -231,3 +231,15 @@ def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
 
     # ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
     # assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
+
+def test_shell(pass_opts):
+    subprocess.run(["ibridges", "shell"], **pass_opts, input="?\n?ls\n!ls\n!cd\nls\nquit\n",
+                   capture_output=True)
+
+
+def test_rm(pass_opts, testdata, session):
+    subprocess.run(["ibridges", "mkcoll", "rm_test"], **pass_opts)
+    subprocess.run(["ibridges", "upload", str(testdata), "irods:rm_test"], **pass_opts)
+    assert IrodsPath(session, "rm_test").exists()
+    subprocess.run(["ibridges", "rm", "-r", "rm_test"], **pass_opts)
+    assert not IrodsPath(session, "rm_test").exists()
