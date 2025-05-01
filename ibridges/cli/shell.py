@@ -234,7 +234,7 @@ def complete_ipath(session, text, line, collections_only=False):
     last_part = base_path.parts[-1]
     base_path = IrodsPath(session, *base_path.parts[:-1])
     completions = []
-    for ipath in base_path.walk(depth=1):
+    for ipath in base_path.walk(depth=1, include_base_collection=False):
         if str(ipath) == base_path:
             continue
         if ipath.name.startswith(last_part) and not (

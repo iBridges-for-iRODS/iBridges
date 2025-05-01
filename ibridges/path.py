@@ -446,7 +446,8 @@ class IrodsPath:
             self.session.irods_session.data_objects.create(str(self))
         return self.dataobject.open(mode=mode, **kwargs)
 
-    def walk(self, depth: Optional[int] = None) -> Iterable[IrodsPath]:
+    def walk(self, depth: Optional[int] = None,
+             include_base_collection: bool = True) -> Iterable[IrodsPath]:
         """Walk on a collection.
 
         This iterates over all collections and data object for the path. If the
@@ -486,7 +487,8 @@ class IrodsPath:
         sub_collections: dict[str, list[IrodsPath]] = defaultdict(list)
         for cur_col in all_collections:
             sub_collections[str(cur_col.parent)].append(cur_col)
-        yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth)
+        yield from _recursive_walk(self, sub_collections, all_data_objects, self, 0, depth,
+                                   include_base_collection)
 
     def relative_to(self, other: IrodsPath) -> PurePosixPath:
         """Calculate the relative path compared to our path.
@@ -589,13 +591,15 @@ class IrodsPath:
 
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
-                    depth: int, max_depth: Optional[int]):
-    yield cur_col
+                    depth: int, max_depth: Optional[int], include_base_collection: bool):
+    if include_base_collection or depth > 0:
+        yield cur_col
     if max_depth is not None and depth >= max_depth:
         return
     for sub_col in sub_collections[str(cur_col)]:
         yield from _recursive_walk(
-            sub_col, sub_collections, all_dataobjects, start_col, depth + 1, max_depth
+            sub_col, sub_collections, all_dataobjects, start_col, depth + 1, max_depth,
+            include_base_collection
         )
     yield from sorted(all_dataobjects[str(cur_col)], key=str)
 
