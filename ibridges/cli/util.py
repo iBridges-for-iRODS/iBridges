@@ -33,8 +33,10 @@ def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = F
     if remote_path.collection_exists():
         print(str(remote_path) + ":")
         if metadata:
-            print(remote_path.meta)
-            print()
+            meta_str = str(remote_path.meta)
+            if len(meta_str) > 0:
+                print(str(remote_path.meta))
+                print()
         coll = get_collection(session, remote_path)
         for data_obj in coll.data_objects:
             print("  " + data_obj.path)
