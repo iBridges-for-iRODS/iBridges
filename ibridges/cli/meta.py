@@ -77,6 +77,8 @@ class CliMetaAdd(BaseCliCommand):
             ipath.meta.add(args.key, args.value, args.units)
         except DoesNotExistError:
             parser.error(f"Cannot add metadata: {ipath} does not exist.")
+        except (ValueError, PermissionError) as exc:
+            parser.error(str(exc))
 
 
 class CliMetaDel(BaseCliCommand):
@@ -135,4 +137,8 @@ class CliMetaDel(BaseCliCommand):
                             " are you sure? [y/n]")
             if answer.lower() != "y":
                 return
-        meta.delete(args.key, args.value, args.units)
+        try:
+            meta.delete(args.key, args.value, args.units)
+        except (KeyError, PermissionError) as exc:
+            parser.error(str(exc))
+

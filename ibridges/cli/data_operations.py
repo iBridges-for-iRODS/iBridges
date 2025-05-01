@@ -6,7 +6,7 @@ from typing import Literal, Union
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.data_operations import download, sync, upload
-from ibridges.exception import DoesNotExistError, NotACollectionError
+from ibridges.exception import DataObjectExistsError, DoesNotExistError, NotACollectionError, CollectionDoesNotExistError
 from ibridges.path import IrodsPath
 
 
@@ -152,7 +152,7 @@ class CliDownload(BaseCliCommand):
                 dry_run=args.dry_run,
                 metadata=metadata,
             )
-        except DoesNotExistError as exc:
+        except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
             parser.error(str(exc))
         if args.dry_run:
             ops.print_summary()
@@ -223,7 +223,7 @@ class CliUpload(BaseCliCommand):
                 dry_run=args.dry_run,
                 metadata=metadata,
             )
-        except FileNotFoundError as exc:
+        except (FileNotFoundError, PermissionError, DataObjectExistsError) as exc:
             parser.error(exc)
             return
 
@@ -294,8 +294,7 @@ class CliSync(BaseCliCommand):
                 dry_run=args.dry_run,
                 metadata=metadata,
             )
-        except (FileNotFoundError, NotACollectionError, NotADirectoryError,
-                DoesNotExistError) as exc:
+        except (CollectionDoesNotExistError, NotACollectionError, NotADirectoryError) as exc:
             parser.error(exc)
             return
         if args.dry_run:
