@@ -141,4 +141,3 @@ class CliMetaDel(BaseCliCommand):
             meta.delete(args.key, args.value, args.units)
         except (KeyError, PermissionError) as exc:
             parser.error(str(exc))
-

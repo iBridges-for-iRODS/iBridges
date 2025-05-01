@@ -6,7 +6,12 @@ from typing import Literal, Union
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.data_operations import download, sync, upload
-from ibridges.exception import DataObjectExistsError, DoesNotExistError, NotACollectionError, CollectionDoesNotExistError
+from ibridges.exception import (
+    CollectionDoesNotExistError,
+    DataObjectExistsError,
+    DoesNotExistError,
+    NotACollectionError,
+)
 from ibridges.path import IrodsPath
 
 
