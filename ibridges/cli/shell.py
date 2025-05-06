@@ -243,7 +243,10 @@ def complete_ipath(session, text, line, collections_only=False):
         if (ipath.name.startswith(last_part)
                 and not ipath.name == last_part
                 and not (collections_only and not ipath.collection_exists())):
-            completions.append(text + _escape(ipath.name[len(last_part):]))
+            compl = text + _escape(ipath.name[len(last_part):])
+            if ipath.collection_exists():
+                compl += "/"
+            completions.append(compl)
 
     all_completions = list(set(base_completion + completions))
 
