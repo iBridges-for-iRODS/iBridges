@@ -257,13 +257,8 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
     return all_completions
 
 def _find_paths(base_path, directories_only):
-    # all_paths = []
     all_paths = [p for p in base_path.iterdir() if not (directories_only and not p.is_dir())]
     all_paths = [p.name + os.sep if p.is_dir() else p.name for p in all_paths]
-    # for path in base_path.iterdir():
-        # if directories_only and not path.is_dir():
-            # continue
-        # all_paths.append(path.name)
     return all_paths
 
 
