@@ -190,12 +190,14 @@ def _prepare_args(args, add_last_space=False, unescape=True):
 def _filter(ipaths, collections_only, base_path, add_prefix=False):
     ipaths = [p for p in ipaths if str(p) != str(base_path)]
     if collections_only:
-        col_names = [p.name for p in ipaths if p.collection_exists()]
-    else:
-        col_names = [p.name for p in ipaths]
+        ipaths = [p for p in ipaths if p.collection_exists()]
+    names = [p.name + "/" if p.collection_exists() else p.name for p in ipaths]
+        # col_names = [p.name for p in ipaths if p.collection_exists()]
+    # else:
+        # col_names = [p.name for p in ipaths]
     if add_prefix:
-        return [f"irods:{c}" for c in col_names]
-    return col_names
+        return [f"irods:{c}" for c in names]
+    return names
 
 
 def complete_ipath(session, text, line, collections_only=False):
@@ -203,6 +205,7 @@ def complete_ipath(session, text, line, collections_only=False):
     args = _prepare_args(line, unescape=False)[1:]
     args = [x for x in args if not x.startswith("-")]
 
+    # When nothing has been completed yet.
     if len(args) == 0 or args[-1] == "":
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session)))
@@ -215,11 +218,10 @@ def complete_ipath(session, text, line, collections_only=False):
         else:
             base_arg = args[-1][len("irods:"):]
 
-    # When nothing has been completed yet.
+    # In case of matching "irods:"
     if len(base_arg) == 0:
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session), add_prefix=False))
-
 
     # Add collections to the list
     base_path = IrodsPath(session, _unescape(base_arg))
