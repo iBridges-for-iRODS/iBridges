@@ -459,6 +459,9 @@ class IrodsPath:
             The maximum depth relative to the starting collection over which is walked.
             For example if depth equals 1, then it will iterate only over the subcollections
             and data objects directly under the starting collection.
+        include_base_collection:
+            Whether to yield the collection to be walked over or not. By default this is True,
+            conforming to the os.path.walk behavior.
 
         Returns
         -------
