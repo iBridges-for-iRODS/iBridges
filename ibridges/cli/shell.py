@@ -200,7 +200,7 @@ def _filter(ipaths, collections_only, base_path, add_prefix=False):
     return names
 
 
-def complete_ipath(session, text, line, collections_only=False):
+def complete_ipath(session, text, line, collections_only=False):  # pylint: disable=too-many-branches
     """Complete an IrodsPath."""
     args = _prepare_args(line, unescape=False)[1:]
     args = [x for x in args if not x.startswith("-")]
@@ -257,11 +257,13 @@ def complete_ipath(session, text, line, collections_only=False):
     return all_completions
 
 def _find_paths(base_path, directories_only):
-    all_paths = []
-    for path in base_path.iterdir():
-        if directories_only and not path.is_dir():
-            continue
-        all_paths.append(path.name)
+    # all_paths = []
+    all_paths = [p for p in base_path.iterdir() if not (directories_only and not p.is_dir())]
+    all_paths = [p.name + "/" if p.is_dir() else p.name for p in all_paths]
+    # for path in base_path.iterdir():
+        # if directories_only and not path.is_dir():
+            # continue
+        # all_paths.append(path.name)
     return all_paths
 
 
@@ -270,20 +272,20 @@ def complete_lpath(text, line, directories_only=False):
     args = _prepare_args(line, unescape=False)[1:]
     args = [x for x in args if not x.startswith("-")]
 
+    # If nothing has been typed yet
     if len(args) == 0:
         return _escape(_find_paths(Path.cwd(), directories_only))
 
     base_path = Path(args[-1])
+    base_completion = []
     if base_path.is_dir():
         if line.endswith("/"):
-            prefix = text
-        else:
-            prefix = f"{text}/"
-        path_list = _find_paths(base_path, directories_only)
-        return [f"{prefix}{_escape(ipath)}" for ipath in path_list]
+            path_list = _find_paths(base_path, directories_only)
+            return [f"{text}{_escape(ipath)}" for ipath in path_list]
+        base_completion.append(f"{text}/")
 
     if base_path.is_file():
-        return []
+        base_completion.append(text)
 
     last_part = base_path.name
     parent_path = base_path.parent
@@ -291,9 +293,15 @@ def complete_lpath(text, line, directories_only=False):
     path_list = _find_paths(parent_path, directories_only)
     for lpath_str in path_list:
         lpath = parent_path / lpath_str
-        if lpath_str.startswith(last_part) and not (
-                directories_only and not lpath.is_dir()):
+        if (lpath_str.startswith(last_part)
+                and not lpath.name == last_part
+                and not (directories_only and not lpath.is_dir())):
             completions.append(text + _escape(lpath_str[len(last_part):]))
+
+    all_completions = list(set(base_completion + completions))
+    if len(all_completions) == 1 and all_completions[0] == text:
+        return []
+
     return completions
 
 
