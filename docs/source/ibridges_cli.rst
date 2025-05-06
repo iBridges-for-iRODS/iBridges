@@ -131,6 +131,8 @@ To delete an alias, use:
     ibridges alias --delete env1
 
 
+.. _ibridges shell:
+
 The iBridges shell
 ------------------
 
@@ -462,3 +464,13 @@ collection or data object with:
 
 You will be asked to confirm this operation.
 
+
+Plugins
+-------
+
+The iBridges CLI is modular: users and developers can create their own sub commands so that
+they can be used inside the CLI with :code:`ibridges {new_command}` or inside the :ref:`shell <ibridges shell>`
+with :code:`{new_command}`.
+Since this feature is relatively new, there are currently no plugins available, but an example can be found on
+`GitHub <https://github.com/iBridges-for-iRODS/ibridges-cli-plugin-example>`__. If you have created a plugin that
+has general use, contact and we will list it here.
