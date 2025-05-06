@@ -297,7 +297,7 @@ def complete_lpath(text, line, directories_only=False):
     if len(all_completions) == 1 and all_completions[0] == text:
         return []
 
-    return completions
+    return all_completions
 
 
 def get_all_shell_commands():
