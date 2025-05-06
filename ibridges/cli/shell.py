@@ -215,32 +215,41 @@ def complete_ipath(session, text, line, collections_only=False):
         else:
             base_arg = args[-1][len("irods:"):]
 
+    # When nothing has been completed yet.
     if len(base_arg) == 0:
         ipath_list = list(IrodsPath(session).walk(depth=1))
         return _escape(_filter(ipath_list, collections_only, IrodsPath(session), add_prefix=False))
 
-    base_path = IrodsPath(session, base_arg)
+
+    # Add collections to the list
+    base_path = IrodsPath(session, _unescape(base_arg))
     if base_path.collection_exists():
         if line.endswith("/"):
-            prefix = text
-        else:
-            prefix = f"{text}/"
-        path_list = _filter(base_path.walk(depth=1), collections_only, base_path)
-        return base_completion + [f"{prefix}{_escape(ipath)}" for ipath in path_list]
+            path_list = _filter(base_path.walk(depth=1), collections_only, base_path)
+            return [f"{text}{_escape(ipath)}" for ipath in path_list]
+        base_completion.append(f"{text}/")
 
+    # Add data objects to the list
     if base_path.dataobject_exists():
-        return base_completion
+        base_completion.append(text)
 
+    # Add partial data object and collections to the list.
     last_part = base_path.parts[-1]
     base_path = IrodsPath(session, *base_path.parts[:-1])
     completions = []
     for ipath in base_path.walk(depth=1, include_base_collection=False):
-        if str(ipath) == base_path:
+        if str(ipath) == base_path or base_arg.endswith("/"):
             continue
-        if ipath.name.startswith(last_part) and not (
-                collections_only and not ipath.collection_exists()):
+        if (ipath.name.startswith(last_part)
+                and not ipath.name == last_part
+                and not (collections_only and not ipath.collection_exists())):
             completions.append(text + _escape(ipath.name[len(last_part):]))
-    return base_completion + completions
+
+    all_completions = list(set(base_completion + completions))
+
+    if len(all_completions) == 1 and all_completions[0] == text:
+        return []
+    return all_completions
 
 def _find_paths(base_path, directories_only):
     all_paths = []
