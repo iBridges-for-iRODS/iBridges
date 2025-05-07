@@ -50,12 +50,9 @@ class CliList(BaseCliCommand):
     def run_shell(session, parser, args):
         """List a collection on an iRODS server."""
         ipath =  parse_remote(args.remote_coll, session)
-        # ipath = IrodsPath(session, args.remote_coll)
         try:
             if args.long:
-                for cur_path in ipath.walk(depth=1):
-                    if str(cur_path) == str(ipath):
-                        continue
+                for cur_path in ipath.walk(depth=1, include_base_collection=False):
                     if cur_path.collection_exists():
                         print(f"C- {cur_path.name}")
                     else:

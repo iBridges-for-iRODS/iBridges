@@ -38,11 +38,8 @@ def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = F
                 print(str(remote_path.meta))
                 print()
         coll = get_collection(session, remote_path)
-        for data_obj in coll.data_objects:
-            print("  " + data_obj.path)
-            if metadata and len((remote_path / data_obj.name).meta) > 0:
-                print((remote_path / data_obj.name).meta)
-                print()
+
+        # List collections
         for sub_coll in coll.subcollections:
             if str(remote_path) == sub_coll.path:
                 continue
@@ -50,6 +47,14 @@ def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = F
             if metadata and len((remote_path / sub_coll.name).meta) > 0:
                 print((remote_path / sub_coll.name).meta)
                 print()
+
+        # List data objects
+        for data_obj in coll.data_objects:
+            print("  " + data_obj.path)
+            if metadata and len((remote_path / data_obj.name).meta) > 0:
+                print((remote_path / data_obj.name).meta)
+                print()
+
     elif remote_path.dataobject_exists():
         print(remote_path)
     else:
