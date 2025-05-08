@@ -15,14 +15,14 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'iBridges'
 copyright = '2024, 2025, Utrecht University'
 author = 'Christine Staiger, Raoul Schram'
-release = '1.3.0'
+release = '1.5.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = ['sphinx.ext.napoleon', "sphinx.ext.autodoc", "sphinx_autodoc_typehints",
               'sphinx_rtd_theme', "sphinx_inline_tabs", "sphinx_copybutton",
-              "sphinx.ext.autosummary"]
+              "sphinx.ext.autosummary", "sphinxarg.ext"]
 
 templates_path = ['_templates']
 exclude_patterns = []

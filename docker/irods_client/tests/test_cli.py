@@ -22,7 +22,7 @@ def pass_opts(config):
             or config.get("has_cached_pw", False)):
         pass_opts = {}
     else:
-        pass_opts = {"input": config["password"]}
+        pass_opts = {"input": config["password"]+"\n"}
     pass_opts["text"] = True
     pass_opts["check"] = True
     return pass_opts
@@ -231,3 +231,21 @@ def test_aliases(pass_opts, irods_env_file, tmpdir, collection, session):
 
     # ret = subprocess.run(["ibridges", "pwd"], **pass_opts, capture_output=True)
     # assert ret.stdout.strip("\n").split("/")[-1] == base_path.name
+
+def test_shell(pass_opts):
+    input_str = pass_opts.get("input", "")
+    input_str += "\n?\n?ls\n!ls\n!cd\nls\nquit\n"
+    new_pass_opts = {k: v for k, v in pass_opts.items() if k != "input"}
+    subprocess.run(["ibridges", "shell"], **new_pass_opts, input=input_str,
+                   capture_output=True)
+
+
+def test_rm(pass_opts, testdata, session, irods_env_file):
+    if IrodsPath(session, "rm_test").exists():
+        IrodsPath(session, "rm_test").remove()
+    subprocess.run(["ibridges", "init", irods_env_file], **pass_opts, capture_output=True)
+    subprocess.run(["ibridges", "mkcoll", "rm_test"], **pass_opts, capture_output=True)
+    subprocess.run(["ibridges", "upload", str(testdata), "irods:rm_test"], **pass_opts)
+    assert IrodsPath(session, "rm_test").exists()
+    subprocess.run(["ibridges", "rm", "-r", "rm_test"], **pass_opts)
+    assert not IrodsPath(session, "rm_test").exists()
