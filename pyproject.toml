@@ -54,10 +54,14 @@ docs = [
     "sphinx-autodoc-typehints",
     "sphinx_inline_tabs",
     "sphinx_copybutton",
+    "sphinx-argparse"
 ]
 
 [project.scripts]
-ibridges = "ibridges.__main__:main"
+ibridges = "ibridges.cli.__main__:main"
+
+[project.entry-points."ibridges.shell"]
+builtin = "ibridges.cli.shell:ALL_BUILTIN_COMMANDS"
 
 [tool.setuptools]
 packages = ["ibridges"]
@@ -83,7 +87,7 @@ good-names=["e", "f", "m"]
 max-line-length=100
 max-locals=35
 max-args=11
-max-positional-arguments=11
+max-positional-arguments=11  # pylint: disable=unrecognized-option
 
 # [tool.pylint.'MESSAGES CONTROL']
 # disable="too-many-positional-arguments"

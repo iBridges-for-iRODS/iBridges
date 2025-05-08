@@ -35,7 +35,7 @@ defined with respect to the session :ref:`home <session home>`. The session home
     home = IrodsPath(session, '~')
     print(home)
 
-Another form or relative path is defined with respect to the session :ref:`working collection <session_cwd>`.
+Another form or relative path is defined with respect to the session :ref:`working collection <session cwd>`.
 This is denoted by the :code:`.` symbol or the absence of the :code:`/` or :code:`.`:
 
 .. code-block:: python
