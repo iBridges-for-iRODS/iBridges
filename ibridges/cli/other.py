@@ -1,10 +1,10 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
+import importlib.util
+import subprocess
 import sys
 import time
 import traceback
-import subprocess
-import importlib.util
 from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
