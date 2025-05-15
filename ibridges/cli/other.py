@@ -237,7 +237,7 @@ class CliGui(BaseCliCommand):
     def run_command(cls, args):
         """Start the GUI."""
         try:
-            import ibridgesgui # pylint: disable=C0415, W0611
+            import ibridgesgui # pylint: disable=C0415, W0611 # type: ignore
             print("'ibridgesgui' is installed")
         except ModuleNotFoundError:
             print("'ibridgesgui' is not installed. Please install with:")
