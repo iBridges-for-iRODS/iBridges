@@ -236,10 +236,8 @@ class CliGui(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Start the GUI."""
-        parser = cls.get_parser(argparse.ArgumentParser)
-        #IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
         try:
-            import ibridgesgui
+            import ibridgesgui # pylint: disable=C0415, W0611
             print("'ibridgesgui' is installed")
         except ModuleNotFoundError:
             print("'ibridgesgui' is not installed. Please install with:")
@@ -247,10 +245,5 @@ class CliGui(BaseCliCommand):
             sys.exit(234)
 
         subprocess.call(["ibridges-gui"])
-        #with cli_authenticate(parser) as session:
-        #    if not isinstance(session, Session):
-        #        parser.error(f"Irods session '{session}' is not a session.")
-        #print("ibridges init was succesful.")
-     
 
 CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
