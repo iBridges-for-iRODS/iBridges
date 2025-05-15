@@ -237,7 +237,7 @@ class CliGui(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Start the GUI."""
-        if (spec := importlib.util.find_spec("ibridgesgui")) is not None:
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
             subprocess.call(["ibridges-gui"])
         else:
             print("'ibridgesgui' is not installed. Please install with:")
