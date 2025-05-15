@@ -4,6 +4,7 @@ import sys
 import time
 import traceback
 import subprocess
+import importlib.util
 from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
@@ -236,14 +237,12 @@ class CliGui(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Start the GUI."""
-        try:
-            import ibridgesgui # pylint: disable=C0415, W0611 # type: ignore
-            print("'ibridgesgui' is installed")
-        except ModuleNotFoundError:
+        if (spec := importlib.util.find_spec("ibridgesgui")) is not None:
+            subprocess.call(["ibridges-gui"])
+        else:
             print("'ibridgesgui' is not installed. Please install with:")
             print("pip install ibridgesgui")
             sys.exit(234)
 
-        subprocess.call(["ibridges-gui"])
 
 CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
