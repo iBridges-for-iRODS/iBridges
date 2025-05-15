@@ -239,7 +239,7 @@ class CliGui(BaseCliCommand):
         parser = cls.get_parser(argparse.ArgumentParser)
 
         if (importlib.util.find_spec("ibridgesgui")) is not None:
-            from ibridgesgui.__main__ import main  # pylint: disable=E0401, C0415
+            from ibridgesgui.__main__ import main # type: ignore # pylint: disable=E0401, C0415
             main()
         else:
             parser.error("'ibridgesgui' is not installed. Please install with:")
