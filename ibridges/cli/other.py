@@ -242,8 +242,8 @@ class CliGui(BaseCliCommand):
             from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
             main()
         else:
-            parser.error("'ibridgesgui' is not installed. Please install with:")
-            parser.error("pip install ibridgesgui")
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
             sys.exit(234)
 
 
