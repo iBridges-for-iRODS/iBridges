@@ -1,7 +1,6 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
 import importlib.util
-import subprocess
 import sys
 import time
 import traceback
@@ -237,11 +236,14 @@ class CliGui(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+
         if (importlib.util.find_spec("ibridgesgui")) is not None:
-            subprocess.call(["ibridges-gui"])
+            from ibridgesgui.__main__ import main  # pylint: disable=E0401, C0415
+            main()
         else:
-            print("'ibridgesgui' is not installed. Please install with:")
-            print("pip install ibridgesgui")
+            parser.error("'ibridgesgui' is not installed. Please install with:")
+            parser.error("pip install ibridgesgui")
             sys.exit(234)
 
 
