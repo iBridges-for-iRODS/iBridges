@@ -3,6 +3,7 @@ import argparse
 import sys
 import time
 import traceback
+import subprocess
 from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
@@ -220,4 +221,36 @@ class CliSetup(BaseCliCommand):
             with open(args.output, "w", encoding="utf-8") as handle:
                 handle.write(json_str)
 
-CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
+class CliGui(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["gui"]
+    description = "Start the iBridges GUI."
+    examples = ["gui"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Run init is not available for shell."""
+        raise NotImplementedError()
+
+    @classmethod
+    def run_command(cls, args):
+        """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+        #IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
+        try:
+            import ibridgesgui
+            print("'ibridgesgui' is installed")
+        except ModuleNotFoundError:
+            print("'ibridgesgui' is not installed. Please install with:")
+            print("pip install ibridgesgui")
+            sys.exit(234)
+
+        subprocess.call(["ibridges-gui"])
+        #with cli_authenticate(parser) as session:
+        #    if not isinstance(session, Session):
+        #        parser.error(f"Irods session '{session}' is not a session.")
+        #print("ibridges init was succesful.")
+     
+
+CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
