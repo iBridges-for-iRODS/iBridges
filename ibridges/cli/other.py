@@ -1,5 +1,6 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
+import importlib.util
 import sys
 import time
 import traceback
@@ -220,4 +221,30 @@ class CliSetup(BaseCliCommand):
             with open(args.output, "w", encoding="utf-8") as handle:
                 handle.write(json_str)
 
-CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
+class CliGui(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["gui"]
+    description = "Start the iBridges GUI."
+    examples = ["gui"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Run init is not available for shell."""
+        raise NotImplementedError()
+
+    @classmethod
+    def run_command(cls, args):
+        """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            main()
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+            sys.exit(234)
+
+
+CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
