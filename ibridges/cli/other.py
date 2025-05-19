@@ -230,7 +230,7 @@ class CliGui(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
-        """Run init is not available for shell."""
+        """Running the GUI from the shell is not available (yet)."""
         raise NotImplementedError()
 
     @classmethod
