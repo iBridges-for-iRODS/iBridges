@@ -244,7 +244,6 @@ class CliGui(BaseCliCommand):
         else:
             parser.error(
                     "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
-            sys.exit(234)
 
 
 CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
