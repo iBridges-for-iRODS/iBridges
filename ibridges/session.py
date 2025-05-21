@@ -68,7 +68,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
     >>>     # Do operations with the session here.
     >>>     # The session will be automatically closed on finish/error.
 
-    """  # noqa: D403"""
+    """  # noqa: D403
 
     def __init__(
         self,

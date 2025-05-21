@@ -230,7 +230,7 @@ class CliGui(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
-        """Running the GUI from the shell is not available (yet)."""
+        """Running the GUI from the shell is not available (yet)."""  # noqa: D401
         raise NotImplementedError()
 
     @classmethod
