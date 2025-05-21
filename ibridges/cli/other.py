@@ -214,7 +214,7 @@ class CliSetup(BaseCliCommand):
             print("\n")
             print(json_str)
             return
-        elif args.output.is_dir():
+        if args.output.is_dir():
             parser.error(f"Output {args.output} is a directory, cannot export irods_environment"
                          " file.")
             sys.exit(234)
@@ -223,8 +223,7 @@ class CliSetup(BaseCliCommand):
             if not create_dir:
                 print(json_str)
                 return
-            else:
-                args.output.parent.mkdir(parents=True)
+            args.output.parent.mkdir(parents=True)
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(json_str)
 
