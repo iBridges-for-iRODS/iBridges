@@ -213,13 +213,20 @@ class CliSetup(BaseCliCommand):
             print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
             print("\n")
             print(json_str)
+            return
         elif args.output.is_dir():
             parser.error(f"Output {args.output} is a directory, cannot export irods_environment"
                          " file.")
             sys.exit(234)
-        else:
-            with open(args.output, "w", encoding="utf-8") as handle:
-                handle.write(json_str)
+        if not args.output.parent.exists():
+            create_dir = input(f"Directory {args.output.parent} does not exist. Create? [Y/n]: ")
+            if not create_dir:
+                print(json_str)
+                return
+            else:
+                args.output.parent.mkdir(parents=True)
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(json_str)
 
 class CliGui(BaseCliCommand):
     """Subcommand to open the iBridges GUI."""
