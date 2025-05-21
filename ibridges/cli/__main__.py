@@ -26,6 +26,9 @@ def create_parser():
 def main():
     """Start main function of the CLI."""
     parser = create_parser()
+    if len(sys.argv) == 1:
+        parser.print_help()
+        return
     args = parser.parse_args(sys.argv[1:])
     args.func(args)
 
