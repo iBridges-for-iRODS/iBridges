@@ -30,6 +30,8 @@ def interactive_auth(
         Password to make the connection with. If not supplied, you will be asked interactively.
     irods_env_path:
         Path to the irods environment.
+    irodsa_backup:
+        Backup of the .irodsA file to be used in case authentication fails.
     kwargs:
         Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
