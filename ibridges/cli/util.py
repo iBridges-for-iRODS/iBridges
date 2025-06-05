@@ -18,7 +18,8 @@ def cli_authenticate(parser):
 
     if not Path(ienv_path).exists():
         parser.error(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
-    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
+    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd,
+                               irodsa_backup=ienv_entry.get("irodsa_backup", None))
 
     with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
         irodsa_content = handle.read()
