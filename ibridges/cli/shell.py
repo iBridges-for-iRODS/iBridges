@@ -48,9 +48,12 @@ class IBridgesShell(cmd.Cmd):
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""
         # cd command doesn't work properly with subprocess, so use Python chdir.
-        if arg.startswith("cd "):
+        if arg.startswith("cd ") or arg == "cd":
             try:
-                os.chdir(arg[3:])
+                new_dir = arg[3:].strip()
+                if len(new_dir) == 0:
+                    new_dir = Path.home()
+                os.chdir(Path(new_dir).expanduser())
             except NotADirectoryError:
                 print(f"Error: {arg[3:]} is not a directory.")
             except FileNotFoundError:
