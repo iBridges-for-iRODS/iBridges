@@ -14,6 +14,7 @@ DEFAULT_IRODSA_PATH = Path.home() / ".irods" / ".irodsA"
 
 def interactive_auth(
     password: Optional[str] = None, irods_env_path: Union[None, str, Path] = None,
+    irodsa_backup: Optional[str] = None,
     **kwargs
 ) -> Session:
     """Interactive authentication with iRODS server.
@@ -29,6 +30,8 @@ def interactive_auth(
         Password to make the connection with. If not supplied, you will be asked interactively.
     irods_env_path:
         Path to the irods environment.
+    irodsa_backup:
+        Backup of the .irodsA file to be used in case authentication fails.
     kwargs:
         Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
@@ -52,7 +55,7 @@ def interactive_auth(
 
     session = None
     if DEFAULT_IRODSA_PATH.is_file() and password is None:
-        session = _from_pw_file(irods_env_path, **kwargs)
+        session = _from_pw_file(irods_env_path, irodsa_backup=irodsa_backup, **kwargs)
 
     if password is not None:
         session = _from_password(irods_env_path, password, **kwargs)
@@ -81,14 +84,22 @@ def interactive_auth(
     raise LoginError("Connection to iRODS could not be established.")
 
 
-def _from_pw_file(irods_env_path, **kwargs):
+def _from_pw_file(irods_env_path, irodsa_backup: Optional[str] = None, **kwargs):
     try:
         session = Session(irods_env_path, **kwargs)
         return session
     except IndexError:
         print("INFO: The cached password in ~/.irods/.irodsA has been corrupted")
     except PasswordError:
-        print("INFO: The cached password in ~/.irods/.irodsA is wrong.")
+        print(irodsa_backup)
+        if irodsa_backup is not None:
+            with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
+                handle.write(irodsa_backup)
+            try:
+                session = Session(irods_env_path, **kwargs)
+                return session
+            except PasswordError:
+                print("INFO: The cached password in ~/.irods/.irodsA is wrong.")
     return None
 
 

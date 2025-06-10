@@ -1,5 +1,6 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
+import importlib.util
 import sys
 import time
 import traceback
@@ -212,12 +213,43 @@ class CliSetup(BaseCliCommand):
             print(f"File {args.output} already exists, use --overwrite or copy the below manually.")
             print("\n")
             print(json_str)
-        elif args.output.is_dir():
+            return
+        if args.output.is_dir():
             parser.error(f"Output {args.output} is a directory, cannot export irods_environment"
                          " file.")
             sys.exit(234)
-        else:
-            with open(args.output, "w", encoding="utf-8") as handle:
-                handle.write(json_str)
+        if not args.output.parent.exists():
+            create_dir = input(f"Directory {args.output.parent} does not exist. Create? [Y/n]: ")
+            if not create_dir:
+                print(json_str)
+                return
+            args.output.parent.mkdir(parents=True)
+        with open(args.output, "w", encoding="utf-8") as handle:
+            handle.write(json_str)
 
-CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
+class CliGui(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["gui"]
+    description = "Start the iBridges GUI."
+    examples = ["gui"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Running the GUI from the shell is not available (yet)."""  # noqa: D401
+        raise NotImplementedError()
+
+    @classmethod
+    def run_command(cls, args):
+        """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            main()
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+
+
+CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]

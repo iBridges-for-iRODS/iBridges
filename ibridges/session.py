@@ -68,7 +68,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
     >>>     # Do operations with the session here.
     >>>     # The session will be automatically closed on finish/error.
 
-    """  # noqa: D403"""
+    """  # noqa: D403
 
     def __init__(
         self,
@@ -181,7 +181,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         return self.irods_session is not None and self.server_version != ()
 
     @classmethod
-    def network_check(cls, hostname: str, port: int) -> bool:
+    def network_check(cls, hostname: Optional[str], port: Optional[int]) -> bool:
         """Check connectivity to an iRODS server.
 
         This method attempts to reach the iRODS server, without
