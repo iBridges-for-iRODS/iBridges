@@ -157,7 +157,8 @@ class MetaData:
             )
         return all_items[0]
 
-    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]], other: Sequence[str]):
+    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]],
+                    *other: Union[Sequence[str], str]):
         """Set metadata items like a dictionary of tuples.
 
         Parameters
@@ -180,13 +181,13 @@ class MetaData:
         >>> meta["key"] = ("new_key", "old_value")
 
         """
-        if isinstance(other, str):
-            raise TypeError(
-                "Cannot set the metadata item to a single string value. "
-                f'Use meta[{key}].key = "{other}" to change only the key '
-                "for example."
-            )
-        self[key].update(*other)
+        if key in self:
+            try:
+                self[key].update(key, *other)
+            except ValueError:
+                pass
+        else:
+            self.add(key, *other)
 
     def add(self, key: str, value: str, units: Optional[str] = ""):
         """Add metadata to an item.
@@ -490,7 +491,7 @@ class MetaDataItem:
         yield self.value
         yield self.units
 
-    def update(self, new_key: str, new_value: str, new_units: Optional[str] = ""):
+    def update(self, new_key: str, new_value: str, new_units: str = ""):
         """Update the metadata item changing the key/value/units.
 
         Parameters
