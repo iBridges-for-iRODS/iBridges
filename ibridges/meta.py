@@ -187,7 +187,7 @@ class MetaData:
         if isinstance(key, str):
             key = [key]
 
-        if len(key) < 1 or len(key) > 2:
+        if len(key) > 2:
             raise ValueError("Use either one or two values within the brackets [], for example "
                              f"meta['some_key', 'some_value'] = 'some_units', got: {key}")
         if len(other) + len(key) > 3:

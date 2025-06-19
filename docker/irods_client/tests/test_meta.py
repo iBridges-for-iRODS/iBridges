@@ -143,15 +143,27 @@ def test_metadata_setitem(item_name, request):
     meta = MetaData(item)
     meta.clear()
 
-    meta.add("some_key", "some_value", "some_units")
-    meta["some_key"] = ("some_key", "new_value", "new_units")
-    meta["some_key"] = ("some_key", "new_value")
+    meta["key"] = "value", "units"
+    assert ("key", "value", "units") in meta
 
-    with pytest.raises(TypeError):
-        meta["some_key"] = "new_value"
+    meta["key", "value"] = "other_units"
+    assert ("key", "value", "units") not in meta
+    assert ("key", "value", "other_units") in meta
+
+    meta.add("key", "value", "even_units")
+    assert len(meta) == 2
+    meta["key"] = "new_value"
+    assert ("key", "value", "other_units") not in meta
+    assert len(meta) == 1
+
+    meta["key2"] = "value2"
+    assert len(meta) == 2
 
     with pytest.raises(ValueError):
-        meta["some_key"] = ("some_key", "new_value")
+        meta["some_key", "some_value", "some_units"] = ""
+
+    with pytest.raises(ValueError):
+        meta["some_key", "some_value"] = "new_value", "new_units"
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
