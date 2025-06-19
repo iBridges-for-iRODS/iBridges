@@ -157,8 +157,8 @@ class MetaData:
             )
         return all_items[0]
 
-    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]],
-                    other: Union[Sequence[str], str]):
+    def __setitem__(self, key: Union[str, Sequence[str]],
+                    other: Union[str, Sequence[str]]):
         """Set metadata items like a dictionary of tuples.
 
         Parameters
@@ -191,7 +191,7 @@ class MetaData:
             raise ValueError("Use either one or two values within the brackets [], for example "
                              f"meta['some_key', 'some_value'] = 'some_units', got: {key}")
         if len(other) + len(key) > 3:
-            raise ValueError(f"Too many items to create metadata triple {other+key}. Use "
+            raise ValueError(f"Too many items to create metadata triple {other} + {key}. Use "
                              "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
         if key in self:
