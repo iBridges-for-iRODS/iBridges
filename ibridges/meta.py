@@ -195,12 +195,8 @@ class MetaData:
                              "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
         if key in self:
-            try:
-                self[*key].update(*key, *other)
-            except ValueError:
-                pass
-        else:
-            self.add(*key, *other)
+            self.delete(*key)
+        self.add(*key, *other)
 
     def add(self, key: str, value: str, units: Optional[str] = ""):
         """Add metadata to an item.
