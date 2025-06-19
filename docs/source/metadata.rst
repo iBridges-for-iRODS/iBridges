@@ -50,13 +50,14 @@ To add metadata, you always need to provide a key and a value, the units are opt
 Set metadata
 ------------
 
-The :meth:`MetaData.set` method differs from the add method by removing all other entries with the
-same key first. This mirrors the implementation of the `iCommands <https://rdm-docs.icts.kuleuven.be/mango/clients/icommands.html#adding-metadata>`__
+You can use the brackets ``[]`` to set a key or key/value pair to one value or value/unit pair.
+This mirrors the implementation of the `iCommands <https://rdm-docs.icts.kuleuven.be/mango/clients/icommands.html#adding-metadata>`__
 :code:`imeta set`.
 
 .. code-block:: python
 
-    meta.set('ExistingKey', 'Value', 'Unit')
+    meta["ExistingKey"] = 'Value', 'Unit'
+    meta["ExistingKey", "Value"] = "New_Unit"
 
 
 Find metadata items

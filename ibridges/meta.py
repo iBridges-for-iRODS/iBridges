@@ -204,8 +204,8 @@ class MetaData:
         This will never overwrite an existing entry. If the triplet already exists
         it will throw an error instead. Note that entries are only considered the same
         if all of the key, value and units are the same. Alternatively you can use the
-        :meth:`set` method to remove all entries with the same key, before adding the
-        new entry.
+        brackets [] to remove all entries with the same key, before adding the
+        new entry, see :meth:`__setitem__`.
 
         Parameters
         ----------
@@ -251,6 +251,9 @@ class MetaData:
         the same key will be deleted before adding the new entry. An alternative
         is using the :meth:`add` method to only add to the metadata entries and not
         delete them.
+
+        This method is deprecated, and will be removed in the future. You should use
+        the bracket [] notation instead: meta[key] = value or meta[key] = value, units.
 
         Parameters
         ----------
