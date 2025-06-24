@@ -149,6 +149,8 @@ def test_metadata_setitem(item_name, request):
     meta["key", "value"] = "other_units"
     assert ("key", "value", "units") not in meta
     assert ("key", "value", "other_units") in meta
+    meta["key", "other_value"] = "units"
+    assert ("key", "value", "other_units") in meta
 
     meta.add("key", "value", "even_units")
     assert len(meta) == 3
