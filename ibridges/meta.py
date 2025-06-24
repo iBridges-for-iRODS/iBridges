@@ -195,7 +195,7 @@ class MetaData:
                              "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
         try:
-            item = self[*key]
+            item = self.__getitem__(key)
             item.remove()
         except KeyError:
             pass
