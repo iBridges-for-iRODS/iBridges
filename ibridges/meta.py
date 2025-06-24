@@ -194,8 +194,12 @@ class MetaData:
             raise ValueError(f"Too many items to create metadata triple {other} + {key}. Use "
                              "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
-        if key in self:
-            self.delete(*key)
+        try:
+            item = self[*key]
+            item.remove()
+        except KeyError:
+            pass
+
         self.add(*key, *other)
 
     def add(self, key: str, value: str, units: Optional[str] = ""):

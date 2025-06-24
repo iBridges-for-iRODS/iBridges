@@ -151,13 +151,15 @@ def test_metadata_setitem(item_name, request):
     assert ("key", "value", "other_units") in meta
 
     meta.add("key", "value", "even_units")
-    assert len(meta) == 2
-    meta["key"] = "new_value"
-    assert ("key", "value", "other_units") not in meta
-    assert len(meta) == 1
+    assert len(meta) == 3
+    with pytest.raises(ValueError):
+        meta["key"] = "new_value"
+
+    with pytest.raises(ValueError):
+        meta["key", "value"] = "another_units"
 
     meta["key2"] = "value2"
-    assert len(meta) == 2
+    assert len(meta) == 4
 
     with pytest.raises(ValueError):
         meta["some_key", "some_value", "some_units"] = ""
