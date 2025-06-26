@@ -139,6 +139,11 @@ class CliDownload(BaseCliCommand):
             type=Path,
             nargs="?",
         )
+        parser.add_argument(
+            "--ignore_err",
+            help="Turn errors into warning and continue download.",
+            action="store_true",
+        )
         return parser
 
     @staticmethod
@@ -156,6 +161,7 @@ class CliDownload(BaseCliCommand):
                 resc_name=args.resource,
                 dry_run=args.dry_run,
                 metadata=metadata,
+                ignore_err= args.ignore_err,
             )
         except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
             parser.error(str(exc))
@@ -210,6 +216,11 @@ class CliUpload(BaseCliCommand):
             type=Path,
             nargs="?",
         )
+        parser.add_argument(
+            "--ignore_err",
+            help="Turn errors into warning and continue download.",
+            action="store_true",
+        )
         return parser
 
     @staticmethod
@@ -227,6 +238,7 @@ class CliUpload(BaseCliCommand):
                 resc_name=args.resource,
                 dry_run=args.dry_run,
                 metadata=metadata,
+                ignore_err=args.ignore_err,
             )
         except (FileNotFoundError, PermissionError, DataObjectExistsError) as exc:
             parser.error(exc)
@@ -276,6 +288,11 @@ class CliSync(BaseCliCommand):
             type=Path,
             nargs="?",
         )
+        parser.add_argument(
+            "--ignore_err",
+            help="Turn errors into warning and continue download.",
+            action="store_true",
+        )
         return parser
 
     @staticmethod
@@ -298,6 +315,7 @@ class CliSync(BaseCliCommand):
                 dest_path,
                 dry_run=args.dry_run,
                 metadata=metadata,
+                ignore_err=args.ignore_err
             )
         except (CollectionDoesNotExistError, NotACollectionError, NotADirectoryError) as exc:
             parser.error(exc)

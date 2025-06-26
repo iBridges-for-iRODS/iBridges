@@ -15,9 +15,9 @@ import irods.keywords as kw
 from tqdm import tqdm
 from tqdm.std import tqdm as tqdm_type
 
+from ibridges.exception import FileTransferFailedError, ObjectTransferFailedError
 from ibridges.path import IrodsPath
 from ibridges.session import Session
-from ibridges.exception import FileTransferFailedError, ObjectTransferFailedError
 
 NUM_THREADS = 4
 
@@ -459,7 +459,6 @@ def _obj_get(
     pbar: Optional[tqdm_type] = None,
 ):
     # pylint: disable=W0718,R0915,R0912
-
     """Download `irods_path` to `local_path` following iRODS `options`.
 
     Parameters
