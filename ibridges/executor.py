@@ -354,6 +354,7 @@ def _obj_put(  # pylint: disable=too-many-branches
     ignore_err: bool = False,
     pbar: Optional[tqdm_type] = None,
 ):
+    # pylint: disable=W0718,R0915,R0912
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
     Parameters
@@ -433,7 +434,7 @@ def _obj_put(  # pylint: disable=too-many-branches
         except Exception as error:
             if not ignore_err:
                 msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
-                raise FileTransferFailedError(msg)
+                raise FileTransferFailedError(msg) from error
             warnings.warn(msg)
     else:
         if not ignore_err:
@@ -457,6 +458,8 @@ def _obj_get(
     ignore_err: bool = False,
     pbar: Optional[tqdm_type] = None,
 ):
+    # pylint: disable=W0718,R0915,R0912
+
     """Download `irods_path` to `local_path` following iRODS `options`.
 
     Parameters
@@ -519,7 +522,7 @@ def _obj_get(
     except Exception as error:
         msg = f"Cannot transfer {irods_path} to {local_path}, {repr(error)}"
         if not ignore_err:
-            raise ObjectTransferFailedError
+            raise ObjectTransferFailedError from error
         warnings.warn(msg)
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
