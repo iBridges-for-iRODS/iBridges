@@ -17,6 +17,7 @@ from tqdm.std import tqdm as tqdm_type
 
 from ibridges.path import IrodsPath
 from ibridges.session import Session
+from ibridges.exception import FileTransferFailedError, ObjectTransferFailedError
 
 NUM_THREADS = 4
 
@@ -429,6 +430,11 @@ def _obj_put(  # pylint: disable=too-many-branches
                     "This error might be the result of simultaneous writing "
                     "to the same data object."
                 ) from error
+        except Exception as error:
+            if not ignore_err:
+                msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
+                raise FileTransferFailedError(msg)
+            warnings.warn(msg)
     else:
         if not ignore_err:
             raise FileExistsError(
@@ -509,6 +515,11 @@ def _obj_get(
         msg = f"During download operation from '{irods_path}': iRODS server forbids action."
         if not ignore_err:
             raise PermissionError(msg) from exc
+        warnings.warn(msg)
+    except Exception as error:
+        msg = f"Cannot transfer {irods_path} to {local_path}, {repr(error)}"
+        if not ignore_err:
+            raise ObjectTransferFailedError
         warnings.warn(msg)
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
