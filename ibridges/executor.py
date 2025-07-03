@@ -11,6 +11,7 @@ from typing import Optional, Union
 import irods.collection
 import irods.data_object
 import irods.exception
+from irods.exception import CollectionDoesNotExist
 import irods.keywords as kw
 from tqdm import tqdm
 from tqdm.std import tqdm as tqdm_type
@@ -148,7 +149,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.create_collection.add(str(new_col))
 
-    def execute(self, session: Session, ignore_err: bool = False,
+    def execute(self, session: Session, on_err: str = "fail",
                 progress_bar: bool = True):
         """Execute all added operations.
 
@@ -158,9 +159,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         ----------
         session
             Session to perform the operations with.
-        ignore_err, optional
-            Whether to ignore errors when encountered, by default False
-            Note that not all errors will be ignored.
+        on_err, optional
+            'fail': Stop execution and throw exception
+            'warn': Continue execution but show a warning
+            'skip': Continue execution and skip the error
         progress_bar
             Whether to turn on the progress bar. The progress bar will be disabled
             if the total download + upload size is 0 regardless.
@@ -178,13 +180,13 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         )
         self.execute_create_dir()
         self.execute_create_coll(session)
-        self.execute_download(session, pbar, ignore_err=ignore_err)
-        self.execute_upload(session, pbar, ignore_err=ignore_err)
+        self.execute_download(session, pbar, on_err=on_err)
+        self.execute_upload(session, pbar, on_err=on_err)
         self.execute_meta_download()
         self.execute_meta_upload()
 
     def execute_download(self, session: Session,
-                         pbar: Optional[tqdm_type], ignore_err: bool = False):
+                         pbar: Optional[tqdm_type], on_err: str = "fail"):
         """Execute all download operations.
 
         Parameters
@@ -195,8 +197,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Sizes of the data objects to be downloaded.
         pbar
             The progress bar to be updated.
-        ignore_err, optional
-            Whether to ignore errors when encountered, by default False.
+        on_err, optional
+            'fail': Stop execution and throw exception
+            'warn': Continue execution but show a warning
+            'skip': Continue execution and skip the error
 
         """
         for ipath, lpath in self.download:
@@ -205,14 +209,14 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 ipath,
                 lpath,
                 overwrite=True,
-                ignore_err=ignore_err,
+                on_err=on_err,
                 options=self.options,
                 resc_name=self.resc_name,
                 pbar=pbar,
             )
 
     def execute_upload(self, session: Session,
-                       pbar: Optional[tqdm_type], ignore_err: bool = False):
+                       pbar: Optional[tqdm_type], on_err: str = "fail"):
         """Execute all upload operations.
 
         Parameters
@@ -223,9 +227,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Sizes of the files to be uploaded.
         pbar
             Progress bar to be updated while uploading.
-        ignore_err
-            Whether to ignore errors when encountered, by default False.
-
+        on_err, optional
+            'fail': Stop execution and throw exception
+            'warn': Continue execution but show a warning
+            'skip': Continue execution and skip the error
         """
         for lpath, ipath in self.upload:
             _obj_put(
@@ -233,7 +238,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 lpath,
                 ipath,
                 overwrite=True,
-                ignore_err=ignore_err,
+                on_err=on_err,
                 options=self.options,
                 resc_name=self.resc_name,
                 pbar=pbar,
@@ -344,6 +349,19 @@ def _warn_ignored_keywords(options: Optional[dict]):
         warnings.warn(f"Some options will be ignored: {cur_ignored_set}", UserWarning)
 
 
+def _raise_transfer_errors(on_err: str,
+                           msg: str,
+                           throw_error: Exception,
+                           error: Optional[Exception] = None):
+    if on_err == "fail":
+        if error:
+            raise throw_error(msg) from error
+        else:
+            raise throw_error(msg)
+    elif on_err == "warn":
+        warnings.warn(msg)
+
+
 def _obj_put(  # pylint: disable=too-many-branches
     session: Session,
     local_path: Union[str, Path],
@@ -351,10 +369,10 @@ def _obj_put(  # pylint: disable=too-many-branches
     overwrite: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
-    ignore_err: bool = False,
+    on_err: str = "fail",
     pbar: Optional[tqdm_type] = None,
 ):
-    # pylint: disable=W0718,R0915,R0912
+    # ylint: disable=W0718,R0915,R0912
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
     Parameters
@@ -371,20 +389,22 @@ def _obj_put(  # pylint: disable=too-many-branches
         Whether to overwrite the object if it exists.
     options :
         Extra options to the python irodsclient put method.
-    ignore_err:
-        If True, convert errors into warnings.
+    on_err:
+        'fail': fail with an exception; 'warn': turn error into warning and continue;
+        'skip': simply continue.
     pbar:
         Optional progress bar.
 
     """
+    if on_err.lower() not in ['fail', 'warn', 'skip']:
+        raise ValueError(f"'on_err' {on_err} not a valid value. Choose fail, warn or skip.")
+
     local_path = Path(local_path)
     irods_path = IrodsPath(session, irods_path)
 
     if not local_path.is_file():
         err_msg = f"local_path '{local_path}' must be a file."
-        if not ignore_err:
-            raise ValueError(err_msg)
-        warnings.warn(err_msg)
+        _raise_transfer_errors(on_err, err_msg, ValueError)
         return
 
     # Check if irods object already exists
@@ -413,37 +433,29 @@ def _obj_put(  # pylint: disable=too-many-branches
             session.irods_session.data_objects.put(local_path, str(irods_path), **options)
         except (PermissionError, OSError) as error:
             err_msg = f"Cannot read {error.filename}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
+            _raise_transfer_errors(on_err, err_msg, error, error)
+            return
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            err_msg = f"Cannot write {str(irods_path)}."
-            if not ignore_err:
-                raise PermissionError(err_msg) from error
-            warnings.warn(err_msg)
+            err_msg = f"Cannot write iRODS path {str(irods_path)}."
+            _raise_transfer_errors(on_err, err_msg, PermissionError, error)
+            return
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
             # This should generally not occur, but a race condition might trigger this.
             # obj does not exist -> someone else writes to object -> overwrite error
-            if not ignore_err:
-                raise FileExistsError(
-                    f"Dataset {irods_path} already exists. "
-                    "Use overwrite=True to overwrite the existing file."
-                    "This error might be the result of simultaneous writing "
-                    "to the same data object."
-                ) from error
+            err_msg = (f"Dataset {irods_path} already exists. "
+                       "Use overwrite=True to overwrite the existing file."
+                       "This error might be the result of simultaneous writing "
+                       "to the same data object.")
+            _raise_transfer_errors(on_err, err_msg, FileExistsError, error)
+            return
         except Exception as error:
-            if not ignore_err:
-                msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
-                raise FileTransferFailedError(msg) from error
-            warnings.warn(msg)
+            err_msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
+            _raise_transfer_errors(on_err, err_msg, FileTransferFailedError, error)
+            return
     else:
-        if not ignore_err:
-            raise FileExistsError(
-                f"Dataset {irods_path} already exists. "
-                "Use overwrite=True to overwrite the existing file."
-            )
-        warnings.warn(f"Cannot overwrite dataobject with name '{local_path.name}',"
-                      "it already exists. Use overwrite=False to suppress this warning.")
+        err_msg = (f"Dataset {irods_path} already exists. "
+                    "Use overwrite=True to overwrite the existing file.")
+        _raise_transfer_errors(on_err, err_msg, FileExistsError)
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
 
@@ -455,7 +467,7 @@ def _obj_get(
     overwrite: bool = False,
     resc_name: Optional[str] = "",
     options: Optional[dict] = None,
-    ignore_err: bool = False,
+    on_err: str = "fail",
     pbar: Optional[tqdm_type] = None,
 ):
     # pylint: disable=W0718,R0915,R0912
@@ -475,12 +487,15 @@ def _obj_get(
         Name of the resource to get the object from.
     options : dict
         Extra options to the python irodsclient get method.
-    ignore_err:
-        If True, convert errors into warnings.
+    on_err:
+        'fail': fail with an exception; 'warn': turn error into warning and continue
+        'skip': simply continue. 
     pbar:
         Optional progress bar.
 
     """
+    if on_err.lower() not in ["fail", "warn", "skip"]:
+        raise ValueError(f"'on_err' {on_err} not a valid value. Choose fail, warn or skip.")
     _warn_ignored_keywords(options)
 
     if options is None:
@@ -510,19 +525,21 @@ def _obj_get(
         session.irods_session.data_objects.get(str(irods_path), local_path, **options)
     except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
         msg = f"Cannot write to {local_path}."
-        if not ignore_err:
-            raise PermissionError(msg) from error
-        warnings.warn(msg)
-    except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+        _raise_transfer_errors(on_err, msg, PermissionError, error)
+        return
+    except irods.exception.CUT_ACTION_PROCESSED_ERR as error:
         msg = f"During download operation from '{irods_path}': iRODS server forbids action."
-        if not ignore_err:
-            raise PermissionError(msg) from exc
-        warnings.warn(msg)
+        _raise_transfer_errors(on_err, msg, PermissionError, error)
+        return
+    except irods.exception.CollectionDoesNotExist as error:
+        msg = f"{irods_path} does not exist."
+        exception = CollectionDoesNotExist(msg)
+        _raise_transfer_errors(on_err, msg, ObjectTransferFailedError, exception)
+        return
     except Exception as error:
         msg = f"Cannot transfer {irods_path} to {local_path}, {repr(error)}"
-        if not ignore_err:
-            raise ObjectTransferFailedError from error
-        warnings.warn(msg)
+        _raise_transfer_errors(on_err, msg, ObjectTransferFailedError, error)
+        return
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
 

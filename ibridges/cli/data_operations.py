@@ -140,9 +140,10 @@ class CliDownload(BaseCliCommand):
             nargs="?",
         )
         parser.add_argument(
-            "--ignore_err",
-            help="Turn errors into warning and continue download.",
-            action="store_true",
+            "--on-error",
+            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            default="fail",
+            type=str
         )
         return parser
 
@@ -160,8 +161,8 @@ class CliDownload(BaseCliCommand):
                 overwrite=args.overwrite,
                 resc_name=args.resource,
                 dry_run=args.dry_run,
+                on_err = args.on_error,
                 metadata=metadata,
-                ignore_err= args.ignore_err,
             )
         except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
             parser.error(str(exc))
@@ -217,9 +218,10 @@ class CliUpload(BaseCliCommand):
             nargs="?",
         )
         parser.add_argument(
-            "--ignore_err",
-            help="Turn errors into warning and continue download.",
-            action="store_true",
+            "--on-error",
+            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            default="fail",
+            type=str
         )
         return parser
 
@@ -238,7 +240,7 @@ class CliUpload(BaseCliCommand):
                 resc_name=args.resource,
                 dry_run=args.dry_run,
                 metadata=metadata,
-                ignore_err=args.ignore_err,
+                on_err=args.on_error,
             )
         except (FileNotFoundError, PermissionError, DataObjectExistsError) as exc:
             parser.error(exc)
@@ -289,9 +291,10 @@ class CliSync(BaseCliCommand):
             nargs="?",
         )
         parser.add_argument(
-            "--ignore_err",
-            help="Turn errors into warning and continue download.",
-            action="store_true",
+            "--on-error",
+            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            default="fail",
+            type=str
         )
         return parser
 
@@ -315,7 +318,7 @@ class CliSync(BaseCliCommand):
                 dest_path,
                 dry_run=args.dry_run,
                 metadata=metadata,
-                ignore_err=args.ignore_err
+                on_err=args.on_error
             )
         except (CollectionDoesNotExistError, NotACollectionError, NotADirectoryError) as exc:
             parser.error(exc)
