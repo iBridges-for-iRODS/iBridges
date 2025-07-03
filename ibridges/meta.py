@@ -177,8 +177,8 @@ class MetaData:
 
         Examples
         --------
-        >>> meta["key"] = "units"
-        >>> meta["key"] = "units", "values"
+        >>> meta["key"] = "values"
+        >>> meta["key"] = "values", "units"
         >>> meta["key", "value"] = "units"
 
         """
