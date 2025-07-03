@@ -24,7 +24,6 @@ from ibridges.exception import (
 )
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
-from ibridges.session import Session
 from ibridges.util import checksums_equal
 
 NUM_THREADS = 4
@@ -113,9 +112,9 @@ def upload(
         if not idest_path.collection_exists():
             ops.add_create_coll(idest_path)
         if not irods_path.collection_exists():
-            ops.add_create_coll(ipath)
+            ops.add_create_coll(irods_path)
     elif local_path.is_file():
-        idest_path = irods_path / local_path.name if irods_path.collection_exists() else ipath
+        idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
         obj_exists = idest_path.dataobject_exists()
         if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, ignore_err):
             ops.add_upload(local_path, idest_path)
@@ -332,11 +331,14 @@ def sync(
                                      "can only sync collections.")
             raise CollectionDoesNotExistError(
                 f"Source collection '{source.absolute()}' does not exist")
-    else:
+    elif isinstance(target, IrodsPath):
         session = target.session
         if not Path(source).is_dir():
             raise NotADirectoryError(f"Source folder '{source}' is not a directory or "
                                      "does not exist.")
+
+    else:
+        raise TypeError("Either source or target must be an IrodsPath")
 
     if isinstance(source, IrodsPath):
         ops = _down_sync_operations(
@@ -345,7 +347,7 @@ def sync(
         )
     else:
         ops = _up_sync_operations(
-            Path(source), target, copy_empty_folders=copy_empty_folders,
+            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
         if metadata is not None:
             ops.add_meta_upload(target, metadata)  # type: ignore
@@ -358,7 +360,7 @@ def sync(
     return ops
 
 
-def create_meta_archive(root_ipath: IrodsPath, meta_fp: Union[str, Path], dry_run: bool = False):
+def create_meta_archive(source: IrodsPath, meta_fp: Union[str, Path], dry_run: bool = False):
     """Create a local archive file for the metadata.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
@@ -390,16 +392,16 @@ def create_meta_archive(root_ipath: IrodsPath, meta_fp: Union[str, Path], dry_ru
     >>> create_meta_archive(IrodsPath(session, "/some/home/collection"), "meta_archive.json")
 
     """
-    session = root_ipath.session
-    if not root_ipath.collection_exists():
-        if root_ipath.dataobject_exists():
+    session = source.session
+    if not source.collection_exists():
+        if source.dataobject_exists():
             raise NotACollectionError("Cannot download metadata archive: "
-                                 f"'{root_ipath}' is a data object, need a collection.")
+                                 f"'{source}' is a data object, need a collection.")
         raise CollectionDoesNotExistError("Cannot download metadata archive: "
-                                    f"'{root_ipath}' does not exist.")
+                                    f"'{source}' does not exist.")
     operations = Operations()
-    for ipath in root_ipath.walk():
-        operations.add_meta_download(root_ipath, ipath, meta_fp)
+    for ipath in source.walk():
+        operations.add_meta_download(source, ipath, meta_fp)
     if not dry_run:
         operations.execute(session)
     return operations
@@ -458,8 +460,8 @@ def _param_checks(source, target):
 
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
-    
-    if (isinstance(source, Path) or isinstance(source, str)) and (isinstance(target, Path) or isinstance(target, str)):
+
+    if isinstance(source, (str, Path)) and isinstance(target, (str, Path)):
         raise TypeError("Local to local copying is not supported.")
 
 
@@ -531,9 +533,9 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
             continue
-        root_ipath = idest_path.joinpath(*root_part.parts)
+        source = idest_path.joinpath(*root_part.parts)
         for cur_file in files:
-            ipath = root_ipath / cur_file
+            ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
 
             # Ignore symlinks
@@ -554,8 +556,8 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 if lpath.is_symlink():
                     warnings.warn(f"Ignoring symlink {lpath}.")
                     continue
-                if str(root_ipath / fold) not in remote_ipaths:
-                    operations.add_create_coll(root_ipath / fold)
-        if str(root_ipath) not in remote_ipaths:
-            operations.add_create_coll(root_ipath)
+                if str(source / fold) not in remote_ipaths:
+                    operations.add_create_coll(source / fold)
+        if str(source) not in remote_ipaths:
+            operations.add_create_coll(source)
     return operations

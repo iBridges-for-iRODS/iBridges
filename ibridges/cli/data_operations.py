@@ -149,7 +149,6 @@ class CliDownload(BaseCliCommand):
         metadata = _get_metadata_path(args, ipath, lpath, "download")
         try:
             ops = download(
-                session,
                 ipath,
                 lpath,
                 overwrite=args.overwrite,
@@ -220,7 +219,6 @@ class CliUpload(BaseCliCommand):
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
         try:
             ops = upload(
-                session,
                 lpath,
                 ipath,
                 overwrite=args.overwrite,
@@ -293,7 +291,6 @@ class CliSync(BaseCliCommand):
             return
         try:
             ops = sync(
-                session,
                 src_path,
                 dest_path,
                 dry_run=args.dry_run,
