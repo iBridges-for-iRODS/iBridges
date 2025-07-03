@@ -352,7 +352,7 @@ def _warn_ignored_keywords(options: Optional[dict]):
 
 def _raise_transfer_errors(on_err: str,
                            msg: str,
-                           throw_error: Exception,
+                           throw_error,
                            error: Optional[Exception] = None):
     if on_err == "fail":
         if error:
