@@ -11,8 +11,8 @@ from typing import Optional, Union
 import irods.collection
 import irods.data_object
 import irods.exception
-from irods.exception import CollectionDoesNotExist
 import irods.keywords as kw
+from irods.exception import CollectionDoesNotExist
 from tqdm import tqdm
 from tqdm.std import tqdm as tqdm_type
 
@@ -231,6 +231,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             'fail': Stop execution and throw exception
             'warn': Continue execution but show a warning
             'skip': Continue execution and skip the error
+
         """
         for lpath, ipath in self.upload:
             _obj_put(
@@ -356,9 +357,8 @@ def _raise_transfer_errors(on_err: str,
     if on_err == "fail":
         if error:
             raise throw_error(msg) from error
-        else:
-            raise throw_error(msg)
-    elif on_err == "warn":
+        raise throw_error(msg)
+    if on_err == "warn":
         warnings.warn(msg)
 
 
@@ -372,7 +372,6 @@ def _obj_put(  # pylint: disable=too-many-branches
     on_err: str = "fail",
     pbar: Optional[tqdm_type] = None,
 ):
-    # ylint: disable=W0718,R0915,R0912
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
     Parameters
@@ -448,7 +447,7 @@ def _obj_put(  # pylint: disable=too-many-branches
                        "to the same data object.")
             _raise_transfer_errors(on_err, err_msg, FileExistsError, error)
             return
-        except Exception as error:
+        except Exception as error: # pylint: disable=W0718
             err_msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
             _raise_transfer_errors(on_err, err_msg, FileTransferFailedError, error)
             return
@@ -489,7 +488,7 @@ def _obj_get(
         Extra options to the python irodsclient get method.
     on_err:
         'fail': fail with an exception; 'warn': turn error into warning and continue
-        'skip': simply continue. 
+        'skip': simply continue.
     pbar:
         Optional progress bar.
 
@@ -531,7 +530,7 @@ def _obj_get(
         msg = f"During download operation from '{irods_path}': iRODS server forbids action."
         _raise_transfer_errors(on_err, msg, PermissionError, error)
         return
-    except irods.exception.CollectionDoesNotExist as error:
+    except irods.exception.CollectionDoesNotExist:
         msg = f"{irods_path} does not exist."
         exception = CollectionDoesNotExist(msg)
         _raise_transfer_errors(on_err, msg, ObjectTransferFailedError, exception)

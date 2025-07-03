@@ -104,10 +104,6 @@ def upload(
     """
     local_path = Path(local_path)
     ipath = IrodsPath(session, irods_path)
-    
-    if on_err.lower() not in ["fail", "warn", "skip"]:
-        on_err = "fail"
-        warnings.warn(f"on_err = {on_err} not regognised; set to 'fail'.") 
 
     ops = Operations()
     if local_path.is_dir():
@@ -217,10 +213,6 @@ def download(
     >>> ops.execute()
 
     """
-    if on_err.lower() not in ["fail", "warn", "skip"]:
-        on_err = "fail"
-        warnings.warn(f"on_err = {on_err} not regognised; set to 'fail'.")
-
     irods_path = IrodsPath(session, irods_path)
     local_path = Path(local_path)
 
@@ -372,10 +364,6 @@ def sync(
 
     """
     _param_checks(source, target)
-
-    if on_err.lower() not in ["fail", "warn", "skip"]:
-        on_err = "fail"
-        warnings.warn(f"on_err = {on_err} not regognised; set to 'fail'.")
 
     if isinstance(source, IrodsPath):
         if not source.collection_exists():
@@ -539,7 +527,7 @@ def _transfer_needed(source: Union[IrodsPath, Path],
             if isinstance(dest, IrodsPath):
                 raise DataObjectExistsError(err_msg)
             raise FileExistsError(err_msg)
-        elif on_err == "warn":
+        if on_err == "warn":
             warnings.warn(f"Skipping file/data object {source} -> {dest} since "
                           f"both exist and overwrite == False.")
         return False
