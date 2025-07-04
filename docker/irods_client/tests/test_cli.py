@@ -7,7 +7,6 @@ import pytest
 from pytest import mark
 
 from ibridges import IrodsPath
-from ibridges.data_operations import create_collection
 from ibridges.meta import MetaData
 
 
@@ -79,7 +78,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     # Upload a directory and check if the dataobjects and collections are created.
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
-    create_collection(session, ipath)
+    IrodsPath.create_collection(session, ipath)
     subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], **pass_opts)
     for fname in testdata.glob("*"):
         assert ((ipath / "testdata" / fname.name).dataobject_exists()
