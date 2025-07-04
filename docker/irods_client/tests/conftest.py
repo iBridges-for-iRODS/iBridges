@@ -5,10 +5,7 @@ import pytest
 import tomli
 
 from ibridges import Session
-from ibridges.data_operations import (
-    create_collection,
-    upload,
-)
+from ibridges.data_operations import upload
 from ibridges.path import IrodsPath
 
 
@@ -50,7 +47,7 @@ def testdata():
 
 @pytest.fixture(scope="session")
 def collection(session):
-    coll = create_collection(session, IrodsPath(session, "~", "test_collection"))
+    coll = IrodsPath.create_collection(session, "test_collection")
     yield coll
     IrodsPath(session, coll.path).remove()
 
