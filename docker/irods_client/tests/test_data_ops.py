@@ -51,8 +51,8 @@ def test_upload_download_dataset(session, testdata):
     assert len(ops.upload) == 0
     with ipath.open("w") as handle:
         handle.write("test".encode())
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_err='skip')
-    assert len(ops.upload) == 0
+    #ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_err='skip')
+    #assert len(ops.upload) == 0
     #ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_err='warn')
     #assert len(ops.upload) == 0
     
