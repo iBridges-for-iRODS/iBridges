@@ -131,9 +131,13 @@ def test_upload_download_collection(session, testdata, tmpdir):
     _check_count(ops, [0, 0, 0, 0])
     with bunny_ipath.open("w") as handle:
         handle.write("testxx".encode())
-    ops = download(session, ipath, tmpdir/"test", ignore_err=True)
+    ops = download(session, ipath, tmpdir/"test", on_err='skip')
     _check_count(ops, [0, 0, 0, 0])
-    ops = download(session, ipath, tmpdir/"test", overwrite=True)
+    ops = download(session, ipath, tmpdir/"test", on_err='warn')
+    _check_count(ops, [0, 0, 0, 0])
+    ops = download(session, ipath, tmpdir/"test", overwrite='skip', dry_run=True)
+    _check_count(ops, [0, 0, 1, 0])
+    ops = download(session, ipath, tmpdir/"test", overwrite='warn')
     _check_count(ops, [0, 0, 1, 0])
     ipath.remove()
 
