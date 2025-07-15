@@ -1,4 +1,5 @@
 """Subcommands that do data operations."""
+
 import argparse
 from pathlib import Path
 from typing import Literal, Union
@@ -40,6 +41,7 @@ class CliMakeCollection(BaseCliCommand):
             parser.error(f"Cannot create collection {ipath}: already exists.")
         ipath.create_collection(session, ipath)
 
+
 class CliRm(BaseCliCommand):
     """Subcommand for removing a data object or collection."""
 
@@ -56,9 +58,10 @@ class CliRm(BaseCliCommand):
             type=str,
         )
         parser.add_argument(
-            "-r", "--recursive",
+            "-r",
+            "--recursive",
             help="Remove collections and their content recursively.",
-            action="store_true"
+            action="store_true",
         )
         return parser
 
@@ -72,11 +75,14 @@ class CliRm(BaseCliCommand):
             if args.recursive:
                 ipath.remove()
             else:
-                parser.error(f"Cannot remove {ipath}: is a collection. "
-                             "Use -r to remove collections.")
+                parser.error(
+                    f"Cannot remove {ipath}: is a collection. " "Use -r to remove collections."
+                )
 
-def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
-                       mode: str) -> Union[None, str, Path]:
+
+def _get_metadata_path(
+    args, ipath: IrodsPath, lpath: Union[str, Path], mode: str
+) -> Union[None, str, Path]:
     metadata: Union[Literal[False], Path, None]
     metadata = False if not hasattr(args, "metadata") else args.metadata
     if ipath.dataobject_exists() and metadata is None:
@@ -92,6 +98,7 @@ def _get_metadata_path(args, ipath: IrodsPath, lpath: Union[str, Path],
     if metadata is False:
         return None
     return metadata
+
 
 class CliDownload(BaseCliCommand):
     """Subcommand for downloading a data object or collection."""
@@ -141,9 +148,12 @@ class CliDownload(BaseCliCommand):
         )
         parser.add_argument(
             "--on-error",
-            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            help="When a transfer of a file fails, by default the whole transfer will stop and "
+                 "print the error message(fail). By setting 'on-error' to 'warn', those errors "
+                 "will be turned into warnings and the transfer continues with the next file. "
+                 "Setting 'on-error' to 'skip' will omit any message and simply proceed.",
             default="fail",
-            type=str
+            type=str,
         )
         return parser
 
@@ -161,7 +171,7 @@ class CliDownload(BaseCliCommand):
                 overwrite=args.overwrite,
                 resc_name=args.resource,
                 dry_run=args.dry_run,
-                on_err = args.on_error,
+                on_error=args.on_error,
                 metadata=metadata,
             )
         except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
@@ -176,8 +186,11 @@ class CliUpload(BaseCliCommand):
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
     description = "Upload a data object or collection from an iRODS server."
-    examples = ["local_file.txt", "local_file.txt irods:remote_collection",
-                "local_dir irods:remote_collection"]
+    examples = [
+        "local_file.txt",
+        "local_file.txt irods:remote_collection",
+        "local_dir irods:remote_collection",
+    ]
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -191,7 +204,7 @@ class CliUpload(BaseCliCommand):
             help="Path to remote iRODS location starting with 'irods:'",
             type=str,
             default=".",
-            nargs="?"
+            nargs="?",
         )
         parser.add_argument(
             "--overwrite",
@@ -219,9 +232,12 @@ class CliUpload(BaseCliCommand):
         )
         parser.add_argument(
             "--on-error",
-            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            help="When a transfer of a file fails, by default the whole transfer will stop and "
+                 "print the error message(fail). By setting 'on-error' to 'warn', those errors "
+                 "will be turned into warnings and the transfer continues with the next file. "
+                 "Setting 'on-error' to 'skip' will omit any message and simply proceed.",
             default="fail",
-            type=str
+            type=str,
         )
         return parser
 
@@ -240,7 +256,7 @@ class CliUpload(BaseCliCommand):
                 resc_name=args.resource,
                 dry_run=args.dry_run,
                 metadata=metadata,
-                on_err=args.on_error,
+                on_error=args.on_error,
             )
         except (FileNotFoundError, PermissionError, DataObjectExistsError) as exc:
             parser.error(exc)
@@ -263,7 +279,6 @@ class CliSync(BaseCliCommand):
     names = ["sync"]
     description = "Synchronize files/directories between local and remote."
     examples = ["local_dir irods:remote_collection", "irods:remote_collection local_dir"]
-
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -294,7 +309,7 @@ class CliSync(BaseCliCommand):
             "--on-error",
             help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
             default="fail",
-            type=str
+            type=str,
         )
         return parser
 
@@ -308,8 +323,10 @@ class CliSync(BaseCliCommand):
         elif isinstance(src_path, IrodsPath) and isinstance(dest_path, Path):
             metadata = _get_metadata_path(args, src_path, dest_path, "sync")
         else:
-            parser.error("Please provide as the source and destination exactly one local path,"
-                         " and one remote path.")
+            parser.error(
+                "Please provide as the source and destination exactly one local path,"
+                " and one remote path."
+            )
             return
         try:
             ops = sync(
@@ -318,7 +335,7 @@ class CliSync(BaseCliCommand):
                 dest_path,
                 dry_run=args.dry_run,
                 metadata=metadata,
-                on_err=args.on_error
+                on_error=args.on_error,
             )
         except (CollectionDoesNotExistError, NotACollectionError, NotADirectoryError) as exc:
             parser.error(exc)
