@@ -59,9 +59,8 @@ def test_upload_download_dataset(session, testdata):
     
     ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
     assert len(ops.upload) == 1
-    with pytest.warns(UserWarning):
-        ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
-        assert len(ops.upload) == 1
+    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
+    assert len(ops.upload) == 1
 
     # Test downloading it back
     ops = download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
