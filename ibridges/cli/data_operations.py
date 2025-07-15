@@ -249,7 +249,7 @@ class CliUpload(BaseCliCommand):
         """Upload a data object or collection to the iRODS server."""
         if args.on_error not in ["fail", "warn", "skip"]:
             parser.error(
-                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
+                f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
