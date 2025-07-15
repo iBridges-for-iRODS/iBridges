@@ -92,7 +92,7 @@ max-positional-arguments=11  # pylint: disable=unrecognized-option
 # [tool.pylint.'MESSAGES CONTROL']
 # disable="too-many-positional-arguments"
 [tool.pylint."MESSAGES CONTROL"]
-disable = ["R0801"]
+disable="duplicate-code"
 
 [tool.ruff]
 exclude = ["_version.py"]

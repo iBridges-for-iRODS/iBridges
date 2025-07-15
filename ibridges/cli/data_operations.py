@@ -15,6 +15,14 @@ from ibridges.exception import (
 )
 from ibridges.path import IrodsPath
 
+ON_ERROR_HELP = (
+    "When a transfer of a file fails, by default the whole transfer will stop and print the error "
+    "message(fail). By setting 'on-error' to 'warn', those errors will be turned into warnings and "
+    "the transfer continues with the next file. "
+    "Setting 'on-error' to 'skip' will omit any message and simply proceed."
+)
+
+
 
 class CliMakeCollection(BaseCliCommand):
     """Subcommand for creating a new collection."""
@@ -148,11 +156,7 @@ class CliDownload(BaseCliCommand):
         )
         parser.add_argument(
             "--on-error",
-            help="When a transfer of a file fails, by default the whole transfer will stop and "
-                 "print the error message(fail). By setting 'on-error' to 'warn', those errors "
-                 "will be turned into warnings and the transfer continues with the next file. "
-                 "Setting 'on-error' to 'skip' will omit any message and simply proceed.",
-            default="fail",
+            help=ON_ERROR_HELP,
             type=str,
         )
         return parser
@@ -160,7 +164,7 @@ class CliDownload(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Download the data object or collection."""
-        if args.on_error not in ["fail", "warn", "skip"]:
+        if args.on_error.lower() not in ["fail", "warn", "skip"]:
             parser.error(
                 f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         ipath = parse_remote(args.remote_path, session)
@@ -235,10 +239,7 @@ class CliUpload(BaseCliCommand):
         )
         parser.add_argument(
             "--on-error",
-            help="When a transfer of a file fails, by default the whole transfer will stop and "
-                 "print the error message(fail). By setting 'on-error' to 'warn', those errors "
-                 "will be turned into warnings and the transfer continues with the next file. "
-                 "Setting 'on-error' to 'skip' will omit any message and simply proceed.",
+            help=ON_ERROR_HELP,
             default="fail",
             type=str,
         )
@@ -247,7 +248,7 @@ class CliUpload(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Upload a data object or collection to the iRODS server."""
-        if args.on_error not in ["fail", "warn", "skip"]:
+        if args.on_error.lower() not in ["fail", "warn", "skip"]:
             parser.error(
                 f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         lpath = args.local_path
@@ -313,7 +314,7 @@ class CliSync(BaseCliCommand):
         )
         parser.add_argument(
             "--on-error",
-            help="'fail' (default): stop on error; 'warn': warn and continue; 'skip': continue",
+            help=ON_ERROR_HELP,
             default="fail",
             type=str,
         )
@@ -322,7 +323,7 @@ class CliSync(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Synchronize a directory and collection."""
-        if args.on_error not in ["fail", "warn", "skip"]:
+        if args.on_error.lower() not in ["fail", "warn", "skip"]:
             parser.error(
                 f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         src_path = _parse_str(args.source, session)

@@ -160,9 +160,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         session
             Session to perform the operations with.
         on_error, optional
-            'fail': Stop execution and throw exception
-            'warn': Continue execution but show a warning
-            'skip': Continue execution and skip the error
+            Decides what happens when an error occurs.
+            There are three options: 'fail', 'warn' and 'skip'.
         progress_bar
             Whether to turn on the progress bar. The progress bar will be disabled
             if the total download + upload size is 0 regardless.
@@ -198,9 +197,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         pbar
             The progress bar to be updated.
         on_error, optional
-            'fail': Stop execution and throw exception
-            'warn': Continue execution but show a warning
-            'skip': Continue execution and skip the error
+            Decides what happens when an error occurs.
+            There are three options: 'fail', 'warn' and 'skip'.
 
         """
         for ipath, lpath in self.download:
@@ -228,9 +226,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         pbar
             Progress bar to be updated while uploading.
         on_error, optional
-            'fail': Stop execution and throw exception
-            'warn': Continue execution but show a warning
-            'skip': Continue execution and skip the error
+            Decides what happens when an error occurs.
+            There are three options: 'fail', 'warn' and 'skip'.
 
         """
         for lpath, ipath in self.upload:
