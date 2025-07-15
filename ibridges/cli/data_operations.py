@@ -324,7 +324,7 @@ class CliSync(BaseCliCommand):
         """Synchronize a directory and collection."""
         if args.on_error not in ["fail", "warn", "skip"]:
             parser.error(
-                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
+                f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
