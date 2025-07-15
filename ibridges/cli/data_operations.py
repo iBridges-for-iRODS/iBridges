@@ -76,7 +76,7 @@ class CliRm(BaseCliCommand):
                 ipath.remove()
             else:
                 parser.error(
-                    f"Cannot remove {ipath}: is a collection. " "Use -r to remove collections."
+                    f"Cannot remove {ipath}: is a collection. Use -r to remove collections."
                 )
 
 
