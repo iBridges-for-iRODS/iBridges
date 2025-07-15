@@ -160,6 +160,9 @@ class CliDownload(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Download the data object or collection."""
+        if args.on_error not in ["fail", "warn", "skip"]:
+            parser.error(
+                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
         metadata = _get_metadata_path(args, ipath, lpath, "download")
@@ -244,6 +247,9 @@ class CliUpload(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Upload a data object or collection to the iRODS server."""
+        if args.on_error not in ["fail", "warn", "skip"]:
+            parser.error(
+                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'") 
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
         metadata = _get_metadata_path(args, ipath, lpath, "upload")
@@ -316,6 +322,9 @@ class CliSync(BaseCliCommand):
     @staticmethod
     def run_shell(session, parser, args):
         """Synchronize a directory and collection."""
+        if args.on_error not in ["fail", "warn", "skip"]:
+            parser.error(
+                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
