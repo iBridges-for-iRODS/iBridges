@@ -162,7 +162,7 @@ class CliDownload(BaseCliCommand):
         """Download the data object or collection."""
         if args.on_error not in ["fail", "warn", "skip"]:
             parser.error(
-                f"'on-error': Unknonw keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
+                f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
         metadata = _get_metadata_path(args, ipath, lpath, "download")
