@@ -51,15 +51,17 @@ def test_upload_download_dataset(session, testdata):
     assert len(ops.upload) == 0
     with ipath.open("w") as handle:
         handle.write("test".encode())
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_err='skip')
+    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_error='skip')
     assert len(ops.upload) == 0
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_err='warn')
-    assert len(ops.upload) == 0
+    with pytest.warns(UserWarning):
+        ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, on_error='warn')
+        assert len(ops.upload) == 0
     
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_err='skip', dry_run=True)
+    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
     assert len(ops.upload) == 1
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_err='warn')
-    assert len(ops.upload) == 1
+    with pytest.warns(UserWarning):
+        ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
+        assert len(ops.upload) == 1
 
     # Test downloading it back
     ops = download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
@@ -72,10 +74,11 @@ def test_upload_download_dataset(session, testdata):
     assert len(ops.download) == 0
     with pytest.raises(FileExistsError):
         download(session, ipath, lpath)
-    ops = download(session, ipath, lpath, overwrite=False, on_err='skip')
+    ops = download(session, ipath, lpath, overwrite=False, on_error='skip')
     assert len(ops.download) == 0
-    ops = download(session, ipath, lpath, overwrite=False, on_err='warn')
-    assert len(ops.download) == 0
+    with pytest.warns(UserWarning):
+        ops = download(session, ipath, lpath, overwrite=False, on_error='warn')
+        assert len(ops.download) == 0
     with ipath.open("w") as handle:
         handle.write("test".encode())
     ops = download(session, ipath, lpath, overwrite=True)
@@ -98,7 +101,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
     # Check overwrite and ignore_err parameters
     with pytest.raises(DataObjectExistsError):
         upload(session, testdata, ipath)
-    ops = upload(session, testdata, ipath, on_err="skip")
+    ops = upload(session, testdata, ipath, on_error="skip")
     _check_count(ops, [0, 0, 0, 0])
     bunny_ipath = (ipath / "testdata" / "bunny.rtf")
     bunny_ipath.remove()
@@ -131,9 +134,9 @@ def test_upload_download_collection(session, testdata, tmpdir):
     _check_count(ops, [0, 0, 0, 0])
     with bunny_ipath.open("w") as handle:
         handle.write("testxx".encode())
-    ops = download(session, ipath, tmpdir/"test", on_err='skip')
+    ops = download(session, ipath, tmpdir/"test", on_error='skip')
     _check_count(ops, [0, 0, 0, 0])
-    ops = download(session, ipath, tmpdir/"test", on_err='warn')
+    ops = download(session, ipath, tmpdir/"test", on_error='warn')
     _check_count(ops, [0, 0, 0, 0])
     ops = download(session, ipath, tmpdir/"test", overwrite='skip', dry_run=True)
     _check_count(ops, [0, 0, 1, 0])
