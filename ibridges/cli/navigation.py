@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
@@ -162,6 +164,7 @@ def _tree(
     pels: dict[str, str],
     prefix: str = "",
     show_max: int = 10,
+    dir_color: Optional[str] = None,
 ):
     """Generate A recursive generator, given a directory Path object.
 
@@ -186,11 +189,16 @@ def _tree(
                 show_max=show_max,
                 prefix=prefix + pels["branch"],
                 pels=pels,
+                dir_color=dir_color,
             )
             continue
-        build_list.append(str(rel_path))
+        if dir_color is None or cur_path.dataobject_exists():
+            str_path = str(rel_path)
+        else:
+            str_path = f"\033[{dir_color}m" + str(rel_path) + "\033[0m"
+        build_list.append(str_path)
         j_path += 1
-    _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
+    _print_build_list(build_list, prefix, show_max=show_max, pels=pels, )
     return j_path
 
 
@@ -235,6 +243,9 @@ class CliTree(BaseCliCommand):
     def run_shell(session, parser, args):
         """Show the tree of a collection."""
         ipath = IrodsPath(session, args.remote_coll)
+        ls_colors = os.environ.get("LS_COLORZ", "")
+        dir_color = [x for x in ls_colors.split(":") if x.startswith("di=")]
+        dir_color = None if len(dir_color) == 0 else dir_color[0][3:]
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
             return
@@ -244,7 +255,7 @@ class CliTree(BaseCliCommand):
             pels = _tree_elements["pretty"]
         ipath_list = [cur_path for cur_path in ipath.walk(depth=args.depth)
                       if str(cur_path) != str(ipath)]
-        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
+        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels, dir_color=dir_color)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col
         print_str = f"\n{n_col} collections, {n_data} data objects"
