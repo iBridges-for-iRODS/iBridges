@@ -257,8 +257,11 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         for root_ipath, meta_fp in self.meta_upload:
-            with open(meta_fp, "r", encoding="utf-8") as handle:
-                meta_dict = json.load(handle)
+            if not isinstance(meta_fp, dict):
+                with open(meta_fp, "r", encoding="utf-8") as handle:
+                    meta_dict = json.load(handle)
+            else:
+                meta_dict = meta_fp
             _set_metadata_from_dict(root_ipath, meta_dict)
 
     def execute_create_dir(self):
@@ -582,7 +585,7 @@ def _set_metadata_from_dict(ipath: IrodsPath, metadata_dict: dict):
 
     """
     for item_data in metadata_dict["items"]:
-        new_path = ipath / item_data["rel_path"]
+        new_path = ipath / item_data.get("rel_path", "")
         if not new_path.exists():
             raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
                              "itself.")

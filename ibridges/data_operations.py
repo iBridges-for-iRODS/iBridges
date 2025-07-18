@@ -40,7 +40,7 @@ def upload(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path] = None,
+    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
@@ -289,7 +289,7 @@ def sync(
     copy_empty_folders: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
-    metadata: Union[None, str, Path] = None,
+    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
 ) -> Operations:
     """Synchronize data between local and remote copies.
