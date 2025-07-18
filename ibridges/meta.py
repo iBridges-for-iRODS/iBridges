@@ -158,7 +158,7 @@ class MetaData:
         return all_items[0]
 
     def __setitem__(self, key: Union[str, Sequence[str]],
-                    other: Union[str, Sequence[str]]):
+                    other: Union[str, Sequence[str], Sequence[Sequence[str]]]):
         """Set metadata items like a dictionary of tuples.
 
         Parameters
@@ -190,17 +190,30 @@ class MetaData:
         if len(key) > 2:
             raise ValueError("Use either one or two values within the brackets [], for example "
                              f"meta['some_key', 'some_value'] = 'some_units', got: {key}")
-        if len(other) + len(key) > 3:
-            raise ValueError(f"Too many items to create metadata triple {other} + {key}. Use "
-                             "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
-        try:
-            item = self.__getitem__(key)
+        all_items = self.find_all(*key)
+        if all(isinstance(o, str) for o in other):
+            if len(all_items) > 1:
+                raise ValueError(f"Cannot set item with '{key}' to single item: multiple entries"
+                                 f" exist. Use meta[{key}] = [{other}] to remove all current values"
+                                 f" with new values.")
+            other = [other]
+        else:
+            for subset in other:
+                if not all(isinstance(s, str) for s in subset):
+                     raise ValueError(
+                         "Badly formed argument to __setitem__: should be set to either string,"
+                         " list of strings or list of list of strings.")
+                if len(subset) + len(key) > 3:
+                    raise ValueError(
+                        f"Too many items to create metadata triple {subset} + {key}. Use "
+                        "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
+
+        for item in all_items:
             item.remove()
-        except KeyError:
-            pass
 
-        self.add(*key, *other)
+        for sub in other:
+            self.add(*key, *sub)
 
     def add(self, key: str, value: str, units: Optional[str] = ""):
         """Add metadata to an item.
