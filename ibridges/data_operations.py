@@ -374,6 +374,8 @@ def sync(
                                      "does not exist.")
 
     if isinstance(source, IrodsPath):
+        if isinstance(metadata, dict):
+            raise ValueError("Cannot use dictionary type for metadata download.")
         ops = _down_sync_operations(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
             metadata=metadata, overwrite=True

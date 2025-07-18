@@ -58,7 +58,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.upload: list[tuple[Path, IrodsPath]] = []
         self.download: list[tuple[IrodsPath, Path]] = []
         self.meta_download: dict = defaultdict(lambda: {"items": []})
-        self.meta_upload: list[tuple[IrodsPath, Union[str, Path]]] = []
+        self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
 
@@ -81,7 +81,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
         self.meta_download[str(meta_fp)]["items"].append(ipath)
 
-    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
+    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path, dict]):
         """Add operation to use a metadata archive.
 
         This basic operation adds one metadata archive to be applied to a collection
