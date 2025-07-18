@@ -197,7 +197,7 @@ class MetaData:
                 raise ValueError(f"Cannot set item with '{key}' to single item: multiple entries"
                                  f" exist. Use meta[{key}] = [{other}] to remove all current values"
                                  f" with new values.")
-            other = [other]
+            other = [other]  # type: ignore
         else:
             for subset in other:
                 if not all(isinstance(s, str) for s in subset):
