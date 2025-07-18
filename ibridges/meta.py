@@ -198,16 +198,15 @@ class MetaData:
                                  f" exist. Use meta[{key}] = [{other}] to remove all current values"
                                  f" with new values.")
             other = [other]  # type: ignore
-        else:
-            for subset in other:
-                if not all(isinstance(s, str) for s in subset):
-                    raise ValueError(
-                        "Badly formed argument to __setitem__: should be set to either string,"
-                        " list of strings or list of list of strings.")
-                if len(subset) + len(key) > 3:
-                    raise ValueError(
-                        f"Too many items to create metadata triple {subset} + {key}. Use "
-                        "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
+        for subset in other:
+            if not all(isinstance(s, str) for s in subset):
+                raise ValueError(
+                    "Badly formed argument to __setitem__: should be set to either string,"
+                    " list of strings or list of list of strings.")
+            if len(subset) + len(key) > 3:
+                raise ValueError(
+                    f"Too many items to create metadata triple {subset} + {key}. Use "
+                    "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
 
         for item in all_items:
             item.remove()
