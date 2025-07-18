@@ -72,6 +72,13 @@ def test_meta(item_name, request):
     assert ("y", "y") in meta
     with pytest.raises(ValueError):
         meta["y"] = "z"
+    assert ("y", "x") in meta
+    assert ("y", "y") in meta
+    with pytest.raises(ValueError):
+        meta["y"] = [["a", "b", "c"]]
+    meta.delete(key="y")
+    with pytest.raises(ValueError):
+        meta["y"] = "a", "b", "c"
     meta.clear()
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
