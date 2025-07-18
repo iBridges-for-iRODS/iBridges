@@ -243,7 +243,7 @@ class CliTree(BaseCliCommand):
     def run_shell(session, parser, args):
         """Show the tree of a collection."""
         ipath = IrodsPath(session, args.remote_coll)
-        ls_colors = os.environ.get("LS_COLORZ", "")
+        ls_colors = os.environ.get("LS_COLORS", "")
         dir_color = [x for x in ls_colors.split(":") if x.startswith("di=")]
         dir_color = None if len(dir_color) == 0 else dir_color[0][3:]
         if not ipath.collection_exists():
