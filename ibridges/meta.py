@@ -201,9 +201,9 @@ class MetaData:
         else:
             for subset in other:
                 if not all(isinstance(s, str) for s in subset):
-                     raise ValueError(
-                         "Badly formed argument to __setitem__: should be set to either string,"
-                         " list of strings or list of list of strings.")
+                    raise ValueError(
+                        "Badly formed argument to __setitem__: should be set to either string,"
+                        " list of strings or list of list of strings.")
                 if len(subset) + len(key) > 3:
                     raise ValueError(
                         f"Too many items to create metadata triple {subset} + {key}. Use "
