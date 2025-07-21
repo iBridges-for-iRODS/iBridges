@@ -58,7 +58,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.upload: list[tuple[Path, IrodsPath]] = []
         self.download: list[tuple[IrodsPath, Path]] = []
         self.meta_download: dict = defaultdict(lambda: {"items": []})
-        self.meta_upload: list[tuple[IrodsPath, Union[str, Path]]] = []
+        self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
 
@@ -81,7 +81,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
         self.meta_download[str(meta_fp)]["items"].append(ipath)
 
-    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
+    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path, dict]):
         """Add operation to use a metadata archive.
 
         This basic operation adds one metadata archive to be applied to a collection
@@ -257,8 +257,11 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         for root_ipath, meta_fp in self.meta_upload:
-            with open(meta_fp, "r", encoding="utf-8") as handle:
-                meta_dict = json.load(handle)
+            if not isinstance(meta_fp, dict):
+                with open(meta_fp, "r", encoding="utf-8") as handle:
+                    meta_dict = json.load(handle)
+            else:
+                meta_dict = meta_fp
             _set_metadata_from_dict(root_ipath, meta_dict)
 
     def execute_create_dir(self):
@@ -582,7 +585,7 @@ def _set_metadata_from_dict(ipath: IrodsPath, metadata_dict: dict):
 
     """
     for item_data in metadata_dict["items"]:
-        new_path = ipath / item_data["rel_path"]
+        new_path = ipath / item_data.get("rel_path", "")
         if not new_path.exists():
             raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
                              "itself.")
