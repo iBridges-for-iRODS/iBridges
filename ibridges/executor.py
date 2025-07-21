@@ -392,7 +392,7 @@ def _obj_put(  # pylint: disable=too-many-branches
         Optional progress bar.
 
     """
-    if on_error.lower() not in ['fail', 'warn', 'skip']:
+    if on_error and on_error.lower() not in ['fail', 'warn', 'skip']:
         raise ValueError(f"'on_error' {on_error} not a valid value. Choose fail, warn or skip.")
 
     local_path = Path(local_path)
@@ -490,7 +490,7 @@ def _obj_get(
         Optional progress bar.
 
     """
-    if on_error.lower() not in ["fail", "warn", "skip"]:
+    if on_error and on_error.lower() not in ["fail", "warn", "skip"]:
         raise ValueError(f"'on_error' {on_error} not a valid value. Choose fail, warn or skip.")
     _warn_ignored_keywords(options)
 
