@@ -57,7 +57,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.create_collection: set[str] = set()
         self.upload: list[tuple[Path, IrodsPath]] = []
         self.download: list[tuple[IrodsPath, Path]] = []
-        self.meta_download: dict = defaultdict(lambda: {"items": []})
+        self.meta_download: list[tuple[IrodsPath, Path]] = []
         self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
@@ -78,8 +78,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             File to store the metadata in.
 
         """
-        self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
-        self.meta_download[str(meta_fp)]["items"].append(ipath)
+        self.meta_download.append({"root_ipath": root_ipath, "meta_fp": meta_fp})
+        # self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
+        # self.meta_download[str(meta_fp)]["items"].append(ipath)
 
     def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path, dict]):
         """Add operation to use a metadata archive.
@@ -240,12 +241,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
-        for meta_fp, op in self.meta_download.items():
-            meta_dict = _empty_metadict(op["root_ipath"])
-            for ipath in op["items"]:
-                _add_to_metadict(meta_dict, ipath, op["root_ipath"])
-            with open(meta_fp, "w", encoding="utf-8") as handle:
-                json.dump(meta_dict, handle, indent=4)
+        for root_ipath, meta_fp in self.meta_download:
+            root_ipath.create_meta_archive(meta_fp)
 
     def execute_meta_upload(self):
         """Execute all metadata upload operations.
@@ -257,12 +254,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         for root_ipath, meta_fp in self.meta_upload:
-            if not isinstance(meta_fp, dict):
-                with open(meta_fp, "r", encoding="utf-8") as handle:
-                    meta_dict = json.load(handle)
-            else:
-                meta_dict = meta_fp
-            _set_metadata_from_dict(root_ipath, meta_dict)
+            root_ipath.apply_meta_archive(meta_fp)
 
     def execute_create_dir(self):
         """Execute all create directory operations.

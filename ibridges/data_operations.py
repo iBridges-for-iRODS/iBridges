@@ -224,7 +224,7 @@ def download(
             )
 
         ops = _down_sync_operations(
-            irods_path, local_path / irods_path.name, metadata=metadata,
+            irods_path, local_path / irods_path.name, #metadata=metadata,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
             ignore_err=ignore_err
         )
@@ -238,12 +238,14 @@ def download(
         if not local_path.is_file() or _transfer_needed(
                 irods_path, local_path, overwrite, ignore_err):
             ops.add_download(irods_path, local_path)
-        if metadata is not None:
-            ops.add_meta_download(irods_path, irods_path, metadata)
+        # if metadata is not None:
+            # ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
+    if metadata is not None:
+        ops.add_meta_download(irods_path, metadata)
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
@@ -393,106 +395,6 @@ def sync(
         ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
 
     return ops
-
-
-def create_meta_archive(session: Session, source: Union[str, IrodsPath],
-                        meta_fp: Union[str, Path], dry_run: bool = False):
-    """Create a local archive file for the metadata.
-
-    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects. To re-use this archive use the function :func:`apply_meta_archive`.
-
-    Parameters
-    ----------
-    session
-        Session with the iRODS server.
-    source
-        Source iRODS path to create the archive for. This should be a collection.
-    meta_fp
-        Metadata archive file.
-    dry_run, optional
-        Whether to do a dry run. If so, the archive itself won't be created, by default False.
-
-    Returns
-    -------
-        The Operations object that allows the user to execute the operations using
-        ops.execute(session).
-
-    Raises
-    ------
-    CollectionDoesNotExistError:
-        If the source collection does not exist.
-    NotACollectionError:
-        If the source is not a collection but a data object.
-
-    Examples
-    --------
-    >>> create_meta_archive(session, "/some/home/collection", "meta_archive.json")
-
-    """
-    root_ipath = IrodsPath(session, source)
-    if not root_ipath.collection_exists():
-        if root_ipath.dataobject_exists():
-            raise NotACollectionError("Cannot download metadata archive: "
-                                 f"'{root_ipath}' is a data object, need a collection.")
-        raise CollectionDoesNotExistError("Cannot download metadata archive: "
-                                    f"'{root_ipath}' does not exist.")
-    operations = Operations()
-    for ipath in root_ipath.walk():
-        operations.add_meta_download(root_ipath, ipath, meta_fp)
-    if not dry_run:
-        operations.execute(session)
-    return operations
-
-
-def apply_meta_archive(session, meta_fp: Union[str, Path], ipath: Union[str, IrodsPath],
-                       dry_run: bool = False):
-    """Apply a metadata archive to set the metadata of collections and data objects.
-
-    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects. The archive can be created with the function :func:`create_meta_archive`.
-
-    Parameters
-    ----------
-    session
-        Session with the iRODS server.
-    meta_fp
-        Metadata archive file to use to set the metadata.
-    ipath
-        Root collection to set the metadata for. The collections and data objects relative to this
-        root collection should be the same as the ones in the metadata archive.
-    dry_run, optional
-        If True, only create an operations object, but do not execute the operation, default False.
-
-    Returns
-    -------
-        The Operations object that allows the user to execute the operations using
-        ops.execute(session).
-
-    Raises
-    ------
-    CollectionDoesNotExistError:
-        If the ipath does not exist.
-    NotACollectionError:
-        If the ipath is not a collection.
-
-    Examples
-    --------
-    >>> apply_meta_archive(session, "meta_archive.json", "/some/home/collection")
-
-    """
-    ipath = IrodsPath(session, ipath)
-    if not ipath.collection_exists():
-        if ipath.dataobject_exists():
-            raise NotACollectionError(f"Cannot apply metadata archive, since '{ipath}' "
-                                     "is a data object and not a collection.")
-        raise CollectionDoesNotExistError(
-            f"Cannot apply metadata archive, '{ipath}' does not exist.")
-    operations = Operations()
-    operations.add_meta_upload(ipath, meta_fp)
-    if not dry_run:
-        operations.execute(session)
-    return operations
 
 
 def _param_checks(source, target):
