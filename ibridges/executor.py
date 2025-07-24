@@ -4,7 +4,7 @@ from __future__ import annotations
 import warnings
 from inspect import signature
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -55,7 +55,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.create_collection: set[str] = set()
         self.upload: list[tuple[Path, IrodsPath]] = []
         self.download: list[tuple[IrodsPath, Path]] = []
-        self.meta_download: list[tuple[IrodsPath, Path]] = []
+        self.meta_download: list[dict[str, Any]] = []
         self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
@@ -77,8 +77,6 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         self.meta_download.append({"root_ipath": root_ipath, "meta_fp": meta_fp})
-        # self.meta_download[str(meta_fp)]["root_ipath"] = root_ipath
-        # self.meta_download[str(meta_fp)]["items"].append(ipath)
 
     def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path, dict]):
         """Add operation to use a metadata archive.
@@ -239,7 +237,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
-        for root_ipath, meta_fp in self.meta_download:
+        for item in self.meta_download:
+            root_ipath = item["root_ipath"]
+            meta_fp = item["meta_fp"]
             root_ipath.create_meta_archive(meta_fp)
 
     def execute_meta_upload(self):
