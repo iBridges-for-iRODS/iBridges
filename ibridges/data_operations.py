@@ -33,12 +33,12 @@ def upload(
     local_path: Union[str, Path],
     irods_path: IrodsPath,
     overwrite: bool = False,
-    ignore_err: bool = False,
+    on_error: str = "fail",
     resc_name: str = "",
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path] = None,
+    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
@@ -51,10 +51,11 @@ def upload(
         Absolute irods destination path
     overwrite:
         If data object or collection already exists on iRODS, overwrite
-    ignore_err:
-        If an error occurs during upload, and ignore_err is set to True, any errors encountered
-        will be transformed into warnings and iBridges will continue to upload the remaining files.
-        By default all errors will stop the process of uploading.
+    on_error:
+        When a transfer of a file fails, by default the whole transfer will stop and
+        print the error message(fail). By setting 'on-error' to 'warn', those errors
+        will be turned into warnings and the transfer continues with the next file.
+        Setting 'on-error' to 'skip' will omit any message and simply proceed.
     resc_name:
         Name of the resource to which data is uploaded, by default the server will decide
     copy_empty_folders:
@@ -107,7 +108,7 @@ def upload(
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         ops = _up_sync_operations(
             local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
-            overwrite=overwrite, ignore_err=ignore_err
+            overwrite=overwrite, on_error=on_error
         )
         if not idest_path.collection_exists():
             ops.add_create_coll(idest_path)
@@ -116,7 +117,7 @@ def upload(
     elif local_path.is_file():
         idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
         obj_exists = idest_path.dataobject_exists()
-        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, ignore_err):
+        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
             ops.add_upload(local_path, idest_path)
 
     elif local_path.is_symlink():
@@ -130,7 +131,7 @@ def upload(
     if metadata is not None:
         ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
+        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
     return ops
 
 
@@ -138,7 +139,7 @@ def download(
     irods_path: IrodsPath,
     local_path: Union[str, Path],
     overwrite: bool = False,
-    ignore_err: bool = False,
+    on_error: str = "fail",
     resc_name: str = "",
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
@@ -155,12 +156,12 @@ def download(
     local_path:
         Absolute path to the destination directory
     overwrite:
-        If an error occurs during download, and ignore_err is set to True, any errors encountered
-        will be transformed into warnings and iBridges will continue to download the remaining
-        files.
-        By default all errors will stop the process of downloading.
-    ignore_err:
-        Collections: If download of an item fails print error and continue with next item.
+        If data object or collection already exists on iRODS, overwrite.
+    on_error:
+        When a transfer of a file fails, by default the whole transfer will stop and
+        print the error message(fail). By setting 'on-error' to 'warn', those errors
+        will be turned into warnings and the transfer continues with the next file.
+        Setting 'on-error' to 'skip' will omit any message and simply proceed.
     resc_name:
         Name of the resource from which data is downloaded, by default the server will decide.
     copy_empty_folders:
@@ -219,7 +220,7 @@ def download(
         ops = _down_sync_operations(
             irods_path, local_path / irods_path.name, metadata=metadata,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
-            ignore_err=ignore_err
+            on_error=on_error
         )
         if not local_path.is_dir():
             ops.add_create_dir(Path(local_path))
@@ -229,7 +230,7 @@ def download(
         if local_path.is_dir():
             local_path = local_path / irods_path.name
         if not local_path.is_file() or _transfer_needed(
-                irods_path, local_path, overwrite, ignore_err):
+                irods_path, local_path, overwrite, on_error):
             ops.add_download(irods_path, local_path)
         if metadata is not None:
             ops.add_meta_download(irods_path, irods_path, metadata)
@@ -240,7 +241,7 @@ def download(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
+        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
     return ops
 
 
@@ -249,11 +250,11 @@ def sync(
     target: Union[str, Path, IrodsPath],
     max_level: Optional[int] = None,
     dry_run: bool = False,
-    ignore_err: bool = False,
+    on_error: str = "fail",
     copy_empty_folders: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
-    metadata: Union[None, str, Path] = None,
+    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
 ) -> Operations:
     """Synchronize data between local and remote copies.
@@ -285,6 +286,11 @@ def sync(
         If an error occurs during the transfer, and ignore_err is set to True,
         any errors encountered will be transformed into warnings and iBridges will continue
         to transfer the remaining files.
+    on_error:
+        When a transfer of a file fails, by default the whole transfer will stop and
+        print the error message(fail). By setting 'on-error' to 'warn', those errors
+        will be turned into warnings and the transfer continues with the next file.
+        Setting 'on-error' to 'skip' will omit any message and simply proceed.
     copy_empty_folders:
         Controls whether folders/collections that contain no files or subfolders/subcollections
         will be synchronized.
@@ -341,6 +347,8 @@ def sync(
         raise TypeError("Either source or target must be an IrodsPath")
 
     if isinstance(source, IrodsPath):
+        if isinstance(metadata, dict):
+            raise ValueError("Cannot use dictionary type for metadata download.")
         ops = _down_sync_operations(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
             metadata=metadata, overwrite=True
@@ -355,7 +363,7 @@ def sync(
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
-        ops.execute(session, ignore_err=ignore_err, progress_bar=progress_bar)
+        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
 
     return ops
 
@@ -467,7 +475,7 @@ def _param_checks(source, target):
 
 def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
-                     overwrite: bool, ignore_err: bool):
+                     overwrite: bool, on_error: str):
     if isinstance(source, IrodsPath):
         # Ensure that if the source is remote, the dest should be local.
         if not isinstance(dest, Path):
@@ -481,14 +489,16 @@ def _transfer_needed(source: Union[IrodsPath, Path],
         lpath = source
 
     if not overwrite:
-        if not ignore_err:
+        if on_error == "fail":
             err_msg = (f"Cannot overwrite {source} -> {dest} unless overwrite==True. "
-                       f"To ignore this error and skip the files use on_err=='warn' or 'skip'.")
+                       f"To ignore this error and skip the files use on_error=='warn'.")
+
             if isinstance(dest, IrodsPath):
                 raise DataObjectExistsError(err_msg)
             raise FileExistsError(err_msg)
-        warnings.warn(f"Skipping file/data object {source} -> {dest} since "
-                      f"both exist and overwrite == False.")
+        if on_error == "warn":
+            warnings.warn(f"Skipping file/data object {source} -> {dest} since "
+                          f"both exist and overwrite == False.")
         return False
     if checksums_equal(ipath, lpath):
         return False
@@ -497,7 +507,7 @@ def _transfer_needed(source: Union[IrodsPath, Path],
 
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           overwrite: bool,
-                          ignore_err: bool = False,
+                          on_error: str = "fail",
                           copy_empty_folders: bool  =True, depth: Optional[int] = None,
                           metadata: Union[None, str, Path] = None) -> Operations:
     operations = Operations()
@@ -507,7 +517,7 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
-                if _transfer_needed(ipath, lpath, overwrite, ignore_err):
+                if _transfer_needed(ipath, lpath, overwrite, on_error):
                     operations.add_download(ipath, lpath)
             else:
                 operations.add_download(ipath, lpath)
@@ -522,7 +532,7 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
 def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
                         overwrite: bool,
                         copy_empty_folders: bool = True, depth: Optional[int] = None,
-                        ignore_err: bool = False) -> Operations:
+                        on_error: str = "fail") -> Operations:
     operations = Operations()
     session = idest_path.session
     try:
@@ -544,7 +554,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 continue
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
-                if _transfer_needed(lpath, ipath, overwrite, ignore_err):
+                if _transfer_needed(lpath, ipath, overwrite, on_error):
                     operations.add_upload(lpath, ipath)
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
