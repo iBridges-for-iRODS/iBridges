@@ -442,8 +442,6 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           metadata: Union[None, str, Path] = None) -> Operations:
     operations = Operations()
     for ipath in isource_path.walk(depth=depth):
-        if metadata is not None:
-            operations.add_meta_download(isource_path, ipath, metadata)
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
@@ -456,6 +454,8 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         elif ipath.collection_exists() and copy_empty_folders:
             if not lpath.exists():
                 operations.add_create_dir(lpath)
+    if metadata is not None:
+        operations.add_meta_download(isource_path, metadata)
     return operations
 
 

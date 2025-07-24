@@ -600,8 +600,6 @@ class IrodsPath:
 
         Parameters
         ----------
-        session
-            Session with the iRODS server.
         meta_fp
             Metadata archive file.
         dry_run, optional
@@ -634,7 +632,7 @@ class IrodsPath:
         if dry_run:
             return meta_items
 
-        meta_dict = _empty_metadict()
+        meta_dict = _empty_metadict(self)
         for cur_ipath in meta_items:
             if self.collection_exists():
                 item_type = "collection"
@@ -652,6 +650,8 @@ class IrodsPath:
         with open(meta_fp, "w", encoding="utf-8") as handle:
             json.dump(meta_dict, handle, indent=4)
 
+        return meta_items
+
 
     def apply_meta_archive(self, meta_fp: Union[str, Path, dict], dry_run: bool = False):
         """Apply a metadata archive to set the metadata of collections and data objects.
@@ -664,7 +664,8 @@ class IrodsPath:
         meta_fp
             Metadata archive file to use to set the metadata.
         dry_run, optional
-            If True, only create an operations object, but do not execute the operation, default False.
+            If True, only create an operations object, but do not execute the operation,
+            default False.
 
         Returns
         -------
