@@ -170,6 +170,7 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         print(cur_ipath)
         cur_meta_dict = _find_meta_dict(cur_ipath)
+        print(meta_data, cur_meta_dict["metadata"])
         assert _check_in_metadict(meta_data, cur_meta_dict["metadata"])
         # assert meta_data in cur_meta_dict["metadata"]
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
