@@ -182,6 +182,34 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
 
+
+def test_meta_archive_file(session, testdata, tmpdir):
+    ipath_base = IrodsPath(session, "test")
+    ipath_base.remove()
+    sync(session, testdata, ipath_base)
+    assert len(list(ipath_base.meta)) == 0
+    ipath = ipath_base / "more_data" / "polarbear.txt"
+    meta_triple = ("is_polar", "true", "bool")
+    ipath.meta.add(*meta_triple)
+    meta_fp = tmpdir / "meta.json"
+    ipath.create_meta_archive(meta_fp)
+    with open(meta_fp, "r") as handle:
+        meta_dict = json.load(handle)
+
+    assert "ibridges_metadata_version" in meta_dict
+    assert meta_dict["recursive"] is True
+    assert meta_dict["root_path"] == str(ipath.parent)
+    assert len(meta_dict["items"]) == 1
+
+    # Check if the metadata is in the file, then delete it remotely
+    assert meta_dict["items"][0]['metadata'][0] == meta_triple
+    ipath.clear()
+
+    # Apply the archive and see if it has arrived.
+    ipath.apply_meta_archive(meta_fp)
+
+    assert meta_triple in ipath.meta
+
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
         download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})

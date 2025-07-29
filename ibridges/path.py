@@ -622,26 +622,32 @@ class IrodsPath:
         >>> ipath.create_meta_archive("meta_archive.json")
 
         """
-        if not self.collection_exists():
-            if self.dataobject_exists():
-                raise NotACollectionError("Cannot download metadata archive: "
-                                    f"'{self}' is a data object, need a collection.")
-            raise CollectionDoesNotExistError("Cannot download metadata archive: "
-                                        f"'{self}' does not exist.")
-        meta_items = list(self.walk())
+        if not self.exists():
+            # if self.dataobject_exists():
+                # raise NotACollectionError("Cannot download metadata archive: "
+                                    # f"'{self}' is a data object, need a collection.")
+            raise DoesNotExistError("Cannot download metadata archive: "
+                                    f"'{self}' does not exist.")
+        if self.dataobject_exists():
+            meta_items = [self]
+            base_path = self.parent
+        else:
+            meta_items = list(self.walk())
+            base_path = self
+
         if dry_run:
             return meta_items
 
-        meta_dict = _empty_metadict(self)
+        meta_dict = _empty_metadict(base_path)
         for cur_ipath in meta_items:
-            if self.collection_exists():
+            if cur_ipath.collection_exists():
                 item_type = "collection"
-            elif self.dataobject_exists():
+            elif cur_ipath.dataobject_exists():
                 item_type = "data object"
             else:
                 item_type = "unknown"
             new_metadata = {
-                "rel_path": str(cur_ipath.relative_to(self)),
+                "rel_path": str(cur_ipath.relative_to(base_path)),
                 "type": item_type,
             }
             new_metadata.update(cur_ipath.meta.to_dict())
@@ -684,12 +690,14 @@ class IrodsPath:
         >>> ipath.apply_meta_archive("meta_archive.json")
 
         """
-        if not self.collection_exists():
-            if self.dataobject_exists():
-                raise NotACollectionError(f"Cannot apply metadata archive, since '{self}' "
-                                        "is a data object and not a collection.")
-            raise CollectionDoesNotExistError(
+        if not self.exists():
+            raise DoesNotExistError(
                 f"Cannot apply metadata archive, '{self}' does not exist.")
+
+        if self.dataobject_exist():
+            base_path = self.parent
+        else:
+            base_path = self
 
         if not isinstance(meta_fp, dict):
             with open(meta_fp, "r", encoding="utf-8") as handle:
@@ -701,7 +709,7 @@ class IrodsPath:
             return meta_dict
 
         for item_data in meta_dict["items"]:
-            new_path = self / item_data.get("rel_path", "")
+            new_path = base_path / item_data.get("rel_path", "")
             if not new_path.exists():
                 raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
                                 "itself.")
