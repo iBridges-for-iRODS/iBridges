@@ -202,7 +202,7 @@ def test_meta_archive_file(session, testdata, tmpdir):
     assert len(meta_dict["items"]) == 1
 
     # Check if the metadata is in the file, then delete it remotely
-    assert meta_dict["items"][0]['metadata'][0] == meta_triple
+    assert tuple(meta_dict["items"][0]['metadata'][0]) == meta_triple
     ipath.clear()
 
     # Apply the archive and see if it has arrived.
