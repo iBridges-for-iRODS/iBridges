@@ -644,7 +644,7 @@ class IrodsPath:
                 "rel_path": str(cur_ipath.relative_to(self)),
                 "type": item_type,
             }
-            new_metadata.update(self.meta.to_dict())
+            new_metadata.update(cur_ipath.meta.to_dict())
             meta_dict["items"].append(new_metadata)
 
         with open(meta_fp, "w", encoding="utf-8") as handle:
