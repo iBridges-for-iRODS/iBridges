@@ -168,12 +168,8 @@ def test_meta_archive(session, testdata, tmpdir):
 
     # Check if the metadata is in the file, then delete it remotely
     for cur_ipath, meta_data in meta_list:
-        print(cur_ipath)
         cur_meta_dict = _find_meta_dict(cur_ipath)
-        print(meta_dict)
-        print(meta_data, cur_meta_dict["metadata"])
         assert _check_in_metadict(meta_data, cur_meta_dict["metadata"])
-        # assert meta_data in cur_meta_dict["metadata"]
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
 
     # Apply the archive and see if it has arrived.
@@ -203,7 +199,7 @@ def test_meta_archive_file(session, testdata, tmpdir):
 
     # Check if the metadata is in the file, then delete it remotely
     assert tuple(meta_dict["items"][0]['metadata'][0]) == meta_triple
-    ipath.clear()
+    ipath.meta.clear()
 
     # Apply the archive and see if it has arrived.
     ipath.apply_meta_archive(meta_fp)
