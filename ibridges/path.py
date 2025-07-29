@@ -694,7 +694,7 @@ class IrodsPath:
             raise DoesNotExistError(
                 f"Cannot apply metadata archive, '{self}' does not exist.")
 
-        if self.dataobject_exist():
+        if self.dataobject_exists():
             base_path = self.parent
         else:
             base_path = self
