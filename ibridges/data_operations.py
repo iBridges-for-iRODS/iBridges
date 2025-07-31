@@ -463,7 +463,7 @@ def apply_meta_archive(meta_fp: Union[str, Path], ipath: IrodsPath, dry_run: boo
 
 
 def _param_checks(source, target):
-    if not isinstance(source, IrodsPath) and not isinstance(target, IrodsPath):
+    if not isinstance(source, IrodsPath) or not isinstance(target, IrodsPath):
         raise TypeError("Either source or target should be an iRODS path.")
 
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
