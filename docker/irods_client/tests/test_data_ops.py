@@ -188,7 +188,7 @@ def test_meta_archive(session, testdata, tmpdir):
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
 
     # Apply the archive and see if it has arrived.
-    apply_meta_archive(session, meta_fp, ipath)
+    apply_meta_archive(meta_fp, ipath)
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta

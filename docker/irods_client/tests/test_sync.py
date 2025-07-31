@@ -5,7 +5,7 @@ from ibridges.util import calc_checksum
 
 def test_sync_dry_run(session, testdata, capsys):
 
-    coll = IrodsPath.create_collection(session, "empty")
+    coll = IrodsPath.create_collection(session, session.home+"/empty")
     assert len(coll.data_objects)+len(coll.subcollections)==0, "Dry run starting not empty"
 
     # upload
