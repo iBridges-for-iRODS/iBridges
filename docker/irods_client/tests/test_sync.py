@@ -5,7 +5,7 @@ from ibridges.util import calc_checksum
 
 def test_sync_dry_run(session, testdata, capsys):
 
-    coll = IrodsPath.create_collection(session, "~", "empty")
+    coll = IrodsPath.create_collection(session, "empty")
     assert len(coll.data_objects)+len(coll.subcollections)==0, "Dry run starting not empty"
 
     # upload
@@ -24,7 +24,7 @@ def test_sync_dry_run(session, testdata, capsys):
 
 def test_sync_upload_download(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "empty")
-    coll = create_collection(session=session, coll_path=ipath)
+    coll = IrodsPath.create_collection(session=session, ipath)
 
     assert len(coll.data_objects)+len(coll.subcollections)==0, "iRODS folder not empty"
 

@@ -157,7 +157,7 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         cur_ipath.meta.add(*meta_data)
     meta_fp = tmpdir / "meta.json"
-    create_meta_archive(session, ipath, meta_fp)
+    create_meta_archive(ipath, meta_fp)
     with open(meta_fp, "r") as handle:
         meta_dict = json.load(handle)
 
@@ -195,7 +195,9 @@ def test_meta_archive(session, testdata, tmpdir):
 
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
-        download(dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
+        ipath = IrodsPath(session, dataobject.path)
+        download(ipath, tmpdir, options={kw.NUM_THREADS_KW: 3})
     with pytest.warns(UserWarning):
-        upload(str(tmpdir/"bunny.rtf"), "~/tmp.rtf", options={kw.NUM_THREADS_KW: 3})
+        ipath = IrodsPath(session, "~", "tmp.rtf")
+        upload(str(tmpdir/"bunny.rtf"), ipath, options={kw.NUM_THREADS_KW: 3})
     IrodsPath(session, "~/tmp.rtf").remove()
