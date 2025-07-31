@@ -10,7 +10,7 @@ def test_sync_dry_run(session, testdata, capsys):
 
     # upload
     ops = sync(source=testdata,
-               target=ipath,
+               target=coll,
                max_level=None,
                dry_run=True,
                copy_empty_folders=True)
