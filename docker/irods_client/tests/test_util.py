@@ -19,9 +19,9 @@ def test_calc_checksum(irods_env, config, check_type, checksum, testdata, tmp_pa
         ipath_coll = IrodsPath(session, "test_check")
         ipath_coll.remove()
         ipath_coll.create_collection(session, ipath_coll)
-        upload(session, testdata / "bunny.rtf", ipath_coll)
+        upload(testdata / "bunny.rtf", ipath_coll)
         ipath = ipath_coll / "bunny.rtf"
-        download(session, ipath, tmp_path)
+        download(ipath, tmp_path)
         assert calc_checksum(ipath, checksum_type=check_type) == checksum
         assert calc_checksum(tmp_path / "bunny.rtf", checksum_type=check_type) == checksum
         assert checksums_equal(ipath, tmp_path / "bunny.rtf")

@@ -9,8 +9,7 @@ def test_sync_dry_run(session, testdata, capsys):
     assert len(coll.data_objects)+len(coll.subcollections)==0, "Dry run starting not empty"
 
     # upload
-    ops = sync(session=session,
-               source=testdata,
+    ops = sync(source=testdata,
                target=ipath,
                max_level=None,
                dry_run=True,
@@ -30,8 +29,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
     assert len(coll.data_objects)+len(coll.subcollections)==0, "iRODS folder not empty"
 
     # upload
-    sync(session=session,
-         source=testdata,
+    sync(source=testdata,
          target=ipath,
          max_level=None,
          dry_run=False,
@@ -56,8 +54,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
             "Checksums not identical after upload"
 
     # download
-    sync(session=session,
-        source=ipath,
+    sync(source=ipath,
         target=tmpdir,
         max_level=None,
         dry_run=False,
