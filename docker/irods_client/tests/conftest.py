@@ -47,7 +47,8 @@ def testdata():
 
 @pytest.fixture(scope="session")
 def collection(session):
-    coll = IrodsPath.create_collection(session, "test_collection")
+    ipath = IrodsPath(session, "~", "test_collection")
+    coll = IrodsPath.create_collection(session, ipath)
     yield coll
     IrodsPath(session, coll.path).remove()
 
