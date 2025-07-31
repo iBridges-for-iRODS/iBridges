@@ -24,7 +24,7 @@ def test_sync_dry_run(session, testdata, capsys):
 
 def test_sync_upload_download(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "empty")
-    coll = IrodsPath.create_collection(session=session, ipath)
+    coll = IrodsPath.create_collection(session, ipath)
 
     assert len(coll.data_objects)+len(coll.subcollections)==0, "iRODS folder not empty"
 
