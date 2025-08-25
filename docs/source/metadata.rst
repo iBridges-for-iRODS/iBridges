@@ -50,15 +50,29 @@ To add metadata, you always need to provide a key and a value, the units are opt
 Set metadata
 ------------
 
-You can use the brackets ``[]`` to set a key or key/value pair to one value or value/unit pair.
-This mirrors the implementation of the `iCommands <https://rdm-docs.icts.kuleuven.be/mango/clients/icommands.html#adding-metadata>`__
-:code:`imeta set`.
+You can use the brackets ``[]`` to set a key or key/value pair.
+
 
 .. code-block:: python
 
-    meta["ExistingKey"] = 'Value', 'Unit'
-    meta["ExistingKey", "Value"] = "New_Unit"
+    meta["ExistingKey"] = "Value", "Unit"
+    meta["ExistingKey", "New_Value"] = "New_Unit"
 
+This notation will only change/set one triplet at the same time. So, for example the following will throw an error:
+
+.. code-block:: python
+
+    meta["ExistingKey"] = "Other_Value", "Other_Unit"
+
+If you want to remove all entries with the key ``ExistingKey``, then you can use the double bracket notation:
+
+.. code-block:: python
+
+    meta["ExistingKey"] = [["Other_Value", "Other_Unit"]]
+
+
+This notation mirrors the implementation of the `iCommands <https://rdm-docs.icts.kuleuven.be/mango/clients/icommands.html#adding-metadata>`__
+:code:`imeta set`.
 
 Find metadata items
 -------------------
