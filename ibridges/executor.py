@@ -61,6 +61,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
+        self.download_unchanged = 0
+        self.upload_unchanged = 0
 
     def add_meta_download(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
         """Add operation for downloading metadata archives.
@@ -147,7 +149,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.create_collection.add(str(new_col))
 
     def execute(self, session: Session, on_error: str = "fail",
-                progress_bar: bool = True):
+                progress_bar: bool = True, print_summary: bool = True):
         """Execute all added operations.
 
         This also creates a progress bar to see the status updates.
@@ -162,6 +164,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         progress_bar
             Whether to turn on the progress bar. The progress bar will be disabled
             if the total download + upload size is 0 regardless.
+        print_summary:
+            Whether to print a summary of how many files have been downloaded/uploaded, etc.
 
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
@@ -174,12 +178,31 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             unit_divisor=1024,
             disable=disable,
         )
-        self.execute_create_dir()
-        self.execute_create_coll(session)
-        self.execute_download(session, pbar, on_error=on_error)
-        self.execute_upload(session, pbar, on_error=on_error)
-        self.execute_meta_download()
-        self.execute_meta_upload()
+        n_dir = self.execute_create_dir()
+        n_coll = self.execute_create_coll(session)
+        n_download = self.execute_download(session, pbar, on_error=on_error)
+        n_upload = self.execute_upload(session, pbar, on_error=on_error)
+        n_meta_down = self.execute_meta_download()
+        n_meta_up = self.execute_meta_upload()
+
+        download_error = len(self.download) - n_download
+        upload_error = len(self.upload) - n_upload
+
+        msg_dict = {
+            "Downloaded": n_download,
+            "Download errors": download_error,
+            "Uploaded": n_upload,
+            "Upload errors": upload_error,
+            "Skipped unchanged": self.download_unchanged + self.upload_unchanged,
+            "Directories created": n_dir,
+            "Collections created": n_coll,
+            "Metadata download": n_meta_down,
+            "Metadata upload": n_meta_up,
+        }
+        messages = [f"{msg}: {count}" for msg, count in msg_dict.items() if count > 0]
+        pbar.close()
+        if print_summary:
+            print(", ".join(messages))
 
     def execute_download(self, session: Session,
                          pbar: Optional[tqdm_type], on_error: str = "fail"):
@@ -198,8 +221,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             There are three options: 'fail', 'warn' and 'skip'.
 
         """
+        n_transfer = 0
         for ipath, lpath in self.download:
-            _obj_get(
+            n_transfer += _obj_get(
                 session,
                 ipath,
                 lpath,
@@ -209,6 +233,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 resc_name=self.resc_name,
                 pbar=pbar,
             )
+        return n_transfer
 
     def execute_upload(self, session: Session,
                        pbar: Optional[tqdm_type], on_error: str = "fail"):
@@ -227,8 +252,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             There are three options: 'fail', 'warn' and 'skip'.
 
         """
+        n_transfer = 0
         for lpath, ipath in self.upload:
-            _obj_put(
+            n_transfer += _obj_put(
                 session,
                 lpath,
                 ipath,
@@ -238,6 +264,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 resc_name=self.resc_name,
                 pbar=pbar,
             )
+        return n_transfer
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
@@ -245,6 +272,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             root_ipath = item["root_ipath"]
             meta_fp = item["meta_fp"]
             root_ipath.create_meta_archive(meta_fp)
+        return len(self.meta_download)
 
     def execute_meta_upload(self):
         """Execute all metadata upload operations.
@@ -255,8 +283,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Session to use with uploading the operations.
 
         """
+        n_ops = 0
         for root_ipath, meta_fp in self.meta_upload:
-            root_ipath.apply_meta_archive(meta_fp)
+            n_ops += len(root_ipath.apply_meta_archive(meta_fp)["items"])
+        return n_ops
 
     def execute_create_dir(self):
         """Execute all create directory operations.
@@ -272,6 +302,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 Path(curdir).mkdir(parents=True, exist_ok=True)
             except NotADirectoryError as error:
                 raise PermissionError(f"Cannot create {error.filename}") from error
+        return len(self.create_dir)
 
     def execute_create_coll(self, session: Session):
         """Execute all create collection operations.
@@ -283,8 +314,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         for col in self.create_collection:
-            cpath = IrodsPath(session, col)
-            cpath.create_collection()
+            IrodsPath(session, col).create_collection()
+        return len(self.create_collection)
 
     def print_summary(self):
         """Print a summary of all the operations added to the object."""
@@ -386,6 +417,8 @@ def _obj_put(  # pylint: disable=too-many-branches
         Optional progress bar.
 
     """
+    transfers = 0
+
     if on_error and on_error.lower() not in ['fail', 'warn', 'skip']:
         raise ValueError(f"'on_error' {on_error} not a valid value. Choose fail, warn or skip.")
 
@@ -395,7 +428,7 @@ def _obj_put(  # pylint: disable=too-many-branches
     if not local_path.is_file():
         err_msg = f"local_path '{local_path}' must be a file."
         _raise_transfer_errors(on_error, err_msg, ValueError)
-        return
+        return 0
 
     # Check if irods object already exists
     obj_exists = (
@@ -421,14 +454,13 @@ def _obj_put(  # pylint: disable=too-many-branches
     if overwrite or not obj_exists:
         try:
             session.irods_session.data_objects.put(local_path, str(irods_path), **options)
+            transfers += 1
         except (PermissionError, OSError) as error:
             err_msg = f"Cannot read {error.filename}."
             _raise_transfer_errors(on_error, err_msg, error, error)
-            return
         except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
             err_msg = f"Cannot write iRODS path {str(irods_path)}."
             _raise_transfer_errors(on_error, err_msg, PermissionError, error)
-            return
         except irods.exception.OVERWRITE_WITHOUT_FORCE_FLAG as error:
             # This should generally not occur, but a race condition might trigger this.
             # obj does not exist -> someone else writes to object -> overwrite error
@@ -437,17 +469,16 @@ def _obj_put(  # pylint: disable=too-many-branches
                        "This error might be the result of simultaneous writing "
                        "to the same data object.")
             _raise_transfer_errors(on_error, err_msg, FileExistsError, error)
-            return
         except Exception as error: # pylint: disable=W0718
             err_msg = f"Cannot transfer {local_path} to {irods_path}, {repr(error)}"
             _raise_transfer_errors(on_error, err_msg, FileTransferFailedError, error)
-            return
     else:
         err_msg = (f"Dataset {irods_path} already exists. "
                     "Use overwrite=True to overwrite the existing file.")
         _raise_transfer_errors(on_error, err_msg, FileExistsError)
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
+    return transfers
 
 
 def _obj_get(
@@ -507,28 +538,27 @@ def _obj_get(
         if upd_put:
             options["updatables"] = [pbar.update]
 
+    transfers = 0
+
     # Quick fix for #126
     if Path(local_path).is_dir():
         local_path = Path(local_path).joinpath(irods_path.name)
 
     try:
         session.irods_session.data_objects.get(str(irods_path), local_path, **options)
+        transfers += 1
     except (OSError, irods.exception.CAT_NO_ACCESS_PERMISSION) as error:
         msg = f"Cannot write to {local_path}."
         _raise_transfer_errors(on_error, msg, PermissionError, error)
-        return
     except irods.exception.CUT_ACTION_PROCESSED_ERR as error:
         msg = f"During download operation from '{irods_path}': iRODS server forbids action."
         _raise_transfer_errors(on_error, msg, PermissionError, error)
-        return
     except irods.exception.CollectionDoesNotExist:
         msg = f"{irods_path} does not exist."
         exception = CollectionDoesNotExist(msg)
         _raise_transfer_errors(on_error, msg, ObjectTransferFailedError, exception)
-        return
     except Exception as error:
         msg = f"Cannot transfer {irods_path} to {local_path}, {repr(error)}"
         _raise_transfer_errors(on_error, msg, ObjectTransferFailedError, error)
-        return
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)

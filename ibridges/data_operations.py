@@ -119,6 +119,8 @@ def upload(
         obj_exists = idest_path.dataobject_exists()
         if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
             ops.add_upload(local_path, idest_path)
+        else:
+            ops.upload_unchanged += 1
 
     elif local_path.is_symlink():
         raise FileNotFoundError(
@@ -232,6 +234,10 @@ def download(
         if not local_path.is_file() or _transfer_needed(
                 irods_path, local_path, overwrite, on_error):
             ops.add_download(irods_path, local_path)
+        else:
+            ops.download_unchanged += 1
+        if metadata is not None:
+            ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
@@ -414,7 +420,7 @@ def _transfer_needed(source: Union[IrodsPath, Path],
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           overwrite: bool,
                           on_error: str = "fail",
-                          copy_empty_folders: bool  =True, depth: Optional[int] = None,
+                          copy_empty_folders: bool = True, depth: Optional[int] = None,
                           metadata: Union[None, str, Path] = None) -> Operations:
     operations = Operations()
     for ipath in isource_path.walk(depth=depth):
@@ -423,6 +429,8 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
             if lpath.is_file():
                 if _transfer_needed(ipath, lpath, overwrite, on_error):
                     operations.add_download(ipath, lpath)
+                else:
+                    operations.download_unchanged += 1
             else:
                 operations.add_download(ipath, lpath)
             if not lpath.parent.exists():
@@ -462,6 +470,8 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 ipath = remote_ipaths[str(ipath)]
                 if _transfer_needed(lpath, ipath, overwrite, on_error):
                     operations.add_upload(lpath, ipath)
+                else:
+                    operations.upload_unchanged += 1
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
                 operations.add_upload(lpath, ipath)
