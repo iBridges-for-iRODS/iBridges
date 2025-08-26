@@ -165,7 +165,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Whether to turn on the progress bar. The progress bar will be disabled
             if the total download + upload size is 0 regardless.
         print_summary:
-            Whether to print a summary of how many files have been downloaded/uploaded, etc.
+            Whether to print a summary about how many files have been uploaded, downloaded,
+            directories created, and more.
 
         """
         up_sizes = [lpath.stat().st_size for lpath, _ in self.upload]
