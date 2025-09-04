@@ -21,7 +21,7 @@ RESC_NAME = imodels.Resource.name
 RESC_PARENT = imodels.Resource.parent
 RESC_STATUS = imodels.Resource.status
 RESC_CONTEXT = imodels.Resource.context
-USER_GROUP_NAME = imodels.UserGroup.name
+USER_GROUP_NAME = imodels.Group.name
 USER_NAME = imodels.User.name
 USER_TYPE = imodels.User.type
 
