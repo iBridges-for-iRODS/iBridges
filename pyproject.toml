@@ -27,7 +27,8 @@ classifiers = [
 ]
 
 dependencies = [
-    "python-irodsclient>=2.0.0, !=3.1.0",
+    "python-irodsclient>=2.0.0, !=3.1.0;python_version>='3.9'",
+    "python-irodsclient>=2.0.0, !=3.1.0, <3.2;python_version<'3.9'",
     "tqdm",
     "importlib-metadata>=4.6;python_version<'3.10'",
 ]
@@ -91,6 +92,8 @@ max-positional-arguments=11  # pylint: disable=unrecognized-option
 
 # [tool.pylint.'MESSAGES CONTROL']
 # disable="too-many-positional-arguments"
+[tool.pylint."MESSAGES CONTROL"]
+disable="duplicate-code"
 
 [tool.ruff]
 exclude = ["_version.py"]
