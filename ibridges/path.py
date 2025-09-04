@@ -203,7 +203,6 @@ class IrodsPath:
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
-    @staticmethod
     def create_collection(
         session, coll_path: Union[IrodsPath, str]
     ) -> irods.collection.iRODSCollection:
