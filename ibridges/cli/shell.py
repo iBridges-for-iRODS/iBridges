@@ -215,7 +215,7 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
 
     base_arg = args[-1]
     base_completion = []
-    if args[-1].startswith("irods"[:len(args[-1])]):
+    if args[-1].startswith("irods:"[:len(args[-1])]):
         if len(args[-1]) < len("irods:"):
             base_completion = [text[:len(text)-len(args[-1])] + "irods:"]
         else:

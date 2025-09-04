@@ -91,7 +91,6 @@ def _from_pw_file(irods_env_path, irodsa_backup: Optional[str] = None, **kwargs)
     except IndexError:
         print("INFO: The cached password in ~/.irods/.irodsA has been corrupted")
     except PasswordError:
-        print(irodsa_backup)
         if irodsa_backup is not None:
             with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
                 handle.write(irodsa_backup)
