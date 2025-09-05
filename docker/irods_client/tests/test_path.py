@@ -54,4 +54,4 @@ def test_path_create_coll(session):
 
     ipath = IrodsPath(session, "/NotAZoneName")
     with pytest.raises(ValueError):
-        coll.ipath.create_collection()
+        ipath.create_collection()
