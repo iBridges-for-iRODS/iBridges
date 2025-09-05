@@ -5,7 +5,7 @@ from pathlib import Path
 import irods.keywords as kw
 import pytest
 
-from ibridges.data_operations import apply_meta_archive, create_meta_archive, download, sync, upload
+from ibridges.data_operations import download, sync, upload
 from ibridges.exception import DataObjectExistsError, NotACollectionError, NotADataObjectError
 from ibridges.path import IrodsPath
 from ibridges.util import is_collection, is_dataobject
@@ -157,7 +157,7 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         cur_ipath.meta.add(*meta_data)
     meta_fp = tmpdir / "meta.json"
-    create_meta_archive(session, ipath, meta_fp)
+    ipath.create_meta_archive(meta_fp)
     with open(meta_fp, "r") as handle:
         meta_dict = json.load(handle)
 
@@ -181,17 +181,43 @@ def test_meta_archive(session, testdata, tmpdir):
 
     # Check if the metadata is in the file, then delete it remotely
     for cur_ipath, meta_data in meta_list:
-        print(cur_ipath)
         cur_meta_dict = _find_meta_dict(cur_ipath)
         assert _check_in_metadict(meta_data, cur_meta_dict["metadata"])
-        # assert meta_data in cur_meta_dict["metadata"]
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
 
     # Apply the archive and see if it has arrived.
-    apply_meta_archive(session, meta_fp, ipath)
+    ipath.apply_meta_archive(meta_fp)
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
+
+
+def test_meta_archive_file(session, testdata, tmpdir):
+    ipath_base = IrodsPath(session, "test")
+    ipath_base.remove()
+    sync(session, testdata, ipath_base)
+    assert len(list(ipath_base.meta)) == 0
+    ipath = ipath_base / "more_data" / "polarbear.txt"
+    meta_triple = ("is_polar", "true", "bool")
+    ipath.meta.add(*meta_triple)
+    meta_fp = tmpdir / "meta.json"
+    ipath.create_meta_archive(meta_fp)
+    with open(meta_fp, "r") as handle:
+        meta_dict = json.load(handle)
+
+    assert "ibridges_metadata_version" in meta_dict
+    assert meta_dict["recursive"] is True
+    assert meta_dict["root_path"] == str(ipath.parent)
+    assert len(meta_dict["items"]) == 1
+
+    # Check if the metadata is in the file, then delete it remotely
+    assert tuple(meta_dict["items"][0]['metadata'][0]) == meta_triple
+    ipath.meta.clear()
+
+    # Apply the archive and see if it has arrived.
+    ipath.apply_meta_archive(meta_fp)
+
+    assert meta_triple in ipath.meta
 
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
