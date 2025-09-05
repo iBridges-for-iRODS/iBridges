@@ -78,7 +78,7 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     # Upload a directory and check if the dataobjects and collections are created.
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
-    IrodsPath.create_collection(session, ipath)
+    ipath.create_collection()
     subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], **pass_opts)
     for fname in testdata.glob("*"):
         assert ((ipath / "testdata" / fname.name).dataobject_exists()
@@ -161,7 +161,7 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
 def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search, nlines):
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     ipath_coll = IrodsPath(session, "test_search_x", "test_search")
-    IrodsPath.create_collection(session, ipath_coll)
+    ipath_coll.create_collection()
     subprocess.run(["ibridges", "sync", testdata, "irods:test_search_x/test_search"], **pass_opts)
     assert ipath_coll.collection_exists()
     ipath_coll.meta.clear()

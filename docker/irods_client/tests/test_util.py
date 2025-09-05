@@ -18,7 +18,7 @@ def test_calc_checksum(irods_env, config, check_type, checksum, testdata, tmp_pa
     with Session(irods_env=ienv, password=config["password"]) as session:
         ipath_coll = IrodsPath(session, "test_check")
         ipath_coll.remove()
-        ipath_coll.create_collection(session, ipath_coll)
+        ipath_coll.create_collection()
         upload(testdata / "bunny.rtf", ipath_coll)
         ipath = ipath_coll / "bunny.rtf"
         download(ipath, tmp_path)
