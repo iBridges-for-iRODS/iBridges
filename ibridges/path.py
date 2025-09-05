@@ -617,9 +617,6 @@ class IrodsPath:
 
         """
         if not self.exists():
-            # if self.dataobject_exists():
-                # raise NotACollectionError("Cannot download metadata archive: "
-                                    # f"'{self}' is a data object, need a collection.")
             raise DoesNotExistError("Cannot download metadata archive: "
                                     f"'{self}' does not exist.")
         if self.dataobject_exists():
