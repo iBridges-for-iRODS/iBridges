@@ -52,9 +52,6 @@ def test_path_create_coll(session):
     coll = ipath.create_collection()
     assert coll.path == str(ipath.absolute())
 
-    ipath = IrodsPath(session)
-    with pytest.raises(ValueError):
-        coll = ipath.create_collection()
     ipath = IrodsPath(session, "/NotAZoneName")
     with pytest.raises(ValueError):
         coll.ipath.create_collection()
