@@ -50,7 +50,7 @@ def test_path_open(session):
 def test_path_create_coll(session):
     ipath = IrodsPath(session, "test_collection")
     coll = ipath.create_collection()
-    assert collpath == str(ipath.absolute)
+    assert coll.path == str(ipath.absolute)
 
     ipath = IrodsPath(session)
     with pytest.raises(ValueError):
