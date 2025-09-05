@@ -204,18 +204,8 @@ class IrodsPath:
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
-    @staticmethod
-    def create_collection(
-        session, coll_path: Union[IrodsPath, str]
-    ) -> irods.collection.iRODSCollection:
+    def create_collection(self) -> irods.collection.iRODSCollection:
         """Create a collection and all parent collections that do not exist yet.
-
-        Parameters
-        ----------
-        session:
-            Session for which the collection is created.
-        coll_path:
-            Irods path to the collection to be created.
 
         Raises
         ------
@@ -229,18 +219,26 @@ class IrodsPath:
 
         Examples
         --------
-        >>> IrodsPath.create_collection(session, "/zone/home/user/some_collection")
-        >>> IrodsPath.create_collection(session, IrodsPath(session, "~/some_collection"))
+        >>> new_collection = IrodsPath(session, "/zone/home/user/some_collection")
+        >>> new_collection.create_collection()
+        >>> new_collection = session, IrodsPath(session, "~/some_collection"))
+        >>> new_collection.create_collection()
 
         """
+        #args = [a._path if isinstance(a, IrodsPath) else a for a in args]
         try:
-            return session.irods_session.collections.create(str(coll_path))
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise PermissionError(f"Cannot create {str(coll_path)}, no access.") from error
-        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            return self.session.irods_session.collections.create(str(self.absolute()))
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as e:
+            raise PermissionError(f"Cannot create {str(self)}, no access.") from e
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as e:
             raise PermissionError(
-                "While creating collection '{coll_path}': iRODS server forbids action."
-            ) from exc
+                f"While creating collection '{str(self)}': iRODS server forbids action."
+            ) from e
+        except irods.exception.USER_INPUT_PATH_ERR as e:
+            raise ValueError("No collection path given.") from e
+        except irods.exception.SYS_INVALID_INPUT_PARAM as e:
+            msg = f"Zone {self._path.parts[1]} not found. Use: {self.session.zone}."
+            raise ValueError(msg) from e
 
     def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
         """Change the name or the path of a data object or collection.
@@ -271,15 +269,12 @@ class IrodsPath:
             raise DoesNotExistError(f"{str(self)} does not exist.")
 
         # Build new path
-        if str(new_name).startswith("/" + self.session.zone):
-            new_path = IrodsPath(self.session, new_name)
-        else:
-            new_path = self.parent.joinpath(new_name)
+        new_path = IrodsPath(self.session, new_name)
 
         try:
             # Make sure new path exists on iRODS server
             if not new_path.parent.exists():
-                self.create_collection(self.session, new_path.parent)
+                new_path.parent.create_collection()
 
             if self.dataobject_exists():
                 self.session.irods_session.data_objects.move(str(self), str(new_path))

@@ -24,16 +24,14 @@ from ibridges.exception import (
 )
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
-from ibridges.session import Session
 from ibridges.util import checksums_equal
 
 NUM_THREADS = 4
 
 
 def upload(
-    session: Session,
     local_path: Union[str, Path],
-    irods_path: Union[str, IrodsPath],
+    irods_path: IrodsPath,
     overwrite: bool = False,
     on_error: str = "fail",
     resc_name: str = "",
@@ -47,8 +45,6 @@ def upload(
 
     Parameters
     ----------
-    session:
-        Session to upload the data to.
     local_path:
         Absolute path to the directory to upload
     irods_path:
@@ -92,23 +88,22 @@ def upload(
     --------
     >>> ipath = IrodsPath(session, "~/some_col")
     >>> # Below will create a collection with "~/some_col/dir".
-    >>> upload(session, Path("dir"), ipath)
+    >>> upload(Path("dir"), ipath)
 
     >>> # Same, but now data objects that exist will be overwritten.
-    >>> upload(session, Path("dir"), ipath, overwrite=True)
+    >>> upload(Path("dir"), ipath, overwrite=True)
 
     >>> # Perform the upload in two steps with a dry-run
-    >>> ops = upload(session, Path("some_file.txt"), ipath, dry_run=True)  # Does not upload
+    >>> ops = upload(Path("some_file.txt"), ipath, dry_run=True)  # Does not upload
     >>> ops.print_summary()  # Check if this is what you want here.
     >>> ops.execute()  # Performs the upload
 
     """
     local_path = Path(local_path)
-    ipath = IrodsPath(session, irods_path)
-
+    session = irods_path.session
     ops = Operations()
     if local_path.is_dir():
-        idest_path = ipath / local_path.name
+        idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         ops = _up_sync_operations(
@@ -117,10 +112,10 @@ def upload(
         )
         if not idest_path.collection_exists():
             ops.add_create_coll(idest_path)
-        if not ipath.collection_exists():
-            ops.add_create_coll(ipath)
+        if not irods_path.collection_exists():
+            ops.add_create_coll(irods_path)
     elif local_path.is_file():
-        idest_path = ipath / local_path.name if ipath.collection_exists() else ipath
+        idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
         obj_exists = idest_path.dataobject_exists()
         if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
             ops.add_upload(local_path, idest_path)
@@ -141,8 +136,7 @@ def upload(
 
 
 def download(
-    session: Session,
-    irods_path: Union[str, IrodsPath],
+    irods_path: IrodsPath,
     local_path: Union[str, Path],
     overwrite: bool = False,
     on_error: str = "fail",
@@ -157,8 +151,6 @@ def download(
 
     Parameters
     ----------
-    session:
-        Session to download the collection from.
     irods_path:
         Absolute irods source path pointing to a collection
     local_path:
@@ -205,17 +197,17 @@ def download(
     Examples
     --------
     >>> # Below will create a directory "some_local_dir/some_collection"
-    >>> download(session, "~/some_collection", "some_local_dir")
+    >>> download(IrodsPath(session, "~/some_collection"), "some_local_dir")
 
     >>> # Below will create a file "some_local_dir/some_obj.txt"
-    >>> download(session, IrodsPath(session, "some_obj.txt"), "some_local_dir")
+    >>> download(IrodsPath(session, "some_obj.txt"), "some_local_dir")
 
     >>> # Below will create a file "new_file.txt" in two steps.
-    >>> ops = download(session, "~/some_obj.txt", "new_file.txt", dry_run=True)
+    >>> ops = download(IrodsPath(session, "some_obj.txt", "new_file.txt", dry_run=True)
     >>> ops.execute()
 
     """
-    irods_path = IrodsPath(session, irods_path)
+    session = irods_path.session
     local_path = Path(local_path)
 
     if irods_path.collection_exists():
@@ -253,36 +245,7 @@ def download(
     return ops
 
 
-def create_collection(
-    session: Session, coll_path: Union[IrodsPath, str]
-) -> irods.collection.iRODSCollection:
-    """Create a collection and all parent collections that do not exist yet.
-
-    Alias for :meth:`ibridges.path.IrodsPath.create_collection`
-
-    Parameters
-    ----------
-    session:
-        Session to create the collection for.
-    coll_path: IrodsPath
-        Collection path
-
-    Raises
-    ------
-    PermissionError:
-        If creating a collection is not allowed by the server.
-
-
-    Examples
-    --------
-    >>> create_collection(session, IrodsPath("~/new_collection"))
-
-    """
-    return IrodsPath.create_collection(session, coll_path)
-
-
 def sync(
-    session: Session,
     source: Union[str, Path, IrodsPath],
     target: Union[str, Path, IrodsPath],
     max_level: Optional[int] = None,
@@ -307,8 +270,6 @@ def sync(
 
     Parameters
     ----------
-    session:
-        An authorized iBridges session.
     source:
         Existing local folder or iRODS collection. An exception will be raised if it doesn't exist.
     target:
@@ -360,25 +321,30 @@ def sync(
     Examples
     --------
     >>> # Below, all files/dirs in "some_local_dir" will be transferred into "some_remote_coll"
-    >>> sync(session, "some_local_dir", IrodsPath(session, "~/some_remote_col")
+    >>> sync("some_local_dir", IrodsPath(session, "~/some_remote_col")
 
     >>> # Below, all data objects/collections in "col" will tbe transferred into "some_local_dir"
-    >>> sync(session, IrodsPath(session, "~/col"), "some_local_dir")
+    >>> sync(IrodsPath(session, "~/col"), "some_local_dir")
 
     """
     _param_checks(source, target)
 
     if isinstance(source, IrodsPath):
+        session = source.session
         if not source.collection_exists():
             if source.dataobject_exists():
                 raise NotACollectionError(f"Source '{source.absolute()}' is a data object, "
                                      "can only sync collections.")
             raise CollectionDoesNotExistError(
                 f"Source collection '{source.absolute()}' does not exist")
-    else:
+    elif isinstance(target, IrodsPath):
+        session = target.session
         if not Path(source).is_dir():
             raise NotADirectoryError(f"Source folder '{source}' is not a directory or "
                                      "does not exist.")
+
+    else:
+        raise TypeError("Either source or target must be an IrodsPath")
 
     if isinstance(source, IrodsPath):
         if isinstance(metadata, dict):
@@ -409,6 +375,9 @@ def _param_checks(source, target):
     if isinstance(source, IrodsPath) and isinstance(target, IrodsPath):
         raise TypeError("iRODS to iRODS copying is not supported.")
 
+    if isinstance(source, (str, Path)) and isinstance(target, (str, Path)):
+        raise TypeError("Local to local copying is not supported.")
+
 
 def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
@@ -429,6 +398,7 @@ def _transfer_needed(source: Union[IrodsPath, Path],
         if on_error == "fail":
             err_msg = (f"Cannot overwrite {source} -> {dest} unless overwrite==True. "
                        f"To ignore this error and skip the files use on_error=='warn'.")
+
             if isinstance(dest, IrodsPath):
                 raise DataObjectExistsError(err_msg)
             raise FileExistsError(err_msg)
@@ -479,9 +449,9 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
             continue
-        root_ipath = idest_path.joinpath(*root_part.parts)
+        source = idest_path.joinpath(*root_part.parts)
         for cur_file in files:
-            ipath = root_ipath / cur_file
+            ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
 
             # Ignore symlinks
@@ -502,8 +472,8 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                 if lpath.is_symlink():
                     warnings.warn(f"Ignoring symlink {lpath}.")
                     continue
-                if str(root_ipath / fold) not in remote_ipaths:
-                    operations.add_create_coll(root_ipath / fold)
-        if str(root_ipath) not in remote_ipaths:
-            operations.add_create_coll(root_ipath)
+                if str(source / fold) not in remote_ipaths:
+                    operations.add_create_coll(source / fold)
+        if str(source) not in remote_ipaths:
+            operations.add_create_coll(source)
     return operations

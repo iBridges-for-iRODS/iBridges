@@ -283,7 +283,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         """
         for col in self.create_collection:
-            IrodsPath.create_collection(session, col)
+            cpath = IrodsPath(session, col)
+            cpath.create_collection()
 
     def print_summary(self):
         """Print a summary of all the operations added to the object."""
