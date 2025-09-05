@@ -47,7 +47,7 @@ class CliMakeCollection(BaseCliCommand):
         ipath = parse_remote(args.remote_coll, session)
         if ipath.exists():
             parser.error(f"Cannot create collection {ipath}: already exists.")
-        ipath.create_collection(session, ipath)
+        ipath.create_collection()
 
 
 class CliRm(BaseCliCommand):
