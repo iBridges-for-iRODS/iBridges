@@ -196,7 +196,7 @@ def test_meta_archive(session, testdata, tmpdir):
 def test_meta_archive_file(session, testdata, tmpdir):
     ipath_base = IrodsPath(session, "test")
     ipath_base.remove()
-    sync(session, testdata, ipath_base)
+    sync(testdata, ipath_base)
     assert len(list(ipath_base.meta)) == 0
     ipath = ipath_base / "more_data" / "polarbear.txt"
     meta_triple = ("is_polar", "true", "bool")
