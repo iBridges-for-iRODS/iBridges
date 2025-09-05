@@ -157,7 +157,7 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         cur_ipath.meta.add(*meta_data)
     meta_fp = tmpdir / "meta.json"
-    create_meta_archive(ipath, meta_fp)
+    ipath.create_meta_archive(meta_fp)
     with open(meta_fp, "r") as handle:
         meta_dict = json.load(handle)
 
