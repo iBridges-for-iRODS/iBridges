@@ -240,8 +240,6 @@ def download(
         if not local_path.is_file() or _transfer_needed(
                 irods_path, local_path, overwrite, on_error):
             ops.add_download(irods_path, local_path)
-        # if metadata is not None:
-            # ops.add_meta_download(irods_path, irods_path, metadata)
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
