@@ -221,8 +221,7 @@ class IrodsPath:
         --------
         >>> new_collection = IrodsPath(session, "/zone/home/user/some_collection")
         >>> new_collection.create_collection()
-        >>> new_collection = session, IrodsPath(session, "~/some_collection"))
-        >>> new_collection.create_collection()
+        >>> IrodsPath(session, "~/some_collection").create_collection()
 
         """
         #args = [a._path if isinstance(a, IrodsPath) else a for a in args]
