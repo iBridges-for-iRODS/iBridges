@@ -36,7 +36,7 @@ If the transfer concerned a folder, a new collection with the folder name will b
  
     local_path = Path("/path/to/the/data/to/upload")
     irods_path = IrodsPath(session, '~', 'new_coll')
-    upload(session, local_path, irods_path)
+    upload(local_path, irods_path)
 
 .. currentmodule:: ibridges.executor
 
@@ -60,7 +60,7 @@ The :func:`download` function works similar to the :func:`upload` function. Simp
    
     local_path = Path("/destination/location/for/the/data")
     irods_path = IrodsPath(session, '~', 'new_coll')
-    download(session, irods_path, local_path)
+    downloadirods_path, local_path)
 
 Synchronisation
 ---------------
@@ -87,7 +87,7 @@ The code below shows how to synchronise from your local file system to iRODS. Th
     source = Path.home() / "<local path>"
 
     # Synchronise the data
-    sync(session=session, source=source, target=target)
+    sync(source=source, target=target)
 
 
 Synchronize from remote to local
@@ -104,7 +104,7 @@ The code below shows how to synchronise from your iRODS instance to your local f
     source = IrodsPath(session, "~", "<irods path>")
 
     # call the synchronisation
-    sync(session=session, source=source, target=target)
+    sync(source=source, target=target)
 
 
 Streaming data objects
