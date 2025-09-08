@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import os
-from sys import platform
 from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
@@ -249,7 +248,7 @@ class CliTree(BaseCliCommand):
         ls_colors = os.environ.get("LS_COLORS", "")
         dir_color = [x for x in ls_colors.split(":") if x.startswith("di=")]
         dir_color = None if len(dir_color) == 0 else dir_color[0][3:]
-        
+
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
             return
