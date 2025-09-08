@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import os
+from sys import platform
 from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
@@ -192,8 +193,10 @@ def _tree(
                 dir_color=dir_color,
             )
             continue
-        if dir_color is None or cur_path.dataobject_exists():
+        if cur_path.dataobject_exists():
             str_path = str(rel_path)
+        elif dir_color is None: # use default blue
+            str_path = "\033[34m" + str(rel_path) + "\033[0m"
         else:
             str_path = f"\033[{dir_color}m" + str(rel_path) + "\033[0m"
         build_list.append(str_path)
@@ -246,6 +249,7 @@ class CliTree(BaseCliCommand):
         ls_colors = os.environ.get("LS_COLORS", "")
         dir_color = [x for x in ls_colors.split(":") if x.startswith("di=")]
         dir_color = None if len(dir_color) == 0 else dir_color[0][3:]
+        
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
             return
