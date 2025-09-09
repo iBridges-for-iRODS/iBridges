@@ -348,11 +348,11 @@ def _check_dir_color(session):
 
     if platform.system() == "Windows":
         try:
-            import ctypes
+            import ctypes  # pylint: disable=import-outside-toplevel
             kernel32 = ctypes.windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
             dir_color = "34"
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             dir_color = None
     else:
         ls_colors = os.environ.get("LS_COLORS", "")
