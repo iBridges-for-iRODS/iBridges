@@ -237,7 +237,7 @@ def download(
         else:
             ops.download_unchanged += 1
         if metadata is not None:
-            ops.add_meta_download(irods_path, irods_path, metadata)
+            ops.add_meta_download(irods_path, metadata)
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
@@ -424,8 +424,6 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           metadata: Union[None, str, Path] = None) -> Operations:
     ops = Operations()
     for ipath in isource_path.walk(depth=depth):
-        if metadata is not None:
-            ops.add_meta_download(isource_path, ipath, metadata)
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
