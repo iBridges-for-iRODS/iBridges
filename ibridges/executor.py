@@ -394,7 +394,7 @@ def _obj_put(  # pylint: disable=too-many-branches
     options: Optional[dict] = None,
     on_error: str = "fail",
     pbar: Optional[tqdm_type] = None,
-):
+) -> int:
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
     Parameters
@@ -491,7 +491,7 @@ def _obj_get(
     options: Optional[dict] = None,
     on_error: str = "fail",
     pbar: Optional[tqdm_type] = None,
-):
+ ) -> int:
     # pylint: disable=W0718,R0915,R0912
     """Download `irods_path` to `local_path` following iRODS `options`.
 
@@ -563,3 +563,4 @@ def _obj_get(
         _raise_transfer_errors(on_error, msg, ObjectTransferFailedError, error)
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
+    return transfers
