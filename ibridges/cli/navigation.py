@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import argparse
 import os
-from typing import Optional
 import platform
+from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
