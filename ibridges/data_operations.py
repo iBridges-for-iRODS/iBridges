@@ -422,32 +422,34 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           on_error: str = "fail",
                           copy_empty_folders: bool = True, depth: Optional[int] = None,
                           metadata: Union[None, str, Path] = None) -> Operations:
-    operations = Operations()
+    ops = Operations()
     for ipath in isource_path.walk(depth=depth):
+        if metadata is not None:
+            ops.add_meta_download(isource_path, ipath, metadata)
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
             if lpath.is_file():
                 if _transfer_needed(ipath, lpath, overwrite, on_error):
-                    operations.add_download(ipath, lpath)
+                    ops.add_download(ipath, lpath)
                 else:
-                    operations.download_unchanged += 1
+                    ops.download_unchanged += 1
             else:
-                operations.add_download(ipath, lpath)
+                ops.add_download(ipath, lpath)
             if not lpath.parent.exists():
-                operations.add_create_dir(lpath.parent)
+                ops.add_create_dir(lpath.parent)
         elif ipath.collection_exists() and copy_empty_folders:
             if not lpath.exists():
-                operations.add_create_dir(lpath)
+                ops.add_create_dir(lpath)
     if metadata is not None:
-        operations.add_meta_download(isource_path, metadata)
-    return operations
+        ops.add_meta_download(isource_path, metadata)
+    return ops
 
 
 def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
                         overwrite: bool,
                         copy_empty_folders: bool = True, depth: Optional[int] = None,
                         on_error: str = "fail") -> Operations:
-    operations = Operations()
+    ops = Operations()
     session = idest_path.session
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
@@ -469,12 +471,12 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
             if str(ipath) in remote_ipaths:
                 ipath = remote_ipaths[str(ipath)]
                 if _transfer_needed(lpath, ipath, overwrite, on_error):
-                    operations.add_upload(lpath, ipath)
+                    ops.add_upload(lpath, ipath)
                 else:
-                    operations.upload_unchanged += 1
+                    ops.upload_unchanged += 1
             else:
                 ipath = CachedIrodsPath(session, None, False, None, str(ipath))
-                operations.add_upload(lpath, ipath)
+                ops.add_upload(lpath, ipath)
         if copy_empty_folders:
             for fold in folders:
                 # Ignore folder symlinks
@@ -483,7 +485,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                     warnings.warn(f"Ignoring symlink {lpath}.")
                     continue
                 if str(source / fold) not in remote_ipaths:
-                    operations.add_create_coll(source / fold)
+                    ops.add_create_coll(source / fold)
         if str(source) not in remote_ipaths:
-            operations.add_create_coll(source)
-    return operations
+            ops.add_create_coll(source)
+    return ops
