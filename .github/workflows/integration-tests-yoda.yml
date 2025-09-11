@@ -16,7 +16,7 @@ on:
 
 
 env:
-  YODA_BRANCH: release-1.9
+  YODA_BRANCH: release-2.0
 
 jobs:
   build:
