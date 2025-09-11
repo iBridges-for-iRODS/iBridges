@@ -76,7 +76,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git config remote.origin.fetch  "+refs/heads/*:refs/remotes/origin/*" && git pull'
-        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout "$YODA_BRANCH"'
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout \"$YODA_BRANCH\"'
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git status'
         docker exec portal.yoda sh -c 'set -x ; touch /var/www/yoda/*.wsgi'
 
