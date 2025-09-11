@@ -68,7 +68,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec provider.yoda sh -c 'set -x ; cd /etc/irods/yoda-ruleset && sudo chown irods:irods -R /etc/irods/yoda-ruleset && sudo -u irods git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" && sudo -u irods git pull && sudo -u irods git status'
-        docker exec provider.yoda sh -c "set -x ; cd /etc/irods/yoda-ruleset && sudo -u irods git checkout \"$YODA_BRANCH\" && sudo -u irods python3 -m pip --no-cache-dir install --user -r /etc/irods/yoda-ruleset/requirements.txt && sudo -u irods make && sudo -u irods make install"
+        docker exec provider.yoda sh -c "set -x ; cd /etc/irods/yoda-ruleset && sudo -u irods git checkout \"$YODA_BRANCH\" && sudo -u irods python3 -m pip --no-cache-dir install --user --break-system-packages -r /etc/irods/yoda-ruleset/requirements.txt && sudo -u irods make && sudo -u irods make install"
         docker exec provider.yoda sh -c "set -x ; sudo -u irods /var/lib/irods/irodsctl restart"
 
     - name: Pull and install latest version of portal
