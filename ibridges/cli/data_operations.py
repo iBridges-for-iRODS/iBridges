@@ -182,6 +182,7 @@ class CliDownload(BaseCliCommand):
             )
         except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
             parser.error(str(exc))
+            return
         if args.dry_run:
             ops.print_summary()
 
