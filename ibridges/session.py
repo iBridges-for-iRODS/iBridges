@@ -6,6 +6,7 @@ import json
 import os
 import socket
 import warnings
+from multiprocessing import Queue, Process
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Optional, Union
@@ -22,8 +23,11 @@ from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 from ibridges import icat_columns as icat
 from ibridges.util import open_irodsa
+from ibridges.executor import executor_worker
 
 APP_NAME = "ibridges"
+
+
 
 
 class Session:  # pylint: disable=too-many-instance-attributes
@@ -77,6 +81,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
         cwd: Optional[str] = None,
+        main_session: bool = True,
     ):
         """Authenticate and connect to the iRODS server."""
         irods_env_path = None
@@ -113,6 +118,16 @@ class Session:  # pylint: disable=too-many-instance-attributes
         if cwd is not None:
             self.cwd = cwd
 
+        if main_session:
+            self.queue = Queue()
+            new_session = Session(self._irods_env, self._password, self.home, self.cwd, False)
+            print("starting new background process  ")
+            self.back_ground_process = Process(target=executor_worker, args=(self.queue, new_session))
+            self.back_ground_process.start()
+        else:
+            self.queue = None
+            self.back_ground_process = None
+
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
         if not self.has_valid_irods_session():
@@ -122,6 +137,8 @@ class Session:  # pylint: disable=too-many-instance-attributes
     def __exit__(self, exc_type, exc_value, exc_trace_back):
         """Disconnect from the iRODS server."""
         self.close()
+        self.queue.put(None)
+        self.back_ground_process.join()
 
     @property
     def home(self) -> str:

@@ -5,7 +5,7 @@ import json
 import warnings
 from inspect import signature
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
 
 import irods.collection
 import irods.data_object
@@ -17,11 +17,31 @@ from tqdm.std import tqdm as tqdm_type
 
 from ibridges.exception import FileTransferFailedError, ObjectTransferFailedError
 from ibridges.path import IrodsPath
-from ibridges.session import Session
+
+if TYPE_CHECKING:
+    from ibridges.session import Session
 
 NUM_THREADS = 4
 NUM_TRANSFER_RESET = 3000
 
+
+def executor_worker(queue, session):
+    while True:
+        order = queue.get()
+        print("worker", order)
+        if order is None:
+            return
+        if order["op_type"] == "download":
+            _obj_get(
+                session,
+                IrodsPath(session, order["ipath"]),
+                order["lpath"],
+                overwrite=True,
+                # on_error=on_error,
+                options=order["options"],
+                resc_name=order["resc_name"],
+                # pbar=pbar,
+            )
 
 class Operations():  # pylint: disable=too-many-instance-attributes
     """Storage for all data and metadata operations.
@@ -41,7 +61,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
     """
 
-    def __init__(self, resc_name: Optional[str] = None, options: Optional[dict] = None):
+    def __init__(self, session: Session, resc_name: Optional[str] = None, options: Optional[dict] = None):
         """Initialize and empty Operations object.
 
         The operations should be added separately, which is usually done by higher
@@ -65,6 +85,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.options: Optional[dict] = {} if resc_name is None else options
         self.download_unchanged = 0
         self.upload_unchanged = 0
+        self.session = session
 
     def add_meta_download(self, meta_fp: Union[str, Path], root_ipath: IrodsPath,
                           meta_paths: list[IrodsPath]):
@@ -116,7 +137,16 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Local path for the data to be stored in.
 
         """
-        self.download.append((ipath, lpath))
+        self.session.queue.put(
+            {
+                "op_type": "download",
+                "ipath": str(ipath),
+                "lpath": lpath,
+                "options": self.options,
+                "resc_name": self.resc_name,
+            }
+        )
+        # self.download.append((ipath, lpath))
 
     def add_create_dir(self, new_dir: Path):
         """Add operation to create a new directory.
