@@ -37,3 +37,12 @@ def test_perm_user(session, item_name, request, config):
             p.access_name.replace(" ", "_"))) for p in perm]
         perm.set("null", user=testuser, zone=session.zone)
         assert testuser not in [p.user_name for p in perm]
+
+@mark.parametrize("item_name", ["collection"])
+def test_inherit_coll(session, item_name):
+    #Testing inherit keyword
+    item = request.getfixturevalue(item_name)
+    perm = Permissions(session, item)
+    testuser = config.get("test_user", None)
+    if testuser: # only test on irods not yoda
+        perm.set("inherit")
