@@ -7,6 +7,13 @@ from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.tickets import Tickets
 
+try:  # Python < 3.10 (backport)
+    from importlib_metadata import version  # type: ignore
+except ImportError:
+    from importlib.metadata import version  # type: ignore [assignment]
+
+__version__ = release = version("ibridges")
+
 __all__ = [
     "Session",
     "IrodsPath",
@@ -17,3 +24,5 @@ __all__ = [
     "search_data",
     "sync",
 ]
+
+
