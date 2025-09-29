@@ -102,7 +102,7 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    ops = Operations()
+    ops = Operations(session)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
@@ -228,7 +228,7 @@ def download(
         if not local_path.is_dir():
             ops.add_create_dir(Path(local_path))
     elif irods_path.dataobject_exists():
-        ops = Operations()
+        ops = Operations(session)
 
         if local_path.is_dir():
             local_path = local_path / irods_path.name
@@ -423,9 +423,8 @@ def _transfer_needed(source: Union[IrodsPath, Path],
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           overwrite: bool,
                           on_error: str = "fail",
-                          copy_empty_folders: bool = True, depth: Optional[int] = None
-                          ) -> Operations:
-    ops = Operations()
+                          copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
+    ops = Operations(isource_path.session)
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         if ipath.dataobject_exists():
@@ -448,8 +447,8 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                         overwrite: bool,
                         copy_empty_folders: bool = True, depth: Optional[int] = None,
                         on_error: str = "fail") -> Operations:
-    ops = Operations()
     session = idest_path.session
+    ops = Operations(session)
     try:
         remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
     except irods.exception.CollectionDoesNotExist:
