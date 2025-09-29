@@ -39,7 +39,7 @@ def test_perm_user(session, item_name, request, config):
         assert testuser not in [p.user_name for p in perm]
 
 @mark.parametrize("item_name", ["collection"])
-def test_inherit_coll(session, item_name, request):
+def test_inherit_coll(session, item_name, request, config):
     #Testing inherit keyword
     item = request.getfixturevalue(item_name)
     perm = Permissions(session, item)
