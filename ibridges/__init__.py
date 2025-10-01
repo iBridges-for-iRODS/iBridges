@@ -12,7 +12,7 @@ try:  # Python < 3.10 (backport)
 except ImportError:
     from importlib.metadata import version  # type: ignore [assignment]
 
-__version__ = release = version("ibridges")
+__version__ = version("ibridges")
 
 __all__ = [
     "Session",
