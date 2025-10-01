@@ -135,7 +135,7 @@ def test_list_cli(config, pass_opts, irods_env_file, collection):
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
     subprocess.run(["ibridges", "list"], **pass_opts)
     subprocess.run(["ibridges", "list", f"irods:{collection.path}"], **pass_opts)
-    subprocess.run(["ibridges", "list", "-s"], **pass_opts)
+    subprocess.run(["ibridges", "list", "-i"], **pass_opts)
     subprocess.run(["ibridges", "list", "-l"], **pass_opts)
 
 

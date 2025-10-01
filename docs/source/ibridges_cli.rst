@@ -474,3 +474,14 @@ with :code:`{new_command}`.
 Since this feature is relatively new, there are currently no plugins available, but an example can be found on
 `GitHub <https://github.com/iBridges-for-iRODS/ibridges-cli-plugin-example>`__. If you have created a plugin that
 has general use, contact and we will list it here.
+
+Color Customization
+-------------------
+
+The command `ibridges tree` highlights the iRODS collections by default in blue. It uses the Linux `LS_COLORS` which are set
+when you choose your terminal colors. On Mac can alter that by this color with
+.. code:: shell
+
+	LS_COLORS=$LS_COLORS:'di=1;44:' ; export LS_COLORS
+
+Please have a look [here](https://gist.github.com/thomd/7667642#ls_colors) for possible color and highlighting settings.
