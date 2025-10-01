@@ -7,10 +7,7 @@ from ibridges.search import search_data
 from ibridges.session import Session
 from ibridges.tickets import Tickets
 
-try:  # Python < 3.10 (backport)
-    from importlib_metadata import version  # type: ignore
-except ImportError:
-    from importlib.metadata import version  # type: ignore [assignment]
+from importlib.metadata import version
 
 __version__ = version("ibridges")
 
