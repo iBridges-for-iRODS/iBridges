@@ -1,6 +1,7 @@
-"""iBridges package that implements an API for iRods."""
+"""iBridges package that implements an API for iRODS."""
 
 from importlib.metadata import version
+
 from ibridges.data_operations import download, sync, upload
 from ibridges.meta import MetaData
 from ibridges.path import IrodsPath
