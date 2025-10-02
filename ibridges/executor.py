@@ -25,12 +25,15 @@ NUM_THREADS = 4
 NUM_TRANSFER_RESET = 3000
 
 
-def executor_worker(queue, session):
+def executor_worker(queue, session_param):
+    session = session_param[0](*session_param[1:])
+    i=0
     while True:
         order = queue.get()
-        print("worker", order)
         if order is None:
+            session.close()
             return
+        print(f"{i}\r")
         if order["op_type"] == "download":
             _obj_get(
                 session,
@@ -42,6 +45,7 @@ def executor_worker(queue, session):
                 resc_name=order["resc_name"],
                 # pbar=pbar,
             )
+        i += 1
 
 class Operations():  # pylint: disable=too-many-instance-attributes
     """Storage for all data and metadata operations.
