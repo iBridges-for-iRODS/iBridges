@@ -46,6 +46,6 @@ def test_inherit_coll(session, item_name, request, config):
     testuser = config.get("test_user", None)
     if testuser: # only test on irods not yoda
         perm.set("noinherit")
-        assert not item.inherit
+        assert not item.inheritance
         perm.set("inherit")
         assert item.inheritance
