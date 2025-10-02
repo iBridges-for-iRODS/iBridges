@@ -27,6 +27,7 @@ def test_perm_user(session, item_name, request, config):
     item = request.getfixturevalue(item_name)
     perm = Permissions(session, item)
     if testuser:
+        assert item.path == "/tempZone/home/rods"
         ipath = IrodsPath(session, item.path)
         perm.set("read", user=testuser, zone=session.zone)
         assert testuser in [p.user_name for p in perm]
