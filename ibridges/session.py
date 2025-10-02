@@ -119,11 +119,14 @@ class Session:  # pylint: disable=too-many-instance-attributes
             self.cwd = cwd
 
         if main_session:
+            self.back_ground_process = []
             self.queue = Queue()
-            new_session = Session(self._irods_env, self._password, self.home, self.cwd, False)
-            print("starting new background process  ")
-            self.back_ground_process = Process(target=executor_worker, args=(self.queue, new_session))
-            self.back_ground_process.start()
+            # new_session = Session(self._irods_env, self._password, self.home, self.cwd, False)
+            session_param = [Session, self._irods_env, self._password, self.home, self.cwd, False]
+            for i in range(2):
+                self.back_ground_process.append(Process(target=executor_worker,
+                                                args=(self.queue, session_param)))
+                self.back_ground_process[i].start()
         else:
             self.queue = None
             self.back_ground_process = None
@@ -136,9 +139,12 @@ class Session:  # pylint: disable=too-many-instance-attributes
 
     def __exit__(self, exc_type, exc_value, exc_trace_back):
         """Disconnect from the iRODS server."""
+        if self.back_ground_process is not None:
+            for i in range(2):
+                self.queue.put(None)
+            for i in range(2):
+                self.back_ground_process[i].join()
         self.close()
-        self.queue.put(None)
-        self.back_ground_process.join()
 
     @property
     def home(self) -> str:
