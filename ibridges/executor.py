@@ -161,7 +161,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Directory to be created.
 
         """
-        self.create_dir.add(str(new_dir))
+        Path(new_dir).mkdir(exist_ok=True)
+        # self.create_dir.add(str(new_dir))
 
     def add_upload(self, lpath: Path, ipath: IrodsPath):
         """Add operation to upload a data object.
