@@ -6,6 +6,7 @@ import warnings
 from inspect import signature
 from pathlib import Path
 from typing import Optional, Union, TYPE_CHECKING
+from collections import defaultdict
 
 import irods.collection
 import irods.data_object
@@ -24,16 +25,23 @@ if TYPE_CHECKING:
 NUM_THREADS = 4
 NUM_TRANSFER_RESET = 3000
 
+class PBar():
+    def __init__(self, queue):
+        self.queue = queue
 
-def executor_worker(queue, session_param):
+    def update(self, value):
+        self.queue.put({"op_type": "progress", "value": value})
+
+
+def executor_worker(queue, scheduler_queue, session_param):
     session = session_param[0](*session_param[1:])
     i=0
+    pbar = PBar(scheduler_queue)
     while True:
         order = queue.get()
         if order is None:
             session.close()
-            return
-        print(f"{i}\r")
+            break
         if order["op_type"] == "download":
             _obj_get(
                 session,
@@ -43,9 +51,58 @@ def executor_worker(queue, session_param):
                 # on_error=on_error,
                 options=order["options"],
                 resc_name=order["resc_name"],
-                # pbar=pbar,
+                pbar=pbar,
             )
+        else:
+            raise ValueError(f"Unknown operation type {order['op_type']}")
+        scheduler_queue.put({"op_type": "finish", "id": order["id"]})
         i += 1
+
+def scheduler(queue, worker_queue, n_workers):
+    finished_orders = set()
+    waiting_orders = defaultdict(list)
+    n_orders = 0
+    queue_finished = False
+    pbar = tqdm(
+        total=0,
+        unit="B",
+        unit_scale=True,
+        unit_divisor=1024,
+        # disable=disable,
+    )
+    while True:
+        if queue_finished and len(finished_orders) == n_orders:
+            for i in range(n_workers):
+                worker_queue.put(None)
+            break
+
+        order = queue.get()
+        if order is None:
+            queue_finished = True
+            continue
+        op_type = order["op_type"]
+        if op_type == "download":
+            n_orders += 1
+            size = order.get("size", 1)
+            pbar.total += size
+            pbar.refresh()
+            depends = order.get("depends", None)
+            if depends is None or depends in finished_orders:
+                worker_queue.put(order)
+            else:
+                waiting_orders[depends].append(order)
+        elif op_type == "finish":
+            op_id = order["id"]
+            finished_orders.add(op_id)
+            if op_id in waiting_orders:
+                for new_order in waiting_orders[op_id]:
+                    worker_queue.put(new_order)
+                del waiting_orders[op_id]
+        elif op_type == "progress":
+            pbar.update(order["value"])
+        else:
+            raise ValueError(f"Unknown operation type {op_type}")
+
 
 class Operations():  # pylint: disable=too-many-instance-attributes
     """Storage for all data and metadata operations.
@@ -130,7 +187,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.meta_upload.append((ipath, meta_fp, metadata))
 
-    def add_download(self, ipath: IrodsPath, lpath: Path):
+    def add_download(self, ipath: IrodsPath, lpath: Path, depends=None):
         """Add operation to download a data object.
 
         Parameters
@@ -141,15 +198,23 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Local path for the data to be stored in.
 
         """
+        with self.session.lock:
+            op_id = self.session.operation_id.value
+            self.session.operation_id.value += 1
+
         self.session.queue.put(
             {
                 "op_type": "download",
+                "id": op_id,
                 "ipath": str(ipath),
                 "lpath": lpath,
                 "options": self.options,
                 "resc_name": self.resc_name,
+                "depends": depends,
+                "size": ipath.size,
             }
         )
+        return op_id
         # self.download.append((ipath, lpath))
 
     def add_create_dir(self, new_dir: Path):
