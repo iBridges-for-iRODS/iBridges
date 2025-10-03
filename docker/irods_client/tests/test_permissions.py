@@ -43,11 +43,10 @@ def test_perm_user(session, item_name, request, config):
 def test_inherit_coll(session, item_name, request, config):
     #Testing inherit keyword
     item = request.getfixturevalue(item_name)
-    assert item.path == "/tempZone/home/rods/test_collection"
+    irods_path = IrodsPath(session, item.path)
     perm = Permissions(session, item)
-    testuser = config.get("test_user", None)
-    if testuser: # only test on irods not yoda
-        perm.set("inherit")
-        assert item.inheritance
-        perm.set("noinherit")
-        assert not item.inheritance
+    perm.set("inherit")
+    assert irods_path.collection.inheritance
+
+    perm.set("noinherit")
+    assert not irods_path.collection.inheritance
