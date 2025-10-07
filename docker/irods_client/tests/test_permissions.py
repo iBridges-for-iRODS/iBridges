@@ -27,6 +27,7 @@ def test_perm_user(session, item_name, request, config):
     item = request.getfixturevalue(item_name)
     perm = Permissions(session, item)
     if testuser:
+        
         ipath = IrodsPath(session, item.path)
         perm.set("read", user=testuser, zone=session.zone)
         assert testuser in [p.user_name for p in perm]
@@ -37,3 +38,15 @@ def test_perm_user(session, item_name, request, config):
             p.access_name.replace(" ", "_"))) for p in perm]
         perm.set("null", user=testuser, zone=session.zone)
         assert testuser not in [p.user_name for p in perm]
+
+@mark.parametrize("item_name", ["collection"])
+def test_inherit_coll(session, item_name, request, config):
+    #Testing inherit keyword
+    item = request.getfixturevalue(item_name)
+    irods_path = IrodsPath(session, item.path)
+    perm = Permissions(session, item)
+    perm.set("inherit")
+    assert irods_path.collection.inheritance
+
+    perm.set("noinherit")
+    assert not irods_path.collection.inheritance
