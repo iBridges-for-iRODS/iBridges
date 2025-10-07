@@ -1,6 +1,5 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
-import importlib.util
 import sys
 import time
 import traceback
@@ -229,4 +228,4 @@ class CliSetup(BaseCliCommand):
 
 
 
-CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup, CliGui]
+CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
