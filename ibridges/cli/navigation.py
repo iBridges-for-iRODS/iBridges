@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import platform
 from typing import Optional
@@ -368,3 +369,37 @@ def _path_with_color(path, dir_color):
     else:
         str_path = f"\033[{dir_color}m" + str(path.name) + "\033[0m"
     return str_path
+
+
+class CliGui(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["gui"]
+    description = "Start the iBridges GUI."
+    examples = ["gui"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Running the GUI from the shell is not available (yet)."""  # noqa: D401
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            try:
+                main(session)
+            except RuntimeError:
+                parser.error("The iBridges gui cannot start. Try restarting the shell.")
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+
+
+    @classmethod
+    def run_command(cls, args):
+        """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            main()
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
