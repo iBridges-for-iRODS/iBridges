@@ -19,6 +19,7 @@ from ibridges.path import IrodsPath
 from ibridges.session import Session
 
 NUM_THREADS = 4
+NUM_TRANSFER_RESET = 3000
 
 
 class Operations():  # pylint: disable=too-many-instance-attributes
@@ -224,6 +225,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         n_transfer = 0
         for ipath, lpath in self.download:
+            if n_transfer % NUM_TRANSFER_RESET == NUM_TRANSFER_RESET-1:
+                session.close()
+                session.irods_session = session.connect()
+
             n_transfer += _obj_get(
                 session,
                 ipath,
@@ -255,6 +260,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         n_transfer = 0
         for lpath, ipath in self.upload:
+            if n_transfer % NUM_TRANSFER_RESET == NUM_TRANSFER_RESET-1:
+                session.close()
+                session.irods_session = session.connect()
+
             n_transfer += _obj_put(
                 session,
                 lpath,
