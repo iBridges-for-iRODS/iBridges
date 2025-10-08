@@ -61,15 +61,17 @@ class CliList(BaseCliCommand):
         ipath = parse_remote(args.remote_coll, session)
         dir_color = None if args.nocolor else _check_dir_color(session)
         try:
-            if args.long:
+            if args.icommands or args.metadata:
+                if args.long:
+                    parser.error("Cannot use combination of long format (-l) and metadata (-m).")
+                    return
+                list_collection(session, ipath, args.metadata)
+            elif args.long:
                 for cur_path in ipath.walk(depth=1, include_base_collection=False):
                     if cur_path.collection_exists():
                         print(f"{64*' '}{_path_with_color(cur_path, dir_color)}")
                     else:
                         print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
-            elif args.icommands:
-                list_collection(session, ipath, args.metadata)
-
             else:
                 print(" ".join([_path_with_color(x, dir_color) for x in ipath.walk(depth=1)
                                 if str(x) != str(ipath)]))
