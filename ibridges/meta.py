@@ -157,7 +157,8 @@ class MetaData:
             )
         return all_items[0]
 
-    def __setitem__(self, key: Union[str, Sequence[Union[str, None]]], other: Sequence[str]):
+    def __setitem__(self, key: Union[str, Sequence[str]],
+                    other: Union[str, Sequence[str], Sequence[Sequence[str]]]):
         """Set metadata items like a dictionary of tuples.
 
         Parameters
@@ -176,26 +177,49 @@ class MetaData:
 
         Examples
         --------
-        >>> meta["key"] = ("key", "new_value", "new_units")
-        >>> meta["key"] = ("new_key", "old_value")
+        >>> meta["key"] = "values"
+        >>> meta["key"] = "values", "units"
+        >>> meta["key", "value"] = "units"
 
         """
         if isinstance(other, str):
-            raise TypeError(
-                "Cannot set the metadata item to a single string value. "
-                f'Use meta[{key}].key = "{other}" to change only the key '
-                "for example."
-            )
-        self[key].update(*other)
+            other = [other]
+        if isinstance(key, str):
+            key = [key]
+
+        if len(key) > 2:
+            raise ValueError("Use either one or two values within the brackets [], for example "
+                             f"meta['some_key', 'some_value'] = 'some_units', got: {key}")
+
+        all_items = self.find_all(*key)
+        if all(isinstance(o, str) for o in other):
+            if len(all_items) > 1:
+                raise ValueError(f"Cannot set item with '{key}' to single item: multiple entries"
+                                 f" exist. Use meta[{key}] = [{other}] to remove all current values"
+                                 f" with new values.")
+            other = [other]  # type: ignore
+        for subset in other:
+            if not all(isinstance(s, str) for s in subset):
+                raise ValueError(
+                    "Badly formed argument to __setitem__: should be set to either string,"
+                    " list of strings or list of list of strings.")
+            if len(subset) + len(key) > 3:
+                raise ValueError(
+                    f"Too many items to create metadata triple {subset} + {key}. Use "
+                    "meta['key'] = 'value', 'units' or meta['key', 'value'] = 'units'.")
+
+        for item in all_items:
+            item.remove()
+
+        for sub in other:
+            self.add(*key, *sub)
 
     def add(self, key: str, value: str, units: Optional[str] = ""):
         """Add metadata to an item.
 
         This will never overwrite an existing entry. If the triplet already exists
         it will throw an error instead. Note that entries are only considered the same
-        if all of the key, value and units are the same. Alternatively you can use the
-        :meth:`set` method to remove all entries with the same key, before adding the
-        new entry.
+        if all of the key, value and units are the same.
 
         Parameters
         ----------
@@ -241,6 +265,9 @@ class MetaData:
         the same key will be deleted before adding the new entry. An alternative
         is using the :meth:`add` method to only add to the metadata entries and not
         delete them.
+
+        This method is deprecated, and will be removed in the future. You should use
+        the bracket [] notation instead: meta[key] = value or meta[key] = value, units.
 
         Parameters
         ----------
@@ -490,7 +517,7 @@ class MetaDataItem:
         yield self.value
         yield self.units
 
-    def update(self, new_key: str, new_value: str, new_units: Optional[str] = ""):
+    def update(self, new_key: str, new_value: str, new_units: str = ""):
         """Update the metadata item changing the key/value/units.
 
         Parameters

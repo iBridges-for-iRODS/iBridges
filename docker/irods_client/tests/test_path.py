@@ -46,3 +46,12 @@ def test_path_open(session):
 
     with ipath.open("r") as handle:
         assert handle.read().decode("utf-8") == test_str_1 + test_str_2
+
+def test_path_create_coll(session):
+    ipath = IrodsPath(session, "test_collection")
+    coll = ipath.create_collection()
+    assert coll.path == str(ipath.absolute())
+
+    ipath = IrodsPath(session, "/NotAZoneName")
+    with pytest.raises(ValueError):
+        ipath.create_collection()

@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import os
+import platform
+from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
@@ -31,12 +35,12 @@ class CliList(BaseCliCommand):
         )
         parser.add_argument(
             "-m", "--metadata",
-            help="Show metadata for each iRODS location.",
+            help="Show metadata for each iRODS location, only in combination with -i/--icommands.",
             action="store_true",
         )
         parser.add_argument(
-            "-s", "--short",
-            help="Display available data objects/collections in short form.",
+            "-i", "--icommands",
+            help="Display available data objects/collections in iCommands form.",
             action="store_true"
         )
         parser.add_argument(
@@ -44,23 +48,33 @@ class CliList(BaseCliCommand):
             help="Display available data objects/collections in long form.",
             action="store_true",
         )
+        parser.add_argument(
+            "--nocolor",
+            help="Disable printing with color.",
+            action="store_true",
+        )
         return parser
 
     @staticmethod
     def run_shell(session, parser, args):
         """List a collection on an iRODS server."""
-        ipath =  parse_remote(args.remote_coll, session)
+        ipath = parse_remote(args.remote_coll, session)
+        dir_color = None if args.nocolor else _check_dir_color(session)
         try:
-            if args.long:
+            if args.icommands or args.metadata:
+                if args.long:
+                    parser.error("Cannot use combination of long format (-l) and metadata (-m).")
+                    return
+                list_collection(session, ipath, args.metadata)
+            elif args.long:
                 for cur_path in ipath.walk(depth=1, include_base_collection=False):
                     if cur_path.collection_exists():
-                        print(f"C- {cur_path.name}")
+                        print(f"{64*' '}{_path_with_color(cur_path, dir_color)}")
                     else:
                         print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
-            elif args.short:
-                print(" ".join([x.name for x in ipath.walk(depth=1) if str(x) != str(ipath)]))
             else:
-                list_collection(session, ipath, args.metadata)
+                print(" ".join([_path_with_color(x, dir_color) for x in ipath.walk(depth=1)
+                                if str(x) != str(ipath)]))
         except NotACollectionError:
             parser.error(f"{ipath} is not a collection")
 
@@ -162,6 +176,7 @@ def _tree(
     pels: dict[str, str],
     prefix: str = "",
     show_max: int = 10,
+    dir_color: Optional[str] = None,
 ):
     """Generate A recursive generator, given a directory Path object.
 
@@ -186,9 +201,15 @@ def _tree(
                 show_max=show_max,
                 prefix=prefix + pels["branch"],
                 pels=pels,
+                dir_color=dir_color,
             )
             continue
-        build_list.append(str(rel_path))
+        str_path = _path_with_color(cur_path, dir_color)
+        # if cur_path.dataobject_exists() or dir_color is None:
+            # str_path = str(rel_path)
+        # else:
+            # str_path = f"\033[{dir_color}m" + str(rel_path) + "\033[0m"
+        build_list.append(str_path)
         j_path += 1
     _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
     return j_path
@@ -235,6 +256,8 @@ class CliTree(BaseCliCommand):
     def run_shell(session, parser, args):
         """Show the tree of a collection."""
         ipath = IrodsPath(session, args.remote_coll)
+        dir_color = _check_dir_color(session)
+
         if not ipath.collection_exists():
             parser.error(f"{ipath} is not a collection.")
             return
@@ -244,7 +267,7 @@ class CliTree(BaseCliCommand):
             pels = _tree_elements["pretty"]
         ipath_list = [cur_path for cur_path in ipath.walk(depth=args.depth)
                       if str(cur_path) != str(ipath)]
-        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels)
+        _tree(ipath, ipath_list, show_max=args.show_max, pels=pels, dir_color=dir_color)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col
         print_str = f"\n{n_col} collections, {n_data} data objects"
@@ -321,3 +344,64 @@ class CliSearch(BaseCliCommand):
         )
         for cur_path in search_res:
             print(cur_path)
+
+def _check_dir_color(session):
+    if hasattr(session, "dir_color"):
+        return getattr(session, "dir_color")
+
+    if platform.system() == "Windows":
+        try:
+            import ctypes  # pylint: disable=import-outside-toplevel
+            kernel32 = ctypes.windll.kernel32
+            kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+            dir_color = "34"
+        except Exception:  # pylint: disable=broad-exception-caught
+            dir_color = None
+    else:
+        ls_colors = os.environ.get("LS_COLORS", "")
+        dir_color = [x for x in ls_colors.split(":") if x.startswith("di=")]
+        dir_color = "34" if len(dir_color) == 0 else dir_color[0][3:]
+
+    session.dir_color = dir_color
+    return dir_color
+
+def _path_with_color(path, dir_color):
+    if path.dataobject_exists() or dir_color is None:
+        str_path = str(path.name)
+    else:
+        str_path = f"\033[{dir_color}m" + str(path.name) + "\033[0m"
+    return str_path
+
+
+class CliGui(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["gui"]
+    description = "Start the iBridges GUI."
+    examples = ["gui"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Running the GUI from the shell is not available (yet)."""  # noqa: D401
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            try:
+                main(session)
+            except RuntimeError:
+                parser.error("The iBridges gui cannot start. Try restarting the shell.")
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+
+
+    @classmethod
+    def run_command(cls, args):
+        """Start the GUI."""
+        parser = cls.get_parser(argparse.ArgumentParser)
+
+        if (importlib.util.find_spec("ibridgesgui")) is not None:
+            from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+            main()
+        else:
+            parser.error(
+                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")

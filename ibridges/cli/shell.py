@@ -13,13 +13,13 @@ except ImportError:
 
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
-from ibridges.cli.navigation import CliCd, CliList, CliPwd, CliSearch, CliTree
+from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree
 from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
                       CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
-                      CliUpload, CliSearch, CliCd, CliRm, CliSync]
+                      CliUpload, CliSearch, CliCd, CliRm, CliSync, CliGui]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
 class IBridgesShell(cmd.Cmd):
@@ -215,7 +215,7 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
 
     base_arg = args[-1]
     base_completion = []
-    if args[-1].startswith("irods"[:len(args[-1])]):
+    if args[-1].startswith("irods:"[:len(args[-1])]):
         if len(args[-1]) < len("irods:"):
             base_completion = [text[:len(text)-len(args[-1])] + "irods:"]
         else:

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 from typing import Iterable, Optional, Union
 
 import irods
@@ -203,18 +204,8 @@ class IrodsPath:
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
-    @staticmethod
-    def create_collection(
-        session, coll_path: Union[IrodsPath, str]
-    ) -> irods.collection.iRODSCollection:
+    def create_collection(self) -> irods.collection.iRODSCollection:
         """Create a collection and all parent collections that do not exist yet.
-
-        Parameters
-        ----------
-        session:
-            Session for which the collection is created.
-        coll_path:
-            Irods path to the collection to be created.
 
         Raises
         ------
@@ -228,18 +219,25 @@ class IrodsPath:
 
         Examples
         --------
-        >>> IrodsPath.create_collection(session, "/zone/home/user/some_collection")
-        >>> IrodsPath.create_collection(session, IrodsPath(session, "~/some_collection"))
+        >>> new_collection = IrodsPath(session, "/zone/home/user/some_collection")
+        >>> new_collection.create_collection()
+        >>> IrodsPath(session, "~/some_collection").create_collection()
 
         """
+        #args = [a._path if isinstance(a, IrodsPath) else a for a in args]
         try:
-            return session.irods_session.collections.create(str(coll_path))
-        except irods.exception.CAT_NO_ACCESS_PERMISSION as error:
-            raise PermissionError(f"Cannot create {str(coll_path)}, no access.") from error
-        except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
+            return self.session.irods_session.collections.create(str(self.absolute()))
+        except irods.exception.CAT_NO_ACCESS_PERMISSION as e:
+            raise PermissionError(f"Cannot create {str(self)}, no access.") from e
+        except irods.exception.CUT_ACTION_PROCESSED_ERR as e:
             raise PermissionError(
-                "While creating collection '{coll_path}': iRODS server forbids action."
-            ) from exc
+                f"While creating collection '{str(self)}': iRODS server forbids action."
+            ) from e
+        except irods.exception.USER_INPUT_PATH_ERR as e:
+            raise ValueError("No collection path given.") from e
+        except irods.exception.SYS_INVALID_INPUT_PARAM as e:
+            msg = f"Zone {self._path.parts[1]} not found. Use: {self.session.zone}."
+            raise ValueError(msg) from e
 
     def rename(self, new_name: Union[str, IrodsPath]) -> IrodsPath:
         """Change the name or the path of a data object or collection.
@@ -270,15 +268,12 @@ class IrodsPath:
             raise DoesNotExistError(f"{str(self)} does not exist.")
 
         # Build new path
-        if str(new_name).startswith("/" + self.session.zone):
-            new_path = IrodsPath(self.session, new_name)
-        else:
-            new_path = self.parent.joinpath(new_name)
+        new_path = IrodsPath(self.session, new_name)
 
         try:
             # Make sure new path exists on iRODS server
             if not new_path.parent.exists():
-                self.create_collection(self.session, new_path.parent)
+                new_path.parent.create_collection()
 
             if self.dataobject_exists():
                 self.session.irods_session.data_objects.move(str(self), str(new_path))
@@ -591,6 +586,129 @@ class IrodsPath:
             f" {self}")
 
 
+    def create_meta_archive(self, meta_fp: Union[str, Path], dry_run: bool = False):
+        """Create a local archive file for the metadata.
+
+        The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+        and data objects. To re-use this archive use the function :func:`apply_meta_archive`.
+
+        Parameters
+        ----------
+        meta_fp
+            Metadata archive file.
+        dry_run, optional
+            Whether to do a dry run. If so, the archive itself won't be created, by default False.
+
+        Returns
+        -------
+            The Operations object that allows the user to execute the operations using
+            ops.execute(session).
+
+        Raises
+        ------
+        CollectionDoesNotExistError:
+            If the source collection does not exist.
+        NotACollectionError:
+            If the source is not a collection but a data object.
+
+        Examples
+        --------
+        >>> ipath.create_meta_archive("meta_archive.json")
+
+        """
+        if not self.exists():
+            raise DoesNotExistError("Cannot download metadata archive: "
+                                    f"'{self}' does not exist.")
+        if self.dataobject_exists():
+            meta_items = [self]
+            base_path = self.parent
+        else:
+            meta_items = list(self.walk())
+            base_path = self
+
+        if dry_run:
+            return meta_items
+
+        meta_dict = _empty_metadict(base_path)
+        for cur_ipath in meta_items:
+            if cur_ipath.collection_exists():
+                item_type = "collection"
+            elif cur_ipath.dataobject_exists():
+                item_type = "data object"
+            else:
+                item_type = "unknown"
+            new_metadata = {
+                "rel_path": str(cur_ipath.relative_to(base_path)),
+                "type": item_type,
+            }
+            new_metadata.update(cur_ipath.meta.to_dict())
+            meta_dict["items"].append(new_metadata)
+
+        with open(meta_fp, "w", encoding="utf-8") as handle:
+            json.dump(meta_dict, handle, indent=4)
+
+        return meta_items
+
+
+    def apply_meta_archive(self, meta_fp: Union[str, Path, dict], dry_run: bool = False):
+        """Apply a metadata archive to set the metadata of collections and data objects.
+
+        The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+        and data objects. The archive can be created with the function :func:`create_meta_archive`.
+
+        Parameters
+        ----------
+        meta_fp
+            Metadata archive file to use to set the metadata.
+        dry_run, optional
+            If True, only create an operations object, but do not execute the operation,
+            default False.
+
+        Returns
+        -------
+            The Operations object that allows the user to execute the operations using
+            ops.execute(session).
+
+        Raises
+        ------
+        CollectionDoesNotExistError:
+            If the ipath does not exist.
+        NotACollectionError:
+            If the ipath is not a collection.
+
+        Examples
+        --------
+        >>> ipath.apply_meta_archive("meta_archive.json")
+
+        """
+        if not self.exists():
+            raise DoesNotExistError(
+                f"Cannot apply metadata archive, '{self}' does not exist.")
+
+        if self.dataobject_exists():
+            base_path = self.parent
+        else:
+            base_path = self
+
+        if not isinstance(meta_fp, dict):
+            with open(meta_fp, "r", encoding="utf-8") as handle:
+                meta_dict = json.load(handle)
+        else:
+            meta_dict = meta_fp
+
+        if dry_run:
+            return meta_dict
+
+        for item_data in meta_dict["items"]:
+            new_path = base_path / item_data.get("rel_path", "")
+            if not new_path.exists():
+                raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
+                                "itself.")
+            meta = new_path.meta
+            meta.from_dict(item_data)
+
+        return meta_dict
+
 
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
@@ -716,3 +834,55 @@ def _get_subcoll_paths(session, coll: irods.collection.iRODSCollection,
 
     return [CachedIrodsPath(session, None, False, None, p) for r in coll_query.get_results()
             for p in r.values()] + [CachedIrodsPath(session, None, False, None, coll.path)]
+
+
+def _add_to_metadict(meta_dict: dict, ipath: IrodsPath, root_ipath: IrodsPath):
+    """Add an item to the metadata archive dictionary.
+
+    Parameters
+    ----------
+    meta_dict
+        Dictionary to add the new item to.
+    ipath
+        IrodsPath to the item that the metadata is extracted from.
+    root_ipath
+        Root IrodsPath to which the relative path is calculated.
+
+    """
+    meta = ipath.meta
+    if ipath.collection_exists():
+        item_type = "collection"
+    elif ipath.dataobject_exists():
+        item_type = "data object"
+    else:
+        item_type = "unknown"
+
+    new_metadata = {
+        "rel_path": str(ipath.relative_to(root_ipath)),
+        "type": item_type,
+    }
+    new_metadata.update(meta.to_dict())
+    meta_dict["items"].append(new_metadata)
+
+
+def _empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
+    """Create an empty dictionary for metadata archival.
+
+    Parameters
+    ----------
+    root_ipath
+        IrodsPath that points to the root collection or dataobject.
+    recursive, optional
+        Whether the dictionary is built recursively, by default True
+
+    Returns
+    -------
+        A dictionary for containing metadata with no items.
+
+    """
+    return {
+        "ibridges_metadata_version": "1.0",
+        "recursive": recursive,
+        "root_path": str(root_ipath),
+        "items": [],
+    }

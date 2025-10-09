@@ -1,17 +1,16 @@
-from ibridges.data_operations import create_collection, sync
+from ibridges.data_operations import sync
 from ibridges.path import IrodsPath
 from ibridges.util import calc_checksum
 
 
 def test_sync_dry_run(session, testdata, capsys):
 
-    ipath = IrodsPath(session, "~", "empty")
-    coll = create_collection(session=session, coll_path=ipath)
+    ipath = IrodsPath(session, session.home+"/empty")
+    coll = ipath.create_collection()
     assert len(coll.data_objects)+len(coll.subcollections)==0, "Dry run starting not empty"
 
     # upload
-    ops = sync(session=session,
-               source=testdata,
+    ops = sync(source=testdata,
                target=ipath,
                max_level=None,
                dry_run=True,
@@ -26,13 +25,12 @@ def test_sync_dry_run(session, testdata, capsys):
 
 def test_sync_upload_download(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "empty")
-    coll = create_collection(session=session, coll_path=ipath)
+    coll = ipath.create_collection()
 
     assert len(coll.data_objects)+len(coll.subcollections)==0, "iRODS folder not empty"
 
     # upload
-    sync(session=session,
-         source=testdata,
+    sync(source=testdata,
          target=ipath,
          max_level=None,
          dry_run=False,
@@ -57,8 +55,7 @@ def test_sync_upload_download(session, testdata, tmpdir):
             "Checksums not identical after upload"
 
     # download
-    sync(session=session,
-        source=ipath,
+    sync(source=ipath,
         target=tmpdir,
         max_level=None,
         dry_run=False,

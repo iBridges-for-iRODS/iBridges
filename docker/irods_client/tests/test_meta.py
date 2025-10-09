@@ -62,10 +62,23 @@ def test_meta(item_name, request):
 
     meta.add("x", "y")
     meta.add("y", "z")
-    meta.set("y", "x")
+    meta["y"] = "x"
     assert "x" in meta
     assert ("y", "z") not in meta
     assert ("y", "x") in meta
+
+    meta["y"] = [["x", "u"], ["y", "u"]]
+    assert ("y", "x") in meta
+    assert ("y", "y") in meta
+    with pytest.raises(ValueError):
+        meta["y"] = "z"
+    assert ("y", "x") in meta
+    assert ("y", "y") in meta
+    with pytest.raises(ValueError):
+        meta["y"] = [["a", "b", "c"]]
+    meta.delete(key="y")
+    with pytest.raises(ValueError):
+        meta["y"] = "a", "b", "c"
     meta.clear()
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
@@ -104,7 +117,7 @@ def test_metadata_export(item_name, request, session, tmpdir):
     assert "metadata" in meta_dict
 
     ops = Operations()
-    ops.add_meta_download(IrodsPath(session, item.path), IrodsPath(session, item.path), tmp_file)
+    ops.add_meta_download(IrodsPath(session, item.path), tmp_file)
     ops.execute(session)
     with open(tmp_file, "r", encoding="utf-8"):
         new_meta_dict = json.load(tmp_file)
@@ -143,15 +156,31 @@ def test_metadata_setitem(item_name, request):
     meta = MetaData(item)
     meta.clear()
 
-    meta.add("some_key", "some_value", "some_units")
-    meta["some_key"] = ("some_key", "new_value", "new_units")
-    meta["some_key"] = ("some_key", "new_value")
+    meta["key"] = "value", "units"
+    assert ("key", "value", "units") in meta
 
-    with pytest.raises(TypeError):
-        meta["some_key"] = "new_value"
+    meta["key", "value"] = "other_units"
+    assert ("key", "value", "units") not in meta
+    assert ("key", "value", "other_units") in meta
+    meta["key", "other_value"] = "units"
+    assert ("key", "value", "other_units") in meta
+
+    meta.add("key", "value", "even_units")
+    assert len(meta) == 3
+    with pytest.raises(ValueError):
+        meta["key"] = "new_value"
 
     with pytest.raises(ValueError):
-        meta["some_key"] = ("some_key", "new_value")
+        meta["key", "value"] = "another_units"
+
+    meta["key2"] = "value2"
+    assert len(meta) == 4
+
+    with pytest.raises(ValueError):
+        meta["some_key", "some_value", "some_units"] = ""
+
+    with pytest.raises(ValueError):
+        meta["some_key", "some_value"] = "new_value", "new_units"
 
 
 @mark.parametrize("item_name", ["collection", "dataobject"])

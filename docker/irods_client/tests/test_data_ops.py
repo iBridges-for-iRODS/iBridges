@@ -5,7 +5,7 @@ from pathlib import Path
 import irods.keywords as kw
 import pytest
 
-from ibridges.data_operations import apply_meta_archive, create_meta_archive, download, sync, upload
+from ibridges.data_operations import download, sync, upload
 from ibridges.exception import DataObjectExistsError, NotACollectionError, NotADataObjectError
 from ibridges.path import IrodsPath
 from ibridges.util import is_collection, is_dataobject
@@ -36,7 +36,7 @@ def _check_count(ops, nlist):
 def test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
-    ops = upload(session, testdata/"plant.rtf", IrodsPath(session, "~"))
+    ops = upload(testdata/"plant.rtf", IrodsPath(session, "~"))
     _check_count(ops, [0, 0, 0, 1])
     data_obj = ipath.dataobject
     assert is_dataobject(data_obj)
@@ -46,32 +46,41 @@ def test_upload_download_dataset(session, testdata):
 
     # Check the overwrite and ignore_err parameters
     with pytest.raises(DataObjectExistsError):
-        upload(session, testdata/"plant.rtf", IrodsPath(session))
-    ops = upload(session, testdata/"plant.rtf", IrodsPath(session), overwrite=True)
+        upload(testdata/"plant.rtf", IrodsPath(session))
+    ops = upload(testdata/"plant.rtf", IrodsPath(session), overwrite=True)
     assert len(ops.upload) == 0
     with ipath.open("w") as handle:
         handle.write("test".encode())
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=False, ignore_err=True)
+    ops = upload(testdata/"plant.rtf", ipath, overwrite=False, on_error='skip')
     assert len(ops.upload) == 0
-    ops = upload(session, testdata/"plant.rtf", ipath, overwrite=True, ignore_err=True)
+    with pytest.warns(UserWarning):
+        ops = upload(testdata/"plant.rtf", ipath, overwrite=False, on_error='warn')
+        assert len(ops.upload) == 0
+    
+    ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
+    assert len(ops.upload) == 1
+    ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
     assert len(ops.upload) == 1
 
     # Test downloading it back
-    ops = download(session, ipath, testdata/"plant.rtf.copy", overwrite=True)
+    ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
     _check_count(ops, [0, 0, 1, 0])
 
     # Check overwrite and ignore_err parameters
     lpath = testdata/"plant.rtf.copy"
-    ops = download(session, ipath, lpath, overwrite=True)
+    ops = download(ipath, lpath, overwrite=True)
     assert len(ops.download) == 0
     with pytest.raises(FileExistsError):
-        download(session, ipath, lpath)
-    ops = download(session, ipath, lpath, overwrite=False, ignore_err=True)
+        download(ipath, lpath)
+    ops = download(ipath, lpath, overwrite=False, on_error='skip')
     assert len(ops.download) == 0
+    with pytest.warns(UserWarning):
+        ops = download(ipath, lpath, overwrite=False, on_error='warn')
+        assert len(ops.download) == 0
     with ipath.open("w") as handle:
         handle.write("test".encode())
-    ops = download(session, ipath, lpath, overwrite=True)
+    ops = download(ipath, lpath, overwrite=True)
     assert len(ops.download) == 1
     ipath.remove()
     lpath.unlink()
@@ -80,7 +89,7 @@ def test_upload_download_dataset(session, testdata):
 def test_upload_download_collection(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "test")
     ipath.remove()
-    ops = upload(session, testdata, ipath)
+    ops = upload(testdata, ipath)
     _check_count(ops, [3, 0, 0, 6])
     collection = ipath.collection
     assert is_collection(collection)
@@ -90,20 +99,20 @@ def test_upload_download_collection(session, testdata, tmpdir):
 
     # Check overwrite and ignore_err parameters
     with pytest.raises(DataObjectExistsError):
-        upload(session, testdata, ipath)
-    ops = upload(session, testdata, ipath, ignore_err=True)
+        upload(testdata, ipath)
+    ops = upload(testdata, ipath, on_error="skip")
     _check_count(ops, [0, 0, 0, 0])
     bunny_ipath = (ipath / "testdata" / "bunny.rtf")
     bunny_ipath.remove()
-    ops = upload(session, testdata, ipath, overwrite=True)
+    ops = upload(testdata, ipath, overwrite=True)
     _check_count(ops, [0, 0, 0, 1])
     with bunny_ipath.open("w") as handle:
         handle.write("est".encode())
-    ops = upload(session, testdata, ipath, overwrite=True)
+    ops = upload(testdata, ipath, overwrite=True)
     _check_count(ops, [0, 0, 0, 1])
 
     # Check if the downloaded collection is the same again.
-    ops = download(session, ipath, tmpdir/"test")
+    ops = download(ipath, tmpdir/"test")
     _check_count(ops, [0, 4, 6, 0])
     files = list(testdata.glob("*"))
 
@@ -119,14 +128,18 @@ def test_upload_download_collection(session, testdata, tmpdir):
 
     # Check overwrite and ignore_err parameters
     with pytest.raises(FileExistsError):
-        download(session, ipath, tmpdir/"test")
-    ops = download(session, ipath, tmpdir/"test", overwrite=True)
+        download(ipath, tmpdir/"test")
+    ops = download(ipath, tmpdir/"test", overwrite=True)
     _check_count(ops, [0, 0, 0, 0])
     with bunny_ipath.open("w") as handle:
         handle.write("testxx".encode())
-    ops = download(session, ipath, tmpdir/"test", ignore_err=True)
+    ops = download(ipath, tmpdir/"test", on_error='skip')
     _check_count(ops, [0, 0, 0, 0])
-    ops = download(session, ipath, tmpdir/"test", overwrite=True)
+    ops = download(ipath, tmpdir/"test", on_error='warn')
+    _check_count(ops, [0, 0, 0, 0])
+    ops = download(ipath, tmpdir/"test", overwrite='skip', dry_run=True)
+    _check_count(ops, [0, 0, 1, 0])
+    ops = download(ipath, tmpdir/"test", overwrite='warn')
     _check_count(ops, [0, 0, 1, 0])
     ipath.remove()
 
@@ -134,7 +147,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
 def test_meta_archive(session, testdata, tmpdir):
     ipath = IrodsPath(session, "test")
     ipath.remove()
-    sync(session, testdata, ipath)
+    sync(testdata, ipath)
     assert len(list(ipath.meta)) == 0
     meta_list = [
         (ipath, ("root", "true", "")),
@@ -144,7 +157,8 @@ def test_meta_archive(session, testdata, tmpdir):
     for cur_ipath, meta_data in meta_list:
         cur_ipath.meta.add(*meta_data)
     meta_fp = tmpdir / "meta.json"
-    create_meta_archive(session, ipath, meta_fp)
+    ipath.create_meta_archive(meta_fp)
+
     with open(meta_fp, "r") as handle:
         meta_dict = json.load(handle)
 
@@ -168,21 +182,49 @@ def test_meta_archive(session, testdata, tmpdir):
 
     # Check if the metadata is in the file, then delete it remotely
     for cur_ipath, meta_data in meta_list:
-        print(cur_ipath)
         cur_meta_dict = _find_meta_dict(cur_ipath)
         assert _check_in_metadict(meta_data, cur_meta_dict["metadata"])
-        # assert meta_data in cur_meta_dict["metadata"]
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
 
     # Apply the archive and see if it has arrived.
-    apply_meta_archive(session, meta_fp, ipath)
+    ipath.apply_meta_archive(meta_fp)
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
 
+
+def test_meta_archive_file(session, testdata, tmpdir):
+    ipath_base = IrodsPath(session, "test")
+    ipath_base.remove()
+    sync(testdata, ipath_base)
+    assert len(list(ipath_base.meta)) == 0
+    ipath = ipath_base / "more_data" / "polarbear.txt"
+    meta_triple = ("is_polar", "true", "bool")
+    ipath.meta.add(*meta_triple)
+    meta_fp = tmpdir / "meta.json"
+    ipath.create_meta_archive(meta_fp)
+    with open(meta_fp, "r") as handle:
+        meta_dict = json.load(handle)
+
+    assert "ibridges_metadata_version" in meta_dict
+    assert meta_dict["recursive"] is True
+    assert meta_dict["root_path"] == str(ipath.parent)
+    assert len(meta_dict["items"]) == 1
+
+    # Check if the metadata is in the file, then delete it remotely
+    assert tuple(meta_dict["items"][0]['metadata'][0]) == meta_triple
+    ipath.meta.clear()
+
+    # Apply the archive and see if it has arrived.
+    ipath.apply_meta_archive(meta_fp)
+
+    assert meta_triple in ipath.meta
+
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
-        download(session, dataobject.path, tmpdir, options={kw.NUM_THREADS_KW: 3})
+        ipath = IrodsPath(session, dataobject.path)
+        download(ipath, tmpdir, options={kw.NUM_THREADS_KW: 3})
     with pytest.warns(UserWarning):
-        upload(session, str(tmpdir/"bunny.rtf"), "~/tmp.rtf", options={kw.NUM_THREADS_KW: 3})
+        ipath = IrodsPath(session, "~", "tmp.rtf")
+        upload(str(tmpdir/"bunny.rtf"), ipath, options={kw.NUM_THREADS_KW: 3})
     IrodsPath(session, "~/tmp.rtf").remove()
