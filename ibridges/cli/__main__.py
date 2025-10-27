@@ -1,33 +1,30 @@
 """Entry point for CLI interface."""
 
 import argparse
+import importlib.metadata
 import sys
 from importlib.metadata import version
-import importlib.metadata
 
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
-
 # pylint: disable=protected-access
+
 
 class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
     """Custom help formatter that groups commands by the module they come from."""
 
-    
     def list_ibridges_shell_commands(self):
-        """
-        Return a dict mapping CLI command name -> (package name, version)
-        """
+        """Return a dict mapping CLI command name -> (package name, version)."""
         commands = {}
         for dist in importlib.metadata.distributions():
             for ep in dist.entry_points:
-                if ep.group == "ibridges.shell": # ibridges shell entrypoint
-                    commands[ep.name] = (dist.metadata['Name'], dist.version)
+                if ep.group == "ibridges.shell":  # ibridges shell entrypoint
+                    commands[ep.name] = (dist.metadata["Name"], dist.version)
         return commands
 
-
     def format_help(self):
+        """Format the main help, create sections for plugin commands."""
         parser = self.parser
         prog = parser.prog
 
@@ -44,18 +41,26 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
                         continue
 
                     # Handle aliases
-                    aliases = [a for a, p in action._name_parser_map.items() if p is subparser and a != name]
+                    aliases = [
+                        a
+                        for a, p in action._name_parser_map.items()
+                        if p is subparser and a != name
+                    ]
                     seen.update([name] + aliases)
                     name_part = name + (f" ({', '.join(aliases)})" if aliases else "")
 
                     # Description
-                    desc = getattr(subparser, "description", "(no description)").replace("\n", "\n        ")
+                    desc = getattr(subparser, "description", "(no description)").replace(
+                        "\n", "\n        "
+                    )
 
                     # Determine package
                     pkg, ver = cmd_packages.get(name, ("ibridges", version("ibridges")))
                     heading = f"{pkg} commands (v{ver})"
 
-                    grouped_commands.setdefault(heading, []).append(f"    {name_part}:\n        {desc}")
+                    grouped_commands.setdefault(heading, []).append(
+                        f"    {name_part}:\n        {desc}"
+                    )
 
         # Build help text
         lines = [
@@ -97,6 +102,7 @@ Program information:
         lines.append(footer)
         return "\n".join(lines)
 
+
 def create_parser():
     """Create an argparse parser for the CLI.
 
@@ -120,7 +126,6 @@ def create_parser():
     for command_class in get_all_shell_commands() + CLI_BULTIN_COMMANDS:
         subpar = command_class.get_parser(subparsers.add_parser)
         subpar.set_defaults(func=command_class.run_command)
-    
 
     return main_parser
 
