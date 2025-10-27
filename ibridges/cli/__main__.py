@@ -23,13 +23,33 @@ class SubcommandHelpFormatter(argparse.HelpFormatter):
         subcommands_text = []
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
-                for cmd, subparser in action.choices.items():
+                seen = set()
+                for name, subparser in action._name_parser_map.items():
+                    if name in seen:
+                        continue
+
+                    # Find aliases
+                    aliases = [
+                        alias for alias, p in action._name_parser_map.items()
+                        if p is subparser and alias != name
+                    ]
+                    seen.update([name] + aliases)
+
+                    # Format name + aliases
+                    name_part = name
+                    if aliases:
+                        name_part += " (" + ", ".join(aliases) + ")"
+
+                    # Help/description text
                     help_text = (subparser.description or subparser.help or "").strip()
+                    if not help_text:
+                        help_text = "(no description available)"
                     help_text = help_text.replace("\n", "\n        ")
-                    subcommands_text.append(f"    {cmd}:\n        {help_text}")
 
-        subcommands_block = "\n".join(subcommands_text)
+                    subcommands_text.append(f"    {name_part}:\n        {help_text}")
 
+        # Join or set fallback
+        subcommands_block = "\n".join(subcommands_text) if subcommands_text else "    (no subcommands defined)"
         return f"""iBridges CLI version {version("ibridges")}
 
 Usage: {prog} [subcommand] [options]
