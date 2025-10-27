@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+from importlib.metadata import version
 import os
 import platform
 from typing import Optional
@@ -405,3 +406,18 @@ class CliGui(BaseCliCommand):
         else:
             parser.error(
                     "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+
+class CliVersion(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["version"]
+    description = "Print the version of iBridges."
+    examples = ["version"]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        print(f"""iBridges CLI version {version("ibridges")}""")
+
+    @classmethod
+    def run_command(cls, args):
+        print(f"""iBridges CLI version {version("ibridges")}""")

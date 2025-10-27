@@ -81,7 +81,6 @@ Reuse a configuration by an alias:
     {prog} init my_irods
 
 Program information:
-    -v, --version - display CLI version and exit
     -h, --help    - display this help file and exit
 """
 
