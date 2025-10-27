@@ -58,7 +58,7 @@ Available subcommands:
 {subcommands_block}
 
 The iBridges CLI does not implement the complete iBridges API. For example, there
-are no commands to modify metadata on the irods server.
+are no commands to modify the access rights to data.
 
 Example usage:
 
@@ -67,6 +67,8 @@ Example usage:
     {prog} init
     {prog} sync ~/directory "irods:~/collection"
     {prog} list irods:~/collection
+    {prog} meta-add irods:some_dataobj_or_collection new_key new_value new_units
+    {prog} meta-list irods:some_dataobj_or_collection
     {prog} mkcoll irods://~/bli/bla/blubb
     {prog} tree irods:~/collection
     {prog} search --path-pattern "%.txt"
