@@ -3,28 +3,39 @@
 import argparse
 import sys
 from importlib.metadata import version
+import importlib.metadata
 
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
 
 # pylint: disable=protected-access
-class SubcommandHelpFormatter(argparse.HelpFormatter):
-    """Help formatter for the parser."""
 
-    def __init__(self, prog):
-        """Init the formatter."""
-        super().__init__(prog)
-        self.parser = None  # we'll assign this later
+class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
+    """Custom help formatter that groups commands by the module they come from."""
+
+    
+    def list_ibridges_shell_commands(self):
+        """
+        Return a dict mapping CLI command name -> (package name, version)
+        """
+        commands = {}
+        for dist in importlib.metadata.distributions():
+            for ep in dist.entry_points:
+                if ep.group == "ibridges.shell": # ibridges shell entrypoint
+                    commands[ep.name] = (dist.metadata['Name'], dist.version)
+        return commands
+
 
     def format_help(self):
-        """Format the help."""
-        # Access the parser object we attached
         parser = self.parser
         prog = parser.prog
 
-        # Collect subcommands and their help text
-        subcommands_text = []
+        # Map command -> (package, version)
+        cmd_packages = self.list_ibridges_shell_commands()
+
+        grouped_commands = {}
+
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
                 seen = set()
@@ -32,38 +43,31 @@ class SubcommandHelpFormatter(argparse.HelpFormatter):
                     if name in seen:
                         continue
 
-                    # Find aliases
-                    aliases = [
-                        alias
-                        for alias, p in action._name_parser_map.items()
-                        if p is subparser and alias != name
-                    ]
+                    # Handle aliases
+                    aliases = [a for a, p in action._name_parser_map.items() if p is subparser and a != name]
                     seen.update([name] + aliases)
+                    name_part = name + (f" ({', '.join(aliases)})" if aliases else "")
 
-                    # Format name + aliases
-                    name_part = name
-                    if aliases:
-                        name_part += " (" + ", ".join(aliases) + ")"
+                    # Description
+                    desc = getattr(subparser, "description", "(no description)").replace("\n", "\n        ")
 
-                    # Help/description text
-                    help_text = (subparser.description or subparser.help or "").strip()
-                    if not help_text:
-                        help_text = "(no description available)"
-                    help_text = help_text.replace("\n", "\n        ")
+                    # Determine package
+                    pkg, ver = cmd_packages.get(name, ("ibridges", version("ibridges")))
+                    heading = f"{pkg} commands (v{ver})"
 
-                    subcommands_text.append(f"    {name_part}:\n        {help_text}")
+                    grouped_commands.setdefault(heading, []).append(f"    {name_part}:\n        {desc}")
 
-        # Join or set fallback
-        subcommands_block = (
-            "\n".join(subcommands_text) if subcommands_text else "    (no subcommands defined)"
-        )
-        return f"""iBridges CLI version {version("ibridges")}
+        # Build help text
+        lines = [
+            f"iBridges CLI version {version('ibridges')}\n",
+            f"Usage: {prog} [subcommand] [options]\n",
+        ]
 
-Usage: {prog} [subcommand] [options]
+        for heading, entries in grouped_commands.items():
+            lines.append(f"{heading}:\n" + "\n".join(entries) + "\n")
 
-Available subcommands:
-{subcommands_block}
-
+        # Footer with examples
+        footer = f"""
 The iBridges CLI does not implement the complete iBridges API. For example, there
 are no commands to modify the access rights to data.
 
@@ -90,7 +94,8 @@ Reuse a configuration by an alias:
 Program information:
     -h, --help    - display this help file and exit
 """
-
+        lines.append(footer)
+        return "\n".join(lines)
 
 def create_parser():
     """Create an argparse parser for the CLI.
@@ -102,8 +107,7 @@ def create_parser():
     """
     main_parser = argparse.ArgumentParser(
         prog="ibridges",
-        add_help=False,  # we handle help manually
-        formatter_class=SubcommandHelpFormatter,
+        formatter_class=ModuleGroupedHelpFormatter,
     )
 
     formatter = main_parser.formatter_class(main_parser.prog)
@@ -112,9 +116,12 @@ def create_parser():
 
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
+    # Add commands from classes
     for command_class in get_all_shell_commands() + CLI_BULTIN_COMMANDS:
         subpar = command_class.get_parser(subparsers.add_parser)
         subpar.set_defaults(func=command_class.run_command)
+    
+
     return main_parser
 
 
