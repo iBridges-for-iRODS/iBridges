@@ -2,19 +2,22 @@
 
 import argparse
 import sys
+from importlib.metadata import version
 
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
-from importlib.metadata import version
-
 
 class SubcommandHelpFormatter(argparse.HelpFormatter):
+    """Help formatter for the parser."""
+
     def __init__(self, prog):
+        """Init the formatter."""
         super().__init__(prog)
         self.parser = None  # we'll assign this later
 
     def format_help(self):
+        """Format the help."""
         # Access the parser object we attached
         parser = self.parser
         prog = parser.prog
@@ -30,7 +33,8 @@ class SubcommandHelpFormatter(argparse.HelpFormatter):
 
                     # Find aliases
                     aliases = [
-                        alias for alias, p in action._name_parser_map.items()
+                        alias
+                        for alias, p in action._name_parser_map.items()
                         if p is subparser and alias != name
                     ]
                     seen.update([name] + aliases)
@@ -49,7 +53,9 @@ class SubcommandHelpFormatter(argparse.HelpFormatter):
                     subcommands_text.append(f"    {name_part}:\n        {help_text}")
 
         # Join or set fallback
-        subcommands_block = "\n".join(subcommands_text) if subcommands_text else "    (no subcommands defined)"
+        subcommands_block = (
+            "\n".join(subcommands_text) if subcommands_text else "    (no subcommands defined)"
+        )
         return f"""iBridges CLI version {version("ibridges")}
 
 Usage: {prog} [subcommand] [options]
@@ -84,6 +90,7 @@ Program information:
     -h, --help    - display this help file and exit
 """
 
+
 def create_parser():
     """Create an argparse parser for the CLI.
 
@@ -92,9 +99,11 @@ def create_parser():
         An argparse.ArgumentParser object with all the subcommands.
 
     """
-    main_parser = argparse.ArgumentParser(prog="ibridges",
-    add_help=False,  # we handle help manually
-    formatter_class=SubcommandHelpFormatter)
+    main_parser = argparse.ArgumentParser(
+        prog="ibridges",
+        add_help=False,  # we handle help manually
+        formatter_class=SubcommandHelpFormatter,
+    )
 
     formatter = main_parser.formatter_class(main_parser.prog)
     formatter.parser = main_parser
@@ -102,10 +111,11 @@ def create_parser():
 
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
-    for command_class in get_all_shell_commands()+CLI_BULTIN_COMMANDS:
+    for command_class in get_all_shell_commands() + CLI_BULTIN_COMMANDS:
         subpar = command_class.get_parser(subparsers.add_parser)
         subpar.set_defaults(func=command_class.run_command)
     return main_parser
+
 
 def main():
     """Start main function of the CLI."""
@@ -115,6 +125,7 @@ def main():
         return
     args = parser.parse_args(sys.argv[1:])
     args.func(args)
+
 
 if __name__ == "__main__":
     main()

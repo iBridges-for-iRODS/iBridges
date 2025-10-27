@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
-from importlib.metadata import version
 import os
 import platform
+from importlib.metadata import version
 from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
@@ -35,17 +35,20 @@ class CliList(BaseCliCommand):
             nargs="?",
         )
         parser.add_argument(
-            "-m", "--metadata",
+            "-m",
+            "--metadata",
             help="Show metadata for each iRODS location, only in combination with -i/--icommands.",
             action="store_true",
         )
         parser.add_argument(
-            "-i", "--icommands",
+            "-i",
+            "--icommands",
             help="Display available data objects/collections in iCommands form.",
-            action="store_true"
+            action="store_true",
         )
         parser.add_argument(
-            "-l", "--long",
+            "-l",
+            "--long",
             help="Display available data objects/collections in long form.",
             action="store_true",
         )
@@ -74,10 +77,18 @@ class CliList(BaseCliCommand):
                     else:
                         print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
             else:
-                print(" ".join([_path_with_color(x, dir_color) for x in ipath.walk(depth=1)
-                                if str(x) != str(ipath)]))
+                print(
+                    " ".join(
+                        [
+                            _path_with_color(x, dir_color)
+                            for x in ipath.walk(depth=1)
+                            if str(x) != str(ipath)
+                        ]
+                    )
+                )
         except NotACollectionError:
             parser.error(f"{ipath} is not a collection")
+
 
 class CliCd(BaseCliCommand):
     """Subcommand to change collection."""
@@ -133,7 +144,6 @@ class CliPwd(BaseCliCommand):
     def run_shell(session, parser, args):
         """Show the current working collection."""
         print(session.cwd)
-
 
 
 # prefix components:
@@ -207,14 +217,13 @@ def _tree(
             continue
         str_path = _path_with_color(cur_path, dir_color)
         # if cur_path.dataobject_exists() or dir_color is None:
-            # str_path = str(rel_path)
+        # str_path = str(rel_path)
         # else:
-            # str_path = f"\033[{dir_color}m" + str(rel_path) + "\033[0m"
+        # str_path = f"\033[{dir_color}m" + str(rel_path) + "\033[0m"
         build_list.append(str_path)
         j_path += 1
     _print_build_list(build_list, prefix, show_max=show_max, pels=pels)
     return j_path
-
 
 
 class CliTree(BaseCliCommand):
@@ -266,8 +275,9 @@ class CliTree(BaseCliCommand):
             pels = _tree_elements["ascii"]
         else:
             pels = _tree_elements["pretty"]
-        ipath_list = [cur_path for cur_path in ipath.walk(depth=args.depth)
-                      if str(cur_path) != str(ipath)]
+        ipath_list = [
+            cur_path for cur_path in ipath.walk(depth=args.depth) if str(cur_path) != str(ipath)
+        ]
         _tree(ipath, ipath_list, show_max=args.show_max, pels=pels, dir_color=dir_color)
         n_col = sum(cur_path.collection_exists() for cur_path in ipath_list)
         n_data = len(ipath_list) - n_col
@@ -288,8 +298,8 @@ class CliSearch(BaseCliCommand):
         '--checksum "sha2:5dfasd%"',
         '--metadata "key" "value" "units"',
         '--metadata "key" --metadata "key2" "value2"',
-        'irods:some_collection --item_type data_object',
-        'irods:some_collection --item_type collection',
+        "irods:some_collection --item_type data_object",
+        "irods:some_collection --item_type collection",
     ]
 
     @classmethod
@@ -299,22 +309,21 @@ class CliSearch(BaseCliCommand):
             help="Remote path to search inn. The path itself will not be matched.",
             type=str,
             default=".",
-            nargs="?"
+            nargs="?",
         )
         parser.add_argument(
             "--path-pattern",
             default=None,
             type=str,
-            help=("Pattern of the path constraint. For example, use '%%.txt' "
-                  "to find all data objects"
-                  " and collections that end with .txt. You can also use the name of the item here "
-                  "to find all items with that name.")
+            help=(
+                "Pattern of the path constraint. For example, use '%%.txt' "
+                "to find all data objects"
+                " and collections that end with .txt. You can also use the name of the item here "
+                "to find all items with that name."
+            ),
         )
         parser.add_argument(
-            "--checksum",
-            default=None,
-            type=str,
-            help="Checksum of the data objects to be found."
+            "--checksum", default=None, type=str, help="Checksum of the data objects to be found."
         )
         parser.add_argument(
             "--metadata",
@@ -327,7 +336,7 @@ class CliSearch(BaseCliCommand):
             type=str,
             default=None,
             help="Use data_object or collection to show only items of that type. "
-            "By default all items are returned."
+            "By default all items are returned.",
         )
         return parser
 
@@ -346,6 +355,7 @@ class CliSearch(BaseCliCommand):
         for cur_path in search_res:
             print(cur_path)
 
+
 def _check_dir_color(session):
     if hasattr(session, "dir_color"):
         return getattr(session, "dir_color")
@@ -353,6 +363,7 @@ def _check_dir_color(session):
     if platform.system() == "Windows":
         try:
             import ctypes  # pylint: disable=import-outside-toplevel
+
             kernel32 = ctypes.windll.kernel32
             kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
             dir_color = "34"
@@ -365,6 +376,7 @@ def _check_dir_color(session):
 
     session.dir_color = dir_color
     return dir_color
+
 
 def _path_with_color(path, dir_color):
     if path.dataobject_exists() or dir_color is None:
@@ -386,14 +398,15 @@ class CliGui(BaseCliCommand):
         """Running the GUI from the shell is not available (yet)."""  # noqa: D401
         if (importlib.util.find_spec("ibridgesgui")) is not None:
             from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+
             try:
                 main(session)
             except RuntimeError:
                 parser.error("The iBridges gui cannot start. Try restarting the shell.")
         else:
             parser.error(
-                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
-
+                "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui"
+            )
 
     @classmethod
     def run_command(cls, args):
@@ -402,10 +415,13 @@ class CliGui(BaseCliCommand):
 
         if (importlib.util.find_spec("ibridgesgui")) is not None:
             from ibridgesgui.__main__ import main  # type: ignore # pylint: disable=E0401, C0415
+
             main()
         else:
             parser.error(
-                    "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui")
+                "'ibridgesgui' is not installed. Please install with\n pip install ibridgesgui"
+            )
+
 
 class CliVersion(BaseCliCommand):
     """Subcommand to open the iBridges GUI."""
@@ -416,8 +432,10 @@ class CliVersion(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
+        """Print the version."""
         print(f"""iBridges CLI version {version("ibridges")}""")
 
     @classmethod
     def run_command(cls, args):
+        """Print tha version."""
         print(f"""iBridges CLI version {version("ibridges")}""")
