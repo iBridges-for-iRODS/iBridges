@@ -23,84 +23,93 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
                     commands[ep.name] = (dist.metadata["Name"], dist.version)
         return commands
 
+
     def format_help(self):
         """Format the main help, create sections for plugin commands."""
         parser = self.parser
         prog = parser.prog
-
+    
+        # Determine if this is the top-level parser (has subcommands)
+        is_main_parser = any(isinstance(a, argparse._SubParsersAction) for a in parser._actions)
+    
         # Map command -> (package, version)
         cmd_packages = self.list_ibridges_shell_commands()
-
+    
         grouped_commands = {}
-
+    
         for action in parser._actions:
             if isinstance(action, argparse._SubParsersAction):
                 seen = set()
                 for name, subparser in action._name_parser_map.items():
                     if name in seen:
                         continue
-
+    
                     # Handle aliases
                     aliases = [
-                        a
-                        for a, p in action._name_parser_map.items()
+                        a for a, p in action._name_parser_map.items()
                         if p is subparser and a != name
                     ]
                     seen.update([name] + aliases)
                     name_part = name + (f" ({', '.join(aliases)})" if aliases else "")
-
+    
                     # Description
                     desc = getattr(subparser, "description", "(no description)").replace(
                         "\n", "\n        "
                     )
-
+    
                     # Determine package
                     pkg, ver = cmd_packages.get(name, ("ibridges", version("ibridges")))
                     heading = f"{pkg} commands (v{ver})"
-
+    
                     grouped_commands.setdefault(heading, []).append(
                         f"    {name_part}:\n        {desc}"
                     )
-
-        # Build help text
-        lines = [
-            f"iBridges CLI version {version('ibridges')}\n",
-            f"Usage: {prog} [subcommand] [options]\n",
-        ]
-
-        for heading, entries in grouped_commands.items():
-            lines.append(f"{heading}:\n" + "\n".join(entries) + "\n")
-
-        # Footer with examples
-        footer = f"""
-The iBridges CLI does not implement the complete iBridges API. For example, there
-are no commands to modify the access rights to data.
-
-Example usage:
-
-    {prog} download "irods:~/test.txt"
-    {prog} upload ~/test.txt "irods:/test"
-    {prog} init
-    {prog} sync ~/directory "irods:~/collection"
-    {prog} list irods:~/collection
-    {prog} meta-add irods:some_dataobj_or_collection new_key new_value new_units
-    {prog} meta-list irods:some_dataobj_or_collection
-    {prog} mkcoll irods://~/bli/bla/blubb
-    {prog} tree irods:~/collection
-    {prog} search --path-pattern "%.txt"
-    {prog} search --metadata "key" "value" "units"
-    {prog} search --metadata "key" --metadata "key2" "value2"
-    {prog} setup uu-its
-
-Reuse a configuration by an alias:
-    {prog} init ~/.irods/irods_environment.json --alias my_irods
-    {prog} init my_irods
-
-Program information:
-    -h, --help    - display this help file and exit
-"""
-        lines.append(footer)
+    
+        lines = []
+    
+        if grouped_commands:
+            for heading, entries in grouped_commands.items():
+                lines.append(f"{heading}:\n" + "\n".join(entries) + "\n")
+    
+        # Only show the header and footer if this is the top-level parser
+        if is_main_parser:
+            header =  [
+                f"iBridges CLI version {version('ibridges')}\n",
+                f"Usage: {prog} [subcommand] [options]\n",
+            ]
+            header.extend(lines)
+            footer = f"""
+    The iBridges CLI does not implement the complete iBridges API. For example, there
+    are no commands to modify the access rights to data.
+    
+    Example usage:
+    
+        {prog} download "irods:~/test.txt"
+        {prog} upload ~/test.txt "irods:/test"
+        {prog} init
+        {prog} sync ~/directory "irods:~/collection"
+        {prog} list irods:~/collection
+        {prog} meta-add irods:some_dataobj_or_collection new_key new_value new_units
+        {prog} meta-list irods:some_dataobj_or_collection
+        {prog} mkcoll irods://~/bli/bla/blubb
+        {prog} tree irods:~/collection
+        {prog} search --path-pattern "%.txt"
+        {prog} search --metadata "key" "value" "units"
+        {prog} search --metadata "key" --metadata "key2" "value2"
+        {prog} setup uu-its
+    
+    Reuse a configuration by an alias:
+        {prog} init ~/.irods/irods_environment.json --alias my_irods
+        {prog} init my_irods
+    
+    Program information:
+        -h, --help    - display this help file and exit
+    """
+            header.append(footer)
+            lines = header
+    
         return "\n".join(lines)
+
 
 
 def create_parser():
