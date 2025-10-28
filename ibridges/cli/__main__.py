@@ -114,6 +114,8 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
     """
             header.append(footer)
             lines = header
+        else:
+            lines.append(f"\n\n     {prog}\n")
 
         return "\n".join(lines)
 

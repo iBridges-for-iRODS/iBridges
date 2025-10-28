@@ -391,7 +391,7 @@ class CliGui(BaseCliCommand):
 
     names = ["gui"]
     description = "Start the iBridges GUI."
-    examples = ["gui"]
+    examples = [""]
 
     @staticmethod
     def run_shell(session, parser, args):
@@ -428,7 +428,7 @@ class CliVersion(BaseCliCommand):
 
     names = ["version"]
     description = "Print the version of iBridges."
-    examples = ["version"]
+    examples = [""]
 
     @staticmethod
     def run_shell(session, parser, args):
