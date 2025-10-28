@@ -68,7 +68,14 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
         lines = []
 
         if grouped_commands:
-            for heading, entries in grouped_commands.items():
+            # Sort headings so "ibridges" commands always come first
+            sorted_headings = sorted(
+                grouped_commands.keys(),
+                key=lambda h: (not h.lower().startswith("ibridges "), h.lower())
+                )
+
+            for heading in sorted_headings:
+                entries = grouped_commands[heading]
                 lines.append(f"{heading}:\n" + "\n".join(entries) + "\n")
 
         # Only show the header and footer if this is the top-level parser
