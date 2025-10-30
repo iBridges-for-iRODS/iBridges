@@ -29,7 +29,7 @@ class CliList(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_coll",
-            help="Path to remote iRODS location starting with 'irods:'",
+            help="Path to remote iRODS location starting with 'irods:'.",
             type=str,
             default=".",
             nargs="?",
