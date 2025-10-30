@@ -251,7 +251,7 @@ class CliTree(BaseCliCommand):
         )
         parser.add_argument(
             "--ascii",
-            help="Print the tree in pure ascii",
+            help="Print the tree in pure ascii.",
             action="store_true",
         )
         parser.add_argument(
