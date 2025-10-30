@@ -22,7 +22,7 @@ class CliShell(BaseCliCommand):
     """Subcommand to start the shell."""
 
     names = ["shell"]
-    description = "Shell for ibridges commands with autocomplete"
+    description = "Shell for ibridges commands with autocomplete."
 
     @staticmethod
     def run_shell(session, parser, args):
@@ -53,7 +53,7 @@ class CliAlias(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "alias",
-            help="The new alias to be created",
+            help="The new alias to be created.",
             type=str,
             default=None,
             nargs="?",
@@ -120,7 +120,7 @@ class CliInit(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "irods_env_path_or_alias",
-            help="The path to your iRODS environment JSON file.",
+            help="The path to your iRODS environment JSON file or an alias for an environment.",
             type=Path,
             default=None,
             nargs="?",

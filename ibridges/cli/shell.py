@@ -1,4 +1,5 @@
 """Module with implementation of ibridges shell command."""
+
 import cmd
 import os
 import subprocess
@@ -13,14 +14,29 @@ except ImportError:
 
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
-from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree
+from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
-ALL_BUILTIN_COMMANDS=[CliList, CliPwd, CliTree, CliMetaList,
-                      CliMetaAdd, CliMetaDel, CliMakeCollection, CliDownload,
-                      CliUpload, CliSearch, CliCd, CliRm, CliSync, CliGui]
+ALL_BUILTIN_COMMANDS = [
+    CliList,
+    CliPwd,
+    CliTree,
+    CliMetaList,
+    CliMetaAdd,
+    CliMetaDel,
+    CliMakeCollection,
+    CliDownload,
+    CliUpload,
+    CliSearch,
+    CliCd,
+    CliRm,
+    CliSync,
+    CliGui,
+    CliVersion,
+]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
+
 
 class IBridgesShell(cmd.Cmd):
     """Command class implementation for iBridges."""
@@ -32,6 +48,7 @@ class IBridgesShell(cmd.Cmd):
         # Autocomplete is not available on windows.
         try:
             import readline  # pylint: disable=import-outside-toplevel
+
             readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
             if IBSHELL_HISTORY_FILE.is_file():
                 readline.read_history_file(IBSHELL_HISTORY_FILE)
@@ -64,7 +81,7 @@ class IBridgesShell(cmd.Cmd):
     def _universal_complete(self, text, line, begidx, endidx, command_class):  # pylint: disable=unused-argument
         arg_list = _prepare_args(line, add_last_space=True)[1:]
         if arg_list[-1].startswith("-"):
-            return [text+" "]
+            return [text + " "]
         arg_list = [x for x in arg_list if not x.startswith("-")]
 
         # Don't have completions for positional argument.
@@ -72,17 +89,18 @@ class IBridgesShell(cmd.Cmd):
             return []
 
         complete = []
-        if command_class.autocomplete[len(arg_list)-1] == "remote_path":
+        if command_class.autocomplete[len(arg_list) - 1] == "remote_path":
             complete = complete_ipath(self.session, text, line, collections_only=False)
-        elif command_class.autocomplete[len(arg_list)-1] == "remote_coll":
+        elif command_class.autocomplete[len(arg_list) - 1] == "remote_coll":
             complete = complete_ipath(self.session, text, line, collections_only=True)
-        elif command_class.autocomplete[len(arg_list)-1] == "local_path":
+        elif command_class.autocomplete[len(arg_list) - 1] == "local_path":
             complete = complete_lpath(text, line, directories_only=False)
-        elif command_class.autocomplete[len(arg_list)-1] == "local_dir":
+        elif command_class.autocomplete[len(arg_list) - 1] == "local_dir":
             complete = complete_lpath(text, line, directories_only=True)
-        elif command_class.autocomplete[len(arg_list)-1] == "any_dir":
-            complete = (complete_lpath(text, line, directories_only=True)
-                        + complete_ipath(self.session, text, line, collections_only=True))
+        elif command_class.autocomplete[len(arg_list) - 1] == "any_dir":
+            complete = complete_lpath(text, line, directories_only=True) + complete_ipath(
+                self.session, text, line, collections_only=True
+            )
         return complete
 
     def _universal_do(self, arg, command_class):
@@ -108,6 +126,7 @@ class IBridgesShell(cmd.Cmd):
         self.session.close()
         try:
             import readline  # pylint: disable=import-outside-toplevel
+
             IBSHELL_HISTORY_FILE.parent.mkdir(exist_ok=True, parents=True)
             readline.write_history_file(IBSHELL_HISTORY_FILE)
         except ImportError:
@@ -118,21 +137,24 @@ class IBridgesShell(cmd.Cmd):
     def _wrap_complete(self, command_class):
         def _wrap(*args):
             return self._universal_complete(*args, command_class)
+
         return _wrap
 
     def _wrap_do(self, command_class):
         def _wrap(*args):
             self._universal_do(*args, command_class)
+
         return _wrap
 
     def _wrap_help(self, command_class):
         def _wrap(*args):
             self._universal_help(*args, command_class)
+
         return _wrap
 
     def __getattribute__(self, attr):
         """Catch the do_, complete_ and help_ methods and replace them with a wrapper."""
-        if attr.startswith("do_") and attr[ 3:] in self.commands:
+        if attr.startswith("do_") and attr[3:] in self.commands:
             return self._wrap_do(self.commands[attr[3:]])
         if attr.startswith("complete_") and attr[9:] in self.commands:
             return self._wrap_complete(self.commands[attr[9:]])
@@ -144,8 +166,11 @@ class IBridgesShell(cmd.Cmd):
         """Get all available subcommands."""
         fake_names = [f"do_{cmd}" for cmd in self.commands]
         fake_names = fake_names + [f"complete_{cmd}" for cmd in self.commands]
-        fake_names = fake_names + [f"help_{cmd_name}" for cmd_name, cmd in self.commands.items()
-                                   if cmd_name == cmd.names[0]]
+        fake_names = fake_names + [
+            f"help_{cmd_name}"
+            for cmd_name, cmd in self.commands.items()
+            if cmd_name == cmd.names[0]
+        ]
         return fake_names + super().get_names()
 
     @property
@@ -153,10 +178,12 @@ class IBridgesShell(cmd.Cmd):
         """Modify the prompt to show the current collection."""
         return f"ibshell:{IrodsPath(self.session).name}> "
 
+
 def _escape(line):
     if isinstance(line, str):
         return line.replace(" ", "\\ ")
     return [_escape(x) for x in line]
+
 
 def _unescape(line):
     if isinstance(line, str):
@@ -169,11 +196,11 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     cur_pos = 0
     cur_quote = None
     while cur_pos < len(args):
-        if args[cur_pos:cur_pos+2] in ["\\ ", "\\'", '\\"']:
+        if args[cur_pos : cur_pos + 2] in ["\\ ", "\\'", '\\"']:
             if unescape:
-                split_args[-1] += args[cur_pos+1]
+                split_args[-1] += args[cur_pos + 1]
             else:
-                split_args[-1] += args[cur_pos:cur_pos+2]
+                split_args[-1] += args[cur_pos : cur_pos + 2]
             cur_pos += 1
         elif args[cur_pos] == " " and cur_quote is None:
             split_args.append("")
@@ -189,15 +216,14 @@ def _prepare_args(args, add_last_space=False, unescape=True):
     return split_args
 
 
-
 def _filter(ipaths, collections_only, base_path, add_prefix=False):
     ipaths = [p for p in ipaths if str(p) != str(base_path)]
     if collections_only:
         ipaths = [p for p in ipaths if p.collection_exists()]
     names = [p.name + "/" if p.collection_exists() else p.name for p in ipaths]
-        # col_names = [p.name for p in ipaths if p.collection_exists()]
+    # col_names = [p.name for p in ipaths if p.collection_exists()]
     # else:
-        # col_names = [p.name for p in ipaths]
+    # col_names = [p.name for p in ipaths]
     if add_prefix:
         return [f"irods:{c}" for c in names]
     return names
@@ -215,11 +241,11 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
 
     base_arg = args[-1]
     base_completion = []
-    if args[-1].startswith("irods:"[:len(args[-1])]):
+    if args[-1].startswith("irods:"[: len(args[-1])]):
         if len(args[-1]) < len("irods:"):
-            base_completion = [text[:len(text)-len(args[-1])] + "irods:"]
+            base_completion = [text[: len(text) - len(args[-1])] + "irods:"]
         else:
-            base_arg = args[-1][len("irods:"):]
+            base_arg = args[-1][len("irods:") :]
 
     # In case of matching "irods:"
     if len(base_arg) == 0:
@@ -245,10 +271,12 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
     for ipath in base_path.walk(depth=1, include_base_collection=False):
         if str(ipath) == base_path or base_arg.endswith("/"):
             continue
-        if (ipath.name.startswith(last_part)
-                and not ipath.name == last_part
-                and not (collections_only and not ipath.collection_exists())):
-            compl = text + _escape(ipath.name[len(last_part):])
+        if (
+            ipath.name.startswith(last_part)
+            and not ipath.name == last_part
+            and not (collections_only and not ipath.collection_exists())
+        ):
+            compl = text + _escape(ipath.name[len(last_part) :])
             if ipath.collection_exists():
                 compl += "/"
             completions.append(compl)
@@ -258,6 +286,7 @@ def complete_ipath(session, text, line, collections_only=False):  # pylint: disa
     if len(all_completions) == 1 and all_completions[0] == text:
         return []
     return all_completions
+
 
 def _find_paths(base_path, directories_only):
     all_paths = [p for p in base_path.iterdir() if not (directories_only and not p.is_dir())]
@@ -291,10 +320,12 @@ def complete_lpath(text, line, directories_only=False):
     path_list = _find_paths(parent_path, directories_only)
     for lpath_str in path_list:
         lpath = parent_path / lpath_str
-        if (lpath_str.startswith(last_part)
-                and not lpath.name == last_part
-                and not (directories_only and not lpath.is_dir())):
-            completions.append(text + _escape(lpath_str[len(last_part):]))
+        if (
+            lpath_str.startswith(last_part)
+            and not lpath.name == last_part
+            and not (directories_only and not lpath.is_dir())
+        ):
+            completions.append(text + _escape(lpath_str[len(last_part) :]))
 
     all_completions = list(set(base_completion + completions))
     if len(all_completions) == 1 and all_completions[0] == text:
