@@ -22,7 +22,7 @@ class CliShell(BaseCliCommand):
     """Subcommand to start the shell."""
 
     names = ["shell"]
-    description = "Shell for ibridges commands with autocomplete"
+    description = "Shell for ibridges commands with autocomplete."
 
     @staticmethod
     def run_shell(session, parser, args):
