@@ -359,7 +359,6 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             for meta_item in self.meta_download:
                 summary += f"{meta_item['meta_fp']} -> {meta_item['root_ipath']}\n"
             summary_strings.append(summary)
-            summary += "\n"
 
         if len(self.meta_upload) > 0:
             summary = "Metadata to upload:\n\n"
