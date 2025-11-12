@@ -356,12 +356,10 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         if len(self.meta_download) > 0:
             summary = "Metadata to download:\n\n"
-            for meta_fp, meta_item in self.meta_download.items():
-                summary += f"- Destination: {meta_fp}\n"
-                summary += f"- Root iRODS path: {meta_item['root_ipath']}\n\n"
-                for item in meta_item["items"]:
-                    summary += f"{item}\n"
+            for meta_item in self.meta_download:
+                summary += f"{meta_item['meta_fp']} -> {meta_item['root_ipath']}\n"
             summary_strings.append(summary)
+            summary += "\n"
 
         if len(self.meta_upload) > 0:
             summary = "Metadata to upload:\n\n"
