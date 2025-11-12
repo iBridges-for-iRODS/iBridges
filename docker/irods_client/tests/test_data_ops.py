@@ -56,7 +56,7 @@ def test_upload_download_dataset(session, testdata):
     with pytest.warns(UserWarning):
         ops = upload(testdata/"plant.rtf", ipath, overwrite=False, on_error='warn')
         assert len(ops.upload) == 0
-    
+
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
     assert len(ops.upload) == 1
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
@@ -81,6 +81,7 @@ def test_upload_download_dataset(session, testdata):
     with ipath.open("w") as handle:
         handle.write("test".encode())
     ops = download(ipath, lpath, overwrite=True)
+    ops.print_summary()
     assert len(ops.download) == 1
     ipath.remove()
     lpath.unlink()
@@ -105,6 +106,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
     bunny_ipath = (ipath / "testdata" / "bunny.rtf")
     bunny_ipath.remove()
     ops = upload(testdata, ipath, overwrite=True)
+    ops.print_summary()
     _check_count(ops, [0, 0, 0, 1])
     with bunny_ipath.open("w") as handle:
         handle.write("est".encode())
