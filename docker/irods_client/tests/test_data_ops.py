@@ -32,7 +32,7 @@ def _check_count(ops, nlist):
         assert len(getattr(ops, var)) == count
 
 
-ef test_upload_download_dataset(session, testdata):
+def test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     ops = upload(testdata/"plant.rtf", IrodsPath(session, "~"))
