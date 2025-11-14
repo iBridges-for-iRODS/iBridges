@@ -220,6 +220,20 @@ def test_meta_archive_file(session, testdata, tmpdir):
 
     assert meta_triple in ipath.meta
 
+def test_meta_down_upload(session, testdata, tmpdir):
+    ipath_base = IrodsPath(session, "test")
+    ipath_base.remove()
+    sync(testdata, ipath_base)
+    assert len(list(ipath_base.meta)) == 0
+    ipath = ipath_base / "more_data" / "polarbear.txt"
+    meta_triple = ("is_polar", "true", "bool")
+    ipath.meta.add(*meta_triple)
+    meta_fp = tmpdir / "meta.json"
+    ops = download(ipath, tmpdir/"test", overwrite=True, metadata=meta_fp)
+    assert len(ops.meta_download) == 1
+    assert f"{meta_fp} -> {ipath}" in ops.print_summary()
+    print(ops.meta_download)
+
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
         ipath = IrodsPath(session, dataobject.path)
