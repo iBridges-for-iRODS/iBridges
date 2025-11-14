@@ -66,7 +66,7 @@ def test_upload_download_dataset(session, testdata, tmpdir):
     # add metadata for metadata dpwnload
     meta_triple = ("is_polar", "true", "bool")
     ipath.meta.add(*meta_triple)
-    meta_fp = tmpdir / "meta1.json" # location to download and later upload md
+    meta_fp = "meta1.json" # location to download and later upload md
     
     ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True, metadata=meta_fp)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
