@@ -230,9 +230,12 @@ def test_meta_down_upload(session, testdata, tmpdir):
     ipath.meta.add(*meta_triple)
     meta_fp = tmpdir / "meta.json"
     ops = download(ipath, tmpdir/"test", overwrite=True, metadata=meta_fp)
-    assert len(ops.meta_download) == 1
+    assert len(ops.meta_download) == 2
     assert f"{meta_fp} -> {ipath}" in ops.print_summary()
-    print(ops.meta_download)
+
+    ops = upload(tmpdir/"test"/"polarbear.txt", ipath, overwrite=True, metadata=meta_fp, dry_run=True)
+    assert len(ops.meta_upload) == 1
+    assert f"{meta_fp} -> {ipath}" in ops.print_summary()
 
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
