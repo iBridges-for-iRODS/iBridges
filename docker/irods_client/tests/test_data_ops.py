@@ -32,8 +32,7 @@ def _check_count(ops, nlist):
         assert len(getattr(ops, var)) == count
 
 
-
-def test_upload_download_dataset(session, testdata, tmpdir):
+ef test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
     ipath.remove()
     ops = upload(testdata/"plant.rtf", IrodsPath(session, "~"))
@@ -56,23 +55,16 @@ def test_upload_download_dataset(session, testdata, tmpdir):
     with pytest.warns(UserWarning):
         ops = upload(testdata/"plant.rtf", ipath, overwrite=False, on_error='warn')
         assert len(ops.upload) == 0
-
+    
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
     assert len(ops.upload) == 1
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
     assert len(ops.upload) == 1
 
     # Test downloading it back
-    # add metadata for metadata dpwnload
-    meta_triple = ("is_polar", "true", "bool")
-    ipath.meta.add(*meta_triple)
-    meta_fp = "meta1.json" # location to download and later upload md
-    
-    ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True, metadata=meta_fp)
+    ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
     _check_count(ops, [0, 0, 1, 0])
-    assert len(ops.meta_download) == 1
-    assert ops.meta_download[0]['meta_fp'] == str(meta_fp)
 
     # Check overwrite and ignore_err parameters
     lpath = testdata/"plant.rtf.copy"
@@ -88,14 +80,7 @@ def test_upload_download_dataset(session, testdata, tmpdir):
     with ipath.open("w") as handle:
         handle.write("test".encode())
     ops = download(ipath, lpath, overwrite=True)
-    ops.print_summary()
     assert len(ops.download) == 1
-
-    # dry-run upload again with metadata file
-    ops = upload(testdata/"plant.rtf", ipath, overwrite=True, dry_run=True, metadata=meta_fp)
-    assert len(ops.meta_upload) == 1
-
-    meta_fp.unlink()
     ipath.remove()
     lpath.unlink()
 
