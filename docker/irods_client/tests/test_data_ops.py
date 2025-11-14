@@ -95,6 +95,7 @@ def test_upload_download_dataset(session, testdata, tmpdir):
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, dry_run=True, metadata=meta_fp)
     assert len(ops.meta_upload) == 1
 
+    meta_fp.unlink()
     ipath.remove()
     lpath.unlink()
 
