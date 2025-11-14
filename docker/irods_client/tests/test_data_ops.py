@@ -63,9 +63,16 @@ def test_upload_download_dataset(session, testdata):
     assert len(ops.upload) == 1
 
     # Test downloading it back
-    ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True)
+    # add metadata for metadata dpwnload
+    meta_triple = ("is_polar", "true", "bool")
+    ipath.meta.add(*meta_triple)
+    meta_fp = tmpdir / "meta.json" # location to download and later upload md
+    
+    ops = download(ipath, testdata/"plant.rtf.copy", overwrite=True, metadata=meta_fp)
     assert _check_files_equal(testdata/"plant.rtf.copy", testdata/"plant.rtf")
     _check_count(ops, [0, 0, 1, 0])
+    assert len(ops.meta_download) == 1
+    assert ops.meta_download[0]['meta_fp'] == str(meta_fp)
 
     # Check overwrite and ignore_err parameters
     lpath = testdata/"plant.rtf.copy"
@@ -83,6 +90,11 @@ def test_upload_download_dataset(session, testdata):
     ops = download(ipath, lpath, overwrite=True)
     ops.print_summary()
     assert len(ops.download) == 1
+
+    # dry-run upload again with metadata file
+    ops = upload(testdata/"plant.rtf", ipath, overwrite=True, dry_run=True, metadata=meta_fp)
+    assert len(ops.meta_upload) == 1
+
     ipath.remove()
     lpath.unlink()
 
