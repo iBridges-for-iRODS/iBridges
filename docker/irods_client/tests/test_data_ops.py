@@ -1,6 +1,8 @@
 import hashlib
 import json
 from pathlib import Path
+from io import StringIO
+from contextlib import redirect_stdout
 
 import irods.keywords as kw
 import pytest
@@ -55,7 +57,7 @@ def test_upload_download_dataset(session, testdata):
     with pytest.warns(UserWarning):
         ops = upload(testdata/"plant.rtf", ipath, overwrite=False, on_error='warn')
         assert len(ops.upload) == 0
-    
+ 
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='skip', dry_run=True)
     assert len(ops.upload) == 1
     ops = upload(testdata/"plant.rtf", ipath, overwrite=True, on_error='warn')
@@ -230,12 +232,23 @@ def test_meta_down_upload(session, testdata, tmpdir):
     ipath.meta.add(*meta_triple)
     meta_fp = tmpdir / "meta.json"
     ops = download(ipath, tmpdir/"test", overwrite=True, metadata=meta_fp)
+    # ops.print_summary has no return value
+    f = StringIO()
+    with redirect_stdout(f):
+        ops.print_summary()
+        output = f.getvalue().strip()
     assert len(ops.meta_download) == 2
-    assert f"{meta_fp} -> {ipath}" in ops.print_summary()
+    assert f"{meta_fp} -> {ipath}" in output
 
-    ops = upload(tmpdir/"test"/"polarbear.txt", ipath, overwrite=True, metadata=meta_fp, dry_run=True)
+    ops = upload(tmpdir/"test", ipath, overwrite=True, metadata=meta_fp, dry_run=True)
+    print("DEBUG", ops.meta_upload)
     assert len(ops.meta_upload) == 1
-    assert f"{meta_fp} -> {ipath}" in ops.print_summary()
+    f = StringIO()
+    with redirect_stdout(f):
+        ops.print_summary()
+        output = f.getvalue().strip()
+    assert f"{meta_fp} -> {ipath}" in output
+
 
 def test_ignored_keyword(session, tmpdir, dataobject):
     with pytest.warns(UserWarning):
