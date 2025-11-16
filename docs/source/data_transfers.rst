@@ -60,7 +60,7 @@ The :func:`download` function works similar to the :func:`upload` function. Simp
    
     local_path = Path("/destination/location/for/the/data")
     irods_path = IrodsPath(session, '~', 'new_coll')
-    downloadirods_path, local_path)
+    download(irods_path, local_path)
 
 Synchronisation
 ---------------
