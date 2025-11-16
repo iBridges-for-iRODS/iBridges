@@ -192,7 +192,7 @@ class CliUpload(BaseCliCommand):
 
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
-    description = "Upload a data object or collection from an iRODS server."
+    description = "Upload a data object or collection to an iRODS server."
     examples = [
         "local_file.txt",
         "local_file.txt irods:remote_collection",
