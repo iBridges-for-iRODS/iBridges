@@ -120,7 +120,7 @@ class CliDownload(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
-            help="Path to remote iRODS location starting with 'irods:'",
+            help="Path to remote iRODS location starting with 'irods:'.",
             type=str,
         )
         parser.add_argument(
@@ -149,7 +149,7 @@ class CliDownload(BaseCliCommand):
         )
         parser.add_argument(
             "--metadata",
-            help="Path for metadata",
+            help="Path to the metadata file which will be created.",
             default=argparse.SUPPRESS,
             type=Path,
             nargs="?",
@@ -192,7 +192,7 @@ class CliUpload(BaseCliCommand):
 
     autocomplete = ["local_path", "remote_coll"]
     names = ["upload"]
-    description = "Upload a data object or collection from an iRODS server."
+    description = "Upload a data object or collection to an iRODS server."
     examples = [
         "local_file.txt",
         "local_file.txt irods:remote_collection",
@@ -208,7 +208,7 @@ class CliUpload(BaseCliCommand):
         )
         parser.add_argument(
             "remote_path",
-            help="Path to remote iRODS location starting with 'irods:'",
+            help="Path to remote iRODS location starting with 'irods:'.",
             type=str,
             default=".",
             nargs="?",
@@ -232,7 +232,7 @@ class CliUpload(BaseCliCommand):
         )
         parser.add_argument(
             "--metadata",
-            help="Path for metadata",
+            help="Path to the metadata json.",
             default=argparse.SUPPRESS,
             type=Path,
             nargs="?",
@@ -306,7 +306,7 @@ class CliSync(BaseCliCommand):
         )
         parser.add_argument(
             "--metadata",
-            help="Path for metadata",
+            help="Path to the metadata json file.",
             default=argparse.SUPPRESS,
             type=Path,
             nargs="?",

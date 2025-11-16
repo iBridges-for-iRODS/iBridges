@@ -17,7 +17,7 @@ class CliMetaList(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
-            help="iRODS path for metadata listing, starting with 'irods:'",
+            help="iRODS path for metadata listing, starting with 'irods:'.",
             type=str,
             default=".",
             nargs="?",
