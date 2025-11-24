@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.abspath('..'))
 project = 'iBridges'
 copyright = '2024, 2025, Utrecht University'
 author = 'Christine Staiger, Raoul Schram'
-release = '1.5.0'
+release = '2.0.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
