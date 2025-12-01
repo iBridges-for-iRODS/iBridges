@@ -98,6 +98,8 @@ class CliList(BaseCliCommand):
     def _print_unix_style(ipath, dir_color):
         terminal_size = os.get_terminal_size().columns
         paths = list(ipath.walk(depth=1, include_base_collection=False))
+        if len(paths) == 0:
+            return
         for n_cols in range(1, 10):
             tot_len = -2
             cur_max_len = []
