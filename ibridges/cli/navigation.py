@@ -13,7 +13,7 @@ from typing import Optional
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
-from ibridges.exception import NotACollectionError, CollectionDoesNotExistError
+from ibridges.exception import CollectionDoesNotExistError, NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
 
@@ -98,7 +98,10 @@ class CliList(BaseCliCommand):
 
     @staticmethod
     def _print_unix_style(ipath, dir_color):
-        terminal_size = os.get_terminal_size().columns
+        try:
+            terminal_size = os.get_terminal_size().columns
+        except OSError:
+            terminal_size = 50
         paths = list(ipath.walk(depth=1, include_base_collection=False))
         if len(paths) == 0:
             return
