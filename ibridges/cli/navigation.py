@@ -105,9 +105,13 @@ class CliList(BaseCliCommand):
         paths = list(ipath.walk(depth=1, include_base_collection=False))
         if len(paths) == 0:
             return
+
+        # Increase the number of columns until there is no more space in the terminal.
         for n_cols in range(1, 10):
+            # The last column doesn't have whitespace at the end.
             tot_len = -2
             cur_max_len = []
+            # Check for each column how much space is needed.
             for i_col in range(n_cols):
                 cur_max_len.append(max(_get_text_width(p.name)
                                        for i, p in enumerate(paths)
@@ -119,20 +123,19 @@ class CliList(BaseCliCommand):
             if n_cols >= len(paths):
                 n_cols += 1
                 break
+        # Only a single column is possible.
         if n_cols-1 <= 1:
             print("\n".join(_path_with_color(p, dir_color) for p in paths))
         else:
             n_cols -= 1
             lengths = prev_max_len
-            i_path = 0
             lines = []
-            while i_path < len(paths):
+            for i_path in range(0, len(paths), n_cols):
                 cur_paths = paths[i_path:i_path+n_cols]
                 col_paths = [_path_with_color(p, dir_color) +
                                 " "*(lengths[i]-_get_text_width(p.name))
                                 for i, p in enumerate(cur_paths)]
                 lines.append("  ".join(col_paths))
-                i_path += n_cols
             print("\n".join(lines))
 
 class CliCd(BaseCliCommand):
