@@ -102,7 +102,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         if irods_home is not None:
             self.home = irods_home
         if "irods_home" not in self._irods_env:
-            irods_base = "/" + self.zone
+            irods_base = "/" + self.zone + "/home"
             if self.session.irods_session.collections.exists(irods_base):
                 self.home = irods_base
             else:
