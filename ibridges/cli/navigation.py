@@ -13,7 +13,7 @@ from typing import Optional
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
-from ibridges.exception import NotACollectionError
+from ibridges.exception import NotACollectionError, CollectionDoesNotExistError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
 
@@ -92,7 +92,9 @@ class CliList(BaseCliCommand):
             else:
                 CliList._print_unix_style(ipath, dir_color)
         except NotACollectionError:
-            parser.error(f"{ipath} is not a collection")
+            parser.error(f"ls: {ipath} is not a collection")
+        except CollectionDoesNotExistError:
+            parser.error(f"ls: {ipath} does not exist")
 
     @staticmethod
     def _print_unix_style(ipath, dir_color):
@@ -111,7 +113,7 @@ class CliList(BaseCliCommand):
             if tot_len > terminal_size:
                 break
             prev_max_len = cur_max_len
-            if len(paths) >= n_cols:
+            if n_cols >= len(paths):
                 n_cols += 1
                 break
         if n_cols-1 <= 1:
