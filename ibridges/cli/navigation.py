@@ -90,38 +90,43 @@ class CliList(BaseCliCommand):
                     else:
                         print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
             else:
-                import os
-                terminal_size = os.get_terminal_size().columns
-                paths = list(ipath.walk(depth=1, include_base_collection=False))
-                for n_cols in range(1, 10):
-                    tot_len = -2
-                    cur_max_len = []
-                    for i_col in range(n_cols):
-                        cur_max_len.append(max([_get_text_width(p.name)
-                                                for i, p in enumerate(paths)
-                                                if (i%n_cols) == i_col]))
-                        tot_len += cur_max_len[-1] + 2
-                    if tot_len > terminal_size:
-                        break
-                    prev_max_len = cur_max_len
-                if n_cols-1 <= 1:
-                    print("\n".join(_path_with_color(p, dir_color) for p in paths))
-                else:
-                    n_cols -= 1
-                    lengths = prev_max_len
-                    i_path = 0
-                    lines = []
-                    while i_path < len(paths):
-                        cur_paths = paths[i_path:i_path+n_cols]
-                        col_paths = [_path_with_color(p, dir_color) +
-                                     " "*(lengths[i]-_get_text_width(p.name))
-                                     for i, p in enumerate(cur_paths)]
-                        lines.append("  ".join(col_paths))
-                        i_path += n_cols
-                    print("\n".join(lines))
+                CliList._print_unix_style(ipath, dir_color)
         except NotACollectionError:
             parser.error(f"{ipath} is not a collection")
 
+    @staticmethod
+    def _print_unix_style(ipath, dir_color):
+        terminal_size = os.get_terminal_size().columns
+        paths = list(ipath.walk(depth=1, include_base_collection=False))
+        for n_cols in range(1, 10):
+            tot_len = -2
+            cur_max_len = []
+            for i_col in range(n_cols):
+                cur_max_len.append(max(_get_text_width(p.name)
+                                       for i, p in enumerate(paths)
+                                       if (i%n_cols) == i_col))
+                tot_len += cur_max_len[-1] + 2
+            if tot_len > terminal_size:
+                break
+            prev_max_len = cur_max_len
+            if len(paths) >= n_cols:
+                n_cols += 1
+                break
+        if n_cols-1 <= 1:
+            print("\n".join(_path_with_color(p, dir_color) for p in paths))
+        else:
+            n_cols -= 1
+            lengths = prev_max_len
+            i_path = 0
+            lines = []
+            while i_path < len(paths):
+                cur_paths = paths[i_path:i_path+n_cols]
+                col_paths = [_path_with_color(p, dir_color) +
+                                " "*(lengths[i]-_get_text_width(p.name))
+                                for i, p in enumerate(cur_paths)]
+                lines.append("  ".join(col_paths))
+                i_path += n_cols
+            print("\n".join(lines))
 
 class CliCd(BaseCliCommand):
     """Subcommand to change collection."""
