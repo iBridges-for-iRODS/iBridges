@@ -6,6 +6,7 @@ import argparse
 import importlib.util
 import os
 import platform
+import unicodedata
 from importlib.metadata import version
 from typing import Optional
 
@@ -15,6 +16,18 @@ from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
 from ibridges.exception import NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
+
+
+def _get_text_width(text):
+    """Comprehensive width calculation method."""
+    width_map = {
+        'F': 2,  ## Fullwidth
+        'W': 2,  ## Wide
+        'A': 1,  ## Ambiguous
+        'N': 1,  ## Neutral
+        'H': 1,  ## Halfwidth
+    }
+    return sum(width_map.get(unicodedata.east_asian_width(char), 1) for char in text)
 
 
 class CliList(BaseCliCommand):
@@ -77,15 +90,35 @@ class CliList(BaseCliCommand):
                     else:
                         print(f"{cur_path.checksum: <50} {cur_path.size: <12} {cur_path.name}")
             else:
-                print(
-                    " ".join(
-                        [
-                            _path_with_color(x, dir_color)
-                            for x in ipath.walk(depth=1)
-                            if str(x) != str(ipath)
-                        ]
-                    )
-                )
+                import os
+                terminal_size = os.get_terminal_size().columns
+                paths = list(ipath.walk(depth=1, include_base_collection=False))
+                for n_cols in range(1, 10):
+                    tot_len = -2
+                    cur_max_len = []
+                    for i_col in range(n_cols):
+                        cur_max_len.append(max([_get_text_width(p.name)
+                                                for i, p in enumerate(paths)
+                                                if (i%n_cols) == i_col]))
+                        tot_len += cur_max_len[-1] + 2
+                    if tot_len > terminal_size:
+                        break
+                    prev_max_len = cur_max_len
+                if n_cols-1 <= 1:
+                    print("\n".join(_path_with_color(p, dir_color) for p in paths))
+                else:
+                    n_cols -= 1
+                    lengths = prev_max_len
+                    i_path = 0
+                    lines = []
+                    while i_path < len(paths):
+                        cur_paths = paths[i_path:i_path+n_cols]
+                        col_paths = [_path_with_color(p, dir_color) +
+                                     " "*(lengths[i]-_get_text_width(p.name))
+                                     for i, p in enumerate(cur_paths)]
+                        lines.append("  ".join(col_paths))
+                        i_path += n_cols
+                    print("\n".join(lines))
         except NotACollectionError:
             parser.error(f"{ipath} is not a collection")
 
