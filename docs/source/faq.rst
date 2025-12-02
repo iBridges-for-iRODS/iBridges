@@ -105,3 +105,31 @@ You can omit this by the following code:
     # data objects
     meta = MetaData(IrodsPath(session, "~", "my_obj").dataobject, blacklist=None)
     print(meta)
+
+**How can I list all data I have access to?**
+---------------------------------------------
+When data is shared in iRODS it is not always easy to know where the shared data lies. With the CLI search you can list all data you have access to and then use `grep` to filter or ignore (`-v` option) certain results. Below we show an example to list all collections you have access to outside of your home-collection:
+
+.. code-block:: bash
+
+    ibridges search /tempZone/home --item_type collection --path-pattern "%" | grep -v "/tempZone/home/<your_user_name>"
+
+In Python the code to retrieve all collections which are not in your `irods_home` would look like this:
+
+.. code-block:: python
+
+    from ibridges.interactive import interactive_auth
+    from ibridges import search_data, IrodsPath
+
+    session = interactive_auth()
+    search_res = search_data(session, path="/tempZone/home",  item_type="collection", path_pattern="%")
+
+    home_path = IrodsPath(session, session.home)
+    not_relative = []
+
+    for res in search_res:
+        try:
+            res.relative_to(home_path)   # succeeds only if res is inside home_path
+        except ValueError:
+            not_relative.append(res)
+
