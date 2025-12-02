@@ -306,7 +306,7 @@ class CliSearch(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
-            help="Remote path to search inn. The path itself will not be matched.",
+            help="Remote path to search in. The path itself will not be matched.",
             type=str,
             default=".",
             nargs="?",
@@ -319,7 +319,7 @@ class CliSearch(BaseCliCommand):
                 "Pattern of the path constraint. For example, use '%%.txt' "
                 "to find all data objects"
                 " and collections that end with .txt. You can also use the name of the item here "
-                "to find all items with that name."
+                "to find all items with that name. Use '%' to search for everything."
             ),
         )
         parser.add_argument(
