@@ -106,8 +106,8 @@ You can omit this by the following code:
     meta = MetaData(IrodsPath(session, "~", "my_obj").dataobject, blacklist=None)
     print(meta)
 
-**How can I list all data I have access to?**
----------------------------------------------
+**How can I list all data I have access to but which does not lie in my home or standard collection?**
+--------------------------------------------------------------------------------------------------------
 When data is shared in iRODS it is not always easy to know where the shared data lies. With the CLI search you can list all data you have access to and then use `grep` to filter or ignore (`-v` option) certain results. Below we show an example to list all collections you have access to outside of your home-collection:
 
 .. code-block:: bash
