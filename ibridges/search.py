@@ -134,6 +134,10 @@ def search_data(  # pylint: disable=too-many-branches
             "QUERY: Error while searching in the metadata: No query criteria set."
             + " Please supply either a path_pattern, checksum, key, value or units."
         )
+
+    if item_type not in ["data_object", "collection", None]:
+        raise ValueError("Unknown item_type '{item_type}', should be one of 'data_object', "
+                         "'collection' or None.")
     if path is None:
         path = session.home
     path = IrodsPath(session, path)
