@@ -1,33 +1,20 @@
 """Utilities for the CLI and shell."""
-from pathlib import Path
+import warnings
 from typing import Union
 
-from ibridges.cli.config import IbridgesConf
+from ibridges.authenticate import cli_auth
 from ibridges.exception import NotACollectionError
-from ibridges.interactive import DEFAULT_IRODSA_PATH, interactive_auth
 from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import get_collection
 
 
 def cli_authenticate(parser):
-    """Authenticate for the CLI and shell."""
-    ibridges_conf = IbridgesConf(parser)
-    ienv_path, ienv_entry = ibridges_conf.get_entry()
-    ienv_cwd = ienv_entry.get("cwd", None)
+    """Authenticate with cli authentication."""
+    warnings.warn("ibridges.cli.cli_authenticate() is deprecated, "
+                  "use ibridges.authenticate.cli_auth() instead.")
+    return cli_auth(parser)
 
-    if not Path(ienv_path).exists():
-        parser.error(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
-    session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd,
-                               irodsa_backup=ienv_entry.get("irodsa_backup", None))
-
-    with open(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
-        irodsa_content = handle.read()
-    if irodsa_content != ienv_entry.get("irodsa_backup"):
-        ienv_entry["irodsa_backup"] = irodsa_content
-        ibridges_conf.save()
-
-    return session
 
 def list_collection(session: Session, remote_path: IrodsPath, metadata: bool = False):
     """List a collection with default formatting."""

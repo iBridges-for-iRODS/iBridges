@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import base64
+import contextlib
+import os
 from collections.abc import Sequence
 from hashlib import md5, sha256
 from pathlib import Path
@@ -209,3 +211,32 @@ def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
     remote_check = calc_checksum(remote_path)
     local_check = calc_checksum(local_path, checksum_type=_detect_checksum(remote_check))
     return remote_check == local_check
+
+
+class ValueErrorParser():
+    """For raising value errors instead of ArgumentParser errors.
+
+    IbridgesConf is a class normally used for the command line interface (CLI).
+    This ensures that errors normally passed to the argument parser, will be raised as ValueErrors
+    instead.
+
+    """
+
+    def error(self, msg: str):
+        """Raise error message."""
+        raise ValueError(msg)
+
+# Copied from python-irodsclient: client_init.py f700ab5
+@contextlib.contextmanager
+def open_irodsa(file_path, *arg, **kw):
+    """Open a file with 0o600 file permissions generally."""
+    f = old_mask = None
+    try:
+        old_mask = os.umask(0o77)
+        f = open(file_path, *arg, **kw)
+        yield f
+    finally:
+        if old_mask is not None:
+            os.umask(old_mask)
+        if f is not None:
+            f.close()
