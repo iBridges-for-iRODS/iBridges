@@ -4,6 +4,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+from importlib.metadata import version
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
@@ -23,6 +24,7 @@ class CliShell(BaseCliCommand):
 
     names = ["shell"]
     description = "Shell for ibridges commands with autocomplete."
+    shell = False
 
     @staticmethod
     def run_shell(session, parser, args):
@@ -49,6 +51,8 @@ class CliAlias(BaseCliCommand):
     description = "Print existing aliases or create new ones."
     examples = ["some_alias ~/.irods/irods_environment.json",
                 "other_alias --delete"]
+    shell = False
+
     @classmethod
     def _mod_parser(cls, parser):
         parser.add_argument(
@@ -115,6 +119,7 @@ class CliInit(BaseCliCommand):
     names = ["init"]
     description = "Create a cached password for future use."
     examples = ["", "~/.irods/another_env_path.json", "some_alias"]
+    shell = False
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -150,6 +155,7 @@ class CliSetup(BaseCliCommand):
     names = ["setup"]
     description = "Use templates to create an iRODS environment json."
     examples = ["some-servername -o ~/.irods/some_server.json"]
+    shell = False
 
     @classmethod
     def _mod_parser(cls, parser):
@@ -226,6 +232,22 @@ class CliSetup(BaseCliCommand):
         with open(args.output, "w", encoding="utf-8") as handle:
             handle.write(json_str)
 
+class CliVersion(BaseCliCommand):
+    """Subcommand to open the iBridges GUI."""
+
+    names = ["version"]
+    description = "Print the version of iBridges."
+    examples = [""]
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Print the version."""
+        print(f"""iBridges CLI version {version("ibridges")}""")
+
+    @classmethod
+    def run_command(cls, args):
+        """Print tha version."""
+        print(f"""iBridges CLI version {version("ibridges")}""")
 
 
-CLI_BULTIN_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]
+OTHER_COMMANDS=[CliShell, CliAlias, CliInit, CliSetup]

@@ -12,29 +12,9 @@ try:
 except ImportError:
     from importlib.metadata import entry_points  # type: ignore
 
-from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
-from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
-from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
-ALL_BUILTIN_COMMANDS = [
-    CliList,
-    CliPwd,
-    CliTree,
-    CliMetaList,
-    CliMetaAdd,
-    CliMetaDel,
-    CliMakeCollection,
-    CliDownload,
-    CliUpload,
-    CliSearch,
-    CliCd,
-    CliRm,
-    CliSync,
-    CliGui,
-    CliVersion,
-]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
 
@@ -57,7 +37,7 @@ class IBridgesShell(cmd.Cmd):
             pass
         self.session = cli_authenticate(None)
         self.commands = {}
-        for command_class in get_all_shell_commands():
+        for command_class in get_all_shell_commands(shell=True):
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
@@ -334,9 +314,11 @@ def complete_lpath(text, line, directories_only=False):
     return all_completions
 
 
-def get_all_shell_commands():
+def get_all_shell_commands(shell=False):
     """Get all available shell commands."""
     external_commands = []
     for entry in entry_points(group="ibridges.shell"):
         external_commands.extend(entry.load())
+    if shell:
+        external_commands = [x for x in external_commands if getattr(x, "shell", True)]
     return external_commands

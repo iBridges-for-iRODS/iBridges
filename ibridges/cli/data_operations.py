@@ -350,3 +350,5 @@ class CliSync(BaseCliCommand):
             return
         if args.dry_run:
             ops.print_summary()
+
+DATA_OPS_COMMANDS = [CliSync, CliDownload, CliUpload, CliRm, CliMakeCollection]

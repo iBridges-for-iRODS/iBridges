@@ -62,7 +62,11 @@ docs = [
 ibridges = "ibridges.cli.__main__:main"
 
 [project.entry-points."ibridges.shell"]
-builtin = "ibridges.cli.shell:ALL_BUILTIN_COMMANDS"
+other = "ibridges.cli.other:OTHER_COMMANDS"
+navigation = "ibridges.cli.navigation:NAVIGATION_COMMANDS"
+gui = "ibridges.cli.navigation:GUI_COMMANDS"
+data = "ibridges.cli.data_operations:DATA_OPS_COMMANDS"
+meta = "ibridges.cli.meta:META_COMMANDS"
 
 [tool.setuptools]
 packages = ["ibridges"]

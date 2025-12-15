@@ -5,7 +5,7 @@ import importlib.metadata
 import sys
 from importlib.metadata import version
 
-from ibridges.cli.other import CLI_BULTIN_COMMANDS
+# from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
 # pylint: disable=protected-access
@@ -20,7 +20,9 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
         for dist in importlib.metadata.distributions():
             for ep in dist.entry_points:
                 if ep.group == "ibridges.shell":  # ibridges shell entrypoint
-                    commands[ep.name] = (dist.metadata["Name"], dist.version)
+                    new_commands = ep.load()
+                    for cur_command in new_commands:
+                        commands[cur_command.names[0]] = (dist.metadata["Name"], dist.version, ep.name)
         return commands
 
     def format_help(self):
@@ -58,13 +60,16 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
                     )
 
                     # Determine package
-                    pkg, ver = cmd_packages.get(name, ("ibridges", version("ibridges")))
-                    heading = f"{pkg} commands (v{ver})"
+                    pkg, ver, grp = cmd_packages.get(name, ("ibridges", version("ibridges"), "builtin"))
+                    if pkg != "ibridges":
+                        heading = f":------- {grp} [{pkg}-v{ver}] --------"
+                    else:
+                        heading = f":------- {grp} --------"
 
                     grouped_commands.setdefault(heading, []).append(
                         f"    {name_part}:\n        {desc}"
                     )
-
+        # print(grouped_commands)
         lines = []
 
         if grouped_commands:
@@ -86,32 +91,32 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
             ]
             header.extend(lines)
             footer = f"""
-    The iBridges CLI does not implement the complete iBridges API. For example, there
-    are no commands to modify the access rights to data.
+The iBridges CLI does not implement the complete iBridges API. For example, there
+are no commands to modify the access rights to data.
 
-    Example usage:
+Example usage:
 
-        {prog} download "irods:~/test.txt"
-        {prog} upload ~/test.txt "irods:/test"
-        {prog} init
-        {prog} sync ~/directory "irods:~/collection"
-        {prog} list irods:~/collection
-        {prog} meta-add irods:some_dataobj_or_collection new_key new_value new_units
-        {prog} meta-list irods:some_dataobj_or_collection
-        {prog} mkcoll irods://~/bli/bla/blubb
-        {prog} tree irods:~/collection
-        {prog} search --path-pattern "%.txt"
-        {prog} search --metadata "key" "value" "units"
-        {prog} search --metadata "key" --metadata "key2" "value2"
-        {prog} setup uu-its
+    {prog} download "irods:~/test.txt"
+    {prog} upload ~/test.txt "irods:/test"
+    {prog} init
+    {prog} sync ~/directory "irods:~/collection"
+    {prog} list irods:~/collection
+    {prog} meta-add irods:some_dataobj_or_collection new_key new_value new_units
+    {prog} meta-list irods:some_dataobj_or_collection
+    {prog} mkcoll irods://~/bli/bla/blubb
+    {prog} tree irods:~/collection
+    {prog} search --path-pattern "%.txt"
+    {prog} search --metadata "key" "value" "units"
+    {prog} search --metadata "key" --metadata "key2" "value2"
+    {prog} setup uu-its
 
-    Reuse a configuration by an alias:
-        {prog} init ~/.irods/irods_environment.json --alias my_irods
-        {prog} init my_irods
+Reuse a configuration by an alias:
+    {prog} init ~/.irods/irods_environment.json --alias my_irods
+    {prog} init my_irods
 
-    Program information:
-        -h, --help    - display this help file and exit
-    """
+Program information:
+    -h, --help    - display this help file and exit
+"""
             header.append(footer)
             lines = header
         else:
@@ -140,7 +145,7 @@ def create_parser():
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
     # Add commands from classes
-    for command_class in get_all_shell_commands() + CLI_BULTIN_COMMANDS:
+    for command_class in get_all_shell_commands():
         subpar = command_class.get_parser(subparsers.add_parser)
         subpar.set_defaults(func=command_class.run_command)
 

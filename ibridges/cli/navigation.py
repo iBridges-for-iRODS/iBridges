@@ -7,7 +7,6 @@ import importlib.util
 import os
 import platform
 import unicodedata
-from importlib.metadata import version
 from typing import Optional
 
 from ibridges.cli.base import BaseCliCommand
@@ -471,19 +470,7 @@ class CliGui(BaseCliCommand):
             )
 
 
-class CliVersion(BaseCliCommand):
-    """Subcommand to open the iBridges GUI."""
 
-    names = ["version"]
-    description = "Print the version of iBridges."
-    examples = [""]
 
-    @staticmethod
-    def run_shell(session, parser, args):
-        """Print the version."""
-        print(f"""iBridges CLI version {version("ibridges")}""")
-
-    @classmethod
-    def run_command(cls, args):
-        """Print tha version."""
-        print(f"""iBridges CLI version {version("ibridges")}""")
+NAVIGATION_COMMANDS=[CliList, CliCd, CliSearch, CliPwd, CliTree ]
+GUI_COMMANDS = [CliGui]
