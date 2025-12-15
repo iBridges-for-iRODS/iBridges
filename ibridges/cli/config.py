@@ -7,7 +7,7 @@ import warnings
 from pathlib import Path
 from typing import Union
 
-from ibridges.util import ValueErrorParser, open_irodsa, DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH
+from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorParser, open_irodsa
 
 IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 

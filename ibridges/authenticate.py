@@ -8,7 +8,7 @@ from typing import Optional, Union
 
 from ibridges.cli.config import IbridgesConf
 from ibridges.session import LoginError, PasswordError, Session
-from ibridges.util import ValueErrorParser, open_irodsa, DEFAULT_IRODSA_PATH, DEFAULT_IENV_PATH
+from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorParser, open_irodsa
 
 
 def cli_auth(parser, reauthenticate: bool = False):

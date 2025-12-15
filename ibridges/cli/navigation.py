@@ -10,9 +10,10 @@ import unicodedata
 from importlib.metadata import version
 from typing import Optional
 
+from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
-from ibridges.cli.util import cli_authenticate, list_collection, parse_remote
+from ibridges.cli.util import list_collection, parse_remote
 from ibridges.exception import CollectionDoesNotExistError, NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
@@ -170,7 +171,7 @@ class CliCd(BaseCliCommand):
     def run_command(cls, args):
         """Change collection in the cli."""
         parser = cls.get_parser(argparse.ArgumentParser)
-        with cli_authenticate(parser) as session:
+        with cli_auth(parser) as session:
             new_ipath = parse_remote(args.remote_coll, session)
             if not new_ipath.collection_exists():
                 parser.error(f"Collection {new_ipath} does not exist.")

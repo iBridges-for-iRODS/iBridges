@@ -5,13 +5,13 @@ import time
 import traceback
 from pathlib import Path
 
+from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.shell import IBridgesShell
-from ibridges.cli.util import cli_authenticate
-from ibridges.util import DEFAULT_IENV_PATH
 from ibridges.session import Session
 from ibridges.util import (
+    DEFAULT_IENV_PATH,
     find_environment_provider,
     get_environment_providers,
     print_environment_providers,
@@ -138,7 +138,7 @@ class CliInit(BaseCliCommand):
         parser = cls.get_parser(argparse.ArgumentParser)
         IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
 
-        with cli_authenticate(parser) as session:
+        with cli_auth(parser) as session:
             if not isinstance(session, Session):
                 parser.error(f"Irods session '{session}' is not a session.")
         print("ibridges init was succesful.")
