@@ -3,8 +3,8 @@ import argparse
 import sys
 import time
 import traceback
-from pathlib import Path
 from importlib.metadata import version
+from pathlib import Path
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf

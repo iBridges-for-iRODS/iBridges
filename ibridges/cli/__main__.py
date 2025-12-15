@@ -22,7 +22,8 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
                 if ep.group == "ibridges.shell":  # ibridges shell entrypoint
                     new_commands = ep.load()
                     for cur_command in new_commands:
-                        commands[cur_command.names[0]] = (dist.metadata["Name"], dist.version, ep.name)
+                        commands[cur_command.names[0]] = (dist.metadata["Name"],
+                                                          dist.version, ep.name)
         return commands
 
     def format_help(self):
@@ -60,7 +61,8 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
                     )
 
                     # Determine package
-                    pkg, ver, grp = cmd_packages.get(name, ("ibridges", version("ibridges"), "builtin"))
+                    pkg, ver, grp = cmd_packages.get(name, ("ibridges", version("ibridges"),
+                                                            "builtin"))
                     if pkg != "ibridges":
                         heading = f":------- {grp} [{pkg}-v{ver}] --------"
                     else:
