@@ -63,6 +63,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     """
     # iBridges doesn't have a non-interactive auth, so make one.
     ibridges_conf = IbridgesConf(parser=parser)
+    ienv_path: Optional[str]
     try:
         ienv_path, ienv_entry = ibridges_conf.get_entry(ienv_path_or_alias)
         irodsa_backup = ienv_entry.get("irodsa_backup", None)
@@ -74,8 +75,10 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     except KeyError:
         ienv_path = ienv_path_or_alias
         cwd_final = cwd
+    if ienv_path is None:
+        raise ValueError("Could not find specified irods environment.")
 
-    return Session(ienv_path, *args, **kwargs, cwd=cwd_final)
+    return Session(ienv_path, *args, cwd=cwd_final, **kwargs)  # type: ignore
 
 
 def interactive_auth(
