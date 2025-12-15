@@ -13,7 +13,6 @@ from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorPars
 
 def cli_auth(parser, reauthenticate: bool = False):
     """Authenticate for the CLI and shell."""
-    print(reauthenticate)
     ibridges_conf = IbridgesConf(parser)
     ienv_path, ienv_entry = ibridges_conf.get_entry()
     ienv_cwd = ienv_entry.get("cwd", None)
@@ -52,9 +51,6 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     parser:
         Parser to relay the error messages to. By default, errors are raised as
         ValueError's.
-    reauthenticate:
-        If reauthenticate is set to True, then cached passwords will be ignored and a new password
-        can be submitted.
     kwargs:
         Extra keyword arguments for the session such as home and password.
 
@@ -102,6 +98,9 @@ def interactive_auth(
         Path to the irods environment.
     irodsa_backup:
         Backup of the .irodsA file to be used in case authentication fails.
+    reauthenticate:
+        If reauthenticate is set to True, then cached passwords will be ignored and a new password
+        can be submitted.
     kwargs:
         Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
