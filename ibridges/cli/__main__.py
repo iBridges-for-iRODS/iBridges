@@ -5,7 +5,6 @@ import importlib.metadata
 import sys
 from importlib.metadata import version
 
-# from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
 # pylint: disable=protected-access
