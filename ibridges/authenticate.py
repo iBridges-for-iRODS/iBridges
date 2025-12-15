@@ -13,6 +13,7 @@ from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorPars
 
 def cli_auth(parser, reauthenticate: bool = False):
     """Authenticate for the CLI and shell."""
+    print(reauthenticate)
     ibridges_conf = IbridgesConf(parser)
     ienv_path, ienv_entry = ibridges_conf.get_entry()
     ienv_cwd = ienv_entry.get("cwd", None)
@@ -21,7 +22,7 @@ def cli_auth(parser, reauthenticate: bool = False):
         parser.error(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
     irodsa_backup = None if reauthenticate else ienv_entry.get("irodsa_backup", None)
     session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd,
-                               irodsa_backup=irodsa_backup)
+                               irodsa_backup=irodsa_backup, reauthenticate=reauthenticate)
 
     with open_irodsa(DEFAULT_IRODSA_PATH, "r", encoding="utf-8") as handle:
         irodsa_content = handle.read()
@@ -79,7 +80,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
 
 def interactive_auth(
     password: Optional[str] = None, irods_env_path: Union[None, str, Path] = None,
-    irodsa_backup: Optional[str] = None,
+    irodsa_backup: Optional[str] = None, reauthenticate: bool = False,
     **kwargs
 ) -> Session:
     """Interactive authentication with iRODS server.
@@ -119,7 +120,7 @@ def interactive_auth(
         raise FileNotFoundError
 
     session = None
-    if DEFAULT_IRODSA_PATH.is_file() and password is None:
+    if DEFAULT_IRODSA_PATH.is_file() and password is None and not reauthenticate:
         session = _from_pw_file(irods_env_path, irodsa_backup=irodsa_backup, **kwargs)
 
     if password is not None:

@@ -125,6 +125,11 @@ class CliInit(BaseCliCommand):
             default=None,
             nargs="?",
         )
+        parser.add_argument(
+            "--reauthenticate",
+            help="If you want to update your password while the old one still works.",
+            action="store_true"
+        )
         return parser
 
     @staticmethod
@@ -138,7 +143,7 @@ class CliInit(BaseCliCommand):
         parser = cls.get_parser(argparse.ArgumentParser)
         IbridgesConf(parser).set_env(args.irods_env_path_or_alias)
 
-        with cli_auth(parser) as session:
+        with cli_auth(parser, args.reauthenticate) as session:
             if not isinstance(session, Session):
                 parser.error(f"Irods session '{session}' is not a session.")
         print("ibridges init was succesful.")
