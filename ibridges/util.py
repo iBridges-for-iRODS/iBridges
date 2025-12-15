@@ -14,6 +14,9 @@ import irods
 
 from ibridges.path import IrodsPath
 
+DEFAULT_IENV_PATH = Path.home() / ".irods" / "irods_environment.json"
+DEFAULT_IRODSA_PATH = Path.home() / ".irods" / ".irodsA"
+
 try:
     from importlib_metadata import entry_points
 except ImportError:

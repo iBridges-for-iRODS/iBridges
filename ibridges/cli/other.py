@@ -9,7 +9,7 @@ from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.shell import IBridgesShell
 from ibridges.cli.util import cli_authenticate
-from ibridges.interactive import DEFAULT_IENV_PATH
+from ibridges.util import DEFAULT_IENV_PATH
 from ibridges.session import Session
 from ibridges.util import (
     find_environment_provider,
