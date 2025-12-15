@@ -52,8 +52,12 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     parser:
         Parser to relay the error messages to. By default, errors are raised as
         ValueError's.
+    reauthenticate:
+        If reauthenticate is set to True, then cached passwords will be ignored and a new password
+        can be submitted.
     kwargs:
         Extra keyword arguments for the session such as home and password.
+
 
     Returns
     -------
