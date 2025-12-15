@@ -216,7 +216,7 @@ def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
     return remote_check == local_check
 
 
-class ValueErrorParser():
+class ValueErrorParser():  # pylint: disable=too-few-public-methods
     """For raising value errors instead of ArgumentParser errors.
 
     IbridgesConf is a class normally used for the command line interface (CLI).
@@ -236,7 +236,7 @@ def open_irodsa(file_path, *arg, **kw):
     f = old_mask = None
     try:
         old_mask = os.umask(0o77)
-        f = open(file_path, *arg, **kw)
+        f = open(file_path, *arg, **kw)  # pylint: disable=unspecified-encoding
         yield f
     finally:
         if old_mask is not None:

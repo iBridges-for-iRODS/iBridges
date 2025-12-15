@@ -72,7 +72,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
                 handle.write(irodsa_backup)
     except KeyError:
         ienv_path = ienv_path_or_alias
-        cwd = cwd
+        cwd_final = cwd
 
     return Session(ienv_path, *args, **kwargs, cwd=cwd_final)
 
