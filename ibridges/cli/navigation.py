@@ -346,8 +346,8 @@ class CliSearch(BaseCliCommand):
         '--checksum "sha2:5dfasd%"',
         '--metadata "key" "value" "units"',
         '--metadata "key" --metadata "key2" "value2"',
-        "irods:some_collection --item_type data_object",
-        "irods:some_collection --item_type collection",
+        "irods:some_collection --item-type data_object",
+        "irods:some_collection --item-type collection",
     ]
 
     @classmethod
@@ -380,7 +380,7 @@ class CliSearch(BaseCliCommand):
             help="Constrain the results using metadata, see examples. Can be used multiple times.",
         )
         parser.add_argument(
-            "--item_type",
+            "--item-type",
             type=str,
             default=None,
             help="Use data_object or collection to show only items of that type. "
