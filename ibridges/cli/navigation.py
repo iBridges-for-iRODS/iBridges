@@ -367,7 +367,7 @@ class CliSearch(BaseCliCommand):
                 "Pattern of the path constraint. For example, use '%%.txt' "
                 "to find all data objects"
                 " and collections that end with .txt. You can also use the name of the item here "
-                "to find all items with that name. Use '%' to search for everything."
+                "to find all items with that name. Use '%%' to search for everything."
             ),
         )
         parser.add_argument(
