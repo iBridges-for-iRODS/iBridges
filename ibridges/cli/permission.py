@@ -103,6 +103,9 @@ class CliACLEdit(BaseCliCommand):
             perm = Permissions(ipath.session, ipath.collection)
         else:
             parser.error(f"Path {ipath} is neither a data ibject nor collection.")
+        print(args.mode)
+        if "inherit" in args.mode and not ipath.collection_exists():
+            parser.error("Cannot apply inherit/noinherit on data object.")
 
         mode = "null" if args.mode == "delete" else args.mode
         perm.set(mode, user=args.user, zone=args.userzone, recursive=args.recursive)
