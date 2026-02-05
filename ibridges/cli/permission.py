@@ -49,9 +49,10 @@ class CliACLEdit(BaseCliCommand):
     names = ["chmod"]
     description = "Manipulate the permissions of a data object or collection."
     examples = [
-        "irods:dataobject username read",
-        "irods:dataobject username delete",
-        "irods:collection username read --recursive",
+        "irods:dataobject read username",
+        "irods:dataobject delete username",
+        "irods:collection read username --recursive",
+        "irods:collection inherit"
     ]
 
     @classmethod
@@ -62,13 +63,15 @@ class CliACLEdit(BaseCliCommand):
             type=str,
         )
         parser.add_argument(
-            "user",
-            help="User or group.",
+            "mode",
+            help="Access mode. Available: read, write, own, delete, inherit, noinherit",
             type=str,
+            choices=["read", "write", "own", "delete", "inherit"],
         )
         parser.add_argument(
-            "mode",
-            help="Access mode. Available: read, write, own, delete.",
+            "user",
+            help="User or group.",
+            nargs="?",
             type=str,
         )
         parser.add_argument(
@@ -104,6 +107,8 @@ class CliACLEdit(BaseCliCommand):
         else:
             parser.error(f"Path {ipath} is neither a data ibject nor collection.")
         print(args.mode)
+        if args.mode != "inherit" and not args.user:
+            parser.error("The following arguments are required: user [userzone]")
         if "inherit" in args.mode and not ipath.collection_exists():
             parser.error("Cannot apply inherit/noinherit on data object.")
 
