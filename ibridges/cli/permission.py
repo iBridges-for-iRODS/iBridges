@@ -7,7 +7,7 @@ from ibridges.permissions import Permissions
 class CliACLList(BaseCliCommand):
     """Subcommand to list all permissions of a data object or collection."""
     autocomplete = ["remote_path"]
-    names = ["permissions"]
+    names = ["perm"]
     description = "List the permissions of a data object or collection on iRODS."
     examples = ["", "irods:remote_collection"]
 
@@ -44,7 +44,7 @@ class CliACLEdit(BaseCliCommand):
     """Subcommand to manipulate the permissions of a data object or collection."""
 
     autocomplete = ["remote_path"]
-    names = ["set-permission"]
+    names = ["chmod"]
     description = "Manipulate the permissions of a data object or collection."
     examples = ["irods:dataobject username read",
                "irods:dataobject username delete",
@@ -74,7 +74,13 @@ class CliACLEdit(BaseCliCommand):
             help="Zone of the user being granted access (optional).",
         )
         parser.add_argument(
-            "--recursive",
+            "-l",
+            help="List permissions after applying changes.",
+            action="store_true"
+        )
+
+        parser.add_argument(
+            "--recursive", "-r",
             help="If path points to a collection, apply permission changes to all members.",
             action="store_true"
         )
@@ -98,3 +104,6 @@ class CliACLEdit(BaseCliCommand):
         
         mode = "null" if args.mode=="delete" else args.mode
         perm.set(mode, user=args.user,  zone=args.userzone, recursive = args.recursive)
+
+        if args.l:
+            print(perm)
