@@ -26,10 +26,10 @@ class CliACLList(BaseCliCommand):
 
     @staticmethod
     def run_shell(session, parser, args):
-        """List the metadata of a data object or collection."""
+        """List the permissions of a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         if not ipath.exists():
-            parser.error(f"Path {ipath} does not exist, can't list metadata.")
+            parser.error(f"Path {ipath} does not exist, can't list permissions.")
             return
         if ipath.dataobject_exists():
             perm = Permissions(ipath.session, ipath.dataobject)
@@ -37,6 +37,7 @@ class CliACLList(BaseCliCommand):
             perm = Permissions(ipath.session, ipath.collection)
         else:
             parser.error(f"Path {ipath} is neither a data ibject nor collection.")
+            return
 
         print(str(ipath) + ":\n")
         print(perm)
@@ -52,7 +53,7 @@ class CliACLEdit(BaseCliCommand):
         "irods:dataobject read username",
         "irods:dataobject delete username",
         "irods:collection read username --recursive",
-        "irods:collection inherit"
+        "irods:collection inherit",
     ]
 
     @classmethod
@@ -98,14 +99,17 @@ class CliACLEdit(BaseCliCommand):
         """Manipulate permissions."""
         ipath = parse_remote(args.remote_path, session)
         if not ipath.exists():
-            parser.error(f"Path {ipath} does not exist, can't list metadata.")
+            parser.error(f"Path {ipath} does not exist, can't list permissions.")
             return
+
         if ipath.dataobject_exists():
             perm = Permissions(ipath.session, ipath.dataobject)
         elif ipath.collection_exists():
             perm = Permissions(ipath.session, ipath.collection)
         else:
-            parser.error(f"Path {ipath} is neither a data ibject nor collection.")
+            parser.error(f"Path {ipath} is neither a data object nor collection.")
+            return
+
         if args.mode != "inherit" and not args.user:
             parser.error("The following arguments are required: user [userzone]")
         if "inherit" in args.mode and not ipath.collection_exists():
