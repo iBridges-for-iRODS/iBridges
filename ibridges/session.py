@@ -312,7 +312,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
         except NonAnonymousLoginWithoutPassword as e:
             raise ValueError("No cached password found.") from e
         except Exception as e:
-            print(repr(e))
             raise _translate_irods_error(e) from e
         if irods_session.server_version == ():
             raise LoginError("iRODS server does not return a server version.")
