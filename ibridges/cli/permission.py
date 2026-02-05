@@ -106,7 +106,6 @@ class CliACLEdit(BaseCliCommand):
             perm = Permissions(ipath.session, ipath.collection)
         else:
             parser.error(f"Path {ipath} is neither a data ibject nor collection.")
-        print(args.mode)
         if args.mode != "inherit" and not args.user:
             parser.error("The following arguments are required: user [userzone]")
         if "inherit" in args.mode and not ipath.collection_exists():
