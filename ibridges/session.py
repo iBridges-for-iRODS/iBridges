@@ -413,7 +413,7 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
                 "irods_environment.json"
             )
         # When username does not exist PRC throws NetworkError
-        return LoginError("The provided username and/or password is wrong.")
+        return PasswordError("The provided username and/or password is wrong.")
     if isinstance(exc, TypeError):
         return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
