@@ -15,6 +15,7 @@ except ImportError:
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
+from ibridges.cli.permission import CliACLList
 from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
@@ -34,6 +35,7 @@ ALL_BUILTIN_COMMANDS = [
     CliSync,
     CliGui,
     CliVersion,
+    CliACLList,
 ]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
