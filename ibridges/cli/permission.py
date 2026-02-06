@@ -88,7 +88,7 @@ class CliACLEdit(BaseCliCommand):
         parser.add_argument(
             "--recursive",
             "-r",
-            help="If path points to a collection, apply permission changes to all members.",
+            help="If path points to a collection, apply permission changes to all data objects and subcollections in that collection.",
             action="store_true",
         )
 
