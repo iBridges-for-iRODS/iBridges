@@ -112,6 +112,7 @@ class CliACLEdit(BaseCliCommand):
 
         if args.mode != "inherit" and not args.user:
             parser.error("The following arguments are required: user [userzone]")
+            return
         if "inherit" in args.mode and not ipath.collection_exists():
             parser.error("Cannot apply inherit/noinherit on data object.")
 
