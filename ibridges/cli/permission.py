@@ -36,7 +36,7 @@ class CliACLList(BaseCliCommand):
         elif ipath.collection_exists():
             perm = Permissions(ipath.session, ipath.collection)
         else:
-            parser.error(f"Path {ipath} is neither a data ibject nor collection.")
+            parser.error(f"Path {ipath} is neither a data object nor collection.")
             return
 
         print(str(ipath) + ":\n")
