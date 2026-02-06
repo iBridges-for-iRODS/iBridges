@@ -115,6 +115,7 @@ class CliACLEdit(BaseCliCommand):
             return
         if "inherit" in args.mode and not ipath.collection_exists():
             parser.error("Cannot apply inherit/noinherit on data object.")
+            return
 
         mode = "null" if args.mode == "delete" else args.mode
         perm.set(mode, user=args.user, zone=args.userzone, recursive=args.recursive)
