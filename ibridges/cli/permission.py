@@ -17,7 +17,7 @@ class CliACLList(BaseCliCommand):
     def _mod_parser(cls, parser):
         parser.add_argument(
             "remote_path",
-            help="iRODS path for listing permissions, starting with 'irods:'.",
+            help="iRODS path for listing permissions.",
             type=str,
             default=".",
             nargs="?",
