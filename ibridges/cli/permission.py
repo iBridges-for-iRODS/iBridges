@@ -76,7 +76,7 @@ class CliACLEdit(BaseCliCommand):
             parser.error("Too many arguments before remote_path")
 
         #protect users from retracting access to own data
-        if user == session.username and (userzone == "" or userzone == session.zone):
+        if user == session.username and userzone in ("", session.zone):
             parser.error("Cannot set your own permissions, since you would loose access. to data.")
 
         if ipath.dataobject_exists():
