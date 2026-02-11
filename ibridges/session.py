@@ -21,6 +21,7 @@ from irods.exception import (
 from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 from ibridges import icat_columns as icat
+from ibridges.util import open_irodsa
 
 APP_NAME = "ibridges"
 
@@ -333,7 +334,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
             irods_auth_file = self.irods_session.get_irods_password_file()
             if not Path(irods_auth_file).parent.exists():
                 Path(irods_auth_file).parent.mkdir(parents=True)
-            with open(irods_auth_file, "w", encoding="utf-8") as authfd:
+            with open_irodsa(irods_auth_file, "w", encoding="utf-8") as authfd:
                 authfd.write(irods.password_obfuscation.encode(actual_password))
         else:
             warnings.warn("WARNING -- unable to cache obfuscated password locally")

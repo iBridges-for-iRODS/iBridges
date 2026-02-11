@@ -6,7 +6,7 @@ import abc
 import argparse
 from abc import abstractmethod
 
-from ibridges.cli.util import cli_authenticate
+from ibridges.authenticate import cli_auth
 
 
 class ShellArgumentParser(argparse.ArgumentParser):
@@ -107,7 +107,7 @@ class BaseCliCommand(abc.ABC):
 
         """
         parser = cls.get_parser(argparse.ArgumentParser)
-        with cli_authenticate(parser) as session:
+        with cli_auth(parser) as session:
             cls.run_shell(session, parser, args)
 
     @classmethod

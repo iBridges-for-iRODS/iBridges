@@ -12,11 +12,11 @@ try:
 except ImportError:
     from importlib.metadata import entry_points  # type: ignore
 
+from ibridges.authenticate import cli_auth
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
-from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
+from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
-from ibridges.cli.util import cli_authenticate
 from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS = [
@@ -57,7 +57,7 @@ class IBridgesShell(cmd.Cmd):
             readline.set_history_length(1000)
         except ImportError:
             pass
-        self.session = cli_authenticate(None)
+        self.session = cli_auth(None)
         self.commands = {}
         for command_class in get_all_shell_commands():
             for name in command_class.names:
