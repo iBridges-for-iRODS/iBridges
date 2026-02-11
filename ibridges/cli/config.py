@@ -7,7 +7,7 @@ import warnings
 from pathlib import Path
 from typing import Union
 
-from ibridges.interactive import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH
+from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorParser, open_irodsa
 
 IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 
@@ -15,7 +15,8 @@ IBRIDGES_CONFIG_FP = Path.home() / ".ibridges" / "ibridges_cli.json"
 class IbridgesConf():
     """Interface to the iBridges configuration file class."""
 
-    def __init__(self, parser: argparse.ArgumentParser,
+    def __init__(self,
+                 parser: Union[argparse.ArgumentParser, ValueErrorParser] = ValueErrorParser(),
                  config_fp: Union[str, Path]=IBRIDGES_CONFIG_FP):
         """Read configuration file and validate it.
 
@@ -174,7 +175,7 @@ class IbridgesConf():
             self.cur_env = ienv_path
             ienv_entry = self.servers[ienv_path]
             if "irodsa_backup" in ienv_entry:
-                with open(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
+                with open_irodsa(DEFAULT_IRODSA_PATH, "w", encoding="utf-8") as handle:
                     handle.write(ienv_entry["irodsa_backup"])
             self.save()
 
