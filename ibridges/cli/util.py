@@ -1,12 +1,9 @@
 """Utilities for the CLI and shell."""
 
-from pathlib import Path
-from typing import Union
 import warnings
 from typing import Union
 
 from ibridges.authenticate import cli_auth
-from ibridges.exception import NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.permissions import Permissions
 from ibridges.session import Session

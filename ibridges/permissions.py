@@ -1,6 +1,5 @@
 """Set and modify permissions."""
 
-from collections import defaultdict
 from typing import Iterator, Optional
 
 import irods.access
@@ -33,27 +32,9 @@ class Permissions:
         """Iterate over all ACLs."""
         yield from self.session.irods_session.acls.get(self.item)
 
-#    def __str__(self) -> str:
-#        """Create a string table of all currently set permissions."""
-#        acl_dict = defaultdict(list)
-#        for perm in self:
-#            acl_dict[f"{perm.user_name}#{perm.user_zone}"].append(
-#                f"{perm.access_name}\t{perm.user_type}"
-#            )
-#        acl = ""
-#        for key, value in sorted(acl_dict.items()):
-#            v_str = "\n\t".join(value)
-#            acl += f"{key}\n\t{v_str}\n"
-#
-#        if isinstance(self.item, irods.collection.iRODSCollection):
-#            coll = self.session.irods_session.collections.get(self.item.path)
-#            acl += f"inheritance {coll.inheritance}\n"
-#
-#        return acl
-
     def __str__(self) -> str:
         """Create a table of all currently set permissions with ordered types."""
-    
+
         def format_name(perm):
             if perm.user_type == "rodsadmin":
                 prefix = "admin"
@@ -62,32 +43,23 @@ class Permissions:
             else:
                 prefix = "user"
             return f"({prefix}) {perm.user_name}"
-    
+
         # Explicit ordering: admin -> group -> user
         order = {
             "rodsadmin": 0,
             "rodsgroup": 1,
             "rodsuser": 2,
         }
-    
-        header = (
-            f"{'name':<30} "
-            f"{'zone':<15} "
-            f"{'permission':<15}\n"
-        )
-        header += "-" * 65 + "\n"
-    
-        rows = ""
-    
-        for perm in sorted(self, key=lambda p: (order.get(p.user_type, 99), p.user_name)):
-            rows += (
-                f"{format_name(perm):<30} "
-                f"{perm.user_zone:<15} "
-                f"{perm.access_name:<15}\n"
-            )
-    
-        return header + rows
 
+        header = f"{'name':<30} {'zone':<15} {'permission':<15}\n"
+        header += "-" * 65 + "\n"
+
+        rows = ""
+
+        for perm in sorted(self, key=lambda p: (order.get(p.user_type, 99), p.user_name)):
+            rows += f"{format_name(perm):<30} {perm.user_zone:<15} {perm.access_name:<15}\n"
+
+        return header + rows
 
     @property
     def available_permissions(self) -> dict:
