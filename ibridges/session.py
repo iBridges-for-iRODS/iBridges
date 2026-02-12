@@ -172,7 +172,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
     def cwd(self, value: str):
         self._cwd = str(value)
 
-
     # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
@@ -414,10 +413,14 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
                 "irods_client_server_negotiation not set correctly in "
                 "irods_environment.json"
             )
+        # When username does not exist PRC throws NetworkError
+        return PasswordError("The provided username and/or password is wrong.")
     if isinstance(exc, TypeError):
         return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
-        return PasswordError("The provided username and/or password is wrong.")
+        return PasswordError(
+            "Expired cached password or the provided username and/or password is wrong."
+        )
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
         return PasswordError("The provided username and/or password is wrong.")
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
