@@ -34,16 +34,6 @@ class Permissions:
 
     def __str__(self) -> str:
         """Create a table of all currently set permissions with ordered types."""
-
-        def format_name(perm):
-            if perm.user_type == "rodsadmin":
-                prefix = "admin"
-            elif perm.user_type == "rodsgroup":
-                prefix = "group"
-            else:
-                prefix = "user"
-            return f"({prefix}) {perm.user_name}"
-
         # Explicit ordering: admin -> group -> user
         order = {
             "rodsadmin": 0,
@@ -51,15 +41,13 @@ class Permissions:
             "rodsuser": 2,
         }
 
-        header = f"{'name':<30} {'zone':<15} {'permission':<15}\n"
-        header += "-" * 65 + "\n"
-
-        rows = ""
-
+        names, zones, permissions = ["name"], ["zone"], ["permission"]
         for perm in sorted(self, key=lambda p: (order.get(p.user_type, 99), p.user_name)):
-            rows += f"{format_name(perm):<30} {perm.user_zone:<15} {perm.access_name:<15}\n"
+            names.append(_format_name(perm))
+            zones.append(perm.user_zone)
+            permissions.append(perm.access_name)
 
-        return header + rows
+        return _create_table(names, zones, permissions)
 
     @property
     def available_permissions(self) -> dict:
@@ -92,3 +80,28 @@ class Permissions:
             )
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
         self.session.irods_session.acls.set(acl, recursive=recursive, admin=admin)
+
+
+def _create_table(*cols):
+    col_width = []
+    for col in cols:
+        col_width.append(max(*(len(x) for x in col)) + 3)
+    table_str = ""
+    for i_row in range(len(cols[0])):
+        row_str = ""
+        for cur_col_width, col in zip(col_width, cols):
+            row_str += f"{col[i_row]:<{cur_col_width}}"
+        row_str += "\n"
+        if i_row == 0:
+            row_str += (sum(col_width)-3)*"-" + "\n"
+        table_str += row_str
+    return table_str
+
+def _format_name(perm):
+    if perm.user_type == "rodsadmin":
+        prefix = "admin"
+    elif perm.user_type == "rodsgroup":
+        prefix = "group"
+    else:
+        prefix = "user"
+    return f"({prefix}) {perm.user_name}"
