@@ -414,7 +414,7 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
                 "irods_environment.json"
             )
         # When something fails in the authentication workflow on the server
-        return PasswordError("Authentication on server failed. Check your login parameters and consult your sysadmin.")
+        return PasswordError("Authentication failed. Check credentials or contact your sysadmin.")
     if isinstance(exc, TypeError):
         return LoginError(f"Add info to irods_environment.json: {exc.args}")
     if isinstance(exc, CAT_INVALID_USER):
