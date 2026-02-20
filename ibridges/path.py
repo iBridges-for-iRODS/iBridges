@@ -685,29 +685,36 @@ class IrodsPath:
             raise DoesNotExistError(
                 f"Cannot apply metadata archive, '{self}' does not exist.")
 
-        if self.dataobject_exists():
-            base_path = self.parent
-        else:
-            base_path = self
-
         if not isinstance(meta_fp, dict):
             with open(meta_fp, "r", encoding="utf-8") as handle:
                 meta_dict = json.load(handle)
         else:
             meta_dict = meta_fp
 
-        if dry_run:
-            return meta_dict
+        root_path = IrodsPath(self.session, meta_dict["root_path"])
 
+        try:
+            self.relative_to(root_path)
+        except ValueError as exc:
+            raise ValueError(f"Metadata file with root path {root_path} does not contain path for "
+                             f"applying metadata to path {self}.") from exc
+
+        applied_metadata = []
         for item_data in meta_dict["items"]:
-            new_path = base_path / item_data.get("rel_path", "")
+            new_path = root_path / item_data.get("rel_path", "")
+            try:
+                new_path.relative_to(self)
+            except ValueError:
+                continue
             if not new_path.exists():
-                raise ValueError(f"Path {new_path} for which there exists metadata does not exist "
-                                "itself.")
+                continue
+            applied_metadata.append(new_path)
+            if dry_run:
+                continue
             meta = new_path.meta
             meta.from_dict(item_data)
 
-        return meta_dict
+        return applied_metadata
 
 
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],

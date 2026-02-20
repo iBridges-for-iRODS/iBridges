@@ -295,7 +295,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         n_ops = 0
         for root_ipath, meta_fp in self.meta_upload:
-            n_ops += len(root_ipath.apply_meta_archive(meta_fp)["items"])
+            print(meta_fp, root_ipath)
+            n_ops += len(root_ipath.apply_meta_archive(meta_fp))
         return n_ops
 
     def execute_create_dir(self):
