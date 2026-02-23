@@ -13,7 +13,7 @@ from typing import Optional
 from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
-from ibridges.cli.util import list_collection, parse_remote
+from ibridges.cli.util import list_info, parse_remote
 from ibridges.exception import CollectionDoesNotExistError, NotACollectionError
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
@@ -22,11 +22,11 @@ from ibridges.search import search_data
 def _get_text_width(text):
     """Comprehensive width calculation method."""
     width_map = {
-        'F': 2,  ## Fullwidth
-        'W': 2,  ## Wide
-        'A': 1,  ## Ambiguous
-        'N': 1,  ## Neutral
-        'H': 1,  ## Halfwidth
+        "F": 2,  ## Fullwidth
+        "W": 2,  ## Wide
+        "A": 1,  ## Ambiguous
+        "N": 1,  ## Neutral
+        "H": 1,  ## Halfwidth
     }
     return sum(width_map.get(unicodedata.east_asian_width(char), 1) for char in text)
 
@@ -49,26 +49,42 @@ class CliList(BaseCliCommand):
             nargs="?",
         )
         parser.add_argument(
-            "-m",
-            "--metadata",
-            help="Show metadata for each iRODS location, only in combination with -i/--icommands.",
-            action="store_true",
-        )
-        parser.add_argument(
             "-i",
             "--icommands",
             help="Display available data objects/collections in iCommands form.",
             action="store_true",
         )
         parser.add_argument(
-            "-l",
-            "--long",
-            help="Display available data objects/collections in long form.",
+            "-r",
+            "--recursive",
+            help=("Recursively list all collectons and data objects."
+                  "Only active in combination with permissions and metadata."
+                  ),
             action="store_true",
         )
         parser.add_argument(
             "--nocolor",
             help="Disable printing with color.",
+            action="store_true",
+        )
+
+        mode_group = parser.add_mutually_exclusive_group()
+        mode_group.add_argument(
+            "-m",
+            "--metadata",
+            help="Show metadata for each iRODS location (only with -i/--icommands).",
+            action="store_true",
+        )
+        mode_group.add_argument(
+            "-l",
+            "--long",
+            help="Display available data objects/collections in long form.",
+            action="store_true",
+        )
+        mode_group.add_argument(
+            "-A",
+            "--acls",
+            help="Display access permissions.",
             action="store_true",
         )
         return parser
@@ -79,11 +95,13 @@ class CliList(BaseCliCommand):
         ipath = parse_remote(args.remote_coll, session)
         dir_color = None if args.nocolor else _check_dir_color(session)
         try:
-            if args.icommands or args.metadata:
-                if args.long:
-                    parser.error("Cannot use combination of long format (-l) and metadata (-m).")
-                    return
-                list_collection(session, ipath, args.metadata)
+            if args.metadata:
+                list_info(session, ipath, metadata=args.metadata, recursive=args.recursive)
+            elif args.acls:
+                list_info(session, ipath, acls=args.acls, recursive=args.recursive)
+            elif args.icommands:
+                # normal list should always list all things in a collection
+                list_info(session, ipath, recursive=True)
             elif args.long:
                 for cur_path in ipath.walk(depth=1, include_base_collection=False):
                     if cur_path.collection_exists():
@@ -114,9 +132,13 @@ class CliList(BaseCliCommand):
             cur_max_len = []
             # Check for each column how much space is needed.
             for i_col in range(n_cols):
-                cur_max_len.append(max(_get_text_width(p.name)
-                                       for i, p in enumerate(paths)
-                                       if (i%n_cols) == i_col))
+                cur_max_len.append(
+                    max(
+                        _get_text_width(p.name)
+                        for i, p in enumerate(paths)
+                        if (i % n_cols) == i_col
+                    )
+                )
                 tot_len += cur_max_len[-1] + 2
             if tot_len > terminal_size:
                 break
@@ -125,19 +147,21 @@ class CliList(BaseCliCommand):
                 n_cols += 1
                 break
         # Only a single column is possible.
-        if n_cols-1 <= 1:
+        if n_cols - 1 <= 1:
             print("\n".join(_path_with_color(p, dir_color) for p in paths))
         else:
             n_cols -= 1
             lengths = prev_max_len
             lines = []
             for i_path in range(0, len(paths), n_cols):
-                cur_paths = paths[i_path:i_path+n_cols]
-                col_paths = [_path_with_color(p, dir_color) +
-                                " "*(lengths[i]-_get_text_width(p.name))
-                                for i, p in enumerate(cur_paths)]
+                cur_paths = paths[i_path : i_path + n_cols]
+                col_paths = [
+                    _path_with_color(p, dir_color) + " " * (lengths[i] - _get_text_width(p.name))
+                    for i, p in enumerate(cur_paths)
+                ]
                 lines.append("  ".join(col_paths))
             print("\n".join(lines))
+
 
 class CliCd(BaseCliCommand):
     """Subcommand to change collection."""

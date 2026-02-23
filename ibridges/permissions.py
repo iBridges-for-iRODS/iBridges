@@ -1,6 +1,5 @@
 """Set and modify permissions."""
 
-from collections import defaultdict
 from typing import Iterator, Optional
 
 import irods.access
@@ -34,22 +33,21 @@ class Permissions:
         yield from self.session.irods_session.acls.get(self.item)
 
     def __str__(self) -> str:
-        """Create a string table of all currently set permissions."""
-        acl_dict = defaultdict(list)
-        for perm in self:
-            acl_dict[f"{perm.user_name}#{perm.user_zone}"].append(
-                f"{perm.access_name}\t{perm.user_type}"
-            )
-        acl = ""
-        for key, value in sorted(acl_dict.items()):
-            v_str = "\n\t".join(value)
-            acl += f"{key}\n\t{v_str}\n"
+        """Create a table of all currently set permissions with ordered types."""
+        # Explicit ordering: admin -> group -> user
+        order = {
+            "rodsadmin": 0,
+            "rodsgroup": 1,
+            "rodsuser": 2,
+        }
 
-        if isinstance(self.item, irods.collection.iRODSCollection):
-            coll = self.session.irods_session.collections.get(self.item.path)
-            acl += f"inheritance {coll.inheritance}\n"
+        names, zones, permissions = ["name"], ["zone"], ["permission"]
+        for perm in sorted(self, key=lambda p: (order.get(p.user_type, 99), p.user_name)):
+            names.append(_format_name(perm))
+            zones.append(perm.user_zone)
+            permissions.append(perm.access_name)
 
-        return acl
+        return _create_table(names, zones, permissions)
 
     @property
     def available_permissions(self) -> dict:
@@ -82,3 +80,28 @@ class Permissions:
             )
         acl = irods.access.iRODSAccess(perm, self.item.path, user, zone)
         self.session.irods_session.acls.set(acl, recursive=recursive, admin=admin)
+
+
+def _create_table(*cols):
+    col_width = []
+    for col in cols:
+        col_width.append(max(*(len(x) for x in col)) + 3)
+    table_str = ""
+    for i_row in range(len(cols[0])):
+        row_str = ""
+        for cur_col_width, col in zip(col_width, cols):
+            row_str += f"{col[i_row]:<{cur_col_width}}"
+        row_str += "\n"
+        if i_row == 0:
+            row_str += (sum(col_width)-3)*"-" + "\n"
+        table_str += row_str
+    return table_str
+
+def _format_name(perm):
+    if perm.user_type == "rodsadmin":
+        prefix = "admin"
+    elif perm.user_type == "rodsgroup":
+        prefix = "group"
+    else:
+        prefix = "user"
+    return f"({prefix}) {perm.user_name}"
