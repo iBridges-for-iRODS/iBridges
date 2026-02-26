@@ -586,7 +586,7 @@ class IrodsPath:
             f" {self}")
 
 
-    def create_meta_archive(self, meta_fp: Union[str, Path], dry_run: bool = False):
+    def create_meta_archive(self, meta_fp: Union[str, Path]):
         """Create a local archive file for the metadata.
 
         The archive is a utf-8 encoded JSON file with the metadata of all subcollections
@@ -596,8 +596,6 @@ class IrodsPath:
         ----------
         meta_fp
             Metadata archive file.
-        dry_run, optional
-            Whether to do a dry run. If so, the archive itself won't be created, by default False.
 
         Returns
         -------
@@ -625,9 +623,6 @@ class IrodsPath:
         else:
             meta_items = list(self.walk())
             base_path = self
-
-        if dry_run:
-            return meta_items
 
         meta_dict = _empty_metadict(base_path)
         for cur_ipath in meta_items:
