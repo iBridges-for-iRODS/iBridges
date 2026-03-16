@@ -7,6 +7,7 @@ to set the metadata.
 
 from __future__ import annotations
 
+import json
 import os
 import warnings
 from pathlib import Path
@@ -486,4 +487,127 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
                     ops.add_create_coll(source / fold)
         if str(source) not in remote_ipaths:
             ops.add_create_coll(source)
+    return ops
+
+
+def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
+                        dry_run: bool = True):
+    """Create a local archive file for the metadata.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects. To re-use this archive use the function :func:`apply_meta_archive`.
+
+    Parameters
+    ----------
+    ipath:
+        IrodsPath for which to create a Metadata archive file, can be a collection or data object.
+    meta_fp
+        Metadata archive file.
+    dry_run:
+        If dry_run is set to true, all paths that will be added to the archive will be shown,
+        but the archive won't be created. By default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    CollectionDoesNotExistError:
+        If the source collection does not exist.
+    NotACollectionError:
+        If the source is not a collection but a data object.
+
+    Examples
+    --------
+    >>> ipath.create_meta_archive("meta_archive.json")
+
+    """
+    if not ipath.exists():
+        raise DoesNotExistError("Cannot download metadata archive: "
+                                f"'{ipath}' does not exist.")
+    if ipath.dataobject_exists():
+        meta_items = [ipath]
+        base_path = ipath.parent
+    else:
+        meta_items = list(ipath.walk())
+        base_path = ipath
+
+    ops = Operations()
+    ops.add_meta_download(meta_fp, base_path, meta_items)
+
+    if dry_run:
+        ops.print_summary()
+    else:
+        ops.execute_meta_download()
+    return ops
+
+
+def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath, dry_run: bool = False):
+    """Apply a metadata archive to set the metadata of collections and data objects.
+
+    The archive is a utf-8 encoded JSON file with the metadata of all subcollections
+    and data objects. The archive can be created with the function :func:`create_meta_archive`.
+
+    Parameters
+    ----------
+    meta_fp
+        Metadata archive file to use to set the metadata.
+    dry_run, optional
+        If True, only create an operations object, but do not execute the operation,
+        default False.
+
+    Returns
+    -------
+        The Operations object that allows the user to execute the operations using
+        ops.execute(session).
+
+    Raises
+    ------
+    CollectionDoesNotExistError:
+        If the ipath does not exist.
+    NotACollectionError:
+        If the ipath is not a collection.
+
+    Examples
+    --------
+    >>> ipath.apply_meta_archive("meta_archive.json")
+
+    """
+    if not ipath.exists():
+        raise DoesNotExistError(
+            f"Cannot apply metadata archive, '{ipath}' does not exist.")
+
+    if not isinstance(meta_fp, dict):
+        with open(meta_fp, "r", encoding="utf-8") as handle:
+            meta_dict = json.load(handle)
+    else:
+        meta_dict = meta_fp
+
+    root_path = IrodsPath(ipath.session, meta_dict["root_path"])
+
+    try:
+        ipath.relative_to(root_path)
+    except ValueError as exc:
+        raise ValueError(f"Metadata file with root path {root_path} does not contain path for "
+                            f"applying metadata to path {ipath}.") from exc
+
+    applied_metadata = []
+    ops = Operations()
+    for item_data in meta_dict["items"]:
+        new_path = root_path / item_data.get("rel_path", "")
+        try:
+            new_path.relative_to(ipath)
+        except ValueError:
+            continue
+        if not new_path.exists():
+            continue
+        applied_metadata.append(new_path)
+        ops.add_meta_upload(new_path, meta_fp, item_data)
+
+    if not dry_run:
+        ops.execute_meta_upload()
+    else:
+        ops.print_summary()
     return ops

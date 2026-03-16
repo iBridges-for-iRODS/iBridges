@@ -1,6 +1,7 @@
 """Operations to be performed for upload/download/sync."""
 from __future__ import annotations
 
+import json
 import warnings
 from inspect import signature
 from pathlib import Path
@@ -65,7 +66,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.download_unchanged = 0
         self.upload_unchanged = 0
 
-    def add_meta_download(self, root_ipath: IrodsPath, meta_fp: Union[str, Path]):
+    def add_meta_download(self, meta_fp: Union[str, Path], root_ipath: IrodsPath,
+                          meta_paths: list[IrodsPath]):
         """Add operation for downloading metadata archives.
 
         This basic operation adds one IrodsPath point to either a collection or data object for
@@ -73,17 +75,17 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         Parameters
         ----------
-        root_ipath
-            Root irods path to which all paths are relative to.
-        ipath
-            Irods path for which the metadata needs to be downloaded.
         meta_fp
             File to store the metadata in.
+        root_ipath
+            Root irods path to which all paths are relative to.
+        meta_paths
+            Irods paths for which the metadata needs to be downloaded.
 
         """
-        self.meta_download.append({"root_ipath": root_ipath, "meta_fp": meta_fp})
+        self.meta_download.append((meta_fp, root_ipath, meta_paths))
 
-    def add_meta_upload(self, root_ipath: IrodsPath, meta_fp: Union[str, Path, dict]):
+    def add_meta_upload(self, ipath: IrodsPath, meta_fp: Union[str, Path], metadata: dict):
         """Add operation to use a metadata archive.
 
         This basic operation adds one metadata archive to be applied to a collection
@@ -93,13 +95,13 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         Parameters
         ----------
-        root_ipath
-            Root irods path to which all paths are relative to.
-        meta_fp
-            File that contains the metadata.
+        ipath
+            IrodsPath for the metadata.
+        metadata
+            Metadata to upload to the IrodsPath
 
         """
-        self.meta_upload.append((root_ipath, meta_fp))
+        self.meta_upload.append((ipath, meta_fp, metadata))
 
     def add_download(self, ipath: IrodsPath, lpath: Path):
         """Add operation to download a data object.
@@ -278,10 +280,25 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
     def execute_meta_download(self):
         """Execute all metadata download operations."""
-        for item in self.meta_download:
-            root_ipath = item["root_ipath"]
-            meta_fp = item["meta_fp"]
-            root_ipath.create_meta_archive(meta_fp)
+        for meta_fp, base_path, meta_paths in self.meta_download:
+            meta_dict = _empty_metadict(base_path)
+            for cur_ipath in meta_paths:
+                if cur_ipath.collection_exists():
+                    item_type = "collection"
+                elif cur_ipath.dataobject_exists():
+                    item_type = "data object"
+                else:
+                    item_type = "unknown"
+                new_metadata = {
+                    "rel_path": str(cur_ipath.relative_to(base_path)),
+                    "type": item_type,
+                }
+                new_metadata.update(cur_ipath.meta.to_dict())
+                meta_dict["items"].append(new_metadata)
+        with open(meta_fp, "w", encoding="utf-8") as handle:
+            json.dump(meta_dict, handle, indent=4)
+
+
         return len(self.meta_download)
 
     def execute_meta_upload(self):
@@ -293,10 +310,9 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Session to use with uploading the operations.
 
         """
-        n_ops = 0
-        for root_ipath, meta_fp in self.meta_upload:
-            n_ops += len(root_ipath.apply_meta_archive(meta_fp))
-        return n_ops
+        for ipath, _, metadata in self.meta_upload:
+            ipath.meta.from_dict(metadata)
+        return len(self.meta_upload)
 
     def execute_create_dir(self):
         """Execute all create directory operations.
@@ -356,14 +372,15 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
         if len(self.meta_download) > 0:
             summary = "Metadata to download:\n\n"
-            for meta_item in self.meta_download:
-                summary += f"{meta_item['meta_fp']} -> {meta_item['root_ipath']}\n"
+            for meta_fp, base_path, meta_items in self.meta_download:
+                for item in meta_items:
+                    summary += f"{base_path / item} -> {meta_fp}\n"
             summary_strings.append(summary)
 
         if len(self.meta_upload) > 0:
             summary = "Metadata to upload:\n\n"
-            for (ipath, meta_fp) in self.meta_upload:
-                summary += f"{meta_fp} -> {ipath}\n"
+            for (ipath, meta_fp, metadata) in self.meta_upload:
+                summary += f"{meta_fp} - [{len(metadata)}] -> {ipath}\n"
             summary_strings.append(summary)
         print("\n\n".join(summary_strings))
 
@@ -570,3 +587,25 @@ def _obj_get(
     if pbar is not None and not upd_put:
         pbar.update(IrodsPath(session, irods_path).size)
     return transfers
+
+def _empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
+    """Create an empty dictionary for metadata archival.
+
+    Parameters
+    ----------
+    root_ipath
+        IrodsPath that points to the root collection or dataobject.
+    recursive, optional
+        Whether the dictionary is built recursively, by default True
+
+    Returns
+    -------
+        A dictionary for containing metadata with no items.
+
+    """
+    return {
+        "ibridges_metadata_version": "1.0",
+        "recursive": recursive,
+        "root_path": str(root_ipath),
+        "items": [],
+    }
