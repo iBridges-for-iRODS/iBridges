@@ -544,7 +544,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
     if not dry_run:
         ops.execute_meta_download()
     return ops
- 
+
 
 def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                        dry_run: bool = False) -> Operations:
@@ -613,8 +613,6 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
             ops.add_meta_upload(new_path, "__dictionary__", item_data)
         else:
             ops.add_meta_upload(new_path, meta_fp, item_data)
-    return ops
-
 
     if not dry_run:
         ops.execute_meta_upload()
