@@ -144,6 +144,8 @@ class CliMetaDel(BaseCliCommand):
             parser.error(str(exc))
 
 class CliMetaDownload(BaseCliCommand):
+    """Subcommand to download metadata from an iRODS server."""
+
     autocomplete = ["remote_path", "local_path"]
     names = ["meta-download"]
     description = "Download metadata for a data object or collection recursively."
@@ -167,6 +169,8 @@ class CliMetaDownload(BaseCliCommand):
         create_meta_archive(ipath, args.output_file, dry_run=args.dry_run)
 
 class CliMetaUpload(BaseCliCommand):
+    """Subcommand to upload/apply metadata to an iRODS path."""
+
     autocomplete = ["local_path", "remote_path"]
     names = ["meta-upload"]
     description = ("Upload and apply metadata for a data object or collection."

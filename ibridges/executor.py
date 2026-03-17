@@ -5,7 +5,7 @@ import json
 import warnings
 from inspect import signature
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -59,8 +59,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.create_collection: set[str] = set()
         self.upload: list[tuple[Path, IrodsPath]] = []
         self.download: list[tuple[IrodsPath, Path]] = []
-        self.meta_download: list[dict[str, Any]] = []
-        self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict]]] = []
+        self.meta_download: list[tuple[Union[str, Path], IrodsPath, list[IrodsPath]]] = []
+        self.meta_upload: list[tuple[IrodsPath, Union[str, Path, dict], dict]] = []
         self.resc_name: str = "" if resc_name is None else resc_name
         self.options: Optional[dict] = {} if resc_name is None else options
         self.download_unchanged = 0
@@ -97,6 +97,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         ----------
         ipath
             IrodsPath for the metadata.
+        meta_fp:
+            File containing the metadata to upload.
         metadata
             Metadata to upload to the IrodsPath
 

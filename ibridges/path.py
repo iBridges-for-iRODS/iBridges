@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import json
 from collections import defaultdict
-from pathlib import Path, PurePosixPath
+from pathlib import PurePosixPath
 from typing import Iterable, Optional, Union
 
 import irods

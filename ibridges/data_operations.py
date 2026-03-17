@@ -132,7 +132,9 @@ def upload(
     ops.resc_name = resc_name
     ops.options = options
     if metadata is not None:
-        ops.add_meta_upload(idest_path, metadata)
+        new_ops = apply_meta_archive(metadata, idest_path, dry_run=True)
+        ops.meta_upload.extend(new_ops.meta_upload)
+        # ops.add_meta_upload(idest_path, metadata)
     if not dry_run:
         ops.execute(session, on_error=on_error, progress_bar=progress_bar)
     return ops
@@ -237,14 +239,17 @@ def download(
             ops.add_download(irods_path, local_path)
         else:
             ops.download_unchanged += 1
-        if metadata is not None:
-            ops.add_meta_download(irods_path, metadata)
+        # if metadata is not None:
+            # new_ops = create_meta_archive(irods_path, )
+            # ops.add_meta_download(irods_path, metadata, dry_run=True)
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
     if metadata is not None:
-        ops.add_meta_download(irods_path, metadata)
+        new_ops = create_meta_archive(irods_path, metadata, dry_run=True)
+        ops.meta_download.extend(new_ops.meta_download)
+        # ops.add_meta_download(irods_path, metadata)
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
@@ -439,8 +444,8 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         elif ipath.collection_exists() and copy_empty_folders:
             if not lpath.exists():
                 ops.add_create_dir(lpath)
-    if metadata is not None:
-        ops.add_meta_download(isource_path, metadata)
+    # if metadata is not None:
+        # ops.add_meta_download(isource_path, metadata)
     return ops
 
 
@@ -554,6 +559,8 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath, dry_ru
     ----------
     meta_fp
         Metadata archive file to use to set the metadata.
+    ipath:
+        IrodsPath to apply the metadata for.
     dry_run, optional
         If True, only create an operations object, but do not execute the operation,
         default False.
@@ -604,7 +611,10 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath, dry_ru
         if not new_path.exists():
             continue
         applied_metadata.append(new_path)
-        ops.add_meta_upload(new_path, meta_fp, item_data)
+        if isinstance(meta_fp, dict):
+            ops.add_meta_upload(new_path, "__dictionary__", item_data)
+        else:
+            ops.add_meta_upload(new_path, meta_fp, item_data)
 
     if not dry_run:
         ops.execute_meta_upload()
