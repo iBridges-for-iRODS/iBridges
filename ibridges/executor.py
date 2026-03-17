@@ -297,8 +297,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 }
                 new_metadata.update(cur_ipath.meta.to_dict())
                 meta_dict["items"].append(new_metadata)
-        with open(meta_fp, "w", encoding="utf-8") as handle:
-            json.dump(meta_dict, handle, indent=4)
+            with open(meta_fp, "w", encoding="utf-8") as handle:
+                json.dump(meta_dict, handle, indent=4)
 
 
         return len(self.meta_download)
