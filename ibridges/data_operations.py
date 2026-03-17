@@ -582,7 +582,7 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath, dry_ru
     >>> ipath.apply_meta_archive("meta_archive.json")
 
     """
-    if not ipath.exists():
+    if not ipath.exists() and not dry_run:
         raise DoesNotExistError(
             f"Cannot apply metadata archive, '{ipath}' does not exist.")
 
