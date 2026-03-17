@@ -496,7 +496,7 @@ def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: di
 
 
 def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
-                        dry_run: bool = True):
+                        dry_run: bool = False):
     """Create a local archive file for the metadata.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
