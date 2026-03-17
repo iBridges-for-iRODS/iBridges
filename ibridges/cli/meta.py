@@ -195,4 +195,3 @@ class CliMetaUpload(BaseCliCommand):
                          "since it doesn't exist.")
             return
         apply_meta_archive(args.metadata_file, ipath, dry_run=args.dry_run)
-

@@ -363,14 +363,14 @@ def sync(
             raise ValueError("Cannot use dictionary type for metadata download.")
         ops = _down_sync_operations(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
-            metadata=metadata, overwrite=True
+            overwrite=True
         )
     else:
         ops = _up_sync_operations(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
-        if metadata is not None:
-            ops.add_meta_upload(target, metadata)  # type: ignore
+        # if metadata is not None:
+            # ops.add_meta_upload(target, metadata)  # type: ignore
 
     ops.resc_name = resc_name
     ops.options = options
@@ -426,8 +426,8 @@ def _transfer_needed(source: Union[IrodsPath, Path],
 def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
                           overwrite: bool,
                           on_error: str = "fail",
-                          copy_empty_folders: bool = True, depth: Optional[int] = None,
-                          metadata: Union[None, str, Path] = None) -> Operations:
+                          copy_empty_folders: bool = True, depth: Optional[int] = None
+                          ) -> Operations:
     ops = Operations()
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
