@@ -240,7 +240,7 @@ def test_meta_down_upload(session, testdata, tmpdir):
     assert len(ops.meta_download) == 1
     assert len(ops.meta_download[0][2]) == 1
     print(output)
-    assert f"{meta_fp} -> {ipath}" in output
+    assert f"{ipath} -> {meta_fp}" in output
 
     ops = upload(tmpdir/"test", ipath, overwrite=True, metadata=meta_fp, dry_run=True)
     print("DEBUG", ops.meta_upload)
