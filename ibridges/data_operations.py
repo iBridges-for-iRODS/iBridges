@@ -239,17 +239,12 @@ def download(
             ops.add_download(irods_path, local_path)
         else:
             ops.download_unchanged += 1
-        # if metadata is not None:
-            # new_ops = create_meta_archive(irods_path, )
-            # ops.add_meta_download(irods_path, metadata, dry_run=True)
-
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
     if metadata is not None:
         new_ops = create_meta_archive(irods_path, metadata, dry_run=True)
         ops.meta_download.extend(new_ops.meta_download)
-        # ops.add_meta_download(irods_path, metadata)
     ops.resc_name = resc_name
     ops.options = options
     if not dry_run:
@@ -365,12 +360,16 @@ def sync(
             source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
             overwrite=True
         )
+        if metadata is not None:
+            new_ops = create_meta_archive(source, metadata, dry_run=True)
+            ops.meta_download.extend(new_ops.meta_download)
     else:
         ops = _up_sync_operations(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
-        # if metadata is not None:
-            # ops.add_meta_upload(target, metadata)  # type: ignore
+        if metadata is not None:
+            new_ops = apply_meta_archive(metadata, IrodsPath(session, target), dry_run=True)
+            ops.meta_upload.extend(new_ops.meta_upload)
 
     ops.resc_name = resc_name
     ops.options = options
@@ -444,8 +443,6 @@ def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
         elif ipath.collection_exists() and copy_empty_folders:
             if not lpath.exists():
                 ops.add_create_dir(lpath)
-    # if metadata is not None:
-        # ops.add_meta_download(isource_path, metadata)
     return ops
 
 
@@ -606,8 +603,9 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
             new_path.relative_to(ipath)
         except ValueError:
             continue
-        if not new_path.exists():
-            continue
+        # The new_path.exists() has some delay after creation, so unfortunately we can't check.
+        # if not new_path.exists():
+            # continue
         applied_metadata.append(new_path)
         if isinstance(meta_fp, dict):
             ops.add_meta_upload(new_path, "__dictionary__", item_data)
