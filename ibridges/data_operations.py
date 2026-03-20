@@ -132,9 +132,7 @@ def upload(
     ops.resc_name = resc_name
     ops.options = options
     if metadata is not None:
-        new_ops = apply_meta_archive(metadata, idest_path, dry_run=True)
-        ops.meta_upload.extend(new_ops.meta_upload)
-        # ops.add_meta_upload(idest_path, metadata)
+        apply_meta_archive(metadata, idest_path, dry_run=True, ops=ops)
     if not dry_run:
         ops.execute(session, on_error=on_error, progress_bar=progress_bar)
     return ops
@@ -368,8 +366,8 @@ def sync(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
         if metadata is not None:
-            new_ops = apply_meta_archive(metadata, IrodsPath(session, target), dry_run=True)
-            ops.meta_upload.extend(new_ops.meta_upload)
+            apply_meta_archive(metadata, IrodsPath(session, target), dry_run=True,
+                               ops=ops)
 
     ops.resc_name = resc_name
     ops.options = options
@@ -544,7 +542,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
 
 
 def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
-                       dry_run: bool = False) -> Operations:
+                       dry_run: bool = False, ops: Optional[Operations] = None) -> Operations:
     """Apply a metadata archive to set the metadata of collections and data objects.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
@@ -596,7 +594,9 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                             f"applying metadata to path {ipath}.") from exc
 
     applied_metadata = []
-    ops = Operations()
+    if ops is None:
+        ops = Operations()
+    uploads = [str(x[1]) for x in ops.upload]
     for item_data in meta_dict["items"]:
         new_path = root_path / item_data.get("rel_path", "")
         try:
@@ -604,8 +604,9 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
         except ValueError:
             continue
         # The new_path.exists() has some delay after creation, so unfortunately we can't check.
-        # if not new_path.exists():
-            # continue
+        if not (new_path.exists() or str(new_path) in ops.create_collection
+                or str(new_path) in uploads):
+            continue
         applied_metadata.append(new_path)
         if isinstance(meta_fp, dict):
             ops.add_meta_upload(new_path, "__dictionary__", item_data)
