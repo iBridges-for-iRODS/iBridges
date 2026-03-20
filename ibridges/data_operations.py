@@ -545,8 +545,9 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                        dry_run: bool = False, ops: Optional[Operations] = None) -> Operations:
     """Apply a metadata archive to set the metadata of collections and data objects.
 
-    The currently supported format for the archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects. The archive can be created with the function :func:`create_meta_archive`.
+    The currently supported format for the archive is a utf-8 encoded JSON file with the metadata
+    of all subcollections and data objects.
+    The archive can be created with the function :func:`create_meta_archive`.
 
     Parameters
     ----------
