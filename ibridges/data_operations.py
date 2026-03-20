@@ -554,9 +554,13 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
         Metadata archive file to use to set the metadata.
     ipath:
         IrodsPath to apply the metadata for.
-    dry_run, optional
+    dry_run:
         If True, only create an operations object, but do not execute the operation,
         default False.
+    ops:
+        Operations object to append the meta archiving to. This can resolve dependency issues
+        where the upload has not been done yet, so we don't know that there will be something
+        to add the metadata to.
 
     Returns
     -------
