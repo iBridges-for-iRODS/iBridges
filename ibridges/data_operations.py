@@ -603,7 +603,6 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
             new_path.relative_to(ipath)
         except ValueError:
             continue
-        # The new_path.exists() has some delay after creation, so unfortunately we can't check.
         if not (new_path.exists() or str(new_path) in ops.create_collection
                 or str(new_path) in uploads):
             continue
