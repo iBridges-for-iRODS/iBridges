@@ -543,7 +543,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
 
 def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                        dry_run: bool = False, ops: Optional[Operations] = None) -> Operations:
-    """Apply a metadata archive to set the metadata of collections and data objects.
+    """Add metadata for collections and data objects from a metadata archive file.
 
     The currently supported format for the archive is a utf-8 encoded JSON file with the metadata
     of all subcollections and data objects.
