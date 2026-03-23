@@ -365,7 +365,7 @@ class MetaData:
         """
         self.refresh()
         for meta in self:
-            self.item.metadata.remove(meta)
+            meta.remove()
 
     def to_dict(self, keys: Optional[list] = None) -> dict:
         """Convert iRODS metadata (AVUs) and system information to a python dictionary.
