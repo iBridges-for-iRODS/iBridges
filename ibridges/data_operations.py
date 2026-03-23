@@ -132,7 +132,7 @@ def upload(
     ops.resc_name = resc_name
     ops.options = options
     if metadata is not None:
-        apply_meta_archive(metadata, idest_path, dry_run=True, ops=ops)
+        add_meta_from_archive(metadata, idest_path, dry_run=True, ops=ops)
     if not dry_run:
         ops.execute(session, on_error=on_error, progress_bar=progress_bar)
     return ops
@@ -366,7 +366,7 @@ def sync(
             Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
         if metadata is not None:
-            apply_meta_archive(metadata, IrodsPath(session, target), dry_run=True,
+            add_meta_from_archive(metadata, IrodsPath(session, target), dry_run=True,
                                ops=ops)
 
     ops.resc_name = resc_name
@@ -495,7 +495,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
     """Create a local archive file for the metadata.
 
     The archive is a utf-8 encoded JSON file with the metadata of all subcollections
-    and data objects. To re-use this archive use the function :func:`apply_meta_archive`.
+    and data objects. To re-use this archive use the function :func:`add_meta_from_archive`.
 
     Parameters
     ----------
@@ -541,7 +541,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
     return ops
 
 
-def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
+def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                        dry_run: bool = False, ops: Optional[Operations] = None) -> Operations:
     """Apply a metadata archive to set the metadata of collections and data objects.
 
@@ -577,7 +577,7 @@ def apply_meta_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
 
     Examples
     --------
-    >>> ipath.apply_meta_archive("meta_archive.json")
+    >>> ipath.add_meta_from_archive("meta_archive.json")
 
     """
     if not ipath.exists() and not dry_run:

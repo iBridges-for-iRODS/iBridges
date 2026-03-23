@@ -1,7 +1,7 @@
 """Subcommands for metadata operations."""
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
-from ibridges.data_operations import apply_meta_archive, create_meta_archive
+from ibridges.data_operations import add_meta_from_archive, create_meta_archive
 from ibridges.exception import DoesNotExistError
 
 
@@ -194,4 +194,4 @@ class CliMetaUpload(BaseCliCommand):
             parser.error(f"Cannot apply/upload metadata for IRODS path '{ipath}', "
                          "since it doesn't exist.")
             return
-        apply_meta_archive(args.metadata_file, ipath, dry_run=args.dry_run)
+        add_meta_from_archive(args.metadata_file, ipath, dry_run=args.dry_run)

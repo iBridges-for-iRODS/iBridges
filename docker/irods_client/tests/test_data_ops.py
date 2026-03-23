@@ -7,7 +7,7 @@ from pathlib import Path
 import irods.keywords as kw
 import pytest
 
-from ibridges.data_operations import apply_meta_archive, create_meta_archive, download, sync, upload
+from ibridges.data_operations import add_meta_from_archive, create_meta_archive, download, sync, upload
 from ibridges.exception import DataObjectExistsError, NotACollectionError, NotADataObjectError
 from ibridges.path import IrodsPath
 from ibridges.util import is_collection, is_dataobject
@@ -189,7 +189,7 @@ def test_meta_archive(session, testdata, tmpdir):
         cur_ipath.meta.delete(meta_data[0], meta_data[1])
 
     # Apply the archive and see if it has arrived.
-    apply_meta_archive(meta_fp, ipath)
+    add_meta_from_archive(meta_fp, ipath)
 
     for cur_ipath, meta_data in meta_list:
         assert meta_data in cur_ipath.meta
@@ -218,7 +218,7 @@ def test_meta_archive_file(session, testdata, tmpdir):
     ipath.meta.clear()
 
     # Apply the archive and see if it has arrived.
-    apply_meta_archive(meta_fp, ipath)
+    add_meta_from_archive(meta_fp, ipath)
 
     assert meta_triple in ipath.meta
 
