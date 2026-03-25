@@ -117,7 +117,12 @@ def test_metadata_export(item_name, request, session, tmpdir):
     assert "metadata" in meta_dict
 
     ops = Operations()
-    ops.add_meta_download(IrodsPath(session, item.path), tmp_file)
+    ipath = IrodsPath(session, item.path)
+    if ipath.collection_exists():
+        meta_paths = list(ipath.walk())
+    else:
+        meta_paths = [ipath]
+    ops.add_meta_download(tmp_file, IrodsPath(session, item.path), meta_paths)
     ops.execute(session)
     with open(tmp_file, "r", encoding="utf-8"):
         new_meta_dict = json.load(tmp_file)

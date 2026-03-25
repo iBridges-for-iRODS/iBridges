@@ -27,6 +27,8 @@ ALL_BUILTIN_COMMANDS = [
     CliMetaAdd,
     CliMetaDel,
     CliMakeCollection,
+    CliMetaDownload,
+    CliMetaUpload,
     CliDownload,
     CliUpload,
     CliSearch,

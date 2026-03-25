@@ -334,6 +334,8 @@ class MetaData:
         """
         all_meta_items = self.find_all(key, value, units)
         if len(all_meta_items) == 0:
+            if key is ... and value is ... and units is ...:
+                return
             raise KeyError(
                 f"Cannot delete items with key='{key}', value='{value}' and units='{units}', "
                 "since no metadata entries exist with those values."
@@ -363,7 +365,7 @@ class MetaData:
         """
         self.refresh()
         for meta in self:
-            self.item.metadata.remove(meta)
+            meta.remove()
 
     def to_dict(self, keys: Optional[list] = None) -> dict:
         """Convert iRODS metadata (AVUs) and system information to a python dictionary.
