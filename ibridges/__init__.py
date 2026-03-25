@@ -26,4 +26,6 @@ __all__ = [
     "Tickets",
     "search_data",
     "sync",
+    "add_meta_from_archive",
+    "create_meta_archive"
 ]
