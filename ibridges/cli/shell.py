@@ -14,7 +14,7 @@ except ImportError:
 
 from ibridges.authenticate import cli_auth
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
-from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaList
+from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
 from ibridges.path import IrodsPath
@@ -27,6 +27,8 @@ ALL_BUILTIN_COMMANDS = [
     CliMetaAdd,
     CliMetaDel,
     CliMakeCollection,
+    CliMetaDownload,
+    CliMetaUpload,
     CliDownload,
     CliUpload,
     CliSearch,

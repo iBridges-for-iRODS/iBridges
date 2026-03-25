@@ -2,7 +2,13 @@
 
 from importlib.metadata import version
 
-from ibridges.data_operations import download, sync, upload
+from ibridges.data_operations import (
+    add_meta_from_archive,
+    create_meta_archive,
+    download,
+    sync,
+    upload,
+)
 from ibridges.meta import MetaData
 from ibridges.path import IrodsPath
 from ibridges.search import search_data
@@ -20,4 +26,6 @@ __all__ = [
     "Tickets",
     "search_data",
     "sync",
+    "add_meta_from_archive",
+    "create_meta_archive"
 ]

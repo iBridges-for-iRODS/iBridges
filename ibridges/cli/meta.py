@@ -1,6 +1,7 @@
 """Subcommands for metadata operations."""
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
+from ibridges.data_operations import add_meta_from_archive, create_meta_archive
 from ibridges.exception import DoesNotExistError
 
 
@@ -141,3 +142,56 @@ class CliMetaDel(BaseCliCommand):
             meta.delete(args.key, args.value, args.units)
         except (KeyError, PermissionError) as exc:
             parser.error(str(exc))
+
+class CliMetaDownload(BaseCliCommand):
+    """Subcommand to download metadata from an iRODS server."""
+
+    autocomplete = ["remote_path", "local_path"]
+    names = ["meta-download"]
+    description = "Download metadata for a data object or collection recursively."
+    examples = ["some_collection test.json", "some_dataobject meta.json --dry-run"]
+
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument("remote_path", help="IrodsPath to download the metadata for.")
+        parser.add_argument("output_file", help="Metadata file to create, which is a JSON file.")
+        parser.add_argument("--dry-run", help="Do a dry run of the command without executing it.",
+                            action="store_true")
+        return parser
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Run the download metadata command."""
+        ipath = parse_remote(args.remote_path, session)
+        if not ipath.exists():
+            parser.error(f"Cannot download metadata for path '{ipath}', since it doesn't exist.")
+            return
+        create_meta_archive(ipath, args.output_file, dry_run=args.dry_run)
+
+class CliMetaUpload(BaseCliCommand):
+    """Subcommand to upload/apply metadata to an iRODS path."""
+
+    autocomplete = ["local_path", "remote_path"]
+    names = ["meta-upload"]
+    description = ("Upload and apply metadata for a data object or collection."
+                   " See meta-download for how to create an archive.")
+    examples = ["test.json some_collection", "metadata.json some_dataobject --dry-run"]
+
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument("metadata_file",
+                            help="Metadata file in JSON format to use for uploading to IRODS.")
+        parser.add_argument("remote_path", help="IrodsPath to upload/apply the metadata archive.")
+        parser.add_argument("--dry-run", help="Do a dry run of the command without executing it.",
+                            action="store_true")
+        return parser
+
+    @staticmethod
+    def run_shell(session, parser, args):
+        """Run the download metadata command."""
+        ipath = parse_remote(args.remote_path, session)
+        if not ipath.exists():
+            parser.error(f"Cannot apply/upload metadata for IRODS path '{ipath}', "
+                         "since it doesn't exist.")
+            return
+        add_meta_from_archive(args.metadata_file, ipath, dry_run=args.dry_run)
