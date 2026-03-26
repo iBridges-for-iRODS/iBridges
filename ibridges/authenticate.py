@@ -38,6 +38,11 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     """Non interactive authentication that doesn't ask for a password.
 
     This authentication is integrated with the CLI configuration.
+    I.e. by default it will try to connect with the last successfully used
+    configuration (check with `ibridges alias` on the command line).
+    Instead of using an irods_environment file path, you can also use the
+    alias to connect. The last cached password for this environment will be
+    used to authenticate.
 
     Parameters
     ----------
