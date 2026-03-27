@@ -96,6 +96,7 @@ def interactive_auth(
     The main difference with using the :class:`ibridges.Session` object directly is
     that it will ask for your password if the cached password does not exist or is outdated.
     This can be more secure, since you won't have to store the password in a file or notebook.
+    By default uses `~/.irods/irods_environment.json` to authenticate.
     Caches the password in ~/.irods/.irodsA upon success.
 
     Parameters
@@ -103,7 +104,7 @@ def interactive_auth(
     password:
         Password to make the connection with. If not supplied, you will be asked interactively.
     irods_env_path:
-        Path to the irods environment.
+        Path to the irods environment. Default `~/.irods/irods_environment.json.`
     irodsa_backup:
         Backup of the .irodsA file to be used in case authentication fails.
     reauthenticate:
