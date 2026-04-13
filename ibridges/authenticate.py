@@ -104,7 +104,7 @@ def interactive_auth(
     password:
         Password to make the connection with. If not supplied, you will be asked interactively.
     irods_env_path:
-        Path to the irods environment. Default `~/.irods/irods_environment.json.`
+        Path to the irods environment, defaults to `~/.irods/irods_environment.json.`
     irodsa_backup:
         Backup of the .irodsA file to be used in case authentication fails.
     reauthenticate:
