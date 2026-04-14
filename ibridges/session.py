@@ -472,4 +472,3 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
         "Failed to create an iRODS session due to an unexpected error.",
         str(exc),
     )
-
