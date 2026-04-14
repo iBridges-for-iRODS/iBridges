@@ -409,9 +409,8 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
     if isinstance(exc, NetworkException):
         if any((a.startswith("Client-Server negotiation failure") for a in exc.args)):
             return LoginError(
-                "Host, port, irods_client_server_policy or "
-                "irods_client_server_negotiation not set correctly in "
-                "irods_environment.json"
+                "irods_client_server_negotiation"
+                " missing or not set correctly in irods_environment.json"
             )
         # When something fails in the authentication workflow on the server
         return PasswordError("Authentication failed. Check credentials or contact your sysadmin.")
@@ -432,4 +431,10 @@ def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return
         if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
             return PasswordError("Cached password is expired", "Wrong password provided")
         return LoginError("Unexpected value in irods_environment; ")
-    return LoginError("Unknown problem creating irods session.")
+    if isinstance(exc, AttributeError):
+        # Encryption parameters are missing
+        return LoginError("Envrionment Encryption parameters are not correct.", str(exc))
+    if isinstance(exc, RuntimeError):
+        # SSL settings in environment are not correct
+        return LoginError("Environment SSL settings are not correct. Please check irods_client_server_negotiation.")
+    return LoginError("Problem creating irods session.", str(exc))
