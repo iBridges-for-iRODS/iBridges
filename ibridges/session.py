@@ -400,36 +400,75 @@ class Session:  # pylint: disable=too-many-instance-attributes
 class LoginError(AttributeError):
     """Error indicating a failure to log into the iRODS server due to the configuration."""
 
-
 class PasswordError(ValueError):
-    """Error indicating failure to log into the iRODS server due to wrong or outdated password."""
+    """Authentication failed due to an invalid, expired, or missing password."""
 
 
 def _translate_irods_error(exc) -> Exception:  # pylint: disable=too-many-return-statements
+    # Network / negotiation issues
     if isinstance(exc, NetworkException):
-        if any((a.startswith("Client-Server negotiation failure") for a in exc.args)):
+        if any(a.startswith("Client-Server negotiation failure") for a in exc.args):
             return LoginError(
-                "Host, port, irods_client_server_policy or "
-                "irods_client_server_negotiation not set correctly in "
-                "irods_environment.json"
+                "Client–server negotiation failed. "
+                "Check the 'irods_client_server_negotiation' setting in irods_environment.json."
             )
-        # When something fails in the authentication workflow on the server
-        return PasswordError("Authentication failed. Check credentials or contact your sysadmin.")
+        return PasswordError(
+            "Authentication failed during server negotiation. "
+            "Verify your credentials or contact your system administrator."
+        )
+
+    # Environment file issues
     if isinstance(exc, TypeError):
-        return LoginError(f"Add info to irods_environment.json: {exc.args}")
+        return LoginError(
+            f"Invalid or missing fields in irods_environment.json: {exc.args}"
+        )
+
+    # Authentication failures
     if isinstance(exc, CAT_INVALID_USER):
         return PasswordError(
-            "Expired cached password or the provided username and/or password is wrong."
+            "Authentication failed: the cached password is expired or the provided "
+            "username/password is incorrect."
         )
+
     if isinstance(exc, PAM_AUTH_PASSWORD_FAILED):
-        return PasswordError("The provided username and/or password is wrong.")
+        return PasswordError(
+            "Authentication failed: the provided username or password is incorrect."
+        )
+
     if isinstance(exc, CAT_PASSWORD_EXPIRED):
-        return PasswordError("Cached password is expired")
+        return PasswordError("Authentication failed: the cached password has expired.")
+
     if isinstance(exc, CAT_INVALID_AUTHENTICATION):
-        return PasswordError("Cached password is wrong")
+        return PasswordError("Authentication failed: the cached password is invalid.")
+
+    # PRC 2.0.0 ambiguity
     if isinstance(exc, ValueError):
-        # PRC 2.0.0 does not make a difference between wrong password or expired pw
-        if exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
-            return PasswordError("Cached password is expired", "Wrong password provided")
-        return LoginError("Unexpected value in irods_environment; ")
-    return LoginError("Unknown problem creating irods session.")
+        if exc.args and exc.args[0] == "Authentication failed: scheme = 'pam', auth_type = None":
+            return PasswordError(
+                "Authentication failed: the cached password has expired or the provided "
+                "password is incorrect."
+            )
+        return LoginError(
+            "Unexpected value encountered in irods_environment.json. "
+            "Verify the configuration."
+        )
+
+    # Encryption issues
+    if isinstance(exc, AttributeError):
+        return LoginError(
+            "Encryption settings in irods_environment.json are invalid or incomplete.",
+            str(exc),
+        )
+
+    # SSL issues
+    if isinstance(exc, RuntimeError):
+        return LoginError(
+            "SSL configuration in irods_environment.json is invalid. "
+            "Check 'irods_client_server_negotiation' and SSL parameters."
+        )
+
+    # Fallback
+    return LoginError(
+        "Failed to create an iRODS session due to an unexpected error.",
+        str(exc),
+    )
