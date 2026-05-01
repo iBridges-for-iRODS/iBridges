@@ -211,6 +211,8 @@ def checksums_equal(remote_path: IrodsPath, local_path: Union[Path, str]):
         depends on what is configured on the remote server.
 
     """
+    if Path(local_path).stat().st_size != remote_path.size:
+        return False
     remote_check = calc_checksum(remote_path)
     local_check = calc_checksum(local_path, checksum_type=_detect_checksum(remote_check))
     return remote_check == local_check
