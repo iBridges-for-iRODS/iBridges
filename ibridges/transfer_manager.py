@@ -21,7 +21,7 @@ NUM_THREADS = 4
 
 class TransferManager():
     def __init__(self, session: Session, resc_name: Optional[str] = None,
-                 options: Optional[dict] = None, n_workers: int = 4):
+                 options: Optional[dict] = None, n_workers: int = 8):
         self.session = session
         self.local_vfs = VirtualFileSystem()
         self.remote_vfs = VirtualFileSystem()
@@ -35,7 +35,7 @@ class TransferManager():
     def add(self, op):
         op_id = len(self.operations)
         try:
-            deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, op_id, self.session)
+            deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, op_id)
         except SkipOperation:
             self.n_skipped[op.header] += 1
             return
@@ -75,14 +75,18 @@ class TransferManager():
             try:
                 while True:
                     op_id = self.dep_graph.next_op()
+                    # print("submit", op_id)
                     op = self.operations.pop(op_id)
+                    if hasattr(op, "ipath"):
+                        op.ipath.session = None
                     worker_queue.put((op, op_id))
             except IndexError:
+                # print("No more jobs to submit")
                 pass
             dep_graph_updated = False
             while not dep_graph_updated:
                 msg = scheduler_queue.get()
-                print(msg)
+                # print(msg)
                 if msg["msg_type"] == "progress":
                     pbar.update(msg["value"])
                 else:
@@ -132,7 +136,9 @@ def executor_worker(queue, scheduler_queue, session_param):
             session.close()
             break
         op, op_id = order
-        op.execute(pbar=pbar)
+        if hasattr(op, "ipath"):
+            op.ipath.session = session
+        op.execute(session, pbar=pbar)
         scheduler_queue.put({"msg_type": "finish", "id": op_id})
         i += 1
 
