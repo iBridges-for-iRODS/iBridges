@@ -68,16 +68,9 @@ def _transfer_needed(source: Union[IrodsPath, Path],
         return False
     return True
 
-class BaseOperation():
-    def __getattribute__(self, attr):
-        if attr == "ipath":
-            if self.session is None:
-                raise ValueError("Cannot access session.")
-            ipath = super().__getattribute__(attr)
-            ipath.session = self.session
-        return super().__getattribute__(attr)
 
-class DownloadOperation(BaseOperation):
+
+class DownloadOperation():
     # name = "download"
 
     def __init__(self, ipath, lpath, overwrite=False, on_error="fail"):
@@ -85,28 +78,23 @@ class DownloadOperation(BaseOperation):
         self.lpath = lpath
         self.overwrite = overwrite
         self.on_error = on_error
-        self.size = ipath.size
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id, session):
-        ipath = IrodsPath(session, self.ipath_str)
-        lpath = Path(self.lpath_str)
-        if vfs_local.exists(lpath):
-            if lpath.is_symlink():
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        if vfs_local.exists(self.lpath):
+            if self.lpath.is_symlink():
                 raise SkipOperation()
             if not _transfer_needed(
-                    ipath, lpath, overwrite=self.overwrite, on_error=self.on_error):
+                    self.ipath, self.lpath, overwrite=self.overwrite, on_error=self.on_error):
                 raise SkipOperation()
         deps = [
-            vfs_remote.need_path(ipath, PathType.FILE, op_id),
-            vfs_local.need_path(lpath.parent, PathType.DIR, op_id),
-            vfs_local.create_path(lpath, PathType.FILE, op_id),
+            vfs_remote.need_path(self.ipath, PathType.FILE, op_id),
+            vfs_local.need_path(self.lpath.parent, PathType.DIR, op_id),
+            vfs_local.create_path(self.lpath, PathType.FILE, op_id),
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar):
-        ipath = IrodsPath(session, self.ipath_str)
-        lpath = Path(self.lpath_str)
-        _obj_get(session, ipath, lpath, pbar=pbar)
+        _obj_get(session, self.ipath, self.lpath, pbar=pbar)
 
     @property
     def header(self):
@@ -114,34 +102,33 @@ class DownloadOperation(BaseOperation):
 
     @property
     def body(self):
-        return f"{self.ipath_str} -> {self.lpath_str}"
+        return f"{self.ipath} -> {self.lpath}"
+
+    @property
+    def size(self):
+        return self.ipath.size
 
 class UploadOperation():
     # name = "upload"
 
     def __init__(self, lpath, ipath, overwrite=False, on_error="fail"):
-        self.lpath_str = str(lpath)
-        self.ipath_str = str(ipath)
-        self.size = self.lpath.stat().st_size
+        self.lpath = lpath
+        self.ipath = ipath
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id, session):
-        ipath = IrodsPath(session, self.ipath_str)
-        lpath = Path(self.lpath_str)
-        if vfs_remote.exists(ipath):
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        if vfs_remote.exists(self.ipath):
             if not _transfer_needed(
-                    lpath, ipath, overwrite=self.overwrite, on_error=self.on_error):
+                    self.lpath, self.ipath, overwrite=self.overwrite, on_error=self.on_error):
                 raise SkipOperation()
         deps = [
-            vfs_local.need_path(lpath, PathType.FILE, op_id),
-            vfs_remote.need_path(ipath.parent, PathType.DIR, op_id),
-            vfs_remote.create_path(ipath, PathType.FILE, op_id),
+            vfs_local.need_path(self.lpath, PathType.FILE, op_id),
+            vfs_remote.need_path(self.ipath.parent, PathType.DIR, op_id),
+            vfs_remote.create_path(self.ipath, PathType.FILE, op_id),
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar):
-        lpath = Path(self.lpath_str)
-        ipath = IrodsPath(session, self.ipath_str)
-        _obj_put(session, lpath, ipath, pbar)
+        _obj_put(session, self.lpath, self.ipath, pbar)
 
     @property
     def header(self):
@@ -149,29 +136,31 @@ class UploadOperation():
 
     @property
     def body(self):
-        return f"{self.lpath_str} -> {self.ipath_str}"
+        return f"{self.lpath} -> {self.ipath}"
+
+    @property
+    def size(self):
+        return self.lpath.stat().st_size
 
 class CreateDirOperation():
     # name = "create"
     def __init__(self, lpath, exist_ok=True):
-        self.lpath_str = str(lpath)
+        self.lpath = lpath
         self.exist_ok = exist_ok
-        self.size = 1
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id, session):
-        lpath = Path(self.lpath_str)
-        if vfs_local.exists(lpath) and self.exist_ok:
-            if vfs_local.path_type(lpath) != PathType.DIR:
-                raise NotADirectoryError(lpath)
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        if vfs_local.exists(self.lpath) and self.exist_ok:
+            if vfs_local.path_type(self.lpath) != PathType.DIR:
+                raise NotADirectoryError(self.lpath)
             raise SkipOperation()
         deps = [
-            vfs_local.need_path(lpath.parent, PathType.DIR, op_id),
-            vfs_local.create_path(lpath, PathType.DIR, op_id),
+            vfs_local.need_path(self.lpath.parent, PathType.DIR, op_id),
+            vfs_local.create_path(self.lpath, PathType.DIR, op_id),
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar):
-        Path(self.lpath_str).mkdir()
+        self.lpath.mkdir()
         pbar.update(self.size)
 
     @property
@@ -180,33 +169,33 @@ class CreateDirOperation():
 
     @property
     def body(self):
-        return self.lpath_str
+        return str(self.lpath)
 
+    @property
+    def size(self):
+        return 1
 
 class CreateCollectionOperation():
     def __init__(self, ipath, exist_ok=True):
-        self.ipath_str = str(ipath)
+        self.ipath = ipath
         self.exist_ok = True
-        self.size = 1
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id, session):
-        ipath = IrodsPath(session, self.ipath_str)
-        if vfs_remote.exists(ipath, op_id) and self.exist_ok:
-            if vfs_remote.path_type(ipath) != PathType.DIR:
-                raise NotACollectionError(ipath)
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        if vfs_remote.exists(self.ipath, op_id) and self.exist_ok:
+            if vfs_remote.path_type(self.ipath) != PathType.DIR:
+                raise NotACollectionError(self.ipath)
             raise SkipOperation()
         elif not self.exist_ok:
-            raise CollectionExistsError(ipath)
+            raise CollectionExistsError(self.ipath)
 
         deps = [
-            vfs_remote.need_path(ipath.parent, PathType.DIR, op_id),
-            vfs_remote.create_path(ipath, PathType.DIR, op_id)
+            vfs_remote.need_path(self.ipath.parent, PathType.DIR, op_id),
+            vfs_remote.create_path(self.ipath, PathType.DIR, op_id)
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar):
-        ipath = IrodsPath(session, self.ipath_str)
-        ipath.create_collection()
+        self.ipath.create_collection()
         pbar.update(self.size)
 
     @property
@@ -215,8 +204,11 @@ class CreateCollectionOperation():
 
     @property
     def body(self):
-        return self.ipath_str
+        return str(self.ipath)
 
+    @property
+    def size(self):
+        return 1
 
 class PathOperation(Enum):
     Exists = 1
@@ -244,7 +236,10 @@ class VirtualFileSystem():
         elif self.path_type(path) != path_type:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append((PathOperation.Needed, path_type, op_id))
-        return self.paths[str(path)][-2][2]
+        for i_op in range(-2, -len(self.paths[str(path)]), -1):
+            if self.paths[str(path)][i_op][0] == PathOperation.Create:
+                return self.paths[str(path)][i_op][2]
+        return None
 
     def delete_path(self, path, path_type, op_id):
         if not self.exists(path):
@@ -313,9 +308,10 @@ class DependencyGraph():
 
     def finish_op(self, op_id):
         self.running.remove(op_id)
-        for dep_op_id in self.depends_on[op_id]:
-            self.dependency_of[dep_op_id].remove(op_id)
-            if len(self.dependency_of[dep_op_id]) == 0:
+        # print(f"remove {op_id}, depends_on: {self.depends_on[op_id]}")
+        for dep_op_id in self.dependency_of[op_id]:
+            self.depends_on[dep_op_id].remove(op_id)
+            if len(self.depends_on[dep_op_id]) == 0:
                 self.queue.append(dep_op_id)
         self.depends_on.pop(op_id)
         self.dependency_of.pop(op_id, None)
