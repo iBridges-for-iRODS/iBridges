@@ -17,6 +17,12 @@ import irods.collection
 import irods.data_object
 import irods.exception
 
+from ibridges.base_operations import (
+    CreateCollectionOperation,
+    CreateDirOperation,
+    DownloadOperation,
+    UploadOperation,
+)
 from ibridges.exception import (
     CollectionDoesNotExistError,
     DataObjectExistsError,
@@ -27,7 +33,6 @@ from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.transfer_manager import TransferManager
 from ibridges.util import checksums_equal
-from ibridges.base_operations import CreateCollectionOperation, CreateDirOperation, DownloadOperation, UploadOperation, CreateDirOperation
 
 NUM_THREADS = 4
 
@@ -229,27 +234,15 @@ def download(
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
             on_error=on_error
         )
-        # if not local_path.is_dir():
-            # ops.add_create_dir(Path(local_path))
+
     elif irods_path.dataobject_exists():
-        # ops = Operations(session)
         if local_path.is_dir():
             local_path = local_path / irods_path.name
         tm.add(DownloadOperation(irods_path, local_path, overwrite, on_error))
 
-        # if not local_path.is_file() or _transfer_needed(
-                # irods_path, local_path, overwrite, on_error):
-            # ops.add_download(irods_path, local_path)
-        # else:
-            # ops.download_unchanged += 1
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
-    # if metadata is not None:
-        # new_ops = create_meta_archive(irods_path, metadata, dry_run=True)
-        # ops.meta_download.extend(new_ops.meta_download)
-    # ops.resc_name = resc_name
-    # ops.options = options
     if not dry_run:
         tm.execute()#session, on_error=on_error, progress_bar=progress_bar)
     return tm

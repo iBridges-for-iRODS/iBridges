@@ -5,15 +5,13 @@ import warnings
 from collections import defaultdict
 from enum import Enum
 from inspect import signature
-from multiprocessing import Queue, Process
+from multiprocessing import Process, Queue
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
 
 from tqdm import tqdm
 
 from ibridges.base_operations import DependencyGraph, SkipOperation, VirtualFileSystem
-
-# if TYPE_CHECKING:
 from ibridges.session import Session
 
 NUM_THREADS = 4
@@ -67,26 +65,20 @@ class TransferManager():
                 Process(target=executor_worker,
                     args=(worker_queue, scheduler_queue, self.session.copy_param)))
             self.worker_processes[-1].start()
-            # )
-        # self.worker_processes = [
-            # 
-                # for _ in range(self.n_workers)]
+
         while len(self.dep_graph) > 0:
             try:
                 while True:
                     op_id = self.dep_graph.next_op()
-                    # print("submit", op_id)
                     op = self.operations.pop(op_id)
                     if hasattr(op, "ipath"):
                         op.ipath.session = None
                     worker_queue.put((op, op_id))
             except IndexError:
-                # print("No more jobs to submit")
                 pass
             dep_graph_updated = False
             while not dep_graph_updated:
                 msg = scheduler_queue.get()
-                # print(msg)
                 if msg["msg_type"] == "progress":
                     pbar.update(msg["value"])
                 else:
