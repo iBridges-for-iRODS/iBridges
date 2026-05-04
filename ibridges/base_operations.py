@@ -308,7 +308,6 @@ class DependencyGraph():
 
     def finish_op(self, op_id):
         self.running.remove(op_id)
-        # print(f"remove {op_id}, depends_on: {self.depends_on[op_id]}")
         for dep_op_id in self.dependency_of[op_id]:
             self.depends_on[dep_op_id].remove(op_id)
             if len(self.depends_on[dep_op_id]) == 0:
