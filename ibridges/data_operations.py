@@ -450,6 +450,7 @@ def _up_sync_operations(
         if depth is not None and len(root_part.parts) > depth:
             continue
         source = idest_path.joinpath(*root_part.parts)
+        print(source, folders, files)
         # if str(source) not in remote_ipaths:
         tm.add(CreateCollectionOperation(source))
         if copy_empty_folders:
@@ -459,7 +460,7 @@ def _up_sync_operations(
         for cur_file in files:
             ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
-            tm.add(UploadOperation(ipath, lpath, overwrite=overwrite, on_error=on_error))
+            tm.add(UploadOperation(lpath, ipath, overwrite=overwrite, on_error=on_error))
     return tm
 
 
