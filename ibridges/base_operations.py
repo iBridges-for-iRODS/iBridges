@@ -114,6 +114,8 @@ class UploadOperation():
     def __init__(self, lpath, ipath, overwrite=False, on_error="fail"):
         self.lpath = lpath
         self.ipath = ipath
+        self.overwrite = overwrite
+        self.on_error = on_error
 
     def add_to_vfs(self, vfs_local, vfs_remote, op_id):
         if vfs_remote.exists(self.ipath):
@@ -128,7 +130,7 @@ class UploadOperation():
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar):
-        _obj_put(session, self.lpath, self.ipath, pbar)
+        _obj_put(session, self.lpath, self.ipath, pbar=pbar)
 
     @property
     def header(self):
@@ -181,7 +183,7 @@ class CreateCollectionOperation():
         self.exist_ok = True
 
     def add_to_vfs(self, vfs_local, vfs_remote, op_id):
-        if vfs_remote.exists(self.ipath, op_id) and self.exist_ok:
+        if vfs_remote.exists(self.ipath) and self.exist_ok:
             if vfs_remote.path_type(self.ipath) != PathType.DIR:
                 raise NotACollectionError(self.ipath)
             raise SkipOperation()
@@ -249,7 +251,7 @@ class VirtualFileSystem():
         self.paths[str(path)].append((PathOperation.Delete, path_type, op_id))
         return self.paths[str(path)][-2][2]
 
-    def exists(self, path):
+    def exists(self, path, allow_recurse=True):
         if str(path) in self.paths:
             last_op, _, _ = self.paths[str(path)][-1]
             if last_op in [PathOperation.Missing, PathOperation.Delete]:
@@ -257,6 +259,11 @@ class VirtualFileSystem():
             else:
                 return True
         else:
+            if allow_recurse:
+                self.exists(path.parent, allow_recurse=False)
+                if self.paths[str(path.parent)][0][0] == PathOperation.Missing:
+                    self.paths[str(path)] = [(PathOperation.Missing, None, None)]
+                    return False
             exists = path.exists()
             if not exists:
                 self.paths[str(path)] = [(PathOperation.Missing, None, None)]
