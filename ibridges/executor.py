@@ -5,7 +5,8 @@ import json
 import warnings
 from inspect import signature
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, TYPE_CHECKING
+from collections import defaultdict
 
 import irods.collection
 import irods.data_object
@@ -17,7 +18,9 @@ from tqdm.std import tqdm as tqdm_type
 
 from ibridges.exception import FileTransferFailedError, ObjectTransferFailedError
 from ibridges.path import IrodsPath
-from ibridges.session import Session
+
+if TYPE_CHECKING:
+    from ibridges.session import Session
 
 NUM_THREADS = 4
 NUM_TRANSFER_RESET = 3000
@@ -41,7 +44,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
 
     """
 
-    def __init__(self, resc_name: Optional[str] = None, options: Optional[dict] = None):
+    def __init__(self, session: Session, resc_name: Optional[str] = None, options: Optional[dict] = None):
         """Initialize and empty Operations object.
 
         The operations should be added separately, which is usually done by higher
@@ -65,6 +68,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         self.options: Optional[dict] = {} if resc_name is None else options
         self.download_unchanged = 0
         self.upload_unchanged = 0
+        self.session = session
 
     def add_meta_download(self, meta_fp: Union[str, Path], root_ipath: IrodsPath,
                           meta_paths: list[IrodsPath]):
@@ -105,7 +109,7 @@ class Operations():  # pylint: disable=too-many-instance-attributes
         """
         self.meta_upload.append((ipath, meta_fp, metadata))
 
-    def add_download(self, ipath: IrodsPath, lpath: Path):
+    def add_download(self, ipath: IrodsPath, lpath: Path, depends=None):
         """Add operation to download a data object.
 
         Parameters
@@ -116,7 +120,24 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Local path for the data to be stored in.
 
         """
-        self.download.append((ipath, lpath))
+        with self.session.lock:
+            op_id = self.session.operation_id.value
+            self.session.operation_id.value += 1
+
+        self.session.queue.put(
+            {
+                "op_type": "download",
+                "id": op_id,
+                "ipath": str(ipath),
+                "lpath": lpath,
+                "options": self.options,
+                "resc_name": self.resc_name,
+                "depends": depends,
+                "size": ipath.size,
+            }
+        )
+        return op_id
+        # self.download.append((ipath, lpath))
 
     def add_create_dir(self, new_dir: Path):
         """Add operation to create a new directory.
@@ -127,7 +148,8 @@ class Operations():  # pylint: disable=too-many-instance-attributes
             Directory to be created.
 
         """
-        self.create_dir.add(str(new_dir))
+        Path(new_dir).mkdir(exist_ok=True)
+        # self.create_dir.add(str(new_dir))
 
     def add_upload(self, lpath: Path, ipath: IrodsPath):
         """Add operation to upload a data object.

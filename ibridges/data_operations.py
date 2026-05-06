@@ -17,6 +17,12 @@ import irods.collection
 import irods.data_object
 import irods.exception
 
+from ibridges.base_operations import (
+    CreateCollectionOperation,
+    CreateDirOperation,
+    DownloadOperation,
+    UploadOperation,
+)
 from ibridges.exception import (
     CollectionDoesNotExistError,
     DataObjectExistsError,
@@ -25,6 +31,7 @@ from ibridges.exception import (
 )
 from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
+from ibridges.transfer_manager import TransferManager
 from ibridges.util import checksums_equal
 
 NUM_THREADS = 4
@@ -41,6 +48,7 @@ def upload(
     dry_run: bool = False,
     metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
+    n_workers: int = 4,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -102,40 +110,42 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    ops = Operations()
+    tm = TransferManager(session, n_workers=n_workers)
+    # ops = Operations(session)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
+        # if 
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
-        ops = _up_sync_operations(
-            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
+        _up_sync_operations(
+            tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, on_error=on_error
         )
-        if not idest_path.collection_exists():
-            ops.add_create_coll(idest_path)
-        if not irods_path.collection_exists():
-            ops.add_create_coll(irods_path)
-    elif local_path.is_file():
-        idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
-        obj_exists = idest_path.dataobject_exists()
-        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
-            ops.add_upload(local_path, idest_path)
-        else:
-            ops.upload_unchanged += 1
+        # if not idest_path.collection_exists():
+            # .add_create_coll(idest_path)
+        # if not irods_path.collection_exists():
+            # ops.add_create_coll(irods_path)
+    # elif local_path.is_file():
+        # idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
+        # obj_exists = idest_path.dataobject_exists()
+        # if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
+            # ops.add_upload(local_path, idest_path)
+        # else:
+            # ops.upload_unchanged += 1
 
-    elif local_path.is_symlink():
-        raise FileNotFoundError(
-            f"Cannot upload symbolic link {local_path}, please supply a direct path."
-        )
-    else:
-        raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
-    ops.resc_name = resc_name
-    ops.options = options
-    if metadata is not None:
-        add_meta_from_archive(metadata, idest_path, dry_run=True, ops=ops)
+    # elif local_path.is_symlink():
+        # raise FileNotFoundError(
+            # f"Cannot upload symbolic link {local_path}, please supply a direct path."
+        # )
+    # else:
+        # raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
+    # ops.resc_name = resc_name
+    # ops.options = options
+    # if metadata is not None:
+        # add_meta_from_archive(metadata, idest_path, dry_run=True, ops=ops)
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
-    return ops
+        tm.execute(session)#, on_error=on_error, progress_bar=progress_bar)
+    return tm
 
 
 def download(
@@ -212,42 +222,31 @@ def download(
     """
     session = irods_path.session
     local_path = Path(local_path)
-
+    tm = TransferManager(session)
     if irods_path.collection_exists():
         if local_path.is_file():
             raise NotADirectoryError(
                 f"Cannot download to directory {local_path} "
                 "since a file with the same name exists."
             )
-
-        ops = _down_sync_operations(
-            irods_path, local_path / irods_path.name, #metadata=metadata,
+        tm.add(CreateDirOperation(Path(local_path)))
+        _down_sync_operations(
+            tm, irods_path, local_path / irods_path.name, #metadata=metadata,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
             on_error=on_error
         )
-        if not local_path.is_dir():
-            ops.add_create_dir(Path(local_path))
-    elif irods_path.dataobject_exists():
-        ops = Operations()
 
+    elif irods_path.dataobject_exists():
         if local_path.is_dir():
             local_path = local_path / irods_path.name
-        if not local_path.is_file() or _transfer_needed(
-                irods_path, local_path, overwrite, on_error):
-            ops.add_download(irods_path, local_path)
-        else:
-            ops.download_unchanged += 1
+        tm.add(DownloadOperation(irods_path, local_path, overwrite, on_error))
+
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
-    if metadata is not None:
-        new_ops = create_meta_archive(irods_path, metadata, dry_run=True)
-        ops.meta_download.extend(new_ops.meta_download)
-    ops.resc_name = resc_name
-    ops.options = options
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
-    return ops
+        tm.execute()#session, on_error=on_error, progress_bar=progress_bar)
+    return tm
 
 
 def sync(
@@ -420,74 +419,50 @@ def _transfer_needed(source: Union[IrodsPath, Path],
     return True
 
 
-def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
-                          overwrite: bool,
-                          on_error: str = "fail",
-                          copy_empty_folders: bool = True, depth: Optional[int] = None
-                          ) -> Operations:
-    ops = Operations()
+def _down_sync_operations(
+        tm: TransferManager,
+        isource_path: IrodsPath, ldest_path: Path,
+        overwrite: bool,
+        on_error: str = "fail",
+        copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
+        tm.add(CreateDirOperation(lpath.parent))
+        # tm.print_summary()
         if ipath.dataobject_exists():
-            if lpath.is_file():
-                if _transfer_needed(ipath, lpath, overwrite, on_error):
-                    ops.add_download(ipath, lpath)
-                else:
-                    ops.download_unchanged += 1
-            else:
-                ops.add_download(ipath, lpath)
-            if not lpath.parent.exists():
-                ops.add_create_dir(lpath.parent)
+            tm.add(DownloadOperation(ipath, lpath, overwrite, on_error))
         elif ipath.collection_exists() and copy_empty_folders:
-            if not lpath.exists():
-                ops.add_create_dir(lpath)
-    return ops
+            tm.add(CreateDirOperation(lpath))
+    return tm
 
 
-def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
-                        overwrite: bool,
-                        copy_empty_folders: bool = True, depth: Optional[int] = None,
-                        on_error: str = "fail") -> Operations:
-    ops = Operations()
-    session = idest_path.session
-    try:
-        remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
-    except irods.exception.CollectionDoesNotExist:
-        remote_ipaths = {}
+def _up_sync_operations(
+        tm: TransferManager,
+        lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
+        overwrite: bool,
+        copy_empty_folders: bool = True, depth: Optional[int] = None,
+        on_error: str = "fail") -> Operations:
+    # try:
+    #     remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
+    # except irods.exception.CollectionDoesNotExist:
+    #     remote_ipaths = {}
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
             continue
         source = idest_path.joinpath(*root_part.parts)
+        # print(source, folders, files)
+        # if str(source) not in remote_ipaths:
+        tm.add(CreateCollectionOperation(source))
+        if copy_empty_folders:
+            for fold in folders:
+                lpath = lsource_path / root_part / fold
+                tm.add(CreateCollectionOperation(source / fold))
         for cur_file in files:
             ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
-
-            # Ignore symlinks
-            if lpath.is_symlink():
-                warnings.warn(f"Ignoring symlink {lpath}.")
-                continue
-            if str(ipath) in remote_ipaths:
-                ipath = remote_ipaths[str(ipath)]
-                if _transfer_needed(lpath, ipath, overwrite, on_error):
-                    ops.add_upload(lpath, ipath)
-                else:
-                    ops.upload_unchanged += 1
-            else:
-                ipath = CachedIrodsPath(session, None, False, None, str(ipath))
-                ops.add_upload(lpath, ipath)
-        if copy_empty_folders:
-            for fold in folders:
-                # Ignore folder symlinks
-                lpath = lsource_path / root_part / fold
-                if lpath.is_symlink():
-                    warnings.warn(f"Ignoring symlink {lpath}.")
-                    continue
-                if str(source / fold) not in remote_ipaths:
-                    ops.add_create_coll(source / fold)
-        if str(source) not in remote_ipaths:
-            ops.add_create_coll(source)
-    return ops
+            tm.add(UploadOperation(lpath, ipath, overwrite=overwrite, on_error=on_error))
+    return tm
 
 
 def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],

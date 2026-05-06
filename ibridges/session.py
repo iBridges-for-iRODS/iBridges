@@ -6,6 +6,8 @@ import json
 import os
 import socket
 import warnings
+from multiprocessing import Queue, Process, Lock
+from multiprocessing.sharedctypes import RawValue
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Optional, Union
@@ -22,8 +24,12 @@ from irods.session import NonAnonymousLoginWithoutPassword, iRODSSession
 
 from ibridges import icat_columns as icat
 from ibridges.util import open_irodsa
+# from ibridges.executor import executor_worker, scheduler
 
 APP_NAME = "ibridges"
+N_PROCESSES = 8
+
+
 
 
 class Session:  # pylint: disable=too-many-instance-attributes
@@ -77,6 +83,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
         cwd: Optional[str] = None,
+        main_session: bool = True,
     ):
         """Authenticate and connect to the iRODS server."""
         irods_env_path = None
@@ -113,6 +120,28 @@ class Session:  # pylint: disable=too-many-instance-attributes
         if cwd is not None:
             self.cwd = cwd
 
+        # if main_session:
+        #     self.worker_processes = []
+        #     self.queue = Queue()
+        #     self.worker_queue = Queue()
+        #     self.finished_queue = Queue()
+        #     session_param = [Session, self._irods_env, self._password, self.home, self.cwd, False]
+        #     for i in range(N_PROCESSES):
+        #         self.worker_processes.append(Process(target=executor_worker,
+        #                                      args=(self.worker_queue, self.queue, session_param)))
+        #         self.worker_processes[i].start()
+        #     self.scheduler = Process(target=scheduler, args=(self.queue, self.worker_queue, N_PROCESSES))
+        #     self.scheduler.start()
+        #     self.lock = Lock()
+        #     self.operation_id = RawValue('i', 0)
+        # else:
+        #     self.queue = None
+        #     self.worker_process = None
+
+    @property
+    def copy_param(self):
+        return [Session, self._irods_env, self._password, self.home, self.cwd, False]
+
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
         if not self.has_valid_irods_session():
@@ -121,6 +150,14 @@ class Session:  # pylint: disable=too-many-instance-attributes
 
     def __exit__(self, exc_type, exc_value, exc_trace_back):
         """Disconnect from the iRODS server."""
+        # if self.worker_processes is not None:
+        #     # for i in range(N_PROCESSES):
+        #         # self.worker_queue.put(None)
+        #     self.queue.put(None)
+        #     for i in range(N_PROCESSES):
+        #         self.worker_processes[i].join()
+        #     print("Workers joined")
+        #     self.scheduler.join()
         self.close()
 
     @property
