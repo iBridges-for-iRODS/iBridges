@@ -223,6 +223,7 @@ class PathOperation(Enum):
 class VirtualFileSystem():
     def __init__(self):
         self.paths = {}
+        self.last_mod = defaultdict(lambda: -1)
 
     def create_path(self, path, path_type, op_id, checksum=None):
         if self.exists(path):
@@ -230,6 +231,7 @@ class VirtualFileSystem():
         elif self.path_type(path) is not None:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append((PathOperation.Create, path_type, op_id))
+        self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
         return self.paths[str(path)][-2][2]
 
     def need_path(self, path, path_type, op_id):
@@ -238,9 +240,11 @@ class VirtualFileSystem():
         elif self.path_type(path) != path_type:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append((PathOperation.Needed, path_type, op_id))
-        for i_op in range(-2, -len(self.paths[str(path)]), -1):
-            if self.paths[str(path)][i_op][0] == PathOperation.Create:
-                return self.paths[str(path)][i_op][2]
+        if self.last_mod[str(path)] != -1:
+            return self.paths[str(path)][self.last_mod[str(path)]][2]
+        # for i_op in range(-2, -len(self.paths[str(path)]), -1):
+            # if self.paths[str(path)][i_op][0] == PathOperation.Create:
+                # return self.paths[str(path)][i_op][2]
         return None
 
     def delete_path(self, path, path_type, op_id):
