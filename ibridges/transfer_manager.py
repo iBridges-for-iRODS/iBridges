@@ -41,11 +41,25 @@ class TransferManager():
         self.dep_graph.add(op_id, deps)
         self.operations[op_id] = op
 
+    def execute(self):
+        if self.n_workers == 1:
+            self.execute_singlethreaded()
+        else:
+            self.execute_multithreaded()
+
     def execute_singlethreaded(self):
+        total_size = sum(op.size for op in self.operations.values())
+        pbar = tqdm(
+            total=total_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            # disable=disable,
+        )
         while len(self.dep_graph):
             op_id = self.dep_graph.next_op()
             op = self.operations.pop(op_id)
-            op.execute(self.session)
+            op.execute(self.session, pbar)
             self.dep_graph.finish_op(op_id)
 
     def execute_multithreaded(self):

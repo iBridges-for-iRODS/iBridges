@@ -48,6 +48,7 @@ def upload(
     dry_run: bool = False,
     metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
+    n_workers: int = 4,
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -109,7 +110,7 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    tm = TransferManager(session)
+    tm = TransferManager(session, n_workers=n_workers)
     # ops = Operations(session)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
@@ -450,7 +451,7 @@ def _up_sync_operations(
         if depth is not None and len(root_part.parts) > depth:
             continue
         source = idest_path.joinpath(*root_part.parts)
-        print(source, folders, files)
+        # print(source, folders, files)
         # if str(source) not in remote_ipaths:
         tm.add(CreateCollectionOperation(source))
         if copy_empty_folders:
