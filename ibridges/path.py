@@ -192,6 +192,8 @@ class IrodsPath:
         ------
         PermissionError:
             If the user has insufficient permission to remove the data.
+        FileNotFoundError;
+            Data object or collection does not exist.
 
         Examples
         --------
@@ -205,6 +207,8 @@ class IrodsPath:
             elif self.dataobject_exists():
                 obj = self.session.irods_session.data_objects.get(str(self))
                 obj.unlink(force = force)
+            else:
+                raise FileNotFoundError(f"{self} not found.")
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
