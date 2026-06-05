@@ -50,7 +50,10 @@ def _check_files_equal(*files):
 def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, pass_opts):
     # Test the upload function by uploading a single file.
     ipath = IrodsPath(session, "~", "plant.rtf")
-    ipath.remove()
+    try:
+        ipath.remove()
+    except FileNotFoundError:
+        pass
     subprocess.run(["ibridges", "init", irods_env_file], **pass_opts)
 
     if "resc2" in config["resources"]:
@@ -94,7 +97,10 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
     subprocess.run(["ibridges", "sync", "irods:~/test/testdata", tmpdir], **pass_opts)
     for fname in testdata.glob("*"):
         assert _check_files_equal(testdata/fname.name, tmpdir/fname.name)
-    ipath.remove()
+    try:
+        ipath.remove()
+    except FileNotFoundError:
+        pass
 
 
 def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_file, pass_opts):
