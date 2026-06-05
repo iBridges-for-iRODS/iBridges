@@ -76,11 +76,17 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
 
     _check_files_equal(testdata/"plant2.rtf", testdata/"plant.rtf")
     (testdata/"plant2.rtf").unlink()
-    ipath.remove()
+    try:
+        ipath.remove()
+    except FileNotFoundError:
+        pass
 
     # Upload a directory and check if the dataobjects and collections are created.
     ipath = IrodsPath(session, "~", "test")
-    ipath.remove()
+    try:
+        ipath.remove()
+    except FileNotFoundError:
+        pass
     ipath.create_collection()
     subprocess.run(["ibridges", "upload", testdata, "irods:~/test", "--overwrite"], **pass_opts)
     for fname in testdata.glob("*"):
