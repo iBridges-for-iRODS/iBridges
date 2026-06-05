@@ -87,11 +87,13 @@ class CliRm(BaseCliCommand):
             ipath.remove(force = args.force)
         elif ipath.collection_exists():
             if args.recursive:
-                ipath.remove(forceargs.force)
+                ipath.remove(force = args.force)
             else:
                 parser.error(
                     f"Cannot remove {ipath}: is a collection. Use -r to remove collections."
                 )
+        else:
+            print(f"{ipath} not found.")
 
 
 def _get_metadata_path(
