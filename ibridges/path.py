@@ -181,7 +181,7 @@ class IrodsPath:
         return self.absolute().parts[-1]
 
     def remove(self, force: bool = False):
-        """Moves the data behind an iRODS path to the trash folder.
+        """Move the data behind an iRODS path to the trash folder.
 
         Parameters
         ----------
