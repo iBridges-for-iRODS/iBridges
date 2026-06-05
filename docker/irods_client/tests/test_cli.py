@@ -111,7 +111,10 @@ def test_upload_download_cli(session, config, testdata, tmpdir, irods_env_file, 
 
 def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_file, pass_opts):
     ipath_collection = IrodsPath(session, "meta_test")
-    ipath_collection.remove()
+    try:
+        ipath_collection.remove()
+    except FileNotFoundError:
+        pass
     subprocess.run(["ibridges", "upload", testdata, f"irods:{ipath_collection}"],
                    **pass_opts)
     assert ipath_collection.exists()
@@ -126,7 +129,10 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
         assert metadata["items"][0]["name"] == "meta_test"
         assert metadata["items"][0]["metadata"][0][0] == "some_key"
         assert metadata["items"][0]["metadata"][0][1] == "some_val"
-    ipath_collection.remove()
+    try:
+        ipath_collection.remove()
+    except FileNotFoundError:
+        pass
 
     # Check uploading metadata with upload
     subprocess.run(["ibridges", "upload", tmpdir / "meta_test", "irods:",
@@ -139,7 +145,10 @@ def test_upload_download_metadata(session, config, testdata, tmpdir, irods_env_f
                     "--metadata"], **pass_opts)
     assert ("some_key", "some_val") in ipath_collection.meta
 
-    ipath_collection.remove()
+    try:
+        ipath_collection.remove()
+    except FileNotFoundError:
+        pass
 
 
 def test_list_cli(config, pass_opts, irods_env_file, collection):
@@ -187,7 +196,10 @@ def test_search_cli(session, config, pass_opts, irods_env_file, testdata, search
         assert nlines == 0
     else:
         assert len([x for x in stripped_str.split("\n") if not x.startswith("Your iRODS")]) == nlines
-    ipath_coll.remove()
+    try:
+        ipath_coll.remove()
+    except FileNotFoundError:
+        pass
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 def test_meta_cli(item_name, request, pass_opts):
