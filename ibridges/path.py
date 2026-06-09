@@ -180,13 +180,15 @@ class IrodsPath:
         """
         return self.absolute().parts[-1]
 
-    def remove(self, force: bool = False):
+    def remove(self, force: bool = False, missing_ok: bool = False):
         """Move the data behind an iRODS path to the trash folder.
 
         Parameters
         ----------
         force: bool
             delete the data directly and completely from the system.
+        missing_ok: bool
+            skip exception when path does not exist.
 
         Raises
         ------
@@ -208,7 +210,8 @@ class IrodsPath:
                 obj = self.session.irods_session.data_objects.get(str(self))
                 obj.unlink(force = force)
             else:
-                raise FileNotFoundError(f"{self} not found.")
+                if not missing_ok:
+                    raise FileNotFoundError(f"{self} not found.")
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
