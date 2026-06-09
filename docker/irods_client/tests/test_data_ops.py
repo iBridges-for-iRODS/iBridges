@@ -36,10 +36,7 @@ def _check_count(ops, nlist):
 
 def test_upload_download_dataset(session, testdata):
     ipath = IrodsPath(session, "~", "plant.rtf")
-    try:
-        ipath.remove()
-    except FileNotFoundError:
-        pass
+    ipath.remove(missing_ok=True)
     ops = upload(testdata/"plant.rtf", IrodsPath(session, "~"))
     _check_count(ops, [0, 0, 0, 1])
     data_obj = ipath.dataobject
@@ -86,19 +83,13 @@ def test_upload_download_dataset(session, testdata):
         handle.write("test".encode())
     ops = download(ipath, lpath, overwrite=True)
     assert len(ops.download) == 1
-    try:
-        ipath.remove()
-    except FileNotFoundError:
-        pass
+    ipath.remove(missing_ok=True)
     lpath.unlink()
 
 
 def test_upload_download_collection(session, testdata, tmpdir):
     ipath = IrodsPath(session, "~", "test")
-    try:
-        ipath.remove()
-    except FileNotFoundError:
-        pass
+    ipath.remove(missing_ok=True)
     ops = upload(testdata, ipath)
     _check_count(ops, [3, 0, 0, 6])
     collection = ipath.collection
@@ -113,10 +104,7 @@ def test_upload_download_collection(session, testdata, tmpdir):
     ops = upload(testdata, ipath, on_error="skip")
     _check_count(ops, [0, 0, 0, 0])
     bunny_ipath = (ipath / "testdata" / "bunny.rtf")
-    try:
-        bunny_ipath.remove()
-    except FileNotFoundError:
-        pass
+    bunny_ipath.remove(missing_ok=True)
     ops = upload(testdata, ipath, overwrite=True)
     ops.print_summary()
     _check_count(ops, [0, 0, 0, 1])
@@ -155,18 +143,11 @@ def test_upload_download_collection(session, testdata, tmpdir):
     _check_count(ops, [0, 0, 1, 0])
     ops = download(ipath, tmpdir/"test", overwrite='warn')
     _check_count(ops, [0, 0, 1, 0])
-    try:
-        ipath.remove()
-    except FileNotFoundError:
-        pass
-
+    ipath.remove(missing_ok=True)
 
 def test_meta_archive(session, testdata, tmpdir):
     ipath = IrodsPath(session, "test")
-    try:
-        ipath.remove()
-    except FileNotFoundError:
-        pass
+    ipath.remove(missing_ok=True)
     sync(testdata, ipath)
     assert len(list(ipath.meta)) == 0
     meta_list = [
