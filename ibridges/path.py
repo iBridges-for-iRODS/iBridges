@@ -211,7 +211,7 @@ class IrodsPath:
                 obj.unlink(force = force)
             else:
                 if not missing_ok:
-                    raise DoesNotExist(f"{self} does not exist.")
+                    raise DoesNotExistError(f"{self} does not exist.")
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
