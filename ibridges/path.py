@@ -8,6 +8,8 @@ from typing import Iterable, Optional, Union
 
 import irods
 from irods.models import DataObject
+from irods.exception import DoesNotExist
+from irods.exception import DoesNotExist
 
 import ibridges.icat_columns as icat
 from ibridges.exception import (
@@ -194,7 +196,7 @@ class IrodsPath:
         ------
         PermissionError:
             If the user has insufficient permission to remove the data.
-        FileNotFoundError;
+        DoesNotExist:
             Data object or collection does not exist.
 
         Examples
@@ -211,7 +213,7 @@ class IrodsPath:
                 obj.unlink(force = force)
             else:
                 if not missing_ok:
-                    raise FileNotFoundError(f"{self} not found.")
+                    raise DoesNotExist(f"{self} does not exist.")
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 
