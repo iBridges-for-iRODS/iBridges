@@ -8,8 +8,6 @@ from typing import Iterable, Optional, Union
 
 import irods
 from irods.models import DataObject
-from irods.exception import DoesNotExist
-from irods.exception import DoesNotExist
 
 import ibridges.icat_columns as icat
 from ibridges.exception import (
