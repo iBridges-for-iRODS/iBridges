@@ -55,7 +55,7 @@ class CliRm(BaseCliCommand):
 
     autocomplete = ["remote_path"]
     names = ["rm", "remove", "del"]
-    description = "Remove collection or data object."
+    description = "Move collection or data object to trash. Delete fully with -f."
     examples = ["irods:~/test.txt", "-r irods:~/test_collection"]
 
     @classmethod
@@ -71,6 +71,12 @@ class CliRm(BaseCliCommand):
             help="Remove collections and their content recursively.",
             action="store_true",
         )
+        parser.add_argument(
+            "-f",
+            "--force",
+            help="Immediate removal of data objects without putting them in trash.",
+            action="store_true",
+        )
         return parser
 
     @staticmethod
@@ -78,14 +84,16 @@ class CliRm(BaseCliCommand):
         """Remove a data object or collection."""
         ipath = parse_remote(args.remote_path, session)
         if ipath.dataobject_exists():
-            ipath.remove()
+            ipath.remove(force = args.force)
         elif ipath.collection_exists():
             if args.recursive:
-                ipath.remove()
+                ipath.remove(force = args.force)
             else:
                 parser.error(
                     f"Cannot remove {ipath}: is a collection. Use -r to remove collections."
                 )
+        else:
+            print(f"{ipath} not found.")
 
 
 def _get_metadata_path(
