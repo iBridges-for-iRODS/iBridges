@@ -180,13 +180,22 @@ class IrodsPath:
         """
         return self.absolute().parts[-1]
 
-    def remove(self):
-        """Remove the data behind an iRODS path.
+    def remove(self, force: bool = False, missing_ok: bool = False):
+        """Move the data behind an iRODS path to the trash folder.
+
+        Parameters
+        ----------
+        force: bool
+            delete the data directly and completely from the system.
+        missing_ok: bool
+            skip exception when path does not exist.
 
         Raises
         ------
         PermissionError:
             If the user has insufficient permission to remove the data.
+        DoesNotExist:
+            Data object or collection does not exist.
 
         Examples
         --------
@@ -196,10 +205,13 @@ class IrodsPath:
         try:
             if self.collection_exists():
                 coll = self.session.irods_session.collections.get(str(self))
-                coll.remove()
+                coll.remove(force = force)
             elif self.dataobject_exists():
                 obj = self.session.irods_session.data_objects.get(str(self))
-                obj.unlink()
+                obj.unlink(force = force)
+            else:
+                if not missing_ok:
+                    raise DoesNotExistError(f"{self} does not exist.")
         except irods.exception.CUT_ACTION_PROCESSED_ERR as exc:
             raise PermissionError(f"While removing {self}: iRODS server forbids action.") from exc
 

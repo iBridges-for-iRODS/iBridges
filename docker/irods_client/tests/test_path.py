@@ -7,7 +7,7 @@ from ibridges.path import IrodsPath
 
 def test_path_open_error(session, collection):
     ipath = IrodsPath(session, "open_err_test.txt")
-    ipath.remove()
+    ipath.remove(missing_ok=True)
     coll_ipath = IrodsPath(session, collection.path)
 
     # Reading data objects that do no exist should raise an error.
@@ -24,12 +24,11 @@ def test_path_open_error(session, collection):
         with coll_ipath.open("r") as handle:
             handle.read()
 
-    ipath.remove()
-
+    ipath.remove(missing_ok=True)
 
 def test_path_open(session):
     ipath = IrodsPath(session, "open_test.txt")
-    ipath.remove()
+    ipath.remove(missing_ok=True)
 
     test_str_1 = "This is a test."
     test_str_2 = "\nAnother test."
