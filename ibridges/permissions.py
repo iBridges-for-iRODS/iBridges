@@ -9,6 +9,7 @@ import irods.session
 
 from ibridges import IrodsPath
 
+
 class Permissions:
     """Irods permissions operations.
 
@@ -47,7 +48,7 @@ class Permissions:
             names.append(_format_name(perm))
             zones.append(perm.user_zone)
             permissions.append(perm.access_name)
-        
+
         # add inheritance
         if hasattr(self.item, "inheritance"):
             #refetch collection to update attribute
@@ -55,7 +56,7 @@ class Permissions:
             names.append("")
             zones.append("")
             permissions.append("inheritance: " + str(path.collection.inheritance))
-            
+
         return _create_table(names, zones, permissions)
 
     @property
