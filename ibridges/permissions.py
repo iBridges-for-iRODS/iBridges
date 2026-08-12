@@ -51,7 +51,7 @@ class Permissions:
 
         # add inheritance
         if hasattr(self.item, "inheritance"):
-            #refetch collection to update attribute
+            # Fetch collection again to update attribute
             path = IrodsPath(self.session, self.item.path)
             names.append("")
             zones.append("")
