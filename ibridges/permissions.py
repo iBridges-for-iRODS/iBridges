@@ -7,7 +7,7 @@ import irods.collection
 import irods.exception
 import irods.session
 
-from ibridges import IrodsPath
+from ibridges.path import IrodsPath
 
 
 class Permissions:
