@@ -148,48 +148,47 @@ def executor_worker(queue, scheduler_queue, session_param):
         scheduler_queue.put({"msg_type": "finish", "id": op_id})
         i += 1
 
-def scheduler(queue, worker_queue, n_workers, dep_graph, operations):
-    finished_orders = set()
-    waiting_orders = defaultdict(list)
-    n_orders = 0
-    queue_finished = False
-    pbar = tqdm(
-        total=0,
-        unit="B",
-        unit_scale=True,
-        unit_divisor=1024,
-        # disable=disable,
-    )
-    while True:
-        
-        if queue_finished and len(finished_orders) == n_orders:
-            for i in range(n_workers):
-                worker_queue.put(None)
-            break
+# def scheduler(queue, worker_queue, n_workers, dep_graph, operations):
+#     finished_orders = set()
+#     waiting_orders = defaultdict(list)
+#     n_orders = 0
+#     queue_finished = False
+#     pbar = tqdm(
+#         total=0,
+#         unit="B",
+#         unit_scale=True,
+#         unit_divisor=1024,
+#         # disable=disable,
+#     )
+#     while True:
+#         if queue_finished and len(finished_orders) == n_orders:
+#             for i in range(n_workers):
+#                 worker_queue.put(None)
+#             break
 
-        order = queue.get()
-        if order is None:
-            queue_finished = True
-            continue
-        op_type = order["op_type"]
-        if op_type == "download":
-            n_orders += 1
-            size = order.get("size", 1)
-            pbar.total += size
-            pbar.refresh()
-            depends = order.get("depends", None)
-            if depends is None or depends in finished_orders:
-                worker_queue.put(order)
-            else:
-                waiting_orders[depends].append(order)
-        elif op_type == "finish":
-            op_id = order["id"]
-            finished_orders.add(op_id)
-            if op_id in waiting_orders:
-                for new_order in waiting_orders[op_id]:
-                    worker_queue.put(new_order)
-                del waiting_orders[op_id]
-        elif op_type == "progress":
-            pbar.update(order["value"])
-        else:
-            raise ValueError(f"Unknown operation type {op_type}")
+#         order = queue.get()
+#         if order is None:
+#             queue_finished = True
+#             continue
+#         op_type = order["op_type"]
+#         if op_type == "download":
+#             n_orders += 1
+#             size = order.get("size", 1)
+#             pbar.total += size
+#             pbar.refresh()
+#             depends = order.get("depends", None)
+#             if depends is None or depends in finished_orders:
+#                 worker_queue.put(order)
+#             else:
+#                 waiting_orders[depends].append(order)
+#         elif op_type == "finish":
+#             op_id = order["id"]
+#             finished_orders.add(op_id)
+#             if op_id in waiting_orders:
+#                 for new_order in waiting_orders[op_id]:
+#                     worker_queue.put(new_order)
+#                 del waiting_orders[op_id]
+#         elif op_type == "progress":
+#             pbar.update(order["value"])
+#         else:
+#             raise ValueError(f"Unknown operation type {op_type}")

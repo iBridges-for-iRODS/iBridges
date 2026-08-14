@@ -177,6 +177,7 @@ class CreateDirOperation():
     def size(self):
         return 1
 
+
 class CreateCollectionOperation():
     def __init__(self, ipath, exist_ok=True):
         self.ipath = ipath
@@ -242,9 +243,6 @@ class VirtualFileSystem():
         self.paths[str(path)].append((PathOperation.Needed, path_type, op_id))
         if self.last_mod[str(path)] != -1:
             return self.paths[str(path)][self.last_mod[str(path)]][2]
-        # for i_op in range(-2, -len(self.paths[str(path)]), -1):
-            # if self.paths[str(path)][i_op][0] == PathOperation.Create:
-                # return self.paths[str(path)][i_op][2]
         return None
 
     def delete_path(self, path, path_type, op_id):

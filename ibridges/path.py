@@ -74,7 +74,7 @@ class IrodsPath:
         # self._abs_path = None
         super().__init__()
 
-    def _absolute_str(self) -> IrodsPath:
+    def _absolute_str(self) -> str:
         """Return the absolute path.
 
         This method does the expansion of the '~' and '.' symbols.
@@ -93,8 +93,8 @@ class IrodsPath:
             # return self._abs_str
         # absolute path
         if len(self._path.parts) == 0:
-            return IrodsPath(self.session, self.session.cwd)
-        if self._path.parts[0] == "~":
+            begin, end = self.session.cwd, []
+        elif self._path.parts[0] == "~":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == ".":
             begin, end = self.session.cwd, self._path.parts[1:]
