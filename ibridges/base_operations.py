@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import warnings
+from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
 from enum import Enum
 from inspect import signature
@@ -13,6 +14,7 @@ import irods.data_object
 import irods.exception
 import irods.keywords as kw
 from irods.exception import CollectionDoesNotExist
+from irods.manager.data_object_manager import MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE
 from tqdm import tqdm
 from tqdm.std import tqdm as tqdm_type
 
@@ -27,7 +29,7 @@ from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import checksums_equal
 
-NUM_THREADS = 4
+# NUM_THREADS = 4
 
 
 class PathType(Enum):
@@ -69,8 +71,33 @@ def _transfer_needed(source: Union[IrodsPath, Path],
     return True
 
 
+class BaseOperation(ABC):
+    @abstractmethod
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        pass
 
-class DownloadOperation():
+    @abstractmethod
+    def execute(self, session, pbar):
+        pass
+
+    @abstractproperty
+    def header(self) -> str:
+        pass
+
+    @abstractproperty
+    def body(self) -> str:
+        pass
+
+    @abstractproperty
+    def size(self) -> int:
+        pass
+
+    def threads(self, max_threads: int) -> int:
+        if self.size > MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE:
+            return max_threads
+        return 1
+
+class DownloadOperation(BaseOperation):
     # name = "download"
 
     def __init__(self, ipath, lpath, overwrite=False, on_error="fail"):
@@ -93,8 +120,8 @@ class DownloadOperation():
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar):
-        _obj_get(session, self.ipath, self.lpath, pbar=pbar)
+    def execute(self, session, pbar, n_threads):
+        _obj_get(session, self.ipath, self.lpath, pbar=pbar, n_threads=n_threads)
 
     @property
     def header(self):
@@ -108,7 +135,8 @@ class DownloadOperation():
     def size(self):
         return self.ipath.size
 
-class UploadOperation():
+
+class UploadOperation(BaseOperation):
     # name = "upload"
 
     def __init__(self, lpath, ipath, overwrite=False, on_error="fail"):
@@ -129,8 +157,8 @@ class UploadOperation():
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar):
-        _obj_put(session, self.lpath, self.ipath, pbar=pbar)
+    def execute(self, session, pbar, n_threads):
+        _obj_put(session, self.lpath, self.ipath, pbar=pbar, n_threads=n_threads)
 
     @property
     def header(self):
@@ -144,7 +172,8 @@ class UploadOperation():
     def size(self):
         return self.lpath.stat().st_size
 
-class CreateDirOperation():
+
+class CreateDirOperation(BaseOperation):
     # name = "create"
     def __init__(self, lpath, exist_ok=True):
         self.lpath = lpath
@@ -161,7 +190,7 @@ class CreateDirOperation():
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar):
+    def execute(self, session, pbar, n_threads):
         self.lpath.mkdir()
         pbar.update(self.size)
 
@@ -178,7 +207,7 @@ class CreateDirOperation():
         return 1
 
 
-class CreateCollectionOperation():
+class CreateCollectionOperation(BaseOperation):
     def __init__(self, ipath, exist_ok=True):
         self.ipath = ipath
         self.exist_ok = True
@@ -197,7 +226,7 @@ class CreateCollectionOperation():
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar):
+    def execute(self, session, pbar, n_threads):
         self.ipath.create_collection()
         pbar.update(self.size)
 
@@ -336,6 +365,7 @@ def _obj_put(  # pylint: disable=too-many-branches
     options: Optional[dict] = None,
     on_error: str = "fail",
     pbar: Optional[tqdm_type] = None,
+    n_threads: int = 4
 ) -> int:
     """Upload `local_path` to `irods_path` following iRODS `options`.
 
@@ -383,7 +413,7 @@ def _obj_put(  # pylint: disable=too-many-branches
 
     if options is None:
         options = {}
-    options.update({kw.NUM_THREADS_KW: NUM_THREADS, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
+    options.update({kw.NUM_THREADS_KW: n_threads, kw.REG_CHKSUM_KW: "", kw.VERIFY_CHKSUM_KW: ""})
 
     if pbar is not None:
         upd_put = "updatables" in signature(session.irods_session.data_objects.put).parameters
@@ -456,6 +486,7 @@ def _obj_get(
     options: Optional[dict] = None,
     on_error: str = "fail",
     pbar: Optional[tqdm_type] = None,
+    n_threads: int = 4,
  ) -> int:
     # pylint: disable=W0718,R0915,R0912
     """Download `irods_path` to `local_path` following iRODS `options`.
@@ -489,7 +520,7 @@ def _obj_get(
         options = {}
     options.update(
         {
-            kw.NUM_THREADS_KW: NUM_THREADS,
+            kw.NUM_THREADS_KW: n_threads,
             kw.VERIFY_CHKSUM_KW: "",
         }
     )

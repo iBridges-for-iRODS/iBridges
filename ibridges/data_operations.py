@@ -49,6 +49,7 @@ def upload(
     metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
     n_workers: int = 4,
+    parallel_method: str = "thread"
 ) -> Operations:
     """Upload a local directory or file to iRODS.
 
@@ -110,7 +111,7 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    tm = TransferManager(session, n_workers=n_workers)
+    tm = TransferManager(session, n_workers=n_workers, parallel_method=parallel_method)
     # ops = Operations(session)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
@@ -157,8 +158,9 @@ def download(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path] = None,
+    # metadata: Union[None, str, Path] = None,
     progress_bar: bool = True,
+    **kwargs,
 ) -> Operations:
     """Download a collection or data object to the local filesystem.
 
@@ -222,7 +224,7 @@ def download(
     """
     session = irods_path.session
     local_path = Path(local_path)
-    tm = TransferManager(session)
+    tm = TransferManager(session, options=options, resc_name=resc_name, **kwargs)
     if irods_path.collection_exists():
         if local_path.is_file():
             raise NotADirectoryError(
@@ -260,6 +262,7 @@ def sync(
     options: Optional[dict] = None,
     metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
+    **kwargs,
 ) -> Operations:
     """Synchronize data between local and remote copies.
 
@@ -333,6 +336,7 @@ def sync(
     """
     _param_checks(source, target)
 
+
     if isinstance(source, IrodsPath):
         session = source.session
         if not source.collection_exists():
@@ -350,30 +354,33 @@ def sync(
     else:
         raise TypeError("Either source or target must be an IrodsPath")
 
+    tm = TransferManager(session, resc_name=resc_name, options=options, **kwargs)
+
+
     if isinstance(source, IrodsPath):
         if isinstance(metadata, dict):
             raise ValueError("Cannot use dictionary type for metadata download.")
         ops = _down_sync_operations(
-            source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
+            tm, source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
             overwrite=True
         )
-        if metadata is not None:
-            new_ops = create_meta_archive(source, metadata, dry_run=True)
-            ops.meta_download.extend(new_ops.meta_download)
+        # if metadata is not None:
+        #     new_ops = create_meta_archive(source, metadata, dry_run=True)
+        #     ops.meta_download.extend(new_ops.meta_download)
     else:
         ops = _up_sync_operations(
-            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
+            tm, Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
             depth=max_level, overwrite=True)
-        if metadata is not None:
-            add_meta_from_archive(metadata, IrodsPath(session, target), dry_run=True,
-                               ops=ops)
+        # if metadata is not None:
+        #     add_meta_from_archive(metadata, IrodsPath(session, target), dry_run=True,
+        #                        ops=ops)
 
-    ops.resc_name = resc_name
-    ops.options = options
+    # ops.resc_name = resc_name
+    # ops.options = options
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
+        tm.execute()
 
-    return ops
+    return tm
 
 
 def _param_checks(source, target):
@@ -424,7 +431,7 @@ def _down_sync_operations(
         isource_path: IrodsPath, ldest_path: Path,
         overwrite: bool,
         on_error: str = "fail",
-        copy_empty_folders: bool = True, depth: Optional[int] = None) -> Operations:
+        copy_empty_folders: bool = True, depth: Optional[int] = None) -> TransferManager:
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         tm.add(CreateDirOperation(lpath.parent))
@@ -441,7 +448,7 @@ def _up_sync_operations(
         lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
         overwrite: bool,
         copy_empty_folders: bool = True, depth: Optional[int] = None,
-        on_error: str = "fail") -> Operations:
+        on_error: str = "fail") -> TransferManager:
     # try:
     #     remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
     # except irods.exception.CollectionDoesNotExist:

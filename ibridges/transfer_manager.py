@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import queue
 import warnings
 from collections import defaultdict
 from enum import Enum
 from inspect import signature
 from multiprocessing import Process, Queue
 from pathlib import Path
+from threading import Thread
 from typing import TYPE_CHECKING, Optional, Union
 
 from tqdm import tqdm
@@ -19,7 +21,8 @@ NUM_THREADS = 4
 
 class TransferManager():
     def __init__(self, session: Session, resc_name: Optional[str] = None,
-                 options: Optional[dict] = None, n_workers: int = 8):
+                 options: Optional[dict] = None, n_workers: int = 8,
+                 threads_per_transfer: int = 4, parallel_method: str = "thread"):
         self.session = session
         self.local_vfs = VirtualFileSystem()
         self.remote_vfs = VirtualFileSystem()
@@ -29,6 +32,8 @@ class TransferManager():
         self.scheduler_queue = None
         self.n_skipped = defaultdict(lambda: 0)
         self.n_workers = n_workers
+        self.threads_per_transfer = threads_per_transfer
+        self.parallel_method=parallel_method
 
     def add(self, op):
         op_id = len(self.operations)
@@ -44,6 +49,8 @@ class TransferManager():
     def execute(self):
         if self.n_workers == 1:
             self.execute_singlethreaded()
+        elif self.parallel_method == "thread":
+            self.execute_multi()
         else:
             self.execute_multithreaded()
 
@@ -59,7 +66,7 @@ class TransferManager():
         while len(self.dep_graph):
             op_id = self.dep_graph.next_op()
             op = self.operations.pop(op_id)
-            op.execute(self.session, pbar)
+            op.execute(self.session, pbar, self.threads_per_transfer)
             self.dep_graph.finish_op(op_id)
 
     def execute_multithreaded(self):
@@ -77,17 +84,21 @@ class TransferManager():
         for _ in range(self.n_workers):
             self.worker_processes.append(
                 Process(target=executor_worker,
-                    args=(worker_queue, scheduler_queue, self.session.copy_param)))
+                    args=(worker_queue, scheduler_queue, self.session.copy_param, self.threads_per_transfer)))
             self.worker_processes[-1].start()
 
+        running_operations = {}
+        threads_used = 0
         while len(self.dep_graph) > 0:
             try:
-                while True:
+                while threads_used < self.n_workers:
                     op_id = self.dep_graph.next_op()
                     op = self.operations.pop(op_id)
+                    running_operations[op_id] = op
                     if hasattr(op, "ipath"):
                         op.ipath.session = None
                     worker_queue.put((op, op_id))
+                    threads_used += op.threads(self.threads_per_transfer)
             except IndexError:
                 pass
             dep_graph_updated = False
@@ -98,13 +109,66 @@ class TransferManager():
                 else:
                     self.dep_graph.finish_op(msg["id"])
                     dep_graph_updated = True
+                    op = running_operations.pop(msg["id"])
+                    threads_used -= op.threads(self.threads_per_transfer)
 
         for _ in range(self.n_workers):
             worker_queue.put(None)
 
         for worker in self.worker_processes:
             worker.join()
+        pbar.close()
 
+
+    def execute_multi(self):
+        worker_queue = queue.Queue()
+        scheduler_queue = queue.Queue()
+        total_size = sum(op.size for op in self.operations.values())
+        pbar = tqdm(
+            total=total_size,
+            unit="B",
+            unit_scale=True,
+            unit_divisor=1024,
+            # disable=disable,
+        )
+        self.worker_threads = []
+        for _ in range(self.n_workers):
+            self.worker_threads.append(
+                Thread(target=executor_worker_thread,
+                    args=(worker_queue, scheduler_queue, self.session, self.threads_per_transfer)))
+            self.worker_threads[-1].start()
+
+        running_operations = {}
+        threads_used = 0
+        while len(self.dep_graph) > 0:
+            try:
+                while threads_used < self.n_workers:
+                    op_id = self.dep_graph.next_op()
+                    op = self.operations.pop(op_id)
+                    running_operations[op_id] = op
+                    if hasattr(op, "ipath"):
+                        op.ipath.session = None
+                    worker_queue.put((op, op_id))
+                    threads_used += op.threads(self.threads_per_transfer)
+            except IndexError:
+                pass
+            dep_graph_updated = False
+            while not dep_graph_updated:
+                msg = scheduler_queue.get()
+                if msg["msg_type"] == "progress":
+                    pbar.update(msg["value"])
+                else:
+                    self.dep_graph.finish_op(msg["id"])
+                    dep_graph_updated = True
+                    op = running_operations.pop(msg["id"])
+                    threads_used -= op.threads(self.threads_per_transfer)
+
+        for _ in range(self.n_workers):
+            worker_queue.put(None)
+
+        for worker in self.worker_threads:
+            worker.join()
+        pbar.close()
 
     def print_summary(self):
         op_dict = defaultdict(list)
@@ -132,7 +196,10 @@ class PBar():
         self.queue.put({"msg_type": "progress", "value": value})
 
 
-def executor_worker(queue, scheduler_queue, session_param):
+def executor_worker(queue, scheduler_queue, session_param, n_threads):
+    import numpy as np
+    worker_id = np.random.randint(0, 1000)
+    
     session = session_param[0](*session_param[1:])
     i=0
     pbar = PBar(scheduler_queue)
@@ -144,51 +211,22 @@ def executor_worker(queue, scheduler_queue, session_param):
         op, op_id = order
         if hasattr(op, "ipath"):
             op.ipath.session = session
-        op.execute(session, pbar=pbar)
+        op.execute(session, pbar=pbar, n_threads=n_threads)
         scheduler_queue.put({"msg_type": "finish", "id": op_id})
         i += 1
 
-# def scheduler(queue, worker_queue, n_workers, dep_graph, operations):
-#     finished_orders = set()
-#     waiting_orders = defaultdict(list)
-#     n_orders = 0
-#     queue_finished = False
-#     pbar = tqdm(
-#         total=0,
-#         unit="B",
-#         unit_scale=True,
-#         unit_divisor=1024,
-#         # disable=disable,
-#     )
-#     while True:
-#         if queue_finished and len(finished_orders) == n_orders:
-#             for i in range(n_workers):
-#                 worker_queue.put(None)
-#             break
-
-#         order = queue.get()
-#         if order is None:
-#             queue_finished = True
-#             continue
-#         op_type = order["op_type"]
-#         if op_type == "download":
-#             n_orders += 1
-#             size = order.get("size", 1)
-#             pbar.total += size
-#             pbar.refresh()
-#             depends = order.get("depends", None)
-#             if depends is None or depends in finished_orders:
-#                 worker_queue.put(order)
-#             else:
-#                 waiting_orders[depends].append(order)
-#         elif op_type == "finish":
-#             op_id = order["id"]
-#             finished_orders.add(op_id)
-#             if op_id in waiting_orders:
-#                 for new_order in waiting_orders[op_id]:
-#                     worker_queue.put(new_order)
-#                 del waiting_orders[op_id]
-#         elif op_type == "progress":
-#             pbar.update(order["value"])
-#         else:
-#             raise ValueError(f"Unknown operation type {op_type}")
+def executor_worker_thread(queue, scheduler_queue, session, n_threads):
+    import numpy as np
+    worker_id = np.random.randint(0, 1000)
+    i=0
+    pbar = PBar(scheduler_queue)
+    while True:
+        order = queue.get()
+        if order is None:
+            break
+        op, op_id = order
+        if hasattr(op, "ipath"):
+            op.ipath.session = session
+        op.execute(session, pbar=pbar, n_threads=n_threads)
+        scheduler_queue.put({"msg_type": "finish", "id": op_id})
+        i += 1
