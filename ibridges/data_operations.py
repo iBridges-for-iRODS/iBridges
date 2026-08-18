@@ -46,7 +46,6 @@ def upload(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
     n_workers: int = 4,
     parallel_method: str = "thread"
@@ -112,38 +111,14 @@ def upload(
     local_path = Path(local_path)
     session = irods_path.session
     tm = TransferManager(session, n_workers=n_workers, parallel_method=parallel_method)
-    # ops = Operations(session)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
-        # if 
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         _up_sync_operations(
             tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, on_error=on_error
         )
-        # if not idest_path.collection_exists():
-            # .add_create_coll(idest_path)
-        # if not irods_path.collection_exists():
-            # ops.add_create_coll(irods_path)
-    # elif local_path.is_file():
-        # idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
-        # obj_exists = idest_path.dataobject_exists()
-        # if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
-            # ops.add_upload(local_path, idest_path)
-        # else:
-            # ops.upload_unchanged += 1
-
-    # elif local_path.is_symlink():
-        # raise FileNotFoundError(
-            # f"Cannot upload symbolic link {local_path}, please supply a direct path."
-        # )
-    # else:
-        # raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
-    # ops.resc_name = resc_name
-    # ops.options = options
-    # if metadata is not None:
-        # add_meta_from_archive(metadata, idest_path, dry_run=True, ops=ops)
     if not dry_run:
         tm.execute(session)#, on_error=on_error, progress_bar=progress_bar)
     return tm

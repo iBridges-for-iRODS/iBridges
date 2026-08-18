@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import json
 import warnings
+from collections import defaultdict
 from inspect import signature
 from pathlib import Path
-from typing import Optional, Union, TYPE_CHECKING
-from collections import defaultdict
+from typing import TYPE_CHECKING, Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -321,7 +321,6 @@ class Operations():  # pylint: disable=too-many-instance-attributes
                 meta_dict["items"].append(new_metadata)
             with open(meta_fp, "w", encoding="utf-8") as handle:
                 json.dump(meta_dict, handle, indent=4)
-
 
         return len(self.meta_download)
 

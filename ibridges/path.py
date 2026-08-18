@@ -336,7 +336,6 @@ class IrodsPath:
         True
 
         """
-        # print("coll exist", str(self))
         return self.session.irods_session.collections.exists(str(self))
 
     def dataobject_exists(self) -> bool:
@@ -352,8 +351,6 @@ class IrodsPath:
         True
 
         """
-        # print("dataobj exist", str(self))
-        # assert False, str(self)
         return self.session.irods_session.data_objects.exists(str(self))
 
     def exists(self) -> bool:
@@ -369,7 +366,6 @@ class IrodsPath:
         True
 
         """
-        # print("exist", str(self))
         return self.dataobject_exists() or self.collection_exists()
 
     @property
@@ -424,7 +420,9 @@ class IrodsPath:
 
         """
         if self.dataobject_exists():
-            return self.session.irods_session.data_objects.get(str(self))
+            self_str = str(self)
+            data_obj = self.session.irods_session.data_objects.get(self_str)
+            return data_obj
         if self.collection_exists():
             raise NotADataObjectError(
                 "Error retrieving data object, path is linked to a collection."
@@ -698,7 +696,6 @@ class CachedIrodsPath(IrodsPath):
         return not self._is_dataobj
 
     def __str__(self) -> str:
-        print("hello!!")
         if self._path_str is None:
             self._path_str = super().__str__()
         return self._path_str

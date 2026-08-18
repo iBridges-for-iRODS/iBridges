@@ -4,7 +4,7 @@ import json
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
-from enum import Enum
+from enum import Enum, IntFlag
 from inspect import signature
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Union
@@ -32,9 +32,12 @@ from ibridges.util import checksums_equal
 # NUM_THREADS = 4
 
 
-class PathType(Enum):
+class PathType(IntFlag):
     FILE = 1
     DIR = 2
+    ANY = 3
+    MISSING = 4
+
 
 class SkipOperation(ValueError):
     pass
@@ -242,6 +245,46 @@ class CreateCollectionOperation(BaseOperation):
     def size(self):
         return 1
 
+
+class UploadMetadataOperation(BaseOperation):
+    def __init__(self, meta_fp, base_path, ipath):
+        self.meta_fp = meta_fp
+        self.base_path = base_path
+        self.ipath = ipath
+
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        dep = vfs_remote.need_path(self.ipath)
+        return [] if dep is None else [dep]
+
+    def execute(self, session, pbar, threads):
+        pass
+
+
+class DownloadMetadataOperation(BaseOperation):
+    def __init__(self, ipath):
+        self.ipath = ipath
+
+    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+        dep = vfs_remote.need_path(self.ipath, PathType.ANY, op_id)
+        return [] if dep is None else [dep]
+
+    def execute(self, session, pbar, n_threads):
+        self.ipath.meta.to_dict()
+        pbar.update(self.size)
+
+    @property
+    def header(self):
+        return "Download metadata"
+
+    @property
+    def body(self):
+        return str(self.ipath)
+
+    @property
+    def size(self):
+        return 1
+
+
 class PathOperation(Enum):
     Exists = 1
     Missing = 2
@@ -258,7 +301,7 @@ class VirtualFileSystem():
     def create_path(self, path, path_type, op_id, checksum=None):
         if self.exists(path):
             raise ValueError(f"Path {path} already exists.")
-        elif self.path_type(path) is not None:
+        elif self.path_type(path) & PathType.ANY:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append((PathOperation.Create, path_type, op_id))
         self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
@@ -267,7 +310,7 @@ class VirtualFileSystem():
     def need_path(self, path, path_type, op_id):
         if not self.exists(path):
             raise ValueError(f"Need path {path}, but path doesn't exist yet.")
-        elif self.path_type(path) != path_type:
+        elif (self.path_type(path) & path_type) == 0:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append((PathOperation.Needed, path_type, op_id))
         if self.last_mod[str(path)] != -1:
@@ -312,14 +355,14 @@ class VirtualFileSystem():
             elif path.collection_exists():
                 return PathType.DIR
             else:
-                return None
+                return PathType.MISSING
         else:
             if path.is_file():
                 return PathType.FILE
             elif path.is_dir():
                 return PathType.DIR
             else:
-                return None
+                return PathType.MISSING
 
     def print_all(self):
         for path, status in self.paths.items():

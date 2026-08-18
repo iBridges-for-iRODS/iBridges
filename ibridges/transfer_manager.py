@@ -137,7 +137,6 @@ class TransferManager():
                 Thread(target=executor_worker_thread,
                     args=(worker_queue, scheduler_queue, self.session, self.threads_per_transfer)))
             self.worker_threads[-1].start()
-
         running_operations = {}
         threads_used = 0
         while len(self.dep_graph) > 0:
@@ -227,6 +226,8 @@ def executor_worker_thread(queue, scheduler_queue, session, n_threads):
         op, op_id = order
         if hasattr(op, "ipath"):
             op.ipath.session = session
+        # print(worker_id, op_id, "start execution")
         op.execute(session, pbar=pbar, n_threads=n_threads)
-        scheduler_queue.put({"msg_type": "finish", "id": op_id})
+        # print(worker_id, op_id, "Finished execution")
+        scheduler_queue.put({"msg_type": "finish", "id": op_id}, block=False)
         i += 1
