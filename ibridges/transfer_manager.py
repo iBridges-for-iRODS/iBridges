@@ -1,15 +1,10 @@
 from __future__ import annotations
 
-import json
 import queue
-import warnings
 from collections import defaultdict
-from enum import Enum
-from inspect import signature
 from multiprocessing import Process, Queue
-from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING, Optional, Union
+from typing import Optional
 
 from tqdm import tqdm
 
@@ -20,6 +15,8 @@ NUM_THREADS = 4
 
 
 class TransferManager():
+    """Manager for transfers that has multithreading capabilities."""
+
     def __init__(self, session: Session, resc_name: Optional[str] = None,
                  options: Optional[dict] = None, n_workers: int = 8,
                  threads_per_transfer: int = 4, parallel_method: str = "thread"):
@@ -50,9 +47,11 @@ class TransferManager():
         if self.n_workers == 1:
             self.execute_singlethreaded()
         elif self.parallel_method == "thread":
-            self.execute_multi()
+            self.execute_multithreading()
+        elif self.parallel_method == "process":
+            self.execute_multiprocess()
         else:
-            self.execute_multithreaded()
+            raise ValueError(f"Unknown method of execution: {self.parallel_method}")
 
     def execute_singlethreaded(self):
         total_size = sum(op.size for op in self.operations.values())
@@ -69,7 +68,7 @@ class TransferManager():
             op.execute(self.session, pbar, self.threads_per_transfer)
             self.dep_graph.finish_op(op_id)
 
-    def execute_multithreaded(self):
+    def execute_multiprocess(self):
         worker_queue = Queue()
         scheduler_queue = Queue()
         total_size = sum(op.size for op in self.operations.values())
@@ -120,7 +119,7 @@ class TransferManager():
         pbar.close()
 
 
-    def execute_multi(self):
+    def execute_multithreading(self):
         worker_queue = queue.Queue()
         scheduler_queue = queue.Queue()
         total_size = sum(op.size for op in self.operations.values())
@@ -196,9 +195,6 @@ class PBar():
 
 
 def executor_worker(queue, scheduler_queue, session_param, n_threads):
-    import numpy as np
-    worker_id = np.random.randint(0, 1000)
-    
     session = session_param[0](*session_param[1:])
     i=0
     pbar = PBar(scheduler_queue)
@@ -215,8 +211,6 @@ def executor_worker(queue, scheduler_queue, session_param, n_threads):
         i += 1
 
 def executor_worker_thread(queue, scheduler_queue, session, n_threads):
-    import numpy as np
-    worker_id = np.random.randint(0, 1000)
     i=0
     pbar = PBar(scheduler_queue)
     while True:
@@ -226,8 +220,6 @@ def executor_worker_thread(queue, scheduler_queue, session, n_threads):
         op, op_id = order
         if hasattr(op, "ipath"):
             op.ipath.session = session
-        # print(worker_id, op_id, "start execution")
         op.execute(session, pbar=pbar, n_threads=n_threads)
-        # print(worker_id, op_id, "Finished execution")
         scheduler_queue.put({"msg_type": "finish", "id": op_id}, block=False)
         i += 1
