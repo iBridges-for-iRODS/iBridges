@@ -11,8 +11,6 @@ from tqdm import tqdm
 from ibridges.base_operations import DependencyGraph, SkipOperation, VirtualFileSystem
 from ibridges.session import Session
 
-NUM_THREADS = 4
-
 
 class TransferManager():
     """Manager for transfers that has multithreading capabilities."""
