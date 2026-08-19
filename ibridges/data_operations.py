@@ -29,7 +29,6 @@ from ibridges.exception import (
     DoesNotExistError,
     NotACollectionError,
 )
-from ibridges.executor import Operations
 from ibridges.path import CachedIrodsPath, IrodsPath
 from ibridges.transfer_manager import TransferManager
 from ibridges.util import checksums_equal
@@ -49,7 +48,7 @@ def upload(
     progress_bar: bool = True,
     n_workers: int = 4,
     parallel_method: str = "thread"
-) -> Operations:
+) -> TransferManager:
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -136,7 +135,7 @@ def download(
     # metadata: Union[None, str, Path] = None,
     progress_bar: bool = True,
     **kwargs,
-) -> Operations:
+) -> TransferManager:
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -238,7 +237,7 @@ def sync(
     metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
     **kwargs,
-) -> Operations:
+) -> TransferManager:
     """Synchronize data between local and remote copies.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
@@ -532,7 +531,7 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path, None],
 
 
 def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
-                          dry_run: bool = False) -> Operations:
+                          dry_run: bool = False) -> list[tuple[IrodsPath, dict]]:
     """Add metadata for collections and data objects from a metadata archive file.
 
     The currently supported format for the archive is a utf-8 encoded JSON file with the metadata

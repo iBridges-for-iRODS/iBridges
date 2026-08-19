@@ -5,6 +5,7 @@ import importlib.metadata
 import sys
 from importlib.metadata import version
 
+import ibridges
 from ibridges.cli.other import CLI_BULTIN_COMMANDS
 from ibridges.cli.shell import get_all_shell_commands
 
@@ -137,6 +138,8 @@ def create_parser():
     formatter.parser = main_parser
     main_parser.formatter_class = lambda prog: formatter
 
+    main_parser.add_argument("--version", help="Print the version of ibridges", action="store_true")
+
     subparsers = main_parser.add_subparsers(dest="subcommand")
 
     # Add commands from classes
@@ -154,6 +157,9 @@ def main():
         parser.print_help()
         return
     args = parser.parse_args(sys.argv[1:])
+    if args.version:
+        print(ibridges.__version__)
+        return
     args.func(args)
 
 
