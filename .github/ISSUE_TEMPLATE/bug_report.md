@@ -31,6 +31,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Provide some information:**
+ - iBridges version `import ibridges; ibridges.__version__`: 
  - OS: [e.g. iOS]
  - Software version or branch you are working on
  - python version
