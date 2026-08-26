@@ -13,10 +13,6 @@ import warnings
 from pathlib import Path
 from typing import Optional, Union
 
-import irods.collection
-import irods.data_object
-import irods.exception
-
 from ibridges.base_operations import (
     CreateCollectionOperation,
     CreateDirOperation,
@@ -29,11 +25,9 @@ from ibridges.exception import (
     DoesNotExistError,
     NotACollectionError,
 )
-from ibridges.path import CachedIrodsPath, IrodsPath
+from ibridges.path import IrodsPath
 from ibridges.transfer_manager import TransferManager
 from ibridges.util import checksums_equal
-
-NUM_THREADS = 4
 
 
 def upload(
@@ -46,8 +40,7 @@ def upload(
     options: Optional[dict] = None,
     dry_run: bool = False,
     progress_bar: bool = True,
-    n_workers: int = 4,
-    parallel_method: str = "thread"
+    **kwargs,
 ) -> TransferManager:
     """Upload a local directory or file to iRODS.
 
@@ -74,10 +67,12 @@ def upload(
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
-    metadata:
-        If not None, it should point to a file that contains the metadata for the upload.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Returns
     -------
@@ -109,7 +104,7 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    tm = TransferManager(session, n_workers=n_workers, parallel_method=parallel_method)
+    tm = TransferManager(session, resc_name=resc_name, options=options, **kwargs)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
@@ -132,7 +127,6 @@ def download(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    # metadata: Union[None, str, Path] = None,
     progress_bar: bool = True,
     **kwargs,
 ) -> TransferManager:
@@ -161,11 +155,12 @@ def download(
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
-    metadata:
-        If not None, the path to store the metadata to in JSON format.
-        It is recommended to use the .json suffix.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Returns
     -------
@@ -234,7 +229,6 @@ def sync(
     copy_empty_folders: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
-    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
     **kwargs,
 ) -> TransferManager:
@@ -281,10 +275,12 @@ def sync(
         Python-irodsclient options found in ``irods.keywords``. The following keywords will be
         ignored since they are set by iBridges:
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
-    metadata:
-        If not None, the location to get the metadata from or store it to.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Raises
     ------
@@ -332,15 +328,10 @@ def sync(
 
 
     if isinstance(source, IrodsPath):
-        if isinstance(metadata, dict):
-            raise ValueError("Cannot use dictionary type for metadata download.")
         _down_sync_operations(
             tm, source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
             overwrite=True
         )
-        # if metadata is not None:
-        #     new_ops = create_meta_archive(source, metadata, dry_run=True)
-        #     ops.meta_download.extend(new_ops.meta_download)
     else:
         _up_sync_operations(
             tm, Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
@@ -417,17 +408,11 @@ def _up_sync_operations(
         overwrite: bool,
         copy_empty_folders: bool = True, depth: Optional[int] = None,
         on_error: str = "fail") -> TransferManager:
-    # try:
-    #     remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
-    # except irods.exception.CollectionDoesNotExist:
-    #     remote_ipaths = {}
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
             continue
         source = idest_path.joinpath(*root_part.parts)
-        # print(source, folders, files)
-        # if str(source) not in remote_ipaths:
         tm.add(CreateCollectionOperation(source))
         if copy_empty_folders:
             for fold in folders:

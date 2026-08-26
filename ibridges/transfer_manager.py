@@ -1,3 +1,4 @@
+"""Transfer manager module that enables single and multithreaded/multiprocessing."""
 from __future__ import annotations
 
 import queue
@@ -8,7 +9,12 @@ from typing import Optional
 
 from tqdm import tqdm
 
-from ibridges.base_operations import DependencyGraph, SkipOperation, VirtualFileSystem
+from ibridges.base_operations import (
+    BaseOperation,
+    DependencyGraph,
+    SkipOperation,
+    VirtualFileSystem,
+)
 from ibridges.session import Session
 
 
@@ -18,6 +24,27 @@ class TransferManager():
     def __init__(self, session: Session, resc_name: Optional[str] = None,
                  options: Optional[dict] = None, n_workers: int = 8,
                  threads_per_transfer: int = 4, parallel_method: str = "thread"):
+        """Initialize the transfer manager.
+
+        Parameters
+        ----------
+        session
+            The session to use for the operations.
+        resc_name
+            Resource name for the transfers, by default None
+        options
+            Options to be used for the transfers, by default None
+        n_workers
+            Number of total threads/processes to use, by default 8.
+            Can be slightly higher in practice.
+        threads_per_transfer
+            Maximum number of threads used per transfer, by default 4
+        parallel_method
+            Whether to use threads ("thread") or processes ("process"), by default "thread".
+            The advantage of using threads is that the current session can be used, while the
+            process method will start up as many sessions as workers.
+
+        """
         self.session = session
         self.local_vfs = VirtualFileSystem()
         self.remote_vfs = VirtualFileSystem()
@@ -30,7 +57,15 @@ class TransferManager():
         self.threads_per_transfer = threads_per_transfer
         self.parallel_method=parallel_method
 
-    def add(self, op):
+    def add(self, op: BaseOperation):
+        """Add an operation to the queue or skip the operation.
+
+        Parameters
+        ----------
+        op
+            Operation to be added to the dependency graph.
+
+        """
         op_id = len(self.operations)
         try:
             deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, op_id)
@@ -42,6 +77,7 @@ class TransferManager():
         self.operations[op_id] = op
 
     def execute(self):
+        """Execute all operations."""
         if self.n_workers == 1:
             self.execute_singlethreaded()
         elif self.parallel_method == "thread":
@@ -52,6 +88,7 @@ class TransferManager():
             raise ValueError(f"Unknown method of execution: {self.parallel_method}")
 
     def execute_singlethreaded(self):
+        """Execute all operations single threaded."""
         total_size = sum(op.size for op in self.operations.values())
         pbar = tqdm(
             total=total_size,
@@ -67,6 +104,7 @@ class TransferManager():
             self.dep_graph.finish_op(op_id)
 
     def execute_multiprocess(self):
+        """Execute all operations using multiprocessing."""
         worker_queue = Queue()
         scheduler_queue = Queue()
         total_size = sum(op.size for op in self.operations.values())
@@ -80,8 +118,9 @@ class TransferManager():
         self.worker_processes = []
         for _ in range(self.n_workers):
             self.worker_processes.append(
-                Process(target=executor_worker,
-                    args=(worker_queue, scheduler_queue, self.session.copy_param, self.threads_per_transfer)))
+                Process(target=_executor_worker_process,
+                    args=(worker_queue, scheduler_queue, self.session.copy_param,
+                          self.threads_per_transfer)))
             self.worker_processes[-1].start()
 
         running_operations = {}
@@ -118,6 +157,7 @@ class TransferManager():
 
 
     def execute_multithreading(self):
+        """Execute all operations using multithreading."""
         worker_queue = queue.Queue()
         scheduler_queue = queue.Queue()
         total_size = sum(op.size for op in self.operations.values())
@@ -131,7 +171,7 @@ class TransferManager():
         self.worker_threads = []
         for _ in range(self.n_workers):
             self.worker_threads.append(
-                Thread(target=executor_worker_thread,
+                Thread(target=_executor_worker_thread,
                     args=(worker_queue, scheduler_queue, self.session, self.threads_per_transfer)))
             self.worker_threads[-1].start()
         running_operations = {}
@@ -167,6 +207,7 @@ class TransferManager():
         pbar.close()
 
     def print_summary(self):
+        """Print a summary of all operations to be executed."""
         op_dict = defaultdict(list)
         for op in self.operations.values():
             op_dict[op.header].append(op)
@@ -185,19 +226,32 @@ class TransferManager():
 
 
 class PBar():
-    def __init__(self, queue):
-        self.queue = queue
+    """Multithreading/processing progress bar that uses a queue to pass the message."""
 
-    def update(self, value):
+    def __init__(self, update_queue):
+        """Initialize progress bar and connect to the queue."""
+        self.queue = update_queue
+
+    def update(self, value: int):
+        """Update the progress bar by that many ticks/bytes.
+
+        Parameters
+        ----------
+        value:
+            Number of bytes that has been processed.
+
+        """
         self.queue.put({"msg_type": "progress", "value": value})
 
 
-def executor_worker(queue, scheduler_queue, session_param, n_threads):
+def _executor_worker_process(job_queue: Queue, scheduler_queue: Queue, session_param: list,
+                             n_threads: int):
+    """Worker for multiprocessing parallization."""
     session = session_param[0](*session_param[1:])
     i=0
     pbar = PBar(scheduler_queue)
     while True:
-        order = queue.get()
+        order = job_queue.get()
         if order is None:
             session.close()
             break
@@ -208,7 +262,9 @@ def executor_worker(queue, scheduler_queue, session_param, n_threads):
         scheduler_queue.put({"msg_type": "finish", "id": op_id})
         i += 1
 
-def executor_worker_thread(queue, scheduler_queue, session, n_threads):
+def _executor_worker_thread(job_queue: queue.Queue, scheduler_queue: queue.Queue, session: Session,
+                            n_threads: int):
+    """Worker for multithreading parallelization."""
     i=0
     pbar = PBar(scheduler_queue)
     while True:

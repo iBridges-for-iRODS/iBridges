@@ -1,13 +1,14 @@
+"""Basic operations used for parallel operation of the transfer manager."""
+
 from __future__ import annotations
 
-import json
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
 from enum import Enum, IntFlag
 from inspect import signature
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import NamedTuple, Optional, Union
 
 import irods.collection
 import irods.data_object
@@ -15,7 +16,6 @@ import irods.exception
 import irods.keywords as kw
 from irods.exception import CollectionDoesNotExist
 from irods.manager.data_object_manager import MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE
-from tqdm import tqdm
 from tqdm.std import tqdm as tqdm_type
 
 from ibridges.exception import (
@@ -29,18 +29,22 @@ from ibridges.path import IrodsPath
 from ibridges.session import Session
 from ibridges.util import checksums_equal
 
-# NUM_THREADS = 4
-
 
 class PathType(IntFlag):
+    """Enum signifiying which type of path it is.
+
+    For iRODS, FILE -> data object and DIR -> collection.
+    """
+
+    MISSING = 0
     FILE = 1
     DIR = 2
-    ANY = 3
-    MISSING = 4
 
 
-class SkipOperation(ValueError):
-    pass
+
+class SkipOperation(ValueError):  # noqa: N818
+    """Signal that the operation has been skipped."""
+
 
 def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
@@ -73,37 +77,282 @@ def _transfer_needed(source: Union[IrodsPath, Path],
         return False
     return True
 
+class PathOperation(Enum):
+    """Type of operation or status of paths."""
+
+    Exists = 1
+    Missing = 2
+    Create = 3
+    Needed = 4
+    Delete = 5
+
+class PathUpdate(NamedTuple):
+    """Tuple that contains information on the virtual mutation of a path."""
+
+    operation: PathOperation
+    path_type: PathType
+    op_id: int
+
+class VirtualFileSystem():
+    """Class that keeps track of the future state of the file/data system."""
+
+    def __init__(self):
+        """Initialize the virtual file system without any files/directories present."""
+        self.paths: dict[str, list[PathUpdate]] = {}
+        self.last_mod: dict[str, int] = defaultdict(lambda: -1)
+
+    def create_path(self, path: str | IrodsPath | Path,
+                    path_type: PathType,
+                    op_id: int,
+                    checksum: str | None = None) -> int | None:
+        """Create a new path on the virtual file system.
+
+        Parameters
+        ----------
+        path:
+            Path to create.
+        path_type:
+            Type of path to create (PathType.DIR or PathType.FILE).
+        op_id:
+            Id of the operation that creates the path.
+        checksum:
+            Checksum of the created file/data object. None for directories and collections.
+
+        Raises
+        ------
+        ValueError: if the path already exists
+        ValueError: if the path_type is incompatible with the current path type
+
+        Returns
+        -------
+        op_id:
+            Id of the previous operation on the same path.
+
+        """
+        if self.exists(path):
+            raise ValueError(f"Path {path} already exists.")
+        elif self.path_type(path) & (PathType.FILE | PathType.DIR):
+            raise ValueError(f"Wrong path type for {path} (path_type)")
+        self.paths[str(path)].append(PathUpdate(PathOperation.Create, path_type, op_id))
+        self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
+        return self.paths[str(path)][-2].op_id
+
+    def need_path(self, path: str | IrodsPath | Path,
+                  path_type: PathType,
+                  op_id: int) -> int | None:
+        """Ensure that the path exist and put in a dependency.
+
+        Parameters
+        ----------
+        path:
+            Path that is required to exist.
+        path_type:
+            The type of path that it needs.
+        op_id:
+            ID of the operation that needs this path.
+
+        Returns
+        -------
+            Operation id of the last mutation to the path.
+
+        Raises
+        ------
+        ValueError
+            When the path doesn't exist.
+        ValueError
+            When the path type is wrong.
+
+        """
+        if not self.exists(path):
+            raise ValueError(f"Need path {path}, but path doesn't exist yet.")
+        elif (self.path_type(path) & path_type) == 0:
+            raise ValueError(f"Wrong path type for {path} (path_type)")
+        self.paths[str(path)].append(PathUpdate(PathOperation.Needed, path_type, op_id))
+        if self.last_mod[str(path)] != -1:
+            return self.paths[str(path)][self.last_mod[str(path)]].op_id
+        return None
+
+    def delete_path(self, path: str | IrodsPath | Path,
+                    path_type: PathType,
+                    op_id: int) -> int | None:
+        """Add a delete path operation.
+
+        Parameters
+        ----------
+        path
+            Path that would be deleted.
+        path_type
+            Type of the path that would be deleted.
+        op_id
+            Id of the operation that will delete the path.
+
+        Returns
+        -------
+            The ID of the operation that deleted the path.
+
+        Raises
+        ------
+        ValueError
+            If the path does not exist.
+        ValueError
+            If the path type is wrong.
+
+        """
+        if not self.exists(path):
+            raise ValueError(f"Cannot delete {path}, because it does not exist.")
+        elif self.path_type(path) != path_type:
+            raise ValueError(f"Wrong path type for {path} (path_type)")
+        self.paths[str(path)].append(PathUpdate(PathOperation.Delete, path_type, op_id))
+        return self.paths[str(path)][-2].op_id
+
+    def exists(self, path: str | Path | IrodsPath, allow_recurse: bool = True) -> bool:
+        """Check whether a path exists already (virtually).
+
+        Parameters
+        ----------
+        path
+            Path to check whether it exists.
+        allow_recurse
+            Allow checking of whether the parent exists, by default True
+
+        Returns
+        -------
+            Whether the path (virtually) exists.
+
+        """
+        if str(path) in self.paths:
+            last_op, _, _ = self.paths[str(path)][-1]
+            if last_op in [PathOperation.Missing, PathOperation.Delete]:
+                return False
+            else:
+                return True
+        else:
+            # Save a lot of time trying to find out which files exist by checking the
+            # parent directory first.
+            if allow_recurse:
+                self.exists(path.parent, allow_recurse=False)
+                # If the parent doesn't exist, then neither does the path itself
+                if self.paths[str(path.parent)][0].operation == PathOperation.Missing:
+                    self.paths[str(path)] = [PathUpdate(PathOperation.Missing, None, None)]
+                    return False
+            exists = path.exists()
+            if not exists:
+                self.paths[str(path)] = [PathUpdate(PathOperation.Missing, None, None)]
+                return False
+            else:
+                self.paths[str(path)] = [PathUpdate(PathOperation.Exists,
+                                                    self.path_type(path), None)]
+                return True
+
+    def path_type(self, path: str | IrodsPath | Path):
+        """Get the path type of a path from the vfs, or real system.
+
+        Parameters
+        ----------
+        path
+            Path to check the path type for.
+
+        Returns
+        -------
+            The path type of the path if it exists, otherwise return PathType.MISSING
+
+        """
+        if str(path) in self.paths:
+            return self.paths[str(path)][-1].path_type
+        if isinstance(path, IrodsPath):
+            if path.dataobject_exists():
+                return PathType.FILE
+            elif path.collection_exists():
+                return PathType.DIR
+            else:
+                return PathType.MISSING
+        else:
+            if path.is_file():
+                return PathType.FILE
+            elif path.is_dir():
+                return PathType.DIR
+            else:
+                return PathType.MISSING
+
+    def _print_all(self):
+        for path, status in self.paths.items():
+            print(f"{path}" + "  -> ".join(str(s) for s in status))
+
 
 class BaseOperation(ABC):
-    @abstractmethod
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
-        pass
+    """Abstract basic operation class for data transfers."""
 
     @abstractmethod
-    def execute(self, session, pbar):
-        pass
+    def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem,
+                   op_id: int) -> int | None:
+        """Virtually execute the operation and get the dependencies.
+
+        Parameters
+        ----------
+        vfs_local
+            Local virtual file system.
+        vfs_remote
+            iRODS virtual file system.
+        op_id
+            Id of the operation that is being added to the vfs.
+
+        Returns
+        -------
+            Dependency for executing the current operation if there is any, otherwise None.
+
+        """
+
+    @abstractmethod
+    def execute(self, session: Session, pbar):
+        """Execute the operation.
+
+        Parameters
+        ----------
+        session
+            Session to execute the operation with.
+        pbar
+            Progressbar that will be updated.
+
+        """
 
     @abstractproperty
     def header(self) -> str:
-        pass
+        """Short description of the kind of operation."""
+
 
     @abstractproperty
     def body(self) -> str:
-        pass
+        """String representation of the actual operation."""
 
     @abstractproperty
     def size(self) -> int:
-        pass
+        """Size of the operation."""
 
     def threads(self, max_threads: int) -> int:
+        """Get number of threads that will be used for the operation."""
         if self.size > MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE:
             return max_threads
         return 1
 
 class DownloadOperation(BaseOperation):
-    # name = "download"
+    """Operation to download data objects to a local file."""
 
-    def __init__(self, ipath, lpath, overwrite=False, on_error="fail"):
+    def __init__(self, ipath: IrodsPath, lpath: str | Path, overwrite: bool = False,
+                 on_error: str = "fail"):
+        """Initialize the download operation.
+
+        Parameters
+        ----------
+        ipath
+            Remote path to data object that is being downloaded.
+        lpath
+            Local path where the data is being stored.
+        overwrite
+            Whether to overwrite the local file, by default False
+        on_error
+            What to do when an error is thrown, by default "fail"
+
+        """
         self.ipath = ipath
         self.lpath = lpath
         self.overwrite = overwrite
@@ -140,15 +389,30 @@ class DownloadOperation(BaseOperation):
 
 
 class UploadOperation(BaseOperation):
-    # name = "upload"
+    """Operation to upload data from the local file system to the iRODS system."""
 
-    def __init__(self, lpath, ipath, overwrite=False, on_error="fail"):
+    def __init__(self, lpath: Path | str, ipath: IrodsPath, overwrite: bool = False,
+                 on_error: str = "fail"):
+        """Initialize upload operation.
+
+        Parameters
+        ----------
+        lpath
+            Local path where the data is located.
+        ipath
+            Remote path to data object where it is uploaded.
+        overwrite
+            Whether to overwrite the local file, by default False
+        on_error
+            What to do when an error is thrown, by default "fail"
+
+        """
         self.lpath = lpath
         self.ipath = ipath
         self.overwrite = overwrite
         self.on_error = on_error
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+    def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem, op_id: int):
         if vfs_remote.exists(self.ipath):
             if not _transfer_needed(
                     self.lpath, self.ipath, overwrite=self.overwrite, on_error=self.on_error):
@@ -160,7 +424,7 @@ class UploadOperation(BaseOperation):
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar, n_threads):
+    def execute(self, session: Session, pbar, n_threads: int):
         _obj_put(session, self.lpath, self.ipath, pbar=pbar, n_threads=n_threads)
 
     @property
@@ -177,12 +441,24 @@ class UploadOperation(BaseOperation):
 
 
 class CreateDirOperation(BaseOperation):
-    # name = "create"
-    def __init__(self, lpath, exist_ok=True):
+    """Operation to create a local directory."""
+
+    def __init__(self, lpath: str | Path, exist_ok: bool = True):
+        """Initialize create directory operation.
+
+        Parameters
+        ----------
+        lpath
+            Local path where to create the directory.
+        exist_ok
+            Whether it is okay if the directory already exists, by default True
+
+        """
         self.lpath = lpath
         self.exist_ok = exist_ok
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+    def add_to_vfs(self, vfs_local: VirtualFileSystem,
+                   vfs_remote: VirtualFileSystem, op_id: int) -> list[int]:
         if vfs_local.exists(self.lpath) and self.exist_ok:
             if vfs_local.path_type(self.lpath) != PathType.DIR:
                 raise NotADirectoryError(self.lpath)
@@ -211,11 +487,23 @@ class CreateDirOperation(BaseOperation):
 
 
 class CreateCollectionOperation(BaseOperation):
-    def __init__(self, ipath, exist_ok=True):
+    """Operation to create a collection on the remote iRODS system."""
+
+    def __init__(self, ipath: IrodsPath, exist_ok: bool = True):
+        """Initialize the create collection operation.
+
+        Parameters
+        ----------
+        ipath
+            IrodsPath where to create the collection.
+        exist_ok
+            Whether it is okay if the collection already exists, by default True
+
+        """
         self.ipath = ipath
         self.exist_ok = True
 
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
+    def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem, op_id: int):
         if vfs_remote.exists(self.ipath) and self.exist_ok:
             if vfs_remote.path_type(self.ipath) != PathType.DIR:
                 raise NotACollectionError(self.ipath)
@@ -246,148 +534,55 @@ class CreateCollectionOperation(BaseOperation):
         return 1
 
 
-class UploadMetadataOperation(BaseOperation):
-    def __init__(self, meta_fp, base_path, ipath):
-        self.meta_fp = meta_fp
-        self.base_path = base_path
-        self.ipath = ipath
-
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
-        dep = vfs_remote.need_path(self.ipath)
-        return [] if dep is None else [dep]
-
-    def execute(self, session, pbar, threads):
-        pass
-
-
-class DownloadMetadataOperation(BaseOperation):
-    def __init__(self, ipath):
-        self.ipath = ipath
-
-    def add_to_vfs(self, vfs_local, vfs_remote, op_id):
-        dep = vfs_remote.need_path(self.ipath, PathType.ANY, op_id)
-        return [] if dep is None else [dep]
-
-    def execute(self, session, pbar, n_threads):
-        self.ipath.meta.to_dict()
-        pbar.update(self.size)
-
-    @property
-    def header(self):
-        return "Download metadata"
-
-    @property
-    def body(self):
-        return str(self.ipath)
-
-    @property
-    def size(self):
-        return 1
-
-
-class PathOperation(Enum):
-    Exists = 1
-    Missing = 2
-    Create = 3
-    Needed = 4
-    Delete = 5
-
-
-class VirtualFileSystem():
-    def __init__(self):
-        self.paths = {}
-        self.last_mod = defaultdict(lambda: -1)
-
-    def create_path(self, path, path_type, op_id, checksum=None):
-        if self.exists(path):
-            raise ValueError(f"Path {path} already exists.")
-        elif self.path_type(path) & PathType.ANY:
-            raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append((PathOperation.Create, path_type, op_id))
-        self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
-        return self.paths[str(path)][-2][2]
-
-    def need_path(self, path, path_type, op_id):
-        if not self.exists(path):
-            raise ValueError(f"Need path {path}, but path doesn't exist yet.")
-        elif (self.path_type(path) & path_type) == 0:
-            raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append((PathOperation.Needed, path_type, op_id))
-        if self.last_mod[str(path)] != -1:
-            return self.paths[str(path)][self.last_mod[str(path)]][2]
-        return None
-
-    def delete_path(self, path, path_type, op_id):
-        if not self.exists(path):
-            raise ValueError(f"Cannot delete {path}, because it does not exist.")
-        elif self.path_type(path) != path_type:
-            raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append((PathOperation.Delete, path_type, op_id))
-        return self.paths[str(path)][-2][2]
-
-    def exists(self, path, allow_recurse=True):
-        if str(path) in self.paths:
-            last_op, _, _ = self.paths[str(path)][-1]
-            if last_op in [PathOperation.Missing, PathOperation.Delete]:
-                return False
-            else:
-                return True
-        else:
-            if allow_recurse:
-                self.exists(path.parent, allow_recurse=False)
-                if self.paths[str(path.parent)][0][0] == PathOperation.Missing:
-                    self.paths[str(path)] = [(PathOperation.Missing, None, None)]
-                    return False
-            exists = path.exists()
-            if not exists:
-                self.paths[str(path)] = [(PathOperation.Missing, None, None)]
-                return False
-            else:
-                self.paths[str(path)] = [(PathOperation.Exists, self.path_type(path), None)]
-                return True
-
-    def path_type(self, path):
-        if str(path) in self.paths:
-            return self.paths[str(path)][-1][1]
-        if isinstance(path, IrodsPath):
-            if path.dataobject_exists():
-                return PathType.FILE
-            elif path.collection_exists():
-                return PathType.DIR
-            else:
-                return PathType.MISSING
-        else:
-            if path.is_file():
-                return PathType.FILE
-            elif path.is_dir():
-                return PathType.DIR
-            else:
-                return PathType.MISSING
-
-    def print_all(self):
-        for path, status in self.paths.items():
-            print(f"{path}" + "  -> ".join(str(s) for s in status))
-
 class DependencyGraph():
+    """Class that keeps track of the dependencies between operations."""
+
     def __init__(self):
+        """Initialize empty dependency graph."""
         self.dependency_of  = defaultdict(set)
         self.depends_on = {}
         self.queue = []
         self.running = set()
 
     def add(self, op_id, depends_on):
+        """Add a new operation to the dependency graph.
+
+        Parameters
+        ----------
+        op_id:
+            Operation ID of the operation to be added.
+        depends_on:
+            List of operation IDs of operations on which the current operation depends.
+
+        """
         self.depends_on[op_id] = depends_on
         for other_op_id in depends_on:
             self.dependency_of[other_op_id].add(op_id)
         if len(depends_on) == 0:
             self.queue.append(op_id)
 
-    def next_op(self):
+    def next_op(self) -> int:
+        """Get the next operation that do no depend on unfinished operations.
+
+        Returns
+        -------
+        op_id:
+            The operation ID of the operation to be run.
+
+        """
         op_id = self.queue.pop()
         self.running.add(op_id)
         return op_id
 
-    def finish_op(self, op_id):
+    def finish_op(self, op_id: int):
+        """Finish the operation and remove it from the queue.
+
+        Parameters
+        ----------
+        op_id:
+            The operation ID to finish.
+
+        """
         self.running.remove(op_id)
         for dep_op_id in self.dependency_of[op_id]:
             self.depends_on[dep_op_id].remove(op_id)
@@ -396,7 +591,8 @@ class DependencyGraph():
         self.depends_on.pop(op_id)
         self.dependency_of.pop(op_id, None)
 
-    def __len__(self):
+    def __len__(self) -> int:
+        """Get the number of operations that are still to be scheduled."""
         return len(self.depends_on)
 
 def _obj_put(  # pylint: disable=too-many-branches
@@ -431,6 +627,8 @@ def _obj_put(  # pylint: disable=too-many-branches
         'skip': simply continue.
     pbar:
         Optional progress bar.
+    n_threads:
+        Maximum number of threads to be used for transfer.
 
     """
     transfers = 0
@@ -553,6 +751,8 @@ def _obj_get(
         'skip': simply continue.
     pbar:
         Optional progress bar.
+    n_threads:
+        Maximum number of threads to be used for downloading the object.
 
     """
     if on_error and on_error.lower() not in ["fail", "warn", "skip"]:

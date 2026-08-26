@@ -696,6 +696,7 @@ class CachedIrodsPath(IrodsPath):
         return not self._is_dataobj
 
     def __str__(self) -> str:
+        """Get the absolute path as the string respresentation."""
         if self._path_str is None:
             self._path_str = super().__str__()
         return self._path_str
