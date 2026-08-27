@@ -80,7 +80,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
         cwd: Optional[str] = None,
-        main_session: bool = True,
     ):
         """Authenticate and connect to the iRODS server."""
         irods_env_path = None

@@ -50,8 +50,6 @@ class TransferManager():
         self.remote_vfs = VirtualFileSystem()
         self.operations = {}
         self.dep_graph = DependencyGraph()
-        self.worker_queue = None
-        self.scheduler_queue = None
         self.n_skipped = defaultdict(lambda: 0)
         self.n_workers = n_workers
         self.threads_per_transfer = threads_per_transfer
