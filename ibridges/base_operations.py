@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import warnings
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from enum import Enum, IntFlag
 from inspect import signature
@@ -41,6 +41,23 @@ class PathType(IntFlag):
     DIR = 2
 
 
+class PathOperation(Enum):
+    """Type of operation or status of paths."""
+
+    EXISTS = 1
+    MISSING = 2
+    CREATE = 3
+    NEEDED = 4
+    DELETE = 5
+
+
+class PathUpdate(NamedTuple):
+    """Tuple that contains information on the virtual mutation of a path."""
+
+    operation: PathOperation
+    path_type: PathType
+    op_id: int
+
 
 class SkipOperation(ValueError):  # noqa: N818
     """Signal that the operation has been skipped."""
@@ -77,21 +94,6 @@ def _transfer_needed(source: Union[IrodsPath, Path],
         return False
     return True
 
-class PathOperation(Enum):
-    """Type of operation or status of paths."""
-
-    Exists = 1
-    Missing = 2
-    Create = 3
-    Needed = 4
-    Delete = 5
-
-class PathUpdate(NamedTuple):
-    """Tuple that contains information on the virtual mutation of a path."""
-
-    operation: PathOperation
-    path_type: PathType
-    op_id: int
 
 class VirtualFileSystem():
     """Class that keeps track of the future state of the file/data system."""
@@ -103,8 +105,7 @@ class VirtualFileSystem():
 
     def create_path(self, path: str | IrodsPath | Path,
                     path_type: PathType,
-                    op_id: int,
-                    checksum: str | None = None) -> int | None:
+                    op_id: int) -> int | None:
         """Create a new path on the virtual file system.
 
         Parameters
@@ -115,8 +116,6 @@ class VirtualFileSystem():
             Type of path to create (PathType.DIR or PathType.FILE).
         op_id:
             Id of the operation that creates the path.
-        checksum:
-            Checksum of the created file/data object. None for directories and collections.
 
         Raises
         ------
@@ -131,9 +130,9 @@ class VirtualFileSystem():
         """
         if self.exists(path):
             raise ValueError(f"Path {path} already exists.")
-        elif self.path_type(path) & (PathType.FILE | PathType.DIR):
+        if self.path_type(path) & (PathType.FILE | PathType.DIR):
             raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append(PathUpdate(PathOperation.Create, path_type, op_id))
+        self.paths[str(path)].append(PathUpdate(PathOperation.CREATE, path_type, op_id))
         self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
         return self.paths[str(path)][-2].op_id
 
@@ -165,9 +164,9 @@ class VirtualFileSystem():
         """
         if not self.exists(path):
             raise ValueError(f"Need path {path}, but path doesn't exist yet.")
-        elif (self.path_type(path) & path_type) == 0:
+        if (self.path_type(path) & path_type) == 0:
             raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append(PathUpdate(PathOperation.Needed, path_type, op_id))
+        self.paths[str(path)].append(PathUpdate(PathOperation.NEEDED, path_type, op_id))
         if self.last_mod[str(path)] != -1:
             return self.paths[str(path)][self.last_mod[str(path)]].op_id
         return None
@@ -200,9 +199,9 @@ class VirtualFileSystem():
         """
         if not self.exists(path):
             raise ValueError(f"Cannot delete {path}, because it does not exist.")
-        elif self.path_type(path) != path_type:
+        if self.path_type(path) != path_type:
             raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append(PathUpdate(PathOperation.Delete, path_type, op_id))
+        self.paths[str(path)].append(PathUpdate(PathOperation.DELETE, path_type, op_id))
         return self.paths[str(path)][-2].op_id
 
     def exists(self, path: str | Path | IrodsPath, allow_recurse: bool = True) -> bool:
@@ -222,27 +221,25 @@ class VirtualFileSystem():
         """
         if str(path) in self.paths:
             last_op, _, _ = self.paths[str(path)][-1]
-            if last_op in [PathOperation.Missing, PathOperation.Delete]:
+            if last_op in [PathOperation.MISSING, PathOperation.DELETE]:
                 return False
-            else:
-                return True
-        else:
-            # Save a lot of time trying to find out which files exist by checking the
-            # parent directory first.
-            if allow_recurse:
-                self.exists(path.parent, allow_recurse=False)
-                # If the parent doesn't exist, then neither does the path itself
-                if self.paths[str(path.parent)][0].operation == PathOperation.Missing:
-                    self.paths[str(path)] = [PathUpdate(PathOperation.Missing, None, None)]
-                    return False
-            exists = path.exists()
-            if not exists:
-                self.paths[str(path)] = [PathUpdate(PathOperation.Missing, None, None)]
+            return True
+
+        # Save a lot of time trying to find out which files exist by checking the
+        # parent directory first.
+        if allow_recurse:
+            self.exists(path.parent, allow_recurse=False)
+            # If the parent doesn't exist, then neither does the path itself
+            if self.paths[str(path.parent)][0].operation == PathOperation.MISSING:
+                self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, None, None)]
                 return False
-            else:
-                self.paths[str(path)] = [PathUpdate(PathOperation.Exists,
-                                                    self.path_type(path), None)]
-                return True
+        exists = path.exists()
+        if not exists:
+            self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, None, None)]
+            return False
+        self.paths[str(path)] = [PathUpdate(PathOperation.EXISTS,
+                                            self.path_type(path), None)]
+        return True
 
     def path_type(self, path: str | IrodsPath | Path):
         """Get the path type of a path from the vfs, or real system.
@@ -261,18 +258,19 @@ class VirtualFileSystem():
             return self.paths[str(path)][-1].path_type
         if isinstance(path, IrodsPath):
             if path.dataobject_exists():
-                return PathType.FILE
+                path_type = PathType.FILE
             elif path.collection_exists():
-                return PathType.DIR
+                path_type = PathType.DIR
             else:
-                return PathType.MISSING
-        else:
-            if path.is_file():
-                return PathType.FILE
-            elif path.is_dir():
-                return PathType.DIR
-            else:
-                return PathType.MISSING
+                path_type = PathType.MISSING
+            return path_type
+
+        # Path is local
+        if path.is_file():
+            return PathType.FILE
+        if path.is_dir():
+            return PathType.DIR
+        return PathType.MISSING
 
     def _print_all(self):
         for path, status in self.paths.items():
@@ -303,7 +301,7 @@ class BaseOperation(ABC):
         """
 
     @abstractmethod
-    def execute(self, session: Session, pbar):
+    def execute(self, session: Session, pbar, n_threads):
         """Execute the operation.
 
         Parameters
@@ -312,19 +310,24 @@ class BaseOperation(ABC):
             Session to execute the operation with.
         pbar
             Progressbar that will be updated.
+        n_threads
+            Number of threads to use for the operation.
 
         """
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def header(self) -> str:
         """Short description of the kind of operation."""
 
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def body(self) -> str:
         """String representation of the actual operation."""
 
-    @abstractproperty
+    @abstractmethod
+    @property
     def size(self) -> int:
         """Size of the operation."""
 
@@ -338,7 +341,9 @@ class DownloadOperation(BaseOperation):
     """Operation to download data objects to a local file."""
 
     def __init__(self, ipath: IrodsPath, lpath: str | Path, overwrite: bool = False,
-                 on_error: str = "fail"):
+                 on_error: str = "fail",
+                 resc_name: Optional[str] = "",
+                 options: Optional[dict] = None):
         """Initialize the download operation.
 
         Parameters
@@ -351,12 +356,18 @@ class DownloadOperation(BaseOperation):
             Whether to overwrite the local file, by default False
         on_error
             What to do when an error is thrown, by default "fail"
+        resc_name : str
+            Optional resource name.
+        options :
+            Extra options to the python irodsclient get method.
 
         """
         self.ipath = ipath
         self.lpath = lpath
         self.overwrite = overwrite
         self.on_error = on_error
+        self.resc_name = resc_name
+        self.options = options
 
     def add_to_vfs(self, vfs_local, vfs_remote, op_id):
         if vfs_local.exists(self.lpath):
@@ -373,7 +384,8 @@ class DownloadOperation(BaseOperation):
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar, n_threads):
-        _obj_get(session, self.ipath, self.lpath, pbar=pbar, n_threads=n_threads)
+        _obj_get(session, self.ipath, self.lpath, pbar=pbar, n_threads=n_threads,
+                 resc_name=self.resc_name, options=self.options)
 
     @property
     def header(self):
@@ -392,7 +404,9 @@ class UploadOperation(BaseOperation):
     """Operation to upload data from the local file system to the iRODS system."""
 
     def __init__(self, lpath: Path | str, ipath: IrodsPath, overwrite: bool = False,
-                 on_error: str = "fail"):
+                 on_error: str = "fail",
+                 resc_name: Optional[str] = "",
+                 options: Optional[dict] = None):
         """Initialize upload operation.
 
         Parameters
@@ -405,12 +419,18 @@ class UploadOperation(BaseOperation):
             Whether to overwrite the local file, by default False
         on_error
             What to do when an error is thrown, by default "fail"
+        resc_name : str
+            Optional resource name.
+        options :
+            Extra options to the python irodsclient put method.
 
         """
         self.lpath = lpath
         self.ipath = ipath
         self.overwrite = overwrite
         self.on_error = on_error
+        self.resc_name = resc_name
+        self.options = options
 
     def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem, op_id: int):
         if vfs_remote.exists(self.ipath):
@@ -425,7 +445,9 @@ class UploadOperation(BaseOperation):
         return [d for d in deps if d is not None]
 
     def execute(self, session: Session, pbar, n_threads: int):
-        _obj_put(session, self.lpath, self.ipath, pbar=pbar, n_threads=n_threads)
+        _obj_put(session, self.lpath, self.ipath, pbar=pbar, n_threads=n_threads,
+                 resc_name=self.resc_name,
+                 options=self.options)
 
     @property
     def header(self):
@@ -469,7 +491,7 @@ class CreateDirOperation(BaseOperation):
         ]
         return [d for d in deps if d is not None]
 
-    def execute(self, session, pbar, n_threads):
+    def execute(self, session, pbar, n_threads):  # pylint: disable=unused-argument
         self.lpath.mkdir()
         pbar.update(self.size)
 
@@ -501,14 +523,14 @@ class CreateCollectionOperation(BaseOperation):
 
         """
         self.ipath = ipath
-        self.exist_ok = True
+        self.exist_ok = exist_ok
 
     def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem, op_id: int):
-        if vfs_remote.exists(self.ipath) and self.exist_ok:
-            if vfs_remote.path_type(self.ipath) != PathType.DIR:
-                raise NotACollectionError(self.ipath)
-            raise SkipOperation()
-        elif not self.exist_ok:
+        if vfs_remote.exists(self.ipath):
+            if self.exist_ok:
+                if vfs_remote.path_type(self.ipath) != PathType.DIR:
+                    raise NotACollectionError(self.ipath)
+                raise SkipOperation()
             raise CollectionExistsError(self.ipath)
 
         deps = [

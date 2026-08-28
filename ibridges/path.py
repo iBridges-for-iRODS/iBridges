@@ -123,6 +123,7 @@ class IrodsPath:
         # return IrodsPath(self.session, abs_str)
 
     def absolute(self) -> IrodsPath:
+        """Get the string representation of the full path."""
         if self._abs_str is None:
             self._abs_str = self._absolute_str()
         return IrodsPath(self.session, self._abs_str)

@@ -5,7 +5,6 @@ import queue
 from collections import defaultdict
 from multiprocessing import Process, Queue
 from threading import Thread
-from typing import Optional
 
 from tqdm import tqdm
 
@@ -18,12 +17,12 @@ from ibridges.base_operations import (
 from ibridges.session import Session
 
 
-class TransferManager():
+class TransferManager():  # pylint: disable=too-many-instance-attributes
     """Manager for transfers that has multithreading capabilities."""
 
-    def __init__(self, session: Session, resc_name: Optional[str] = None,
-                 options: Optional[dict] = None, n_workers: int = 8,
-                 threads_per_transfer: int = 4, parallel_method: str = "thread"):
+    def __init__(self, session: Session, n_workers: int = 8,
+                 threads_per_transfer: int = 4, parallel_method: str = "thread",
+                 progress_bar: bool = True):
         """Initialize the transfer manager.
 
         Parameters
@@ -54,6 +53,7 @@ class TransferManager():
         self.n_workers = n_workers
         self.threads_per_transfer = threads_per_transfer
         self.parallel_method=parallel_method
+        self.progress_bar = progress_bar
 
     def add(self, op: BaseOperation):
         """Add an operation to the queue or skip the operation.
@@ -93,7 +93,7 @@ class TransferManager():
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
-            # disable=disable,
+            disable=not self.progress_bar,
         )
         while len(self.dep_graph):
             op_id = self.dep_graph.next_op()
@@ -111,15 +111,15 @@ class TransferManager():
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
-            # disable=disable,
+            disable=not self.progress_bar,
         )
-        self.worker_processes = []
+        worker_processes = []
         for _ in range(self.n_workers):
-            self.worker_processes.append(
+            worker_processes.append(
                 Process(target=_executor_worker_process,
                     args=(worker_queue, scheduler_queue, self.session.copy_param,
                           self.threads_per_transfer)))
-            self.worker_processes[-1].start()
+            worker_processes[-1].start()
 
         running_operations = {}
         threads_used = 0
@@ -149,7 +149,7 @@ class TransferManager():
         for _ in range(self.n_workers):
             worker_queue.put(None)
 
-        for worker in self.worker_processes:
+        for worker in worker_processes:
             worker.join()
         pbar.close()
 
@@ -164,14 +164,14 @@ class TransferManager():
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
-            # disable=disable,
+            disable=not self.progress_bar,
         )
-        self.worker_threads = []
+        worker_threads = []
         for _ in range(self.n_workers):
-            self.worker_threads.append(
+            worker_threads.append(
                 Thread(target=_executor_worker_thread,
                     args=(worker_queue, scheduler_queue, self.session, self.threads_per_transfer)))
-            self.worker_threads[-1].start()
+            worker_threads[-1].start()
         running_operations = {}
         threads_used = 0
         while len(self.dep_graph) > 0:
@@ -200,7 +200,7 @@ class TransferManager():
         for _ in range(self.n_workers):
             worker_queue.put(None)
 
-        for worker in self.worker_threads:
+        for worker in worker_threads:
             worker.join()
         pbar.close()
 
@@ -223,7 +223,7 @@ class TransferManager():
             print(f"\nSkipped: {self.n_skipped.get(header, 0)}\n\n")
 
 
-class PBar():
+class PBar():  # pylint: disable=too-few-public-methods
     """Multithreading/processing progress bar that uses a queue to pass the message."""
 
     def __init__(self, update_queue):
@@ -266,7 +266,7 @@ def _executor_worker_thread(job_queue: queue.Queue, scheduler_queue: queue.Queue
     i=0
     pbar = PBar(scheduler_queue)
     while True:
-        order = queue.get()
+        order = job_queue.get()
         if order is None:
             break
         op, op_id = order

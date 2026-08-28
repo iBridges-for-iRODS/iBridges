@@ -104,17 +104,17 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    tm = TransferManager(session, resc_name=resc_name, options=options, **kwargs)
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
         _up_sync_operations(
             tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
-            overwrite=overwrite, on_error=on_error
+            overwrite=overwrite, on_error=on_error, resc_name=resc_name, options=options,
         )
     if not dry_run:
-        tm.execute(session)#, on_error=on_error, progress_bar=progress_bar)
+        tm.execute()#, on_error=on_error, progress_bar=progress_bar)
     return tm
 
 
@@ -193,7 +193,7 @@ def download(
     """
     session = irods_path.session
     local_path = Path(local_path)
-    tm = TransferManager(session, options=options, resc_name=resc_name, **kwargs)
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
     if irods_path.collection_exists():
         if local_path.is_file():
             raise NotADirectoryError(
@@ -202,21 +202,22 @@ def download(
             )
         tm.add(CreateDirOperation(Path(local_path)))
         _down_sync_operations(
-            tm, irods_path, local_path / irods_path.name, #metadata=metadata,
+            tm, irods_path, local_path / irods_path.name,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
-            on_error=on_error
+            on_error=on_error, resc_name=resc_name, options=options,
         )
 
     elif irods_path.dataobject_exists():
         if local_path.is_dir():
             local_path = local_path / irods_path.name
-        tm.add(DownloadOperation(irods_path, local_path, overwrite, on_error))
+        tm.add(DownloadOperation(irods_path, local_path, overwrite, on_error, resc_name=resc_name,
+                                 options=options))
 
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
     if not dry_run:
-        tm.execute()#session, on_error=on_error, progress_bar=progress_bar)
+        tm.execute()
     return tm
 
 
@@ -324,18 +325,18 @@ def sync(
     else:
         raise TypeError("Either source or target must be an IrodsPath")
 
-    tm = TransferManager(session, resc_name=resc_name, options=options, **kwargs)
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
 
 
     if isinstance(source, IrodsPath):
         _down_sync_operations(
             tm, source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
-            overwrite=True
+            overwrite=True, resc_name=resc_name, options=options, on_error=on_error,
         )
     else:
         _up_sync_operations(
             tm, Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
-            depth=max_level, overwrite=True)
+            depth=max_level, overwrite=True, resc_name=resc_name, options=options)
 
     if not dry_run:
         tm.execute()
@@ -391,12 +392,14 @@ def _down_sync_operations(
         isource_path: IrodsPath, ldest_path: Path,
         overwrite: bool,
         on_error: str = "fail",
-        copy_empty_folders: bool = True, depth: Optional[int] = None) -> TransferManager:
+        copy_empty_folders: bool = True, depth: Optional[int] = None,
+        options: Optional[dict] = None, resc_name: str = "") -> TransferManager:
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
         tm.add(CreateDirOperation(lpath.parent))
         if ipath.dataobject_exists():
-            tm.add(DownloadOperation(ipath, lpath, overwrite, on_error))
+            tm.add(DownloadOperation(ipath, lpath, overwrite, on_error,
+                                     resc_name=resc_name, options=options))
         elif ipath.collection_exists() and copy_empty_folders:
             tm.add(CreateDirOperation(lpath))
     return tm
@@ -407,7 +410,8 @@ def _up_sync_operations(
         lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
         overwrite: bool,
         copy_empty_folders: bool = True, depth: Optional[int] = None,
-        on_error: str = "fail") -> TransferManager:
+        on_error: str = "fail",
+        options: Optional[dict] = None, resc_name: str = "") -> TransferManager:
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
@@ -421,7 +425,8 @@ def _up_sync_operations(
         for cur_file in files:
             ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
-            tm.add(UploadOperation(lpath, ipath, overwrite=overwrite, on_error=on_error))
+            tm.add(UploadOperation(lpath, ipath, overwrite=overwrite, on_error=on_error,
+                                   resc_name=resc_name, options=options))
     return tm
 
 
@@ -584,6 +589,6 @@ def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
         applied_metadata.append((new_path, item_data))
 
     if not dry_run:
-        for ipath, metadata in applied_metadata:
-            ipath.meta.from_dict(metadata)
+        for cur_ipath, metadata in applied_metadata:
+            cur_ipath.meta.from_dict(metadata)
     return applied_metadata
