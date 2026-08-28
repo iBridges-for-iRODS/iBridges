@@ -42,6 +42,8 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
             Whether to use threads ("thread") or processes ("process"), by default "thread".
             The advantage of using threads is that the current session can be used, while the
             process method will start up as many sessions as workers.
+        progress_bar:
+            Whether to use a progress bar.
 
         """
         self.session = session
