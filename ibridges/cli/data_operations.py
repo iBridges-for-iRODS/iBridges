@@ -156,13 +156,6 @@ class CliDownload(BaseCliCommand):
             action="store_true",
         )
         parser.add_argument(
-            "--metadata",
-            help="Path to the metadata file which will be created.",
-            default=argparse.SUPPRESS,
-            type=Path,
-            nargs="?",
-        )
-        parser.add_argument(
             "--on-error",
             help=ON_ERROR_HELP,
             type=str,
@@ -177,7 +170,6 @@ class CliDownload(BaseCliCommand):
                 f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         ipath = parse_remote(args.remote_path, session)
         lpath = Path(args.local_path)
-        metadata = _get_metadata_path(args, ipath, lpath, "download")
         try:
             ops = download(
                 ipath,
@@ -186,7 +178,6 @@ class CliDownload(BaseCliCommand):
                 resc_name=args.resource,
                 dry_run=args.dry_run,
                 on_error=args.on_error,
-                metadata=metadata,
             )
         except (DoesNotExistError, PermissionError, NotADirectoryError, FileExistsError) as exc:
             parser.error(str(exc))
@@ -239,13 +230,6 @@ class CliUpload(BaseCliCommand):
             action="store_true",
         )
         parser.add_argument(
-            "--metadata",
-            help="Path to the metadata json.",
-            default=argparse.SUPPRESS,
-            type=Path,
-            nargs="?",
-        )
-        parser.add_argument(
             "--on-error",
             help=ON_ERROR_HELP,
             default="fail",
@@ -261,15 +245,13 @@ class CliUpload(BaseCliCommand):
                 f"'on-error': Unknown keyword {args.on_error}, choose 'fail', 'warn' or 'skip'")
         lpath = args.local_path
         ipath = parse_remote(args.remote_path, session)
-        metadata = _get_metadata_path(args, ipath, lpath, "upload")
         try:
-            ops = upload(
+            tm = upload(
                 lpath,
                 ipath,
                 overwrite=args.overwrite,
                 resc_name=args.resource,
                 dry_run=args.dry_run,
-                metadata=metadata,
                 on_error=args.on_error,
             )
         except (FileNotFoundError, PermissionError, DataObjectExistsError) as exc:
@@ -277,7 +259,7 @@ class CliUpload(BaseCliCommand):
             return
 
         if args.dry_run:
-            ops.print_summary()
+            tm.print_summary()
 
 
 def _parse_str(remote_or_local: str, session) -> Union[Path, IrodsPath]:

@@ -113,6 +113,13 @@ def upload(
             tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, on_error=on_error, resc_name=resc_name, options=options,
         )
+    else:
+        if irods_path.collection_exists():
+            idest_path = irods_path / local_path.name
+        else:
+            idest_path = irods_path
+        tm.add(UploadOperation(local_path, idest_path, overwrite=overwrite, on_error=on_error,
+                               resc_name=resc_name, options=options))
     if not dry_run:
         tm.execute()#, on_error=on_error, progress_bar=progress_bar)
     return tm
