@@ -315,19 +315,19 @@ class BaseOperation(ABC):
 
         """
 
-    @abstractmethod
     @property
+    @abstractmethod
     def header(self) -> str:
         """Short description of the kind of operation."""
 
 
-    @abstractmethod
     @property
+    @abstractmethod
     def body(self) -> str:
         """String representation of the actual operation."""
 
-    @abstractmethod
     @property
+    @abstractmethod
     def size(self) -> int:
         """Size of the operation."""
 
