@@ -667,7 +667,7 @@ class CachedIrodsPath(IrodsPath):
         self._is_dataobj = is_dataobj
         self._size = size
         self._checksum = checksum
-        self._path_str = None
+        self._path_str: Optional[str] = None
         super().__init__(session, *args)
 
     @property

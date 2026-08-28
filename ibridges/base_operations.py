@@ -56,7 +56,7 @@ class PathUpdate(NamedTuple):
 
     operation: PathOperation
     path_type: PathType
-    op_id: int
+    op_id: int | None
 
 
 class SkipOperation(ValueError):  # noqa: N818
@@ -103,7 +103,7 @@ class VirtualFileSystem():
         self.paths: dict[str, list[PathUpdate]] = {}
         self.last_mod: dict[str, int] = defaultdict(lambda: -1)
 
-    def create_path(self, path: str | IrodsPath | Path,
+    def create_path(self, path: IrodsPath | Path,
                     path_type: PathType,
                     op_id: int) -> int | None:
         """Create a new path on the virtual file system.
@@ -136,7 +136,7 @@ class VirtualFileSystem():
         self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
         return self.paths[str(path)][-2].op_id
 
-    def need_path(self, path: str | IrodsPath | Path,
+    def need_path(self, path: IrodsPath | Path,
                   path_type: PathType,
                   op_id: int) -> int | None:
         """Ensure that the path exist and put in a dependency.
@@ -171,7 +171,7 @@ class VirtualFileSystem():
             return self.paths[str(path)][self.last_mod[str(path)]].op_id
         return None
 
-    def delete_path(self, path: str | IrodsPath | Path,
+    def delete_path(self, path: IrodsPath | Path,
                     path_type: PathType,
                     op_id: int) -> int | None:
         """Add a delete path operation.
@@ -204,7 +204,7 @@ class VirtualFileSystem():
         self.paths[str(path)].append(PathUpdate(PathOperation.DELETE, path_type, op_id))
         return self.paths[str(path)][-2].op_id
 
-    def exists(self, path: str | Path | IrodsPath, allow_recurse: bool = True) -> bool:
+    def exists(self, path: Path | IrodsPath, allow_recurse: bool = True) -> bool:
         """Check whether a path exists already (virtually).
 
         Parameters
@@ -231,17 +231,17 @@ class VirtualFileSystem():
             self.exists(path.parent, allow_recurse=False)
             # If the parent doesn't exist, then neither does the path itself
             if self.paths[str(path.parent)][0].operation == PathOperation.MISSING:
-                self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, None, None)]
+                self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, PathType.MISSING, None)]
                 return False
         exists = path.exists()
         if not exists:
-            self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, None, None)]
+            self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, PathType.MISSING, None)]
             return False
         self.paths[str(path)] = [PathUpdate(PathOperation.EXISTS,
                                             self.path_type(path), None)]
         return True
 
-    def path_type(self, path: str | IrodsPath | Path):
+    def path_type(self, path: IrodsPath | Path):
         """Get the path type of a path from the vfs, or real system.
 
         Parameters
@@ -282,7 +282,7 @@ class BaseOperation(ABC):
 
     @abstractmethod
     def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem,
-                   op_id: int) -> int | None:
+                   op_id: int) -> list[int]:
         """Virtually execute the operation and get the dependencies.
 
         Parameters
@@ -363,7 +363,7 @@ class DownloadOperation(BaseOperation):
 
         """
         self.ipath = ipath
-        self.lpath = lpath
+        self.lpath = Path(lpath)
         self.overwrite = overwrite
         self.on_error = on_error
         self.resc_name = resc_name
@@ -403,9 +403,9 @@ class DownloadOperation(BaseOperation):
 class UploadOperation(BaseOperation):
     """Operation to upload data from the local file system to the iRODS system."""
 
-    def __init__(self, lpath: Path | str, ipath: IrodsPath, overwrite: bool = False,
+    def __init__(self, lpath: str | Path, ipath: IrodsPath, overwrite: bool = False,
                  on_error: str = "fail",
-                 resc_name: Optional[str] = "",
+                 resc_name: str = "",
                  options: Optional[dict] = None):
         """Initialize upload operation.
 
@@ -425,7 +425,7 @@ class UploadOperation(BaseOperation):
             Extra options to the python irodsclient put method.
 
         """
-        self.lpath = lpath
+        self.lpath = Path(lpath)
         self.ipath = ipath
         self.overwrite = overwrite
         self.on_error = on_error
@@ -476,7 +476,7 @@ class CreateDirOperation(BaseOperation):
             Whether it is okay if the directory already exists, by default True
 
         """
-        self.lpath = lpath
+        self.lpath = Path(lpath)
         self.exist_ok = exist_ok
 
     def add_to_vfs(self, vfs_local: VirtualFileSystem,
