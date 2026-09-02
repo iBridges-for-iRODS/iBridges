@@ -166,7 +166,12 @@ class CliMetaDownload(BaseCliCommand):
         if not ipath.exists():
             parser.error(f"Cannot download metadata for path '{ipath}', since it doesn't exist.")
             return
-        create_meta_archive(ipath, args.output_file, dry_run=args.dry_run)
+        meta_download= create_meta_archive(ipath, args.output_file, dry_run=args.dry_run)
+        if args.dry_run:
+            summary = "Metadata to download:\n\n"
+            for item in meta_download:
+                summary += f"{item} -> {args.output_file}\n"
+            print(summary)
 
 class CliMetaUpload(BaseCliCommand):
     """Subcommand to upload/apply metadata to an iRODS path."""
@@ -194,4 +199,9 @@ class CliMetaUpload(BaseCliCommand):
             parser.error(f"Cannot apply/upload metadata for IRODS path '{ipath}', "
                          "since it doesn't exist.")
             return
-        add_meta_from_archive(args.metadata_file, ipath, dry_run=args.dry_run)
+        applied_metadata = add_meta_from_archive(args.metadata_file, ipath, dry_run=args.dry_run)
+        if args.dry_run:
+            summary = "Metadata to upload:\n\n"
+            for ipath, metadata in applied_metadata:
+                summary += f"{args.metadata_file} - [{len(metadata['metadata'])}] -> {ipath}\n"
+            print(summary)

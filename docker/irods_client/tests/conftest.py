@@ -56,6 +56,6 @@ def collection(session):
 @pytest.fixture(scope="session")
 def dataobject(session, testdata):
     ipath = IrodsPath(session, "~", "bunny.rtf")
-    upload(testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True)
+    upload(testdata/"bunny.rtf", IrodsPath(session, "~"), overwrite=True, n_workers=1)
     yield ipath.dataobject
     ipath.remove()
