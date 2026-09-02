@@ -15,7 +15,7 @@ from typing import Optional, Union
 
 from ibridges.base_operations import (
     CreateCollectionOperation,
-    CreateDirOperation,
+    CreateDirectoryOperation,
     DownloadOperation,
     UploadOperation,
 )
@@ -109,6 +109,8 @@ def upload(
         idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
+        tm.add(CreateCollectionOperation(irods_path))
+        tm.add(CreateCollectionOperation(idest_path))
         _up_sync_operations(
             tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
             overwrite=overwrite, on_error=on_error, resc_name=resc_name, options=options,
@@ -207,7 +209,7 @@ def download(
                 f"Cannot download to directory {local_path} "
                 "since a file with the same name exists."
             )
-        tm.add(CreateDirOperation(Path(local_path)))
+        tm.add(CreateDirectoryOperation(Path(local_path)))
         _down_sync_operations(
             tm, irods_path, local_path / irods_path.name,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
@@ -403,12 +405,12 @@ def _down_sync_operations(
         options: Optional[dict] = None, resc_name: str = "") -> TransferManager:
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
-        tm.add(CreateDirOperation(lpath.parent))
+        tm.add(CreateDirectoryOperation(lpath.parent))
         if ipath.dataobject_exists():
             tm.add(DownloadOperation(ipath, lpath, overwrite, on_error,
                                      resc_name=resc_name, options=options))
         elif ipath.collection_exists() and copy_empty_folders:
-            tm.add(CreateDirOperation(lpath))
+            tm.add(CreateDirectoryOperation(lpath))
     return tm
 
 

@@ -1,6 +1,5 @@
 """Subcommands that do data operations."""
 
-import argparse
 from pathlib import Path
 from typing import Literal, Union
 
@@ -295,13 +294,6 @@ class CliSync(BaseCliCommand):
             action="store_true",
         )
         parser.add_argument(
-            "--metadata",
-            help="Path to the metadata json file.",
-            default=argparse.SUPPRESS,
-            type=Path,
-            nargs="?",
-        )
-        parser.add_argument(
             "--on-error",
             help=ON_ERROR_HELP,
             default="fail",
@@ -318,9 +310,9 @@ class CliSync(BaseCliCommand):
         src_path = _parse_str(args.source, session)
         dest_path = _parse_str(args.destination, session)
         if isinstance(src_path, Path) and isinstance(dest_path, IrodsPath):
-            metadata = _get_metadata_path(args, dest_path, src_path, "sync")
+            _metadata = _get_metadata_path(args, dest_path, src_path, "sync")
         elif isinstance(src_path, IrodsPath) and isinstance(dest_path, Path):
-            metadata = _get_metadata_path(args, src_path, dest_path, "sync")
+            _metadata = _get_metadata_path(args, src_path, dest_path, "sync")
         else:
             parser.error(
                 "Please provide as the source and destination exactly one local path,"
@@ -332,7 +324,6 @@ class CliSync(BaseCliCommand):
                 src_path,
                 dest_path,
                 dry_run=args.dry_run,
-                metadata=metadata,
                 on_error=args.on_error,
             )
         except (CollectionDoesNotExistError, NotACollectionError, NotADirectoryError) as exc:

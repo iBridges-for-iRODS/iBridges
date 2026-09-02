@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import queue
-from collections import defaultdict
 from multiprocessing import Process, Queue
 from threading import Thread
 
@@ -11,6 +10,7 @@ from tqdm import tqdm
 from ibridges.base_operations import (
     BaseOperation,
     DependencyGraph,
+    EmptyQueue,
     SkipOperation,
     VirtualFileSystem,
 )
@@ -20,7 +20,7 @@ from ibridges.session import Session
 class TransferManager():  # pylint: disable=too-many-instance-attributes
     """Manager for transfers that has multithreading capabilities."""
 
-    def __init__(self, session: Session, n_workers: int = 8,
+    def __init__(self, session: Session, n_workers: int = 1,
                  threads_per_transfer: int = 4, parallel_method: str = "thread",
                  progress_bar: bool = True):
         """Initialize the transfer manager.
@@ -49,12 +49,10 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         self.session = session
         self.local_vfs = VirtualFileSystem()
         self.remote_vfs = VirtualFileSystem()
-        self.operations: dict[int, BaseOperation] = {}
         self.dep_graph = DependencyGraph()
-        self.n_skipped: dict[str, int] = defaultdict(lambda: 0)
         self.n_workers = n_workers
         self.threads_per_transfer = threads_per_transfer
-        self.parallel_method=parallel_method
+        self.parallel_method = parallel_method
         self.progress_bar = progress_bar
 
     def add(self, op: BaseOperation):
@@ -66,15 +64,16 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
             Operation to be added to the dependency graph.
 
         """
-        op_id = len(self.operations)
+        if not isinstance(op, BaseOperation):
+            raise ValueError(f"{op} is not an operation!")
+        skip = False
         try:
-            deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, op_id)
+            deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, len(self.dep_graph.operations))
         except SkipOperation:
-            self.n_skipped[op.header] += 1
-            return
+            deps = None
+            skip = True
 
-        self.dep_graph.add(op_id, deps)
-        self.operations[op_id] = op
+        self.dep_graph.add(op, deps, skip=skip)
 
     def execute(self):
         """Execute all operations."""
@@ -89,17 +88,15 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
 
     def execute_singlethreaded(self):
         """Execute all operations single threaded."""
-        total_size = sum(op.size for op in self.operations.values())
         pbar = tqdm(
-            total=total_size,
+            total=self.dep_graph.total_size,
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
             disable=not self.progress_bar,
         )
         while len(self.dep_graph):
-            op_id = self.dep_graph.next_op()
-            op = self.operations.pop(op_id)
+            op, op_id = self.dep_graph.next_op()
             op.execute(self.session, pbar, self.threads_per_transfer)
             self.dep_graph.finish_op(op_id)
 
@@ -107,9 +104,8 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         """Execute all operations using multiprocessing."""
         worker_queue = Queue()
         scheduler_queue = Queue()
-        total_size = sum(op.size for op in self.operations.values())
         pbar = tqdm(
-            total=total_size,
+            total=self.dep_graph.total_size,
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
@@ -123,36 +119,43 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
                           self.threads_per_transfer)))
             worker_processes[-1].start()
 
-        running_operations = {}
         threads_used = 0
-        while len(self.dep_graph) > 0:
+        error = None
+        while len(self.dep_graph) > 0 and error is None:
             try:
                 while threads_used < self.n_workers:
-                    op_id = self.dep_graph.next_op()
-                    op = self.operations.pop(op_id)
-                    running_operations[op_id] = op
-                    if hasattr(op, "ipath"):
-                        op.ipath.session = None
-                    worker_queue.put((op, op_id))
-                    threads_used += op.threads(self.threads_per_transfer)
-            except IndexError:
+                    op, op_id = self.dep_graph.next_op()
+                    n_threads = op.threads(self.threads_per_transfer)
+                    worker_queue.put((op.pack(), op_id))
+                    threads_used += n_threads
+            except EmptyQueue:
                 pass
             dep_graph_updated = False
-            while not dep_graph_updated:
+            while not dep_graph_updated and error is None:
                 msg = scheduler_queue.get()
                 if msg["msg_type"] == "progress":
                     pbar.update(msg["value"])
                 else:
                     self.dep_graph.finish_op(msg["id"])
                     dep_graph_updated = True
-                    op = running_operations.pop(msg["id"])
+                    op = self.dep_graph.operations[op_id]
                     threads_used -= op.threads(self.threads_per_transfer)
+                    if msg["msg_type"] == "error":
+                        error = msg["error"]
+
+        if error is not None:
+            for worker in worker_processes:
+                worker.terminate()
+            raise error
 
         for _ in range(self.n_workers):
             worker_queue.put(None)
 
         for worker in worker_processes:
             worker.join()
+        worker_queue.close()
+        scheduler_queue.close()
+
         pbar.close()
 
 
@@ -160,9 +163,8 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         """Execute all operations using multithreading."""
         worker_queue = queue.Queue()
         scheduler_queue = queue.Queue()
-        total_size = sum(op.size for op in self.operations.values())
         pbar = tqdm(
-            total=total_size,
+            total=self.dep_graph.total_size,
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
@@ -174,19 +176,16 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
                 Thread(target=_executor_worker_thread,
                     args=(worker_queue, scheduler_queue, self.session, self.threads_per_transfer)))
             worker_threads[-1].start()
-        running_operations = {}
+
         threads_used = 0
         while len(self.dep_graph) > 0:
             try:
                 while threads_used < self.n_workers:
-                    op_id = self.dep_graph.next_op()
-                    op = self.operations.pop(op_id)
-                    running_operations[op_id] = op
-                    if hasattr(op, "ipath"):
-                        op.ipath.session = None
-                    worker_queue.put((op, op_id))
-                    threads_used += op.threads(self.threads_per_transfer)
-            except IndexError:
+                    op, op_id = self.dep_graph.next_op()
+                    n_threads = op.threads(self.threads_per_transfer)
+                    worker_queue.put((op.pack(), op_id))
+                    threads_used += n_threads
+            except EmptyQueue:
                 pass
             dep_graph_updated = False
             while not dep_graph_updated:
@@ -196,8 +195,10 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
                 else:
                     self.dep_graph.finish_op(msg["id"])
                     dep_graph_updated = True
-                    op = running_operations.pop(msg["id"])
+                    op = self.dep_graph.operations[op_id]
                     threads_used -= op.threads(self.threads_per_transfer)
+                    if msg["msg_type"] == "error":
+                        raise msg["error"]
 
         for _ in range(self.n_workers):
             worker_queue.put(None)
@@ -208,22 +209,23 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
 
     def print_summary(self):
         """Print a summary of all operations to be executed."""
-        op_dict = defaultdict(list)
-        for op in self.operations.values():
-            op_dict[op.header].append(op)
+        self.dep_graph.print_summary()
 
-        only_skipped = set(self.n_skipped.keys()) - set(op_dict.keys())
-        for header in only_skipped:
-            op_dict[header] = []
+    def get_operations(self, op_type: str):
+        """Get operation of a certain type."""
+        return [op for op in self.dep_graph.operations.values() if op.__class__.__name__ == op_type]
 
-        for header, op_list in op_dict.items():
-            print(f"{header}:")
-            if len(op_list) > 0:
-                print("\n")
-            for op in op_list:
-                print(f"{op.body}")
-            print(f"\nSkipped: {self.n_skipped.get(header, 0)}\n\n")
-
+    def __getattribute__(self, key):
+        """Add upload/download/create_collection/create_dir attributes."""
+        if key == "upload":
+            return self.get_operations("UploadOperation")
+        if key == "download":
+            return self.get_operations("DownloadOperation")
+        if key == "create_collection":
+            return self.get_operations("CreateCollectionOperation")
+        if key == "create_dir":
+            return self.get_operations("CreateDirectoryOperation")
+        return super().__getattribute__(key)
 
 class PBar():  # pylint: disable=too-few-public-methods
     """Multithreading/processing progress bar that uses a queue to pass the message."""
@@ -255,11 +257,13 @@ def _executor_worker_process(job_queue: Queue, scheduler_queue: Queue, session_p
         if order is None:
             session.close()
             break
-        op, op_id = order
-        if hasattr(op, "ipath"):
-            op.ipath.session = session
-        op.execute(session, pbar=pbar, n_threads=n_threads)
-        scheduler_queue.put({"msg_type": "finish", "id": op_id})
+        packed_op, op_id = order
+        op = packed_op.unpack(session)
+        try:
+            op.execute(session, pbar=pbar, n_threads=n_threads)
+            scheduler_queue.put({"msg_type": "finish", "id": op_id})
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            scheduler_queue.put({"msg_type": "error", "id": op_id, "error": exc})
         i += 1
 
 def _executor_worker_thread(job_queue: queue.Queue, scheduler_queue: queue.Queue, session: Session,
@@ -271,9 +275,11 @@ def _executor_worker_thread(job_queue: queue.Queue, scheduler_queue: queue.Queue
         order = job_queue.get()
         if order is None:
             break
-        op, op_id = order
-        if hasattr(op, "ipath"):
-            op.ipath.session = session
-        op.execute(session, pbar=pbar, n_threads=n_threads)
-        scheduler_queue.put({"msg_type": "finish", "id": op_id}, block=False)
+        packed_op, op_id = order
+        op = packed_op.unpack(session)
+        try:
+            op.execute(session, pbar=pbar, n_threads=n_threads)
+            scheduler_queue.put({"msg_type": "finish", "id": op_id}, block=False)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            scheduler_queue.put({"msg_type": "error", "id": op_id, "error": exc})
         i += 1

@@ -119,7 +119,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
     @property
     def copy_param(self):
         """Create a recipe for new sessions to be created."""
-        return [Session, self._irods_env, self._password, self.home, self.cwd, False]
+        return [Session, self._irods_env, self._password, self.home, self.cwd]
 
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""

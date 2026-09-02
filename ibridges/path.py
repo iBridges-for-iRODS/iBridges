@@ -62,7 +62,7 @@ class IrodsPath:
         self.session = session
 
         # Check if the session seems the right type.
-        if not hasattr(session, "irods_session"):
+        if session is not None and not hasattr(session, "irods_session"):
             raise TypeError(f"{session} does not seem the right type: {type(session)}, should be "
                             "ibridges.session.Session.")
 
@@ -621,6 +621,23 @@ class IrodsPath:
             "Cannot get metadata for path that is neither dataobject or collection:"
             f" {self}")
 
+    def copy(self, strip_session: bool = False) -> IrodsPath:
+        """Create a copy of the path.
+
+        Parameters
+        ----------
+        strip_session
+            Whether to remove the session from the irodspath, by default False.
+
+        Returns
+        -------
+            A new IrodsPath instance.
+
+        """
+        session = self.session if strip_session is False else None
+        ipath_copy = self.__class__(session, self._path)
+        ipath_copy._abs_str = self._abs_str  # pylint: disable=protected-access
+        return ipath_copy
 
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
@@ -667,7 +684,7 @@ class CachedIrodsPath(IrodsPath):
         self._is_dataobj = is_dataobj
         self._size = size
         self._checksum = checksum
-        self._path_str: Optional[str] = None
+        # self._path_str: Optional[str] = None
         super().__init__(session, *args)
 
     @property
@@ -696,11 +713,12 @@ class CachedIrodsPath(IrodsPath):
         """See IrodsPath."""
         return not self._is_dataobj
 
-    def __str__(self) -> str:
-        """Get the absolute path as the string respresentation."""
-        if self._path_str is None:
-            self._path_str = super().__str__()
-        return self._path_str
+    def copy(self, strip_session: bool = False):
+        session = self.session if not strip_session else None
+        ipath_copy = self.__class__(session, self._size, self._is_dataobj, self._checksum,
+                                    self._path)
+        ipath_copy._abs_str = self._abs_str  # pylint: disable=protected-access
+        return ipath_copy
 
 def _get_data_objects(
     session, coll: irods.collection.iRODSCollection,

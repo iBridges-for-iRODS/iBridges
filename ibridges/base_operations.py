@@ -62,6 +62,8 @@ class PathUpdate(NamedTuple):
 class SkipOperation(ValueError):  # noqa: N818
     """Signal that the operation has been skipped."""
 
+class EmptyQueue(ValueError):  # noqa: N818
+    """Signal that queue is empty."""
 
 def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
@@ -105,7 +107,8 @@ class VirtualFileSystem():
 
     def create_path(self, path: IrodsPath | Path,
                     path_type: PathType,
-                    op_id: int) -> int | None:
+                    op_id: int,
+                    overwrite: bool) -> int | None:
         """Create a new path on the virtual file system.
 
         Parameters
@@ -116,6 +119,8 @@ class VirtualFileSystem():
             Type of path to create (PathType.DIR or PathType.FILE).
         op_id:
             Id of the operation that creates the path.
+        overwrite:
+            Whether to overwrite the file/data object.
 
         Raises
         ------
@@ -129,9 +134,10 @@ class VirtualFileSystem():
 
         """
         if self.exists(path):
-            raise ValueError(f"Path {path} already exists.")
-        if self.path_type(path) & (PathType.FILE | PathType.DIR):
-            raise ValueError(f"Wrong path type for {path} (path_type)")
+            if not overwrite:
+                raise ValueError(f"Path {path} already exists.")
+            if self.path_type(path) != path_type:
+                raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append(PathUpdate(PathOperation.CREATE, path_type, op_id))
         self.last_mod[str(path)] = len(self.paths[str(path)]) - 1
         return self.paths[str(path)][-2].op_id
@@ -276,7 +282,6 @@ class VirtualFileSystem():
         for path, status in self.paths.items():
             print(f"{path}" + "  -> ".join(str(s) for s in status))
 
-
 class BaseOperation(ABC):
     """Abstract basic operation class for data transfers."""
 
@@ -337,6 +342,16 @@ class BaseOperation(ABC):
             return max_threads
         return 1
 
+    @abstractmethod
+    def pack(self) -> dict:
+        """Convert the operation to a dictionary that can be unpacked after transfer."""
+
+    @classmethod
+    @abstractmethod
+    def unpack(cls, op_dict: dict, session: Session):
+        """Unpack dictionary and re-add session to it."""
+
+
 class DownloadOperation(BaseOperation):
     """Operation to download data objects to a local file."""
 
@@ -379,13 +394,14 @@ class DownloadOperation(BaseOperation):
         deps = [
             vfs_remote.need_path(self.ipath, PathType.FILE, op_id),
             vfs_local.need_path(self.lpath.parent, PathType.DIR, op_id),
-            vfs_local.create_path(self.lpath, PathType.FILE, op_id),
+            vfs_local.create_path(self.lpath, PathType.FILE, op_id, self.overwrite),
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session, pbar, n_threads):
         _obj_get(session, self.ipath, self.lpath, pbar=pbar, n_threads=n_threads,
-                 resc_name=self.resc_name, options=self.options)
+                 resc_name=self.resc_name, options=self.options, overwrite=self.overwrite,
+                 on_error=self.on_error)
 
     @property
     def header(self):
@@ -399,11 +415,28 @@ class DownloadOperation(BaseOperation):
     def size(self):
         return self.ipath.size
 
+    def pack(self):
+        return PackedOperation({
+            "op_class": self.__class__,
+            "ipath": self.ipath.copy(strip_session=True),
+            "lpath": self.lpath,
+            "overwrite": self.overwrite,
+            "on_error": self.on_error,
+            "resc_name": self.resc_name,
+            "options": self.options,
+        })
+
+    @classmethod
+    def unpack(cls, op_dict, session):
+        instance = cls(**op_dict)
+        instance.ipath.session = session
+        return instance
 
 class UploadOperation(BaseOperation):
     """Operation to upload data from the local file system to the iRODS system."""
 
-    def __init__(self, lpath: str | Path, ipath: IrodsPath, overwrite: bool = False,
+    def __init__(self, lpath: str | Path, ipath: IrodsPath,
+                 overwrite: bool = False,
                  on_error: str = "fail",
                  resc_name: str = "",
                  options: Optional[dict] = None):
@@ -440,14 +473,14 @@ class UploadOperation(BaseOperation):
         deps = [
             vfs_local.need_path(self.lpath, PathType.FILE, op_id),
             vfs_remote.need_path(self.ipath.parent, PathType.DIR, op_id),
-            vfs_remote.create_path(self.ipath, PathType.FILE, op_id),
+            vfs_remote.create_path(self.ipath, PathType.FILE, op_id, self.overwrite),
         ]
         return [d for d in deps if d is not None]
 
     def execute(self, session: Session, pbar, n_threads: int):
         _obj_put(session, self.lpath, self.ipath, pbar=pbar, n_threads=n_threads,
                  resc_name=self.resc_name,
-                 options=self.options)
+                 options=self.options, overwrite=self.overwrite, on_error=self.on_error)
 
     @property
     def header(self):
@@ -461,8 +494,25 @@ class UploadOperation(BaseOperation):
     def size(self):
         return self.lpath.stat().st_size
 
+    def pack(self):
+        return PackedOperation({
+            "op_class": self.__class__,
+            "ipath": self.ipath.copy(strip_session=True),
+            "lpath": self.lpath,
+            "overwrite": self.overwrite,
+            "on_error": self.on_error,
+            "resc_name": self.resc_name,
+            "options": self.options,
+        })
 
-class CreateDirOperation(BaseOperation):
+    @classmethod
+    def unpack(cls, op_dict, session):
+        instance = cls(**op_dict)
+        instance.ipath.session = session
+        return instance
+
+
+class CreateDirectoryOperation(BaseOperation):
     """Operation to create a local directory."""
 
     def __init__(self, lpath: str | Path, exist_ok: bool = True):
@@ -487,7 +537,7 @@ class CreateDirOperation(BaseOperation):
             raise SkipOperation()
         deps = [
             vfs_local.need_path(self.lpath.parent, PathType.DIR, op_id),
-            vfs_local.create_path(self.lpath, PathType.DIR, op_id),
+            vfs_local.create_path(self.lpath, PathType.DIR, op_id, False),
         ]
         return [d for d in deps if d is not None]
 
@@ -506,6 +556,17 @@ class CreateDirOperation(BaseOperation):
     @property
     def size(self):
         return 1
+
+    def pack(self):
+        return PackedOperation({
+            "op_class": self.__class__,
+            "lpath": self.lpath,
+            "exist_ok": self.exist_ok,
+        })
+
+    @classmethod
+    def unpack(cls, op_dict, session):
+        return cls(**op_dict)
 
 
 class CreateCollectionOperation(BaseOperation):
@@ -535,7 +596,7 @@ class CreateCollectionOperation(BaseOperation):
 
         deps = [
             vfs_remote.need_path(self.ipath.parent, PathType.DIR, op_id),
-            vfs_remote.create_path(self.ipath, PathType.DIR, op_id)
+            vfs_remote.create_path(self.ipath, PathType.DIR, op_id, overwrite=False)
         ]
         return [d for d in deps if d is not None]
 
@@ -555,6 +616,56 @@ class CreateCollectionOperation(BaseOperation):
     def size(self):
         return 1
 
+    def pack(self):
+        return PackedOperation({
+            "op_class": self.__class__,
+            "ipath": self.ipath.copy(strip_session=True),
+            "exist_ok": self.exist_ok,
+        })
+
+    @classmethod
+    def unpack(cls, op_dict, session):
+        instance = cls(**op_dict)
+        instance.ipath.session = session
+        return instance
+
+
+class PackedOperation():  # pylint: disable=too-few-public-methods
+    """Temporary packed version of the operation.
+
+    This strips the session so that it can be transferred to different threads/processes.
+    """
+
+    def __init__(self, op_dict):
+        """Initialize packed operation."""
+        self.op_dict = op_dict
+
+    def unpack(self, session):
+        """Unpack the operation and add the session.
+
+        Parameters
+        ----------
+        session
+            The session to be used to reform IrodsPaths.
+
+        Returns
+        -------
+            An operation, such as the DownloadOperation.add_to_vfs
+
+        Raises
+        ------
+        ValueError
+            If the dictionary is corrupted.
+
+        """
+        for op_class in [DownloadOperation, UploadOperation, CreateCollectionOperation,
+                         CreateDirectoryOperation]:
+            if issubclass(self.op_dict["op_class"], op_class):
+                self.op_dict.pop("op_class")
+                return op_class.unpack(self.op_dict, session)
+        raise ValueError("Cannot unpack operation, unknown operation type: "
+                         f"{self.op_dict['op_type']}.")
+
 
 class DependencyGraph():
     """Class that keeps track of the dependencies between operations."""
@@ -565,25 +676,36 @@ class DependencyGraph():
         self.depends_on = {}
         self.queue = []
         self.running = set()
+        self.operations: dict[int, BaseOperation] = {}
+        self.skipped_operation: list[BaseOperation] = []
 
-    def add(self, op_id, depends_on):
+    def add(self, op: BaseOperation, depends_on: list[int] | None, skip: bool = False):
         """Add a new operation to the dependency graph.
 
         Parameters
         ----------
-        op_id:
-            Operation ID of the operation to be added.
+        op:
+            Operation to be added.
         depends_on:
             List of operation IDs of operations on which the current operation depends.
+        skip:
+            Whether to skip the operation.
 
         """
+        if skip:
+            self.skipped_operation.append(op)
+            return
+
+        assert depends_on is not None
+        op_id = len(self.operations)
+        self.operations[op_id] = op
         self.depends_on[op_id] = depends_on
         for other_op_id in depends_on:
             self.dependency_of[other_op_id].add(op_id)
         if len(depends_on) == 0:
             self.queue.append(op_id)
 
-    def next_op(self) -> int:
+    def next_op(self) -> tuple[BaseOperation, int]:
         """Get the next operation that do no depend on unfinished operations.
 
         Returns
@@ -592,9 +714,12 @@ class DependencyGraph():
             The operation ID of the operation to be run.
 
         """
+        if len(self.queue) == 0:
+            raise EmptyQueue()
+
         op_id = self.queue.pop()
         self.running.add(op_id)
-        return op_id
+        return self.operations[op_id], op_id
 
     def finish_op(self, op_id: int):
         """Finish the operation and remove it from the queue.
@@ -613,9 +738,42 @@ class DependencyGraph():
         self.depends_on.pop(op_id)
         self.dependency_of.pop(op_id, None)
 
+    @property
+    def total_size(self) -> int:
+        """Get the total size of not skipped operations.
+
+        Returns
+        -------
+            The number of bytes of all operations.
+
+        """
+        return sum(op.size for op in self.operations.values())
+
     def __len__(self) -> int:
         """Get the number of operations that are still to be scheduled."""
         return len(self.depends_on)
+
+    def print_summary(self):
+        """Print a summary of all operations to be executed."""
+        op_dict = defaultdict(list)
+        for op in self.operations.values():
+            op_dict[op.header].append(op)
+
+        skipped_dict = defaultdict(lambda: 0)
+        for op in self.skipped_operation:
+            skipped_dict[op.header] += 1
+
+        op_texts = []
+        for header in (set(op_dict) | set(skipped_dict)):
+            cur_text = f"{header}:\n\n"
+            if header in op_dict:
+                for op in op_dict[header]:
+                    cur_text += op.body + "\n"
+            if header in skipped_dict:
+                cur_text += f"Skipped: {skipped_dict[header]}"
+            op_texts.append(cur_text)
+        print("\n\n".join(op_texts))
+
 
 def _obj_put(  # pylint: disable=too-many-branches
     session: Session,
