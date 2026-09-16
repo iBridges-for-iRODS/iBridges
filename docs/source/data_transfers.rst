@@ -1,6 +1,11 @@
 Data Transfers
 ==============
 
+.. currentmodule:: ibridges.data_operations
+
+There are three main data transfer operations: :func:`download`, :func:`upload`, and :func:`sync`. These
+functions take very similar arguments.
+
 .. currentmodule:: ibridges.path
 
 In the following examples we assume that local directories and remote collections have
@@ -132,3 +137,34 @@ Some python libraries allow to be instantiated directly from such a stream. This
         df = pd.read_csv(stream)
 	
     print(df)
+
+
+Parallel transfers
+------------------
+
+The transfers can also be parallelized in different ways. By default iBridges will not parallelize your transfers,
+except for large transfers, where the underlying python-irodsclient will perform the parallelization. For small transfers,
+large performance increases can be observed when parallization is used. There are two methods of parallelization:
+``thread`` (for multi-threading) and ``process`` (for multi-processing). These methods have both advantages compared to one another.
+The advantage of using threads is that it will more efficiently use memory and cpu power on your machine. It will also
+be less demanding on the iRODS server. On the other hand using processes can be faster in some cases, and it does not
+rely on thread-safety of the ``python-irodsclient`` session. In general we recommend using threads, unless processes are
+much faster for your usecase, or the threads method is not working as expected.
+
+Choosing the amount of parallelism
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can adjust two parameters that determine how much iBridges will try to parallelize
+your transfers: 
+
+- ``n_workers``: The maximum number of worker threads/processes that can run in parallel
+- ``threads_per_worker``: The number of threads used by one thread/process for large transfers.
+
+One might expect then that the total number of threads that will be used could be as high as
+``n_workers*threads_per_worker``. This is not the case. Instead the queue will continue serving
+new jobs until the total number of threads in flight equals the number of workers. For example,
+let's assume ``n_workers=10`` and ``threads_per_worker=4``. Then if we have two large transfers + 1 small
+in flight, this will consume 9 slots (2*4+1). This is less than the number of workers, so another
+operation will be run, regardless of whether it is a large or small transfer. After this operation
+has been assigned to a worker, there are no slots left and the scheduler will wait until new
+slots become available when the running workers finish their operation. 

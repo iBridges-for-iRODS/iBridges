@@ -734,16 +734,25 @@ class PackedOperation():  # pylint: disable=too-few-public-methods
 
 
 class DependencyGraph():
-    """Class that keeps track of the dependencies between operations."""
+    """Class that keeps track of the dependencies between operations.
+
+    Where the VirtualFileSystem knows which operation has which effect on the data
+    (structure), for the dependency graph this is reduced to simply knowing which
+    operation needs to wait for which other operation. Each operation has an operation
+    id, which is how these dependencies are stored.
+
+    The dependency graph class is self-destructive in the sense that the operations will move from
+    the queue to the running operations and then removed.
+    """
 
     def __init__(self):
         """Initialize empty dependency graph."""
         self.dependency_of  = defaultdict(set)
         self.depends_on = {}
-        self.queue = []
-        self.running = set()
-        self.operations: dict[int, BaseOperation] = {}
-        self.skipped_operation: list[BaseOperation] = []
+        self.queue = []  # All operations that can be scheduled if there are sufficient resources
+        self.running = set()  # All operations that are currently running
+        self.operations: dict[int, BaseOperation] = {}  # All operations in any state
+        self.skipped_operation: list[BaseOperation] = []  # All operations that were skipped
 
     def add(self, op: BaseOperation, depends_on: list[int] | None, skip: bool = False):
         """Add a new operation to the dependency graph.
@@ -772,10 +781,18 @@ class DependencyGraph():
             self.queue.append(op_id)
 
     def next_op(self) -> tuple[BaseOperation, int]:
-        """Get the next operation that do no depend on unfinished operations.
+        """Get the next operation out of the queue.
+
+        Raises
+        ------
+        EmptyQueue:
+            If the queue is empty. This can happen if there are no more items to be scheduled,
+            or if the leftover items all have to wait on operations that are currently running.
 
         Returns
         -------
+        op:
+            Operation that needs to be executed.
         op_id:
             The operation ID of the operation to be run.
 
@@ -789,6 +806,8 @@ class DependencyGraph():
 
     def finish_op(self, op_id: int):
         """Finish the operation and remove it from the queue.
+
+        This should be called after the operation has finished running by one of the workers.
 
         Parameters
         ----------
