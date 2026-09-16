@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from enum import Enum, IntFlag
+from enum import Enum
 from inspect import signature
 from pathlib import Path
 from typing import NamedTuple, Optional, Union
@@ -30,7 +30,7 @@ from ibridges.session import Session
 from ibridges.util import checksums_equal
 
 
-class PathType(IntFlag):
+class PathType(Enum):
     """Enum signifiying which type of path it is.
 
     For iRODS, FILE -> data object and DIR -> collection.
@@ -42,13 +42,20 @@ class PathType(IntFlag):
 
 
 class PathOperation(Enum):
-    """Type of operation or status of paths."""
+    """Type of path operation.
 
-    EXISTS = 1
-    MISSING = 2
-    CREATE = 3
-    NEEDED = 4
-    DELETE = 5
+    There are 3 different operations: CREATE is an operation where the path already exists,
+    is being created or modified, REQUIRE is set by an
+    operation that reads the path, but doesn't change it, while DELETE is set when
+    the path is deleted.
+
+    Keeping track of the state and operations of the path allows the scheduler to
+    schedule the operation in the right order.
+    """
+
+    CREATE = 1
+    REQUIRE = 2
+    DELETE = 3
 
 
 class PathUpdate(NamedTuple):
@@ -98,7 +105,14 @@ def _transfer_needed(source: Union[IrodsPath, Path],
 
 
 class VirtualFileSystem():
-    """Class that keeps track of the future state of the file/data system."""
+    """Class that keeps track of the future state of the file/data system.
+
+    During operations the status of files/directories will change. If a file gets created,
+    then read, then modified, we know that those operations have to be performed in that
+    particular order. That is what the VirtualFileSystem keeps track of: how each object
+    in the file system gets mutated, read and deleted, so that the schedular can enforce
+    the correct order between different operations, while maximizizing the concurrency.
+    """
 
     def __init__(self):
         """Initialize the virtual file system without any files/directories present."""
@@ -172,7 +186,7 @@ class VirtualFileSystem():
             raise ValueError(f"Need path {path}, but path doesn't exist yet.")
         if (self.path_type(path) & path_type) == 0:
             raise ValueError(f"Wrong path type for {path} (path_type)")
-        self.paths[str(path)].append(PathUpdate(PathOperation.NEEDED, path_type, op_id))
+        self.paths[str(path)].append(PathUpdate(PathOperation.REQUIRE, path_type, op_id))
         if self.last_mod[str(path)] != -1:
             return self.paths[str(path)][self.last_mod[str(path)]].op_id
         return None
@@ -227,7 +241,7 @@ class VirtualFileSystem():
         """
         if str(path) in self.paths:
             last_op, _, _ = self.paths[str(path)][-1]
-            if last_op in [PathOperation.MISSING, PathOperation.DELETE]:
+            if last_op == PathOperation.DELETE:
                 return False
             return True
 
@@ -236,14 +250,14 @@ class VirtualFileSystem():
         if allow_recurse:
             self.exists(path.parent, allow_recurse=False)
             # If the parent doesn't exist, then neither does the path itself
-            if self.paths[str(path.parent)][0].operation == PathOperation.MISSING:
-                self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, PathType.MISSING, None)]
+            if self.paths[str(path.parent)][0].operation == PathOperation.DELETE:
+                self.paths[str(path)] = [PathUpdate(PathOperation.DELETE, PathType.MISSING, None)]
                 return False
         exists = path.exists()
         if not exists:
-            self.paths[str(path)] = [PathUpdate(PathOperation.MISSING, PathType.MISSING, None)]
+            self.paths[str(path)] = [PathUpdate(PathOperation.DELETE, PathType.MISSING, None)]
             return False
-        self.paths[str(path)] = [PathUpdate(PathOperation.EXISTS,
+        self.paths[str(path)] = [PathUpdate(PathOperation.CREATE,
                                             self.path_type(path), None)]
         return True
 
@@ -288,7 +302,11 @@ class BaseOperation(ABC):
     @abstractmethod
     def add_to_vfs(self, vfs_local: VirtualFileSystem, vfs_remote: VirtualFileSystem,
                    op_id: int) -> list[int]:
-        """Virtually execute the operation and get the dependencies.
+        """Virtually execute the operation on the VFS to get the dependencies.
+
+        This does not actually perform the operation. Instead, it will add to the
+        future history of the VirtualFileSystems. After being added, it will know the operations
+        that it needs to wait on, and can add them to the dependency list.
 
         Parameters
         ----------
@@ -306,7 +324,7 @@ class BaseOperation(ABC):
         """
 
     @abstractmethod
-    def execute(self, session: Session, pbar, n_threads):
+    def execute(self, session: Session, pbar, n_threads: int):
         """Execute the operation.
 
         Parameters
@@ -314,7 +332,8 @@ class BaseOperation(ABC):
         session
             Session to execute the operation with.
         pbar
-            Progressbar that will be updated.
+            Progressbar that will be updated. This progress bar should be thread/process
+            safe in case of multiprocessing/multithreading.
         n_threads
             Number of threads to use for the operation.
 
@@ -323,33 +342,79 @@ class BaseOperation(ABC):
     @property
     @abstractmethod
     def header(self) -> str:
-        """Short description of the kind of operation."""
+        """Short description of the kind of operation.
+
+        This is used for creating a summary of all operations that are to be performed.
+        So this could be 'Upload files' for example.
+        """
 
 
     @property
     @abstractmethod
     def body(self) -> str:
-        """String representation of the actual operation."""
+        """String representation of the actual operation.
+
+        This is used for creating the summary of all operations. For example, this could be
+        'some_file -> /some/irods/path/some_file`.
+        """
 
     @property
     @abstractmethod
     def size(self) -> int:
-        """Size of the operation."""
+        """Size of the operation.
+
+        For operations that do not have a particular size associated with it such as
+        the create directory operation, the size is set to 1.
+        """
 
     def threads(self, max_threads: int) -> int:
-        """Get number of threads that will be used for the operation."""
-        if self.size > MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE:
+        """Get number of threads that will be used for the operation.
+
+        Parameters
+        ----------
+        max_threads:
+            Maximum number of threads to be used per worker.
+
+        """
+        if self.size > MAXIMUM_SINGLE_THREADED_TRANSFER_SIZE:  # from PRC, could break if changed.
             return max_threads
         return 1
 
     @abstractmethod
-    def pack(self) -> dict:
-        """Convert the operation to a dictionary that can be unpacked after transfer."""
+    def pack(self) -> PackedOperation:
+        """Convert the operation to a dictionary that can be unpacked after transfer.
+
+        For multiprocessing, the session cannot be sent to the worker thread, since
+        this will give an error. All IrodsPaths have the session within the object,
+        so packing basically strips the session from the operation.
+
+        Returns
+        -------
+        op_dict:
+            A packed operation containing the data contained in the operations without the session.
+
+        """
 
     @classmethod
     @abstractmethod
     def unpack(cls, op_dict: dict, session: Session):
-        """Unpack dictionary and re-add session to it."""
+        """Unpack dictionary and re-add session to it.
+
+        See the :meth:`pack` method for the rationale.
+
+        Parameters
+        ----------
+        op_dict:
+            Dictionary containing all the information to unpack the operation (except the session).
+        session:
+            Session to be re-added to the operation.
+
+        Returns
+        -------
+        cls:
+            Operation that is unpacked, with a valid session.
+
+        """
 
 
 class DownloadOperation(BaseOperation):
@@ -634,6 +699,7 @@ class PackedOperation():  # pylint: disable=too-few-public-methods
     """Temporary packed version of the operation.
 
     This strips the session so that it can be transferred to different threads/processes.
+    This is not much more than a dictionary that can unpack itself into the correct class.
     """
 
     def __init__(self, op_dict):
