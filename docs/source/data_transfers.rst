@@ -47,8 +47,9 @@ If the transfer concerned a folder, a new collection with the folder name will b
 
 .. note::
 
-	All of the data transfer functions return an :class:`Operations` object, which can be used to execute all operations.
-	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will be transferred before the actual transfer using the :meth:`Operations.print_summary` method.
+	All of the data transfer functions return an :class:`TransferManager` object, which can be used to execute all operations.
+	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check
+    what will be transferred before the actual transfer using the :meth:`TransferManager.print_summary` method.
 
 .. currentmodule:: ibridges.data_operations
 
@@ -168,3 +169,22 @@ in flight, this will consume 9 slots (2*4+1). This is less than the number of wo
 operation will be run, regardless of whether it is a large or small transfer. After this operation
 has been assigned to a worker, there are no slots left and the scheduler will wait until new
 slots become available when the running workers finish their operation. 
+
+Transfer manager
+----------------
+
+In some cases you might want to combine different ``upload``, ``download`` or ``sync`` operations into one
+big operation. For example, you have a lot of smaller directories you want to download into one folder. Then it
+can be inefficient to use the same operation over and over. In this case, we recommend using the :class:`ibridges.transfer_manager.TransferManager`
+class:
+
+.. code:: python
+
+    with non_interactive_auth() as session:
+        ipath = IrodsPath(session, "/some/irods/path")
+        tm = TransferManager(session, n_workers=8, threads_per_worker=4, parallel_method="thread")
+        tm.add(download(ipath / "dir1"), Path.cwd(), dry_run=True)  # Make sure to put dry_run=True, otherwise it will download immediately
+        tm.add(download(ipath / "dir2"), Path.cwd(), dry_run=True)
+        ...
+        tm.print_summary()  # Check to see if this is really what we want.
+        tm.execute()  # Perform all download operations.

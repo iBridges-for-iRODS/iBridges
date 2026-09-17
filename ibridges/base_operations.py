@@ -184,7 +184,7 @@ class VirtualFileSystem():
         """
         if not self.exists(path):
             raise ValueError(f"Need path {path}, but path doesn't exist yet.")
-        if (self.path_type(path) & path_type) == 0:
+        if self.path_type(path) != path_type:
             raise ValueError(f"Wrong path type for {path} (path_type)")
         self.paths[str(path)].append(PathUpdate(PathOperation.REQUIRE, path_type, op_id))
         if self.last_mod[str(path)] != -1:

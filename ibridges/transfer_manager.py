@@ -55,15 +55,20 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         self.parallel_method = parallel_method
         self.progress_bar = progress_bar
 
-    def add(self, op: BaseOperation):
+    def add(self, op: BaseOperation | TransferManager):
         """Add an operation to the queue or skip the operation.
 
         Parameters
         ----------
         op
-            Operation to be added to the dependency graph.
+            Operation or operations in the transfer manager to be added to the dependency graph.
 
         """
+        if isinstance(op, TransferManager):
+            other_tm = op
+            for op in other_tm.dep_graph.operations.values():
+                self.add(op)
+            return
         if not isinstance(op, BaseOperation):
             raise ValueError(f"{op} is not an operation!")
         skip = False
