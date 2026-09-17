@@ -62,7 +62,7 @@ class IrodsPath:
         self.session = session
 
         # Check if the session seems the right type.
-        if not hasattr(session, "irods_session"):
+        if session is not None and not hasattr(session, "irods_session"):
             raise TypeError(f"{session} does not seem the right type: {type(session)}, should be "
                             "ibridges.session.Session.")
 
@@ -70,10 +70,11 @@ class IrodsPath:
         # path outside of the IrodsPath object.
         args = [a._path if isinstance(a, IrodsPath) else a for a in args]
         self._path = PurePosixPath(*args)
-
+        self._abs_str = None
+        # self._abs_path = None
         super().__init__()
 
-    def absolute(self) -> IrodsPath:
+    def _absolute_str(self) -> str:
         """Return the absolute path.
 
         This method does the expansion of the '~' and '.' symbols.
@@ -88,10 +89,12 @@ class IrodsPath:
         IrodsPath(/, zone, user)
 
         """
+        # if hasattr(self, "_abs_str"):
+            # return self._abs_str
         # absolute path
         if len(self._path.parts) == 0:
-            return IrodsPath(self.session, self.session.cwd)
-        if self._path.parts[0] == "~":
+            begin, end = self.session.cwd, []
+        elif self._path.parts[0] == "~":
             begin, end = self.session.home, self._path.parts[1:]
         elif self._path.parts[0] == ".":
             begin, end = self.session.cwd, self._path.parts[1:]
@@ -100,6 +103,11 @@ class IrodsPath:
         else:
             begin, end = self.session.cwd, self._path.parts
 
+        # begin.lstrip("/")
+        # if len(begin) == 0:
+        #     all_parts = end
+        # else:
+        #     all_parts = "/".split(begin) + list(end)
         all_parts = PurePosixPath(begin, *end).parts
         new_parts: list[str] = []
         for part in all_parts:
@@ -109,12 +117,27 @@ class IrodsPath:
                 new_parts.pop()
             else:
                 new_parts.append(part)
+        # abs_str = "/" + "/".join(new_parts)
         abs_str = str(PurePosixPath(*new_parts))
-        return IrodsPath(self.session, abs_str)
+        return abs_str
+        # return IrodsPath(self.session, abs_str)
+
+    def absolute(self) -> IrodsPath:
+        """Get the string representation of the full path."""
+        if self._abs_str is None:
+            self._abs_str = self._absolute_str()
+        return IrodsPath(self.session, self._abs_str)
 
     def __str__(self) -> str:
         """Get the absolute path if converting to string."""
-        return str(self.absolute()._path)
+        if hasattr(self.session, "str_count"):
+            self.session.str_count += 1
+        else:
+            self.session.str_count = 1
+        if self._abs_str is None:
+            self._abs_str = self._absolute_str()
+        return self._abs_str
+        # return str(self.absolute()._path)
 
     def __repr__(self) -> str:
         """Representation of the IrodsPath object in line with a Path object."""
@@ -398,7 +421,9 @@ class IrodsPath:
 
         """
         if self.dataobject_exists():
-            return self.session.irods_session.data_objects.get(str(self))
+            self_str = str(self)
+            data_obj = self.session.irods_session.data_objects.get(self_str)
+            return data_obj
         if self.collection_exists():
             raise NotADataObjectError(
                 "Error retrieving data object, path is linked to a collection."
@@ -596,6 +621,23 @@ class IrodsPath:
             "Cannot get metadata for path that is neither dataobject or collection:"
             f" {self}")
 
+    def copy(self, strip_session: bool = False) -> IrodsPath:
+        """Create a copy of the path.
+
+        Parameters
+        ----------
+        strip_session
+            Whether to remove the session from the irodspath, by default False.
+
+        Returns
+        -------
+            A new IrodsPath instance.
+
+        """
+        session = self.session if strip_session is False else None
+        ipath_copy = self.__class__(session, self._path)
+        ipath_copy._abs_str = self._abs_str  # pylint: disable=protected-access
+        return ipath_copy
 
 def _recursive_walk(cur_col: IrodsPath, sub_collections: dict[str, list[IrodsPath]],
                     all_dataobjects: dict[str, list[IrodsPath]], start_col: IrodsPath,
@@ -642,6 +684,7 @@ class CachedIrodsPath(IrodsPath):
         self._is_dataobj = is_dataobj
         self._size = size
         self._checksum = checksum
+        # self._path_str: Optional[str] = None
         super().__init__(session, *args)
 
     @property
@@ -670,6 +713,12 @@ class CachedIrodsPath(IrodsPath):
         """See IrodsPath."""
         return not self._is_dataobj
 
+    def copy(self, strip_session: bool = False):
+        session = self.session if not strip_session else None
+        ipath_copy = self.__class__(session, self._size, self._is_dataobj, self._checksum,
+                                    self._path)
+        ipath_copy._abs_str = self._abs_str  # pylint: disable=protected-access
+        return ipath_copy
 
 def _get_data_objects(
     session, coll: irods.collection.iRODSCollection,

@@ -99,4 +99,4 @@ disable="duplicate-code"
 exclude = ["_version.py"]
 line-length = 100
 lint.select = ["D", "E", "F", "W", "I", "N"]
-lint.ignore = ["D203", "D213"]
+lint.ignore = ["D203", "D213", "D102"]

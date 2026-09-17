@@ -1,6 +1,11 @@
 Data Transfers
 ==============
 
+.. currentmodule:: ibridges.data_operations
+
+There are three main data transfer operations: :func:`download`, :func:`upload`, and :func:`sync`. These
+functions take very similar arguments.
+
 .. currentmodule:: ibridges.path
 
 In the following examples we assume that local directories and remote collections have
@@ -42,8 +47,9 @@ If the transfer concerned a folder, a new collection with the folder name will b
 
 .. note::
 
-	All of the data transfer functions return an :class:`Operations` object, which can be used to execute all operations.
-	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check what will be transferred before the actual transfer using the :meth:`Operations.print_summary` method.
+	All of the data transfer functions return an :class:`TransferManager` object, which can be used to execute all operations.
+	With the option :code:`dry_run=True` you can retrieve these operations before executing them. This enables you to check
+    what will be transferred before the actual transfer using the :meth:`TransferManager.print_summary` method.
 
 .. currentmodule:: ibridges.data_operations
 
@@ -132,3 +138,53 @@ Some python libraries allow to be instantiated directly from such a stream. This
         df = pd.read_csv(stream)
 	
     print(df)
+
+
+Parallel transfers
+------------------
+
+The transfers can also be parallelized in different ways. By default iBridges will not parallelize your transfers,
+except for large transfers, where the underlying python-irodsclient will perform the parallelization. For small transfers,
+large performance increases can be observed when parallization is used. There are two methods of parallelization:
+``thread`` (for multi-threading) and ``process`` (for multi-processing). These methods have both advantages compared to one another.
+The advantage of using threads is that it will more efficiently use memory and cpu power on your machine. It will also
+be less demanding on the iRODS server. On the other hand using processes can be faster in some cases, and it does not
+rely on thread-safety of the ``python-irodsclient`` session. In general we recommend using threads, unless processes are
+much faster for your usecase, or the threads method is not working as expected.
+
+Choosing the amount of parallelism
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+You can adjust two parameters that determine how much iBridges will try to parallelize
+your transfers: 
+
+- ``n_workers``: The maximum number of worker threads/processes that can run in parallel
+- ``threads_per_worker``: The number of threads used by one thread/process for large transfers.
+
+One might expect then that the total number of threads that will be used could be as high as
+``n_workers*threads_per_worker``. This is not the case. Instead the queue will continue serving
+new jobs until the total number of threads in flight equals the number of workers. For example,
+let's assume ``n_workers=10`` and ``threads_per_worker=4``. Then if we have two large transfers + 1 small
+in flight, this will consume 9 slots (2*4+1). This is less than the number of workers, so another
+operation will be run, regardless of whether it is a large or small transfer. After this operation
+has been assigned to a worker, there are no slots left and the scheduler will wait until new
+slots become available when the running workers finish their operation. 
+
+Transfer manager
+----------------
+
+In some cases you might want to combine different ``upload``, ``download`` or ``sync`` operations into one
+big operation. For example, you have a lot of smaller directories you want to download into one folder. Then it
+can be inefficient to use the same operation over and over. In this case, we recommend using the :class:`ibridges.transfer_manager.TransferManager`
+class:
+
+.. code:: python
+
+    with non_interactive_auth() as session:
+        ipath = IrodsPath(session, "/some/irods/path")
+        tm = TransferManager(session, n_workers=8, threads_per_worker=4, parallel_method="thread")
+        tm.add(download(ipath / "dir1"), Path.cwd(), dry_run=True)  # Make sure to put dry_run=True, otherwise it will download immediately
+        tm.add(download(ipath / "dir2"), Path.cwd(), dry_run=True)
+        ...
+        tm.print_summary()  # Check to see if this is really what we want.
+        tm.execute()  # Perform all download operations.
