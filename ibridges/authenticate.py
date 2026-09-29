@@ -1,5 +1,6 @@
 """Authentication with iRODS server."""
 
+import json
 import os
 import sys
 from getpass import getpass
@@ -11,6 +12,15 @@ from ibridges.session import LoginError, PasswordError, Session
 from ibridges.util import DEFAULT_IENV_PATH, DEFAULT_IRODSA_PATH, ValueErrorParser, open_irodsa
 
 
+def _is_anonymous(irods_env_path: Union[str, Path]) -> bool:
+    """Check whether the iRODS environment file is for the anonymous user."""
+    try:
+        with open(irods_env_path, "r", encoding="utf-8") as handle:
+            return json.load(handle).get("irods_user_name", "") == "anonymous"
+    except (OSError, ValueError, AttributeError):
+        return False
+
+
 def cli_auth(parser, reauthenticate: bool = False):
     """Authenticate for the CLI and shell."""
     ibridges_conf = IbridgesConf(parser)
@@ -19,6 +29,11 @@ def cli_auth(parser, reauthenticate: bool = False):
 
     if not Path(ienv_path).exists():
         parser.error(f"Error: Irods environment file or alias '{ienv_path}' does not exist.")
+
+    # Anonymous sessions have no password and therefore no .irodsA file to back up.
+    if _is_anonymous(ienv_path):
+        return interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd)
+
     irodsa_backup = None if reauthenticate else ienv_entry.get("irodsa_backup", None)
     session = interactive_auth(irods_env_path=ienv_path, cwd=ienv_cwd,
                                irodsa_backup=irodsa_backup, reauthenticate=reauthenticate)
@@ -44,6 +59,10 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     alias to connect. The last cached password for this environment will be
     used to authenticate.
 
+    For anonymous environments (irods_user_name is "anonymous") no password is
+    needed; use the `anonymous_options` keyword argument to override connection
+    or SSL settings, see :class:`ibridges.Session`.
+
     Parameters
     ----------
     args:
@@ -57,7 +76,8 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
         Parser to relay the error messages to. By default, errors are raised as
         ValueError's.
     kwargs:
-        Extra keyword arguments for the session such as home and password.
+        Extra keyword arguments for the session such as home, password and
+        anonymous_options.
 
 
     Returns
@@ -66,7 +86,6 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
         Session after successfully authenticating.
 
     """
-    # iBridges doesn't have a non-interactive auth, so make one.
     ibridges_conf = IbridgesConf(parser=parser)
     ienv_path: Optional[str]
     try:
@@ -89,6 +108,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
 def interactive_auth(
     password: Optional[str] = None, irods_env_path: Union[None, str, Path] = None,
     irodsa_backup: Optional[str] = None, reauthenticate: bool = False,
+    anonymous_options: Optional[dict] = None,
     **kwargs
 ) -> Session:
     """Interactive authentication with iRODS server.
@@ -99,10 +119,14 @@ def interactive_auth(
     By default uses `~/.irods/irods_environment.json` to authenticate.
     Caches the password in ~/.irods/.irodsA upon success.
 
+    If the iRODS environment is for the user "anonymous", no password is asked for or
+    cached. The session is created directly.
+
     Parameters
     ----------
     password:
         Password to make the connection with. If not supplied, you will be asked interactively.
+        Ignored for anonymous users.
     irods_env_path:
         Path to the irods environment, defaults to `~/.irods/irods_environment.json.`
     irodsa_backup:
@@ -110,6 +134,10 @@ def interactive_auth(
     reauthenticate:
         If reauthenticate is set to True, then cached passwords will be ignored and a new password
         can be submitted.
+    anonymous_options:
+        Only used for anonymous users. Dictionary with overrides for the anonymous session:
+        "host", "port", "user_name", "zone_name" and "ssl_settings".
+        See :meth:`ibridges.Session.authenticate_anonymous`.
     kwargs:
         Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
@@ -130,6 +158,10 @@ def interactive_auth(
     if not os.path.exists(irods_env_path):
         print(f"File not found: {irods_env_path}")
         raise FileNotFoundError
+
+    # Anonymous users have no password: skip the password prompt and caching.
+    if _is_anonymous(irods_env_path):
+        return Session(irods_env_path, anonymous_options=anonymous_options, **kwargs)
 
     session = None
     if DEFAULT_IRODSA_PATH.is_file() and password is None and not reauthenticate:
