@@ -231,6 +231,7 @@ class TicketAccess:
     >>> access.path
     '/zone/home/user/test-collection'
     >>> access.list_paths()
+
     """
 
     def __init__(
