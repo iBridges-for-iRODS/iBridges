@@ -224,6 +224,13 @@ class TicketAccess:
         given, iBridges tries to look it up on the server using the ticket. That
         is not guaranteed to work for every user and server setup, in which case
         you have to supply the path.
+    supply:
+        Supply the ticket to the session right away. Once supplied, the ticket stays
+        applied to the connections of that session, also after the ticket has been
+        deleted, and further operations on the session then fail with CAT_TICKET_INVALID.
+        So only supply tickets on a dedicated session (e.g. an anonymous session),
+        not on a session that you keep using for other work. Ticket owners do not need
+        to supply the ticket and can pass False.
 
     Examples
     --------
@@ -239,13 +246,15 @@ class TicketAccess:
         session: Session,
         ticket_str: str,
         irods_path: Optional[Union[str, IrodsPath]] = None,
+        supply: bool = True,
     ):
         """Supply the ticket to the session."""
         self.session = session
         self.ticket_str = ticket_str
         self._path: Optional[str] = str(irods_path) if irods_path is not None else None
         self._ticket = irods.ticket.Ticket(session.irods_session, ticket_str)
-        self.supply()
+        if supply:
+            self.supply()
 
     def supply(self):
         """(Re)supply the ticket to the session.

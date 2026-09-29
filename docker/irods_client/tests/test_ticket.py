@@ -106,7 +106,7 @@ def test_ticket_access_path_supplied(session, ticketed_item):
 def test_ticket_access_path_lookup(session, ticketed_item):
     # The owner is allowed to query the ticket table, so the path can be found.
     ticket_str, ipath = ticketed_item
-    access = TicketAccess(session, ticket_str)
+    access = TicketAccess(session, ticket_str, supply=False)
     assert isinstance(access.path, IrodsPath)
     assert str(access.path) == str(ipath)
 
