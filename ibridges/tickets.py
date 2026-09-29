@@ -191,7 +191,7 @@ class Tickets:
                     row[TicketQuery.Ticket.string],
                     row[TicketQuery.Ticket.type],
                     IrodsPath(self.session,
-                              _id_to_path(str(row[TicketQuery.Ticket.object_id]))),
+                              _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id]))),
                     time_stamp,
                 )
             )
@@ -286,4 +286,3 @@ class TicketAccess:
         raise ValueError(
             "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
         )
-
