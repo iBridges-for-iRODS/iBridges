@@ -75,8 +75,6 @@ class CliTicket(BaseCliCommand):
         if args.command != "supply":
             super().run_command(args)
             return
-        supply_line = f"ticket supply {shlex.quote(args.ticket)} {shlex.quote(args.remote_path)}"
-        print("DEBUG queued:", supply_line)
         from ibridges.cli.shell import IBridgesShell  # pylint: disable=import-outside-toplevel
 
         supply_line = f"ticket supply {shlex.quote(args.ticket)} {shlex.quote(args.remote_path)}"
