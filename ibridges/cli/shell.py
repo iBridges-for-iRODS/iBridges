@@ -17,6 +17,8 @@ from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, 
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
+from ibridges.cli.tickets import CliTicket
+
 from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS = [
@@ -38,6 +40,7 @@ ALL_BUILTIN_COMMANDS = [
     CliGui,
     CliVersion,
     CliACLEdit,
+    CliTicket
 ]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 

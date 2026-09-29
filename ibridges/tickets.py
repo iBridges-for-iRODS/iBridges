@@ -52,6 +52,62 @@ class Tickets:
         self.session = session
         self._all_tickets = self.fetch_tickets()
 
+    def __str__(self) -> str:
+        return self.format_tickets_table(self._all_tickets)
+
+    @staticmethod
+    def format_tickets_table(tickets: Iterable[TicketData]) -> str:
+        """Format tickets as an aligned text table.
+
+        Parameters
+        ----------
+        tickets:
+            Ticket data, as returned by :meth:`fetch_tickets`.
+
+        Returns
+        -------
+        str
+            The table as a string, or a short message if there are no tickets.
+
+        """
+        tickets = list(tickets)
+        if not tickets:
+            return "No tickets found."
+
+        headers = ["Ticket", "Type", "iRODS Path", "Expires"]
+
+        rows = []
+        for tick in tickets:
+            if isinstance(tick.expiration_date, datetime):
+                expires = tick.expiration_date.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                expires = "never"
+            rows.append([str(tick.name), str(tick.type), str(tick.path), expires])
+
+        widths = [max(len(item) for item in col) for col in zip(headers, *rows)]
+        row_format = " | ".join(f"{{:<{w}}}" for w in widths)
+
+        lines = [
+            row_format.format(*headers),
+            "-+-".join("-" * w for w in widths),
+            *(row_format.format(*row) for row in rows),
+        ]
+        return "\n".join(lines)
+
+    def print_tickets_table(self, tickets: Optional[Iterable[TicketData]] = None):
+        """Print tickets as an aligned text table.
+
+        Parameters
+        ----------
+        tickets:
+            Ticket data to print. Defaults to all tickets of the current user.
+
+        """
+        if tickets is None:
+            tickets = self._all_tickets
+        print(self.format_tickets_table(tickets))
+
+
     def create_ticket(
         self,
         irods_path: Union[str, IrodsPath],
