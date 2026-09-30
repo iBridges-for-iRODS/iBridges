@@ -7,6 +7,7 @@ import tomli
 from ibridges import Session
 from ibridges.data_operations import upload
 from ibridges.path import IrodsPath
+from ibridges.tickets import Tickets
 
 # Keys of the (admin) environment that are useful for an anonymous session.
 _SSL_PREFIXES = ("irods_ssl_", "irods_encryption_", "irods_client_server_")
