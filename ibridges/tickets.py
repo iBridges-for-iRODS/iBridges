@@ -16,6 +16,25 @@ from ibridges.session import Session
 TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
 
 
+def _id_to_path(session: Session, itemid: str) -> str:
+    """Get an iRODS path from a given an iRODS item id.
+
+    Returns '' if the identifier does not exist (or is not visible) any longer.
+    """
+    data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
+    data_query = data_query.filter(icat.DATA_ID == itemid)
+
+    if len(list(data_query)) > 0:
+        res = next(data_query.get_results())
+        return list(res.values())[0] + "/" + list(res.values())[1]
+    coll_query = session.irods_session.query(icat.COLL_NAME)
+    coll_query = coll_query.filter(icat.COLL_ID == itemid)
+    if len(list(coll_query)) > 0:
+        res = next(coll_query.get_results())
+        return list(res.values())[0]
+    return ""
+
+
 class Tickets:
     """iRODS Ticket operations.
 
@@ -34,6 +53,62 @@ class Tickets:
         """Initialize for ticket operations."""
         self.session = session
         self._all_tickets = self.fetch_tickets()
+
+    def __str__(self) -> str:
+        """Return formatted table of available tickets."""
+        return self.format_tickets_table(self._all_tickets)
+
+    @staticmethod
+    def format_tickets_table(tickets: Iterable[TicketData]) -> str:
+        """Format tickets as an aligned text table.
+
+        Parameters
+        ----------
+        tickets:
+            Ticket data, as returned by :meth:`fetch_tickets`.
+
+        Returns
+        -------
+        str
+            The table as a string, or a short message if there are no tickets.
+
+        """
+        tickets = list(tickets)
+        if not tickets:
+            return "No tickets found."
+
+        headers = ["Ticket", "Type", "iRODS Path", "Expires"]
+
+        rows = []
+        for tick in tickets:
+            if isinstance(tick.expiration_date, datetime):
+                expires = tick.expiration_date.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                expires = "never"
+            rows.append([str(tick.name), str(tick.type), str(tick.path), expires])
+
+        widths = [max(len(item) for item in col) for col in zip(headers, *rows)]
+        row_format = " | ".join(f"{{:<{w}}}" for w in widths)
+
+        lines = [
+            row_format.format(*headers),
+            "-+-".join("-" * w for w in widths),
+            *(row_format.format(*row) for row in rows),
+        ]
+        return "\n".join(lines)
+
+    def print_tickets_table(self, tickets: Optional[Iterable[TicketData]] = None):
+        """Print tickets as an aligned text table.
+
+        Parameters
+        ----------
+        tickets:
+            Ticket data to print. Defaults to all tickets of the current user.
+
+        """
+        if tickets is None:
+            tickets = self._all_tickets
+        print(self.format_tickets_table(tickets))
 
     def create_ticket(
         self,
@@ -119,7 +194,7 @@ class Tickets:
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
         raise KeyError(
-            f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' " "does not exist."
+            f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' does not exist."
         )
 
     def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket], check: bool = False):
@@ -173,8 +248,10 @@ class Tickets:
                 TicketData(
                     row[TicketQuery.Ticket.string],
                     row[TicketQuery.Ticket.type],
-                    IrodsPath(self.session,
-                              self._id_to_path(str(row[TicketQuery.Ticket.object_id]))),
+                    IrodsPath(
+                        self.session,
+                        _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id])),
+                    ),
                     time_stamp,
                 )
             )
@@ -190,34 +267,92 @@ class Tickets:
             self.delete_ticket(tick_data.name)
         self.fetch_tickets()
 
-    def _id_to_path(self, itemid: str) -> str:
-        """Get an iRODS path from a given an iRODS item id.
 
-        The item (data object or collection) id should come from the
-        TicketQuery.Ticket.object_id.
+class TicketAccess:
+    """Use an iRODS ticket to access data, for example as an anonymous user.
 
-        Parameters
-        ----------
-        itemid : str
-            iRODS identifier for a collection or data object
-            (str(row[TicketQuery.Ticket.object_id]))
+    The ticket is supplied to the session on creation. Afterwards the ticketed
+    collection or data object can be listed, read and downloaded.
 
-        Returns
-        -------
-        str
-            collection or data object path
-            returns '' if the identifier does not exist any longer
+    Parameters
+    ----------
+    session:
+        Session connected to the iRODS server, e.g. an anonymous session.
+    ticket_str:
+        The ticket string, as returned by :meth:`Tickets.create_ticket`.
+    irods_path:
+        Path of the collection or data object the ticket was made for. If not
+        given, iBridges tries to look it up on the server using the ticket. That
+        is not guaranteed to work for every user and server setup, in which case
+        you have to supply the path.
+    supply:
+        Supply the ticket to the session right away. Once supplied, the ticket stays
+        applied to the connections of that session, also after the ticket has been
+        deleted, and further operations on the session then fail with CAT_TICKET_INVALID.
+        So only supply tickets on a dedicated session (e.g. an anonymous session),
+        not on a session that you keep using for other work. Ticket owners do not need
+        to supply the ticket and can pass False.
+
+    Examples
+    --------
+    >>> access = TicketAccess(anonymous_session, "kpIwGA1UZN0LFnM")
+    >>> access.path
+    '/zone/home/user/test-collection'
+    >>> access.list_paths()
+
+    """
+
+    def __init__(
+        self,
+        session: Session,
+        ticket_str: str,
+        irods_path: Optional[Union[str, IrodsPath]] = None,
+        supply: bool = True,
+    ):
+        """Supply the ticket to the session."""
+        self.session = session
+        self.ticket_str = ticket_str
+        self._path: Optional[str] = str(irods_path) if irods_path is not None else None
+        self._ticket = irods.ticket.Ticket(session.irods_session, ticket_str)
+        if supply:
+            self.supply()
+
+    def supply(self):
+        """(Re)supply the ticket to the session.
+
+        Call this again if you have reconnected the session.
+        """
+        self.session.irods_session.cleanup()
+        self._ticket.supply()
+
+    @property
+    def path(self) -> IrodsPath:
+        """Path of the collection or data object that the ticket gives access to.
+
+        Raises
+        ------
+        ValueError:
+            If the path was not supplied and cannot be found using the ticket.
 
         """
-        data_query = self.session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
-        data_query = data_query.filter(icat.DATA_ID == itemid)
+        if self._path is None:
+            self._path = self._lookup_path()
+        return IrodsPath(self.session, self._path)
 
-        if len(list(data_query)) > 0:
-            res = next(data_query.get_results())
-            return list(res.values())[0] + "/" + list(res.values())[1]
-        coll_query = self.session.irods_session.query(icat.COLL_NAME)
-        coll_query = coll_query.filter(icat.COLL_ID == itemid)
-        if len(list(coll_query)) > 0:
-            res = next(coll_query.get_results())
-            return list(res.values())[0]
-        return ""
+    def _lookup_path(self) -> str:
+        try:
+            rows = self.session.irods_session.query(TicketQuery.Ticket.object_id).filter(
+                TicketQuery.Ticket.string == self.ticket_str
+            )
+            item_ids = [str(row[TicketQuery.Ticket.object_id]) for row in rows]
+        except Exception as error:
+            raise ValueError(
+                "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
+            ) from error
+        for item_id in item_ids:
+            path = _id_to_path(self.session, item_id)
+            if path:
+                return path
+        raise ValueError(
+            "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
+        )

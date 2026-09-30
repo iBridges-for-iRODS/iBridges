@@ -17,6 +17,7 @@ from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, 
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
+from ibridges.cli.tickets import CliTicket
 from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS = [
@@ -38,16 +39,20 @@ ALL_BUILTIN_COMMANDS = [
     CliGui,
     CliVersion,
     CliACLEdit,
+    CliTicket
 ]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
 
 class IBridgesShell(cmd.Cmd):
-    """Command class implementation for iBridges."""
+    """Command class implementation for iBridges.
+
+    startup_commands: optional list of command lines to run when the shell starts.
+    """
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self):
+    def __init__(self, startup_commands=None):
         """Initialize the shell creating the session."""
         # Autocomplete is not available on windows.
         try:
@@ -65,6 +70,7 @@ class IBridgesShell(cmd.Cmd):
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
+        self.cmdqueue.extend(startup_commands or [])
 
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""
