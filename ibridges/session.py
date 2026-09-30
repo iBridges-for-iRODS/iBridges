@@ -25,7 +25,9 @@ from ibridges.util import open_irodsa
 
 APP_NAME = "ibridges"
 
-# Default SSL/encryption settings for anonymous sessions.
+# SSL/encryption settings that can be passed explicitly to an anonymous session,
+# e.g. anonymous_options={"ssl_settings": DEFAULT_ANONYMOUS_SSL_SETTINGS}.
+# They are NOT applied automatically.
 DEFAULT_ANONYMOUS_SSL_SETTINGS = {
     "irods_client_server_negotiation": "request_server_negotiation",
     "irods_client_server_policy": "CS_NEG_REQUIRE",
@@ -35,6 +37,13 @@ DEFAULT_ANONYMOUS_SSL_SETTINGS = {
     "irods_encryption_num_hash_rounds": 16,
     "irods_encryption_salt_size": 8,
 }
+
+# Environment keys that are passed on to the anonymous session, if present.
+_SSL_ENV_PREFIXES = (
+    "irods_ssl_",
+    "irods_encryption_",
+    "irods_client_server_",
+)
 
 
 class Session:  # pylint: disable=too-many-instance-attributes
@@ -66,8 +75,10 @@ class Session:  # pylint: disable=too-many-instance-attributes
     anonymous_options:
         Only used if the user name is "anonymous". Dictionary with keyword arguments
         for :meth:`authenticate_anonymous`: "host", "port", "user_name", "zone_name"
-        and "ssl_settings". Anything not given is taken from the iRODS environment
-        or, for the SSL settings, from DEFAULT_ANONYMOUS_SSL_SETTINGS.
+        and "ssl_settings". Anything not given is taken from the iRODS environment.
+        The SSL settings come from the environment only; without any, no SSL settings
+        are used. To use the defaults, pass DEFAULT_ANONYMOUS_SSL_SETTINGS
+        as "ssl_settings".
 
     Raises
     ------
@@ -299,8 +310,9 @@ class Session:  # pylint: disable=too-many-instance-attributes
         """Create an anonymous session with the iRODS server.
 
         Every argument is optional. Anything not given here is taken from
-        the iRODS environment; if it is not there either, the SSL settings
-        fall back to DEFAULT_ANONYMOUS_SSL_SETTINGS.
+        the iRODS environment. The SSL settings also come from the environment
+        only; if neither the environment nor `ssl_settings` has any, no SSL
+        settings are used.
 
         Parameters
         ----------
@@ -315,9 +327,9 @@ class Session:  # pylint: disable=too-many-instance-attributes
             iRODS zone, overrides "irods_zone_name".
         ssl_settings :
             Dictionary with SSL/encryption settings (e.g. "irods_encryption_algorithm").
-            Only the keys you provide are overridden; the rest come from the
-            environment or the defaults. Additional keys, such as
-            "irods_ssl_ca_certificate_file", are passed through as well.
+            Added to the SSL settings found in the environment, which they override.
+            Without SSL settings in either, no SSL settings are used. To use the
+            previous defaults, pass DEFAULT_ANONYMOUS_SSL_SETTINGS.
 
         Internal use only.
 
@@ -338,15 +350,13 @@ class Session:  # pylint: disable=too-many-instance-attributes
                 f"Cannot create an anonymous session, missing connection parameters: {missing}"
             )
 
-        # Defaults < environment < explicit arguments
-        ssl_kwargs = dict(DEFAULT_ANONYMOUS_SSL_SETTINGS)
-        for key in ssl_kwargs:
-            if key in self._irods_env:
-                ssl_kwargs[key] = self._irods_env[key]
-        # Pass through optional CA settings from the environment
-        for key in ("irods_ssl_ca_certificate_file", "irods_ssl_ca_certificate_path"):
-            if key in self._irods_env:
-                ssl_kwargs[key] = self._irods_env[key]
+        # Only use SSL/encryption settings that the environment or the caller provides.
+        # Without any, the session connects without SSL settings.
+        ssl_kwargs = {
+            key: value
+            for key, value in self._irods_env.items()
+            if key.startswith(_SSL_ENV_PREFIXES) or key == "irods_default_resource"
+        }
         ssl_kwargs.update(ssl_settings or {})
 
         try:
