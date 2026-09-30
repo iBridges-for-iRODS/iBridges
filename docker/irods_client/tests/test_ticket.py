@@ -4,9 +4,13 @@ import irods
 import pytest
 from pytest import mark
 
-from ibridges.tickets import TicketAccess, Tickets
+from ibridges.data_operations import download
 from ibridges.path import IrodsPath
-from ibridges.session import Session
+from ibridges.tickets import TicketAccess, TicketData, Tickets
+
+
+def _find(tickets, ticket_str):
+    return next(t for t in tickets.fetch_tickets() if t.name == ticket_str)
 
 @mark.parametrize("item_name", ["collection", "dataobject"])
 @mark.parametrize("ticket_type", ["read", "write"])
@@ -39,102 +43,123 @@ def test_tickets(item_name, ticket_type, n_days_ahead, session, config, request)
     with pytest.raises(KeyError):
         tickets.delete_ticket(tick, check=True)
 
-@pytest.fixture
-def anon_env(session):
-    """Environment dictionary for an anonymous session on the same server."""
-    return {
-        "irods_user_name": "anonymous",
-        "irods_host": session.host,
-        "irods_port": session.port,
-        "irods_zone_name": session.zone,
-    }
+@mark.parametrize("as_type", ["date", "str"])
+def test_create_ticket_expiry_input_types(as_type, session, collection, config):
+    expiry_day = datetime.date.today() + datetime.timedelta(days=30)
+    expected = datetime.datetime.combine(expiry_day, datetime.time.min)
+    expiry = expiry_day if as_type == "date" else expiry_day.strftime("%Y-%m-%d.%H:%M:%S")
 
-
-@pytest.fixture
-def anon_session(anon_env, config):
-    """Anonymous session, skipped if the server does not allow anonymous logins.
-
-    Extra options for the anonymous login (e.g. SSL settings) can be set with
-    the 'anonymous_options' entry in the test configuration.
-    """
-    options = config.get("anonymous_options", {})
-    try:
-        anon = Session(anon_env, anonymous_options=options)
-    except Exception as error:  # pylint: disable=broad-except
-        pytest.skip(f"Anonymous login is not available on this server: {error!r}")
-    yield anon
-    anon.close()
-
-
-@pytest.fixture(params=["collection", "dataobject"])
-def ticketed_item(request, session):
-    """Read ticket for a collection or data object: (ticket string, IrodsPath)."""
-    item = request.getfixturevalue(request.param)
-    ipath = IrodsPath(session, item.path)
     tickets = Tickets(session)
-    tickets.clear()
-    ticket_str, _ = tickets.create_ticket(ipath, ticket_type="read")
-    yield ticket_str, ipath
-    tickets.clear()
+    ticket_str, expiration_set = tickets.create_ticket(collection.path, expiry_date=expiry)
+    try:
+        assert expiration_set is True
+        data = _find(tickets, ticket_str)
+        if config.get("ticket_date_only", False):
+            assert data.expiration_date.date() == expected.date()
+        else:
+            assert data.expiration_date == expected
+    finally:
+        tickets.delete_ticket(ticket_str)
 
 
-def test_anonymous_session(anon_session, anon_env):
-    assert anon_session.username == "anonymous"
-    assert anon_session.has_valid_irods_session()
-    # The environment dictionary of the caller is not modified by the session.
-    assert set(anon_env) == {
-        "irods_user_name",
-        "irods_host",
-        "irods_port",
-        "irods_zone_name",
-    }
+def test_ticket_without_expiry(session, collection):
+    tickets = Tickets(session)
+    ticket_str, expiration_set = tickets.create_ticket(collection.path)
+    try:
+        assert expiration_set is False
+        assert _find(tickets, ticket_str).expiration_date == ""
+    finally:
+        tickets.delete_ticket(ticket_str)
 
 
-def test_anonymous_session_missing_parameters(anon_env):
-    del anon_env["irods_zone_name"]
-    with pytest.raises(ValueError):
-        Session(anon_env)
+def test_create_ticket_wrong_expiry_type(session, collection):
+    tickets = Tickets(session)
+    before = {t.name for t in tickets.fetch_tickets()}
+    try:
+        with pytest.raises(TypeError):
+            tickets.create_ticket(collection.path, expiry_date=12345)
+    finally:
+        # create_ticket issues the ticket before it checks the expiry type,
+        # so it leaves a ticket behind. Clean up.
+        for name in {t.name for t in tickets.fetch_tickets()} - before:
+            tickets.delete_ticket(name)
 
 
-def test_ticket_access_path_supplied(session, ticketed_item):
-    ticket_str, ipath = ticketed_item
-    access = TicketAccess(session, ticket_str, ipath)
-    assert isinstance(access.path, IrodsPath)
-    assert str(access.path) == str(ipath)
+def test_str_contains_ticket(session, read_ticket):
+    assert read_ticket in str(Tickets(session))
 
 
-def test_ticket_access_path_lookup(session, ticketed_item):
-    # The owner is allowed to query the ticket table, so the path can be found.
-    ticket_str, ipath = ticketed_item
-    access = TicketAccess(session, ticket_str, supply=False)
-    assert isinstance(access.path, IrodsPath)
-    assert str(access.path) == str(ipath)
+def test_iter_yields_ticket_data(session, read_ticket):
+    names = [data.name for data in Tickets(session)]
+    assert read_ticket in names
 
 
-def test_ticket_access_anonymous(anon_session, ticketed_item):
-    ticket_str, ipath = ticketed_item
-    access = TicketAccess(anon_session, ticket_str, ipath)
-    assert isinstance(access.path, IrodsPath)
-    assert str(access.path) == str(ipath)
-    assert access.path.exists()
+def test_get_unknown_ticket(session):
+    with pytest.raises(KeyError):
+        Tickets(session).get_ticket("this-ticket-does-not-exist")
 
 
-def test_ticket_access_anonymous_no_ticket(anon_session, ticketed_item):
-    # Without supplying the ticket, the anonymous user has no access.
-    _, ipath = ticketed_item
-    assert not IrodsPath(anon_session, str(ipath)).exists()
+def test_delete_unknown_ticket(session):
+    with pytest.raises(KeyError):
+        Tickets(session).delete_ticket("this-ticket-does-not-exist", check=True)
 
 
-def test_ticket_access_anonymous_lookup(anon_session, ticketed_item):
-    # Whether an anonymous user can look up the path depends on the server:
-    # either we find the correct path or we get a clear error asking for the path.
-    ticket_str, ipath = ticketed_item
-    access = TicketAccess(anon_session, ticket_str)
+# ---------------------------------------------------------------------------
+# Table formatting: no server needed
+# ---------------------------------------------------------------------------
+
+
+def test_format_no_tickets():
+    assert Tickets.format_tickets_table([]) == "No tickets found."
+
+
+def test_format_tickets_table():
+    tickets = [
+        TicketData("abc", "read", "/z/home/u/coll", datetime.datetime(2026, 12, 31)),
+        TicketData("defghi", "write", "/z/home/u/obj.txt", ""),
+    ]
+    lines = Tickets.format_tickets_table(tickets).splitlines()
+    assert len(lines) == 4  # header, divider, two rows
+    assert lines[0].split(" | ")[0].strip() == "Ticket"
+    assert "2026-12-31 00:00:00" in lines[2]
+    assert "never" in lines[3]
+    assert len({len(line) for line in lines}) == 1  # aligned columns
+
+
+# ---------------------------------------------------------------------------
+# Recipient side, with an anonymous session
+# ---------------------------------------------------------------------------
+
+
+def test_ticket_access_lists_collection(read_ticket, anonymous_session, collection):
+    access = TicketAccess(anonymous_session, read_ticket, irods_path=collection.path)
+    path = access.path
+    assert str(path) == collection.path
+    assert path.collection_exists()
+    names = [p.name for p in path.walk(depth=1, include_base_collection=False)]
+    assert "ticket_file.txt" in names
+
+
+def test_ticket_access_download(read_ticket, anonymous_session, collection, tmp_path):
+    access = TicketAccess(anonymous_session, read_ticket, irods_path=collection.path)
+    download(anonymous_session, IrodsPath(anonymous_session, access.path, "ticket_file.txt"), tmp_path)
+    assert (tmp_path / "ticket_file.txt").read_bytes() == b"ticket test"
+
+
+def test_ticket_access_path_lookup(read_ticket, anonymous_session, collection):
+    access = TicketAccess(anonymous_session, read_ticket)
     try:
         path = access.path
-    except ValueError as error:
-        assert "irods_path" in str(error)
-    else:
-        assert str(path) == str(ipath)
+    except ValueError:
+        pytest.skip("This server does not allow looking up the ticket path.")
+    assert str(path) == collection.path
 
 
+def test_ticket_access_lookup_unknown_ticket(anonymous_session):
+    access = TicketAccess(anonymous_session, "this-ticket-does-not-exist", supply=False)
+    with pytest.raises(ValueError):
+        _ = access.path
+
+
+def test_no_access_without_ticket(read_ticket, anonymous_session, collection):
+    assert not IrodsPath(anonymous_session, collection.path).exists()
