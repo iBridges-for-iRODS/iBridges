@@ -322,6 +322,7 @@ class TicketAccess:
 
         Call this again if you have reconnected the session.
         """
+        self.session.irods_session.cleanup()
         self._ticket.supply()
 
     @property
