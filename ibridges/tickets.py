@@ -55,6 +55,7 @@ class Tickets:
         self._all_tickets = self.fetch_tickets()
 
     def __str__(self) -> str:
+        """Return formatted table of available tickets."""
         return self.format_tickets_table(self._all_tickets)
 
     @staticmethod

@@ -75,7 +75,7 @@ class CliTicket(BaseCliCommand):
         if args.command != "supply":
             super().run_command(args)
             return
-        from ibridges.cli.shell import IBridgesShell  # pylint: disable=import-outside-toplevel
+        from ibridges.cli.shell import IBridgesShell  # pylint: disable=import-outside-toplevel,cyclic-import
 
         supply_line = f"ticket supply {shlex.quote(args.ticket)} {shlex.quote(args.remote_path)}"
         try:
@@ -86,7 +86,7 @@ class CliTicket(BaseCliCommand):
             traceback.print_exception(*sys.exc_info())
 
     @staticmethod
-    def run_shell(session, parser, args):
+    def run_shell(session, parser, args):  # pylint: disable=too-many-branches
         """Create, list, delete and supply tickets."""
         if args.command == "create":
             ipath = parse_remote(args.remote_path, session)
@@ -125,7 +125,8 @@ class CliTicket(BaseCliCommand):
                 parser.error(
                     f"Path {path} does not exist or the ticket does not give access to it."
                 )
-            return
+                return
+
             print(f"Ticket {args.ticket} supplied for {path}.")
             if path.collection_exists():
                 session.cwd = str(path)
