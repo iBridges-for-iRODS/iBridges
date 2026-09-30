@@ -142,7 +142,7 @@ def test_ticket_access_lists_collection(read_ticket, anonymous_session, collecti
 
 def test_ticket_access_download(read_ticket, anonymous_session, collection, tmp_path):
     access = TicketAccess(anonymous_session, read_ticket, irods_path=collection.path)
-    download(anonymous_session, IrodsPath(anonymous_session, access.path, "ticket_file.txt"), tmp_path)
+    download(IrodsPath(anonymous_session, access.path, "ticket_file.txt"), tmp_path)
     assert (tmp_path / "ticket_file.txt").read_bytes() == b"ticket test"
 
 
