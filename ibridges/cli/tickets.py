@@ -1,14 +1,14 @@
 """Subcommands for tickets operations."""
 
+import shlex
+import sys
+import traceback
 from datetime import date
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.tickets import TicketAccess, Tickets
 
-import shlex
-import sys
-import traceback
 
 class CliTicket(BaseCliCommand):
     """Subcommand to create, list, delete and use tickets."""
@@ -122,7 +122,9 @@ class CliTicket(BaseCliCommand):
             access = TicketAccess(session, args.ticket, irods_path=str(ipath), supply=True)
             path = access.path
             if not path.exists():
-                parser.error(f"Path {path} does not exist or the ticket does not give access to it.")
+                parser.error(
+                    f"Path {path} does not exist or the ticket does not give access to it."
+                )
             return
             print(f"Ticket {args.ticket} supplied for {path}.")
             if path.collection_exists():

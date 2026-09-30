@@ -18,7 +18,6 @@ from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaLi
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
 from ibridges.cli.tickets import CliTicket
-
 from ibridges.path import IrodsPath
 
 ALL_BUILTIN_COMMANDS = [

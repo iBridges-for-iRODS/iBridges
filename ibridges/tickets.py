@@ -15,6 +15,7 @@ from ibridges.session import Session
 
 TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
 
+
 def _id_to_path(session: Session, itemid: str) -> str:
     """Get an iRODS path from a given an iRODS item id.
 
@@ -32,6 +33,7 @@ def _id_to_path(session: Session, itemid: str) -> str:
         res = next(coll_query.get_results())
         return list(res.values())[0]
     return ""
+
 
 class Tickets:
     """iRODS Ticket operations.
@@ -106,7 +108,6 @@ class Tickets:
         if tickets is None:
             tickets = self._all_tickets
         print(self.format_tickets_table(tickets))
-
 
     def create_ticket(
         self,
@@ -192,7 +193,7 @@ class Tickets:
         if ticket_str in self.all_ticket_strings:
             return irods.ticket.Ticket(self.session.irods_session, ticket=ticket_str)
         raise KeyError(
-            f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' " "does not exist."
+            f"Cannot obtain ticket: ticket with ticket_str '{ticket_str}' does not exist."
         )
 
     def delete_ticket(self, ticket: Union[str, irods.ticket.Ticket], check: bool = False):
@@ -246,8 +247,10 @@ class Tickets:
                 TicketData(
                     row[TicketQuery.Ticket.string],
                     row[TicketQuery.Ticket.type],
-                    IrodsPath(self.session,
-                              _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id]))),
+                    IrodsPath(
+                        self.session,
+                        _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id])),
+                    ),
                     time_stamp,
                 )
             )
@@ -262,6 +265,7 @@ class Tickets:
         for tick_data in self.fetch_tickets():
             self.delete_ticket(tick_data.name)
         self.fetch_tickets()
+
 
 class TicketAccess:
     """Use an iRODS ticket to access data, for example as an anonymous user.
@@ -341,8 +345,7 @@ class TicketAccess:
             item_ids = [str(row[TicketQuery.Ticket.object_id]) for row in rows]
         except Exception as error:
             raise ValueError(
-                "Could not look up the path for this ticket, "
-                "please supply 'irods_path' explicitly."
+                "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
             ) from error
         for item_id in item_ids:
             path = _id_to_path(self.session, item_id)
