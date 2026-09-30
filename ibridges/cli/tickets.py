@@ -75,7 +75,9 @@ class CliTicket(BaseCliCommand):
         if args.command != "supply":
             super().run_command(args)
             return
-        from ibridges.cli.shell import IBridgesShell  # pylint: disable=import-outside-toplevel,cyclic-import
+        from ibridges.cli.shell import (
+            IBridgesShell,  # pylint: disable=import-outside-toplevel,cyclic-import
+        )
 
         supply_line = f"ticket supply {shlex.quote(args.ticket)} {shlex.quote(args.remote_path)}"
         try:
