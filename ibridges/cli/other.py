@@ -1,10 +1,10 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
+import shlex
 import sys
 import time
 import traceback
 from pathlib import Path
-import shlex
 
 from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
@@ -43,30 +43,22 @@ class CliShell(BaseCliCommand):
     def run_command(cls, args):
         """Run the shell from the command line."""
         command = getattr(args, "shell_command", None) or []
-        print(command)
-        try:
-            if len(command) == 0:
-                start = time.time()
-                cls._start_shell()
-                return
-            parser = cls.get_parser(argparse.ArgumentParser)
-            shell_commands = {
-                name: command_class
-                for command_class in get_all_shell_commands()
-                for name in command_class.names
-            }
-            command_class = shell_commands.get(command[0])
-            if command_class is None or not command_class.allowed_at_startup(command[1:]):
-                parser.print_help()
-                parser.exit(2, f"\nerror: cannot start the shell with '{' '.join(command)}'.\n")
-            command_class.get_parser(argparse.ArgumentParser).parse_args(command[1:])
-            cls._start_shell([shlex.join(command)])
-        except Exception:  # pylint: disable=broad-exception-caught
-            traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
-            if time.time() - start > 2:
-                cls.run_command(args)
-        except KeyboardInterrupt:
-            pass
+        if len(command) == 0:
+            cls._start_shell()
+            return
+
+        parser = cls.get_parser(argparse.ArgumentParser)
+        shell_commands = {
+            name: command_class
+            for command_class in get_all_shell_commands()
+            for name in command_class.names
+        }
+        command_class = shell_commands.get(command[0])
+        if command_class is None or not command_class.allowed_at_startup(command[1:]):
+            parser.print_help()
+            parser.exit(2, f"\nerror: cannot start the shell with '{' '.join(command)}'.\n")
+        command_class.get_parser(argparse.ArgumentParser).parse_args(command[1:])
+        cls._start_shell([shlex.join(command)])
 
     @classmethod
     def _start_shell(cls, startup_commands=None):

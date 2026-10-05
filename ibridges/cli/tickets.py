@@ -1,11 +1,7 @@
 """Subcommands for tickets operations."""
 
-import shlex
-import sys
-import traceback
-from datetime import date
-
 import argparse
+from datetime import date
 
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
