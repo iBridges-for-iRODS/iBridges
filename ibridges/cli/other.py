@@ -4,6 +4,7 @@ import sys
 import time
 import traceback
 from pathlib import Path
+import shlex
 
 from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
@@ -24,6 +25,15 @@ class CliShell(BaseCliCommand):
     names = ["shell"]
     description = "Shell for ibridges commands with autocomplete."
 
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument(
+            "shell_command",
+            help="Optional command to run when the shell starts, e.g. 'ticket supply ...'.",
+            nargs=argparse.REMAINDER,
+        )
+        return parser
+
     @staticmethod
     def run_shell(session, parser, args):
         """Run shell inside the shell is not available."""
@@ -34,11 +44,25 @@ class CliShell(BaseCliCommand):
         """Run the shell from the command line."""
         start = time.time()
         try:
-            IBridgesShell().cmdloop()
+            #IBridgesShell().cmdloop()
+            command = getattr(args, "shell_command", None)
+            cls._start_shell([shlex.join(command)] if command else None)
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:
                 cls.run_command(args)
+        except KeyboardInterrupt:
+            pass
+
+    @classmethod
+    def _start_shell(cls, startup_commands=None):
+        start = time.time()
+        try:
+            IBridgesShell(startup_commands=startup_commands).cmdloop()
+        except Exception:  # pylint: disable=broad-exception-caught
+            traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
+            if time.time() - start > 2:
+                cls._start_shell()  # restart without the startup commands
         except KeyboardInterrupt:
             pass
 
