@@ -70,6 +70,11 @@ class CliTicket(BaseCliCommand):
         return parser
 
     @classmethod
+    def allowed_at_startup(cls, argv):
+        """Only 'supply' makes sense as a shell startup command."""
+        return len(argv) > 0 and argv[0] == "supply"
+
+    @classmethod
     def run_command(cls, args):
         """Run a ticket command; 'supply' opens a shell and supplies the ticket there."""
         if args.command != "supply":

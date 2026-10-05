@@ -9,7 +9,7 @@ import shlex
 from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
-from ibridges.cli.shell import IBridgesShell
+from ibridges.cli.shell import IBridgesShell, get_all_shell_commands
 from ibridges.session import Session
 from ibridges.util import (
     DEFAULT_IENV_PATH,
@@ -42,11 +42,25 @@ class CliShell(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Run the shell from the command line."""
-        start = time.time()
+        command = getattr(args, "shell_command", None) or []
+        print(command)
         try:
-            #IBridgesShell().cmdloop()
-            command = getattr(args, "shell_command", None)
-            cls._start_shell([shlex.join(command)] if command else None)
+            if len(command) == 0:
+                start = time.time()
+                cls._start_shell()
+                return
+            parser = cls.get_parser(argparse.ArgumentParser)
+            shell_commands = {
+                name: command_class
+                for command_class in get_all_shell_commands()
+                for name in command_class.names
+            }
+            command_class = shell_commands.get(command[0])
+            if command_class is None or not command_class.allowed_at_startup(command[1:]):
+                parser.print_help()
+                parser.exit(2, f"\nerror: cannot start the shell with '{' '.join(command)}'.\n")
+            command_class.get_parser(argparse.ArgumentParser).parse_args(command[1:])
+            cls._start_shell([shlex.join(command)])
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:

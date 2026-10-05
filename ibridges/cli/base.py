@@ -134,3 +134,19 @@ class BaseCliCommand(abc.ABC):
         ex_str = "\n".join(examples)
         epilog = f"Examples:\n\n{ex_str}"
         return {"epilog": epilog}
+
+    @classmethod
+    def allowed_at_startup(cls, argv: list[str]) -> bool:  # pylint: disable=unused-argument
+        """Whether this command may be run as `ibridges shell <command> <argv>`.
+
+        Parameters
+        ----------
+        argv:
+            The arguments after the command name.
+
+        Returns
+        -------
+            False by default, override to allow starting the shell with this command.
+
+        """
+        return False
