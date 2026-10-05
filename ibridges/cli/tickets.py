@@ -5,6 +5,8 @@ import sys
 import traceback
 from datetime import date
 
+import argparse
+
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.util import parse_remote
 from ibridges.tickets import TicketAccess, Tickets
@@ -76,20 +78,14 @@ class CliTicket(BaseCliCommand):
 
     @classmethod
     def run_command(cls, args):
-        """Run a ticket command; 'supply' opens a shell and supplies the ticket there."""
-        if args.command != "supply":
-            super().run_command(args)
-            return
-        # pylint: disable-next=import-outside-toplevel,cyclic-import
-        from ibridges.cli.shell import IBridgesShell
-
-        supply_line = f"ticket supply {shlex.quote(args.ticket)} {shlex.quote(args.remote_path)}"
-        try:
-            IBridgesShell(startup_commands=[supply_line]).cmdloop()
-        except KeyboardInterrupt:
-            pass
-        except Exception:  # pylint: disable=broad-exception-caught
-            traceback.print_exception(*sys.exc_info())
+        """Run a ticket command from the CLI; 'supply' is only available in the shell."""
+        if args.command == "supply":
+            cls.get_parser(argparse.ArgumentParser).error(
+                "'supply' can only be used in the shell, because a supplied ticket only "
+                "exists in the session that supplied it. "
+                "Use: ibridges shell ticket supply <ticket> <remote_path>"
+            )
+        super().run_command(args)
 
     @staticmethod
     def run_shell(session, parser, args):  # pylint: disable=too-many-branches
