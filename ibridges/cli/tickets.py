@@ -68,18 +68,13 @@ class CliTicket(BaseCliCommand):
         return parser
 
     @classmethod
-    def allowed_at_startup(cls, argv):
-        """Only 'supply' makes sense as a shell startup command."""
-        return len(argv) > 0 and argv[0] == "supply"
-
-    @classmethod
     def run_command(cls, args):
         """Run a ticket command from the CLI; 'supply' is only available in the shell."""
         if args.command == "supply":
             cls.get_parser(argparse.ArgumentParser).error(
                 "'supply' can only be used in the shell, because a supplied ticket only "
                 "exists in the session that supplied it. "
-                "Use: ibridges shell ticket supply <ticket> <remote_path>"
+                "Use: ibridges shell --with-ticket <ticket> <remote_path>"
             )
         super().run_command(args)
 

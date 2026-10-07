@@ -52,7 +52,7 @@ class IBridgesShell(cmd.Cmd):
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self, startup_commands=None):
+    def __init__(self, with_ticket=None):
         """Initialize the shell creating the session."""
         # Autocomplete is not available on windows.
         try:
@@ -70,7 +70,9 @@ class IBridgesShell(cmd.Cmd):
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
-        self.cmdqueue.extend(startup_commands or [])
+        if with_ticket is not None:
+            # cmd.Cmd runs everything in cmdqueue before it asks for input.
+            self.cmdqueue.append(" ".join(_escape(["ticket", "supply", *with_ticket])))
 
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""

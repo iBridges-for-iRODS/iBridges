@@ -24,13 +24,16 @@ class CliShell(BaseCliCommand):
 
     names = ["shell"]
     description = "Shell for ibridges commands with autocomplete."
+    examples = ["", "--with-ticket ticket_string irods:/zone/home/user/collection"]
 
     @classmethod
     def _mod_parser(cls, parser):
         parser.add_argument(
-            "shell_command",
-            help="Optional command to run when the shell starts, e.g. 'ticket supply ...'.",
-            nargs=argparse.REMAINDER,
+            "--with-ticket",
+            nargs=2,
+            metavar=("TICKET_STR", "REMOTE_PATH"),
+            default=None,
+            help="Start the shell with a ticket for the given data object or collection.",
         )
         return parser
 
@@ -42,33 +45,12 @@ class CliShell(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Run the shell from the command line."""
-        command = getattr(args, "shell_command", None) or []
-        if len(command) == 0:
-            cls._start_shell()
-            return
-
-        parser = cls.get_parser(argparse.ArgumentParser)
-        shell_commands = {
-            name: command_class
-            for command_class in get_all_shell_commands()
-            for name in command_class.names
-        }
-        command_class = shell_commands.get(command[0])
-        if command_class is None or not command_class.allowed_at_startup(command[1:]):
-            parser.print_help()
-            parser.exit(2, f"\nerror: cannot start the shell with '{' '.join(command)}'.\n")
-        command_class.get_parser(argparse.ArgumentParser).parse_args(command[1:])
-        cls._start_shell([shlex.join(command)])
-
-    @classmethod
-    def _start_shell(cls, startup_commands=None):
-        start = time.time()
         try:
-            IBridgesShell(startup_commands=startup_commands).cmdloop()
+            IBridgesShell(with_ticket=args.with_ticket).cmdloop()
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:
-                cls._start_shell()  # restart without the startup commands
+                cls.run_command(args)
         except KeyboardInterrupt:
             pass
 
