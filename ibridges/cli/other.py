@@ -38,7 +38,20 @@ class CliShell(BaseCliCommand):
             nargs=2,
             metavar=("TICKET_STR", "REMOTE_PATH"),
             default=None,
-            help="Start the shell with a ticket for the given data object or collection.",
+            help=(
+                "Start the shell with a ticket that gives access to a data object or "
+                "collection.\n"
+                "The ticket is supplied to the session and the shell starts in that "
+                "collection\n"
+                "(or in the parent collection for a data object). If the ticket does not "
+                "work,\n"
+                "the shell is not started.\n"
+                "Note: a supplied ticket stays applied to this session. If the ticket is "
+                "deleted\n"
+                "while the shell is open, further commands fail. Inside an open shell, "
+                "use\n"
+                "'ticket supply TICKET_STR REMOTE_PATH' to supply a ticket."
+            ),
         )
         return parser
 
