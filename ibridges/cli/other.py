@@ -9,7 +9,6 @@ from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.shell import IBridgesShell
-from ibridges.cli.tickets import CliTicket
 from ibridges.session import Session
 from ibridges.util import (
     DEFAULT_IENV_PATH,
@@ -23,7 +22,15 @@ class CliShell(BaseCliCommand):
     """Subcommand to start the shell."""
 
     names = ["shell"]
-    description = "Shell for ibridges commands with autocomplete."
+    description = (
+        "Shell for ibridges commands with autocomplete.\n"
+        "\n"
+        "The shell keeps one session open, so you only have to log in once. Inside the shell\n"
+        "you can use the ibridges commands without the 'ibridges' prefix, for example 'ls' or\n"
+        "'download'. Use 'help' to list all commands and 'quit' (or ctrl+D) to leave.\n"
+        "\n"
+        "Local commands can be run with 'shell <command>', for example 'shell ls ~/data'."
+    )
     examples = ["", "--with-ticket ticket_string irods:/zone/home/user/collection"]
 
     @classmethod
@@ -47,16 +54,7 @@ class CliShell(BaseCliCommand):
         """Run the shell from the command line."""
         start = time.time()
         try:
-            shell = IBridgesShell()
-            if args.with_ticket:
-                parser = CliTicket.get_parser()
-                CliTicket.run_shell(
-                    shell.session, parser, parser.parse_args(["supply", *args.with_ticket])
-                )
-                if getattr(parser, "printed_help", False):  # set when the ticket command failed
-                    shell.close()
-                    return
-            shell.cmdloop()
+            IBridgesShell(with_ticket=args.with_ticket).cmdloop()
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:
