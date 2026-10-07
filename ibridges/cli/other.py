@@ -28,8 +28,6 @@ class CliShell(BaseCliCommand):
         "The shell keeps one session open, so you only have to log in once. Inside the shell\n"
         "you can use the ibridges commands without the 'ibridges' prefix, for example 'ls' or\n"
         "'download'. Use 'help' to list all commands and 'quit' (or ctrl+D) to leave.\n"
-        "\n"
-        "Local commands can be run with 'shell <command>', for example 'shell ls ~/data'."
     )
     examples = ["", "--with-ticket ticket_string irods:/zone/home/user/collection"]
 
