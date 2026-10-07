@@ -10,6 +10,7 @@ from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
 from ibridges.cli.shell import IBridgesShell, get_all_shell_commands
+from ibridges.cli.tickets import CliTicket
 from ibridges.session import Session
 from ibridges.util import (
     DEFAULT_IENV_PATH,
@@ -45,8 +46,18 @@ class CliShell(BaseCliCommand):
     @classmethod
     def run_command(cls, args):
         """Run the shell from the command line."""
+        start = time.time()
         try:
-            IBridgesShell(with_ticket=args.with_ticket).cmdloop()
+            shell = IBridgesShell()
+            if args.with_ticket:
+                parser = CliTicket.get_parser()
+                CliTicket.run_shell(
+                    shell.session, parser, parser.parse_args(["supply", *args.with_ticket])
+                )
+                if getattr(parser, "printed_help", False):  # set when the ticket command failed
+                    shell.close()
+                    return
+            shell.cmdloop()
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:

@@ -70,9 +70,9 @@ class IBridgesShell(cmd.Cmd):
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
-        if with_ticket is not None:
-            # cmd.Cmd runs everything in cmdqueue before it asks for input.
-            self.cmdqueue.append(" ".join(_escape(["ticket", "supply", *with_ticket])))
+        #if with_ticket is not None:
+        #    # cmd.Cmd runs everything in cmdqueue before it asks for input.
+        #    self.cmdqueue.append(" ".join(_escape(["ticket", "supply", *with_ticket])))
 
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""
