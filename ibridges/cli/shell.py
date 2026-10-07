@@ -52,7 +52,7 @@ class IBridgesShell(cmd.Cmd):
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self, with_ticket=None):
+    def __init__(self):
         """Initialize the shell creating the session."""
         # Autocomplete is not available on windows.
         try:

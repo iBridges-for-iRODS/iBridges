@@ -1,6 +1,5 @@
 """Other subcommands that do not fall in a particular category."""
 import argparse
-import shlex
 import sys
 import time
 import traceback
@@ -9,7 +8,7 @@ from pathlib import Path
 from ibridges.authenticate import cli_auth
 from ibridges.cli.base import BaseCliCommand
 from ibridges.cli.config import IbridgesConf
-from ibridges.cli.shell import IBridgesShell, get_all_shell_commands
+from ibridges.cli.shell import IBridgesShell
 from ibridges.cli.tickets import CliTicket
 from ibridges.session import Session
 from ibridges.util import (
