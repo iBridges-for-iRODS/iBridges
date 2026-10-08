@@ -25,19 +25,19 @@ Suppose you have a collection:
 
 .. code-block:: text
 
-    /uu/home/research-project/shared-data
+    /zone/home/research-project/shared-data
 
 To create a read-only ticket:
 
 .. code-block:: console
 
-    $ ibridges ticket create irods:/uu/home/research-project/shared-data
+    $ ibridges ticket create irods:/zone/home/research-project/shared-data
 
 Example output:
 
 .. code-block:: text
 
-    Created read ticket for /uu/home/research-project/shared-data: kpIwGA1UZN0LFnM
+    Created read ticket for /zone/home/research-project/shared-data: kpIwGA1UZN0LFnM
 
 The generated string is the ticket that you can share with others.
 
@@ -51,14 +51,14 @@ For example, to make a ticket valid until 31 December 2026:
 .. code-block:: console
 
     $ ibridges ticket create \
-        irods:/uu/home/research-project/shared-data \
+        irods:/zone/home/research-project/shared-data \
         --date 2026-12-31
 
 Example output:
 
 .. code-block:: text
 
-    Created read ticket for /uu/home/research-project/shared-data: kpIwGA1UZN0LFnM
+    Created read ticket for /zone/home/research-project/shared-data: kpIwGA1UZN0LFnM
     Expires on 2026-12-31.
 
 After the expiration date the ticket can no longer be used.
@@ -73,7 +73,7 @@ To allow uploads or modifications, create a write ticket:
 .. code-block:: console
 
     $ ibridges ticket create \
-        irods:/uu/home/research-project/incoming \
+        irods:/zone/home/research-project/incoming \
         --mode write
 
 Write tickets should be shared carefully, as they allow changes to the
@@ -94,8 +94,8 @@ Example output:
 
     Ticket          | Type  | iRODS Path                            | Expires
     ----------------+-------+---------------------------------------+--------------------
-    kpIwGA1UZN0LFnM | read  | /uu/home/research-project/shared-data | 2026-12-31 00:00:00
-    Xr8sTq2LmB9aVwE | write | /uu/home/research-project/incoming    | never
+    kpIwGA1UZN0LFnM | read  | /zone/home/research-project/shared-data | 2026-12-31 00:00:00
+    Xr8sTq2LmB9aVwE | write | /zone/home/research-project/incoming    | never
 
 This overview helps you keep track of active tickets and their expiration
 dates. Tickets without an expiration date show ``never``.
@@ -145,13 +145,13 @@ supply the ticket together with the path it was made for:
 
 .. code-block:: console
 
-    $ ibridges ticket supply kpIwGA1UZN0LFnM /demoZone/home/research-project/shared-data
+    $ ibridges shell --with-ticket kpIwGA1UZN0LFnM /demoZone/home/research-project/shared-data
 
 This opens the interactive iBridges shell with the ticket already supplied.
 
 .. code-block:: text
 
-    ibshell:home> ls /demoZone/home/research-project/shared-data
+    ibshell:shared-data> ls
     sub_collection  demo.json
 
 You can work with the upload, download and meta commands.
@@ -160,10 +160,10 @@ Type ``quit`` to leave the shell. The ticket is then gone with the session.
 .. note::
 
     A single ``ibridges`` command on the command line ends its session when it
-    is done, and the ticket ends with it. Running ``ibridges ticket supply``
+    is done, and the ticket ends with it. Running ``ticket supply``
     and then ``ibridges ls`` in a separate command therefore does not work.
-    Use the shell that ``ticket supply`` opens, or use the Python interface
-    below.
+    First open the shell and then use ``ticket supply``, or use the shell command with
+    the extra option ``--with-ticket``.
 
 You can also supply a ticket from inside a running shell:
 
@@ -191,10 +191,10 @@ example:
 .. code-block:: json
 
     {
-        "irods_host": "portal.yoda.uu.nl",
+        "irods_host": "irods.server.nl",
         "irods_port": 1247,
         "irods_user_name": "anonymous",
-        "irods_zone_name": "uu",
+        "irods_zone_name": "zone",
         "irods_client_server_policy": "CS_NEG_REQUIRE",
         "irods_encryption_algorithm": "AES-256-CBC",
         "irods_encryption_key_size": 32,
@@ -220,9 +220,9 @@ collection.
 
     env = {
         "irods_user_name": "anonymous",
-        "irods_host": "portal.yoda.uu.nl",
+        "irods_host": "irods.server.nl",
         "irods_port": 1247,
-        "irods_zone_name": "uu",
+        "irods_zone_name": "zone",
     }
 
     session = Session(env)
@@ -230,7 +230,7 @@ collection.
     access = TicketAccess(
         session,
         "kpIwGA1UZN0LFnM",
-        irods_path="/uu/home/research-project/shared-data",
+        irods_path="/zone/home/research-project/shared-data",
     )
 
 The ticket is supplied to the session when the
@@ -273,7 +273,7 @@ Example result:
 
 .. code-block:: text
 
-    /uu/home/research-project/shared-data
+    /zone/home/research-project/shared-data
 
 The returned path is the collection or data object that was shared by the
 ticket owner. This lookup does not work on every server or for every user.
