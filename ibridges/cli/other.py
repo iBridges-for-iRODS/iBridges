@@ -22,7 +22,38 @@ class CliShell(BaseCliCommand):
     """Subcommand to start the shell."""
 
     names = ["shell"]
-    description = "Shell for ibridges commands with autocomplete."
+    description = (
+        "Shell for ibridges commands with autocomplete.\n"
+        "\n"
+        "The shell keeps one session open, so you only have to log in once. Inside the shell\n"
+        "you can use the ibridges commands without the 'ibridges' prefix, for example 'ls' or\n"
+        "'download'. Use 'help' to list all commands and 'quit' (or ctrl+D) to leave.\n"
+    )
+    examples = ["", "--with-ticket ticket_string irods:/zone/home/user/collection"]
+
+    @classmethod
+    def _mod_parser(cls, parser):
+        parser.add_argument(
+            "--with-ticket",
+            nargs=2,
+            metavar=("TICKET_STR", "REMOTE_PATH"),
+            default=None,
+            help=(
+                "Start the shell with a ticket that gives access to a data object or "
+                "collection.\n"
+                "The ticket is supplied to the session and the shell starts in that "
+                "collection\n"
+                "(or in the parent collection for a data object). If the ticket does not "
+                "work,\n"
+                "the shell is not started.\n"
+                "Note: a supplied ticket stays applied to this session. If the ticket is "
+                "deleted\n"
+                "while the shell is open, further commands fail. Inside an open shell, "
+                "use\n"
+                "'ticket supply TICKET_STR REMOTE_PATH' to supply a ticket."
+            ),
+        )
+        return parser
 
     @staticmethod
     def run_shell(session, parser, args):
@@ -34,7 +65,7 @@ class CliShell(BaseCliCommand):
         """Run the shell from the command line."""
         start = time.time()
         try:
-            IBridgesShell().cmdloop()
+            IBridgesShell(with_ticket=args.with_ticket).cmdloop()
         except Exception:  # pylint: disable=broad-exception-caught
             traceback.print_exception(*sys.exc_info())  # Python<3.10 compatibility
             if time.time() - start > 2:

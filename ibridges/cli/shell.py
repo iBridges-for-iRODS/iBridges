@@ -17,7 +17,10 @@ from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, 
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
+from ibridges.cli.tickets import CliTicket
+from ibridges.cli.util import parse_remote
 from ibridges.path import IrodsPath
+from ibridges.tickets import TicketAccess
 
 ALL_BUILTIN_COMMANDS = [
     CliList,
@@ -38,6 +41,7 @@ ALL_BUILTIN_COMMANDS = [
     CliGui,
     CliVersion,
     CliACLEdit,
+    CliTicket,
 ]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
@@ -47,8 +51,16 @@ class IBridgesShell(cmd.Cmd):
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self):
-        """Initialize the shell creating the session."""
+    def __init__(self, with_ticket=None):
+        """Initialize the shell creating the session.
+
+        Parameters
+        ----------
+        with_ticket, optional
+            Tuple (ticket_str, remote_path). If given, the ticket is supplied
+            to the session and the shell starts in that collection.
+
+        """
         # Autocomplete is not available on windows.
         try:
             import readline  # pylint: disable=import-outside-toplevel
@@ -61,10 +73,28 @@ class IBridgesShell(cmd.Cmd):
             pass
         self.session = cli_auth(None)
         self.commands = {}
+        if with_ticket is not None:
+            try:
+                self._supply_ticket(*with_ticket)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                print(f"Error: {err}")
+                self.session.close()
+                sys.exit(1)
+        self.commands = {}
         for command_class in get_all_shell_commands():
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
+
+    def _supply_ticket(self, ticket_str, remote_path):
+        """Supply the ticket and go to its collection, raise ValueError if that fails."""
+        ipath = parse_remote(remote_path, self.session)
+        path = TicketAccess(self.session, ticket_str, irods_path=str(ipath), supply=True).path
+        if not path.exists():
+            raise ValueError(
+                f"Path {path} does not exist or the ticket does not give access to it."
+            )
+        self.session.cwd = str(path if path.collection_exists() else path.parent)
 
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""

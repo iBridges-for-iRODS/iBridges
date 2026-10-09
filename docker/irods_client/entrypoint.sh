@@ -36,6 +36,7 @@ done
 # create second user
 iadmin mkuser testuser rodsuser
 iadmin moduser testuser password testuser
+iadmin mkuser anonymous rodsuser
 echo 'testuser created'
 echo $(iadmin lu testuser)
 
