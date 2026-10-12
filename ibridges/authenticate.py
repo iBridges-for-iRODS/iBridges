@@ -161,7 +161,7 @@ def interactive_auth(
 
     # Anonymous users have no password: skip the password prompt and caching.
     if _is_anonymous(irods_env_path):
-        return Session(irods_env_path, anonymous_options=anonymous_options, **kwargs)
+        return Session(irods_env_path, **kwargs)
 
     session = None
     if DEFAULT_IRODSA_PATH.is_file() and password is None and not reauthenticate:
