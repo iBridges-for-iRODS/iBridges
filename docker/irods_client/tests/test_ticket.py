@@ -126,7 +126,6 @@ def test_format_tickets_table():
     assert len({len(line) for line in lines}) == 1  # aligned columns
 
 
-# ---------------------------------------------------------------------------
 # Recipient side, with an anonymous session
 # ---------------------------------------------------------------------------
 
