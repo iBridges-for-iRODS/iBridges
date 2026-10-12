@@ -111,7 +111,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
         password: Optional[str] = None,
         irods_home: Optional[str] = None,
         cwd: Optional[str] = None,
-        anonymous_options: Optional[dict] = None,
     ):
         """Authenticate and connect to the iRODS server."""
         irods_env_path = None
@@ -134,7 +133,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
-        self._anonymous_options = anonymous_options
         self.irods_session = self.connect()
         if irods_home is not None:
             self.home = irods_home
@@ -208,7 +206,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
     def cwd(self, value: str):
         self._cwd = str(value)
 
-    # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
 
@@ -268,15 +265,12 @@ class Session:  # pylint: disable=too-many-instance-attributes
         irods_port = self._irods_env.get("irods_port", None)
         user = self._irods_env.get("irods_user_name", "")
         is_anonymous = user == "anonymous"
-        if is_anonymous:
-            # Explicit anonymous options take precedence over the environment.
-            irods_host = self._anonymous_options.get("host") or irods_host
-            irods_port = self._anonymous_options.get("port") or irods_port
         network = self.network_check(irods_host, irods_port)
         if network is False:
             raise ConnectionError(f"No internet connection to {irods_host} and port {irods_port}")
         if is_anonymous:
-            return self._authenticate_anonymous(**self._anonymous_options)
+            # Anonymous login uses user "anonymous" and password ""
+            return self.authenticate_using_password()
         # authentication with irods environment and password
         if self._password is None or self._password == "":
             # use cached password of .irodsA built into prc
@@ -284,7 +278,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
             return self.authenticate_using_auth_file()
 
         # irods environment and given password
-        # print("Auth with password")
         return self.authenticate_using_password()
 
     def close(self):
@@ -297,82 +290,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
             self.irods_session.do_configure = {}
             self.irods_session.cleanup()
             self.irods_session = None
-
-    def _authenticate_anonymous(
-        self,
-        *,
-        host: Optional[str] = None,
-        port: Optional[Union[int, str]] = None,
-        user_name: Optional[str] = None,
-        zone_name: Optional[str] = None,
-        ssl_settings: Optional[dict] = None,
-    ) -> iRODSSession:
-        """Create an anonymous session with the iRODS server.
-
-        Every argument is optional. Anything not given here is taken from
-        the iRODS environment. The SSL settings also come from the environment
-        only; if neither the environment nor `ssl_settings` has any, no SSL
-        settings are used.
-
-        Parameters
-        ----------
-        host :
-            iRODS host, overrides "irods_host".
-        port :
-            iRODS port, overrides "irods_port".
-        user_name :
-            User name, overrides "irods_user_name". Defaults to "anonymous"
-            if it is not in the environment either.
-        zone_name :
-            iRODS zone, overrides "irods_zone_name".
-        ssl_settings :
-            Dictionary with SSL/encryption settings (e.g. "irods_encryption_algorithm").
-            Added to the SSL settings found in the environment, which they override.
-            Without SSL settings in either, no SSL settings are used. To use the
-            previous defaults, pass DEFAULT_ANONYMOUS_SSL_SETTINGS.
-
-        Internal use only.
-
-        """
-        connection = {
-            "host": host if host is not None else self._irods_env.get("irods_host"),
-            "port": port if port is not None else self._irods_env.get("irods_port"),
-            "user": (
-                user_name
-                if user_name is not None
-                else self._irods_env.get("irods_user_name", "anonymous")
-            ),
-            "zone": zone_name if zone_name is not None else self._irods_env.get("irods_zone_name"),
-        }
-        missing = [key for key, value in connection.items() if value in (None, "")]
-        if missing:
-            raise ValueError(
-                f"Cannot create an anonymous session, missing connection parameters: {missing}"
-            )
-
-        # Only use SSL/encryption settings that the environment or the caller provides.
-        # Without any, the session connects without SSL settings.
-        ssl_kwargs = {
-            key: value
-            for key, value in self._irods_env.items()
-            if key.startswith(_SSL_ENV_PREFIXES) or key == "irods_default_resource"
-        }
-        ssl_kwargs.update(ssl_settings or {})
-
-        try:
-            irods_session = irods.session.iRODSSession(
-                password="",
-                connection_timeout=self.connection_timeout,
-                application_name=APP_NAME,
-                **connection,
-                **ssl_kwargs,
-            )
-            _ = irods_session.server_version
-        except Exception as e:
-            raise _translate_irods_error(e) from e
-        if irods_session.server_version == ():
-            raise LoginError("iRODS server does not return a server version.")
-        return irods_session
 
     def authenticate_using_password(self) -> iRODSSession:
         """Authenticate with the iRODS server using a password.
