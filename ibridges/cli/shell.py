@@ -1,5 +1,7 @@
 """Module with implementation of ibridges shell command."""
 
+from __future__ import annotations
+
 import cmd
 import os
 import subprocess
