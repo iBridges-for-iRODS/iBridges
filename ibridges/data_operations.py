@@ -13,21 +13,21 @@ import warnings
 from pathlib import Path
 from typing import Optional, Union
 
-import irods.collection
-import irods.data_object
-import irods.exception
-
+from ibridges.base_operations import (
+    CreateCollectionOperation,
+    CreateDirectoryOperation,
+    DownloadOperation,
+    UploadOperation,
+)
 from ibridges.exception import (
     CollectionDoesNotExistError,
     DataObjectExistsError,
     DoesNotExistError,
     NotACollectionError,
 )
-from ibridges.executor import Operations
-from ibridges.path import CachedIrodsPath, IrodsPath
+from ibridges.path import IrodsPath
+from ibridges.transfer_manager import TransferManager
 from ibridges.util import checksums_equal
-
-NUM_THREADS = 4
 
 
 def upload(
@@ -39,9 +39,9 @@ def upload(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
-) -> Operations:
+    **kwargs,
+) -> TransferManager:
     """Upload a local directory or file to iRODS.
 
     Parameters
@@ -67,10 +67,12 @@ def upload(
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
-    metadata:
-        If not None, it should point to a file that contains the metadata for the upload.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Returns
     -------
@@ -102,40 +104,27 @@ def upload(
     """
     local_path = Path(local_path)
     session = irods_path.session
-    ops = Operations()
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
     if local_path.is_dir():
         idest_path = irods_path / local_path.name
         if not overwrite and idest_path.dataobject_exists():
             raise DataObjectExistsError(f"Data object {idest_path} already exists.")
-        ops = _up_sync_operations(
-            local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
-            overwrite=overwrite, on_error=on_error
-        )
-        if not idest_path.collection_exists():
-            ops.add_create_coll(idest_path)
-        if not irods_path.collection_exists():
-            ops.add_create_coll(irods_path)
-    elif local_path.is_file():
-        idest_path = irods_path / local_path.name if irods_path.collection_exists() else irods_path
-        obj_exists = idest_path.dataobject_exists()
-        if not obj_exists or _transfer_needed(local_path, idest_path, overwrite, on_error):
-            ops.add_upload(local_path, idest_path)
-        else:
-            ops.upload_unchanged += 1
-
-    elif local_path.is_symlink():
-        raise FileNotFoundError(
-            f"Cannot upload symbolic link {local_path}, please supply a direct path."
+        tm.add(CreateCollectionOperation(irods_path))
+        tm.add(CreateCollectionOperation(idest_path))
+        _up_sync_operations(
+            tm, local_path, idest_path, copy_empty_folders=copy_empty_folders, depth=None,
+            overwrite=overwrite, on_error=on_error, resc_name=resc_name, options=options,
         )
     else:
-        raise FileNotFoundError(f"Cannot upload {local_path}: file or directory does not exist.")
-    ops.resc_name = resc_name
-    ops.options = options
-    if metadata is not None:
-        add_meta_from_archive(metadata, idest_path, dry_run=True, ops=ops)
+        if irods_path.collection_exists():
+            idest_path = irods_path / local_path.name
+        else:
+            idest_path = irods_path
+        tm.add(UploadOperation(local_path, idest_path, overwrite=overwrite, on_error=on_error,
+                               resc_name=resc_name, options=options))
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
-    return ops
+        tm.execute()#, on_error=on_error, progress_bar=progress_bar)
+    return tm
 
 
 def download(
@@ -147,9 +136,9 @@ def download(
     copy_empty_folders: bool = True,
     options: Optional[dict] = None,
     dry_run: bool = False,
-    metadata: Union[None, str, Path] = None,
     progress_bar: bool = True,
-) -> Operations:
+    **kwargs,
+) -> TransferManager:
     """Download a collection or data object to the local filesystem.
 
     Parameters
@@ -175,11 +164,12 @@ def download(
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
     dry_run:
         Whether to do a dry run before uploading the files/folders.
-    metadata:
-        If not None, the path to store the metadata to in JSON format.
-        It is recommended to use the .json suffix.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Returns
     -------
@@ -212,42 +202,32 @@ def download(
     """
     session = irods_path.session
     local_path = Path(local_path)
-
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
     if irods_path.collection_exists():
         if local_path.is_file():
             raise NotADirectoryError(
                 f"Cannot download to directory {local_path} "
                 "since a file with the same name exists."
             )
-
-        ops = _down_sync_operations(
-            irods_path, local_path / irods_path.name, #metadata=metadata,
+        tm.add(CreateDirectoryOperation(Path(local_path)))
+        _down_sync_operations(
+            tm, irods_path, local_path / irods_path.name,
             copy_empty_folders=copy_empty_folders, overwrite=overwrite,
-            on_error=on_error
+            on_error=on_error, resc_name=resc_name, options=options,
         )
-        if not local_path.is_dir():
-            ops.add_create_dir(Path(local_path))
-    elif irods_path.dataobject_exists():
-        ops = Operations()
 
+    elif irods_path.dataobject_exists():
         if local_path.is_dir():
             local_path = local_path / irods_path.name
-        if not local_path.is_file() or _transfer_needed(
-                irods_path, local_path, overwrite, on_error):
-            ops.add_download(irods_path, local_path)
-        else:
-            ops.download_unchanged += 1
+        tm.add(DownloadOperation(irods_path, local_path, overwrite, on_error, resc_name=resc_name,
+                                 options=options))
+
     else:
         raise DoesNotExistError(f"Data object or collection not found: '{irods_path}'")
 
-    if metadata is not None:
-        new_ops = create_meta_archive(irods_path, metadata, dry_run=True)
-        ops.meta_download.extend(new_ops.meta_download)
-    ops.resc_name = resc_name
-    ops.options = options
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
-    return ops
+        tm.execute()
+    return tm
 
 
 def sync(
@@ -259,9 +239,9 @@ def sync(
     copy_empty_folders: bool = False,
     resc_name: str = "",
     options: Optional[dict] = None,
-    metadata: Union[None, str, Path, dict] = None,
     progress_bar: bool = True,
-) -> Operations:
+    **kwargs,
+) -> TransferManager:
     """Synchronize data between local and remote copies.
 
     The command can be in one of the two modes: synchronization of data from the client's local file
@@ -305,10 +285,12 @@ def sync(
         Python-irodsclient options found in ``irods.keywords``. The following keywords will be
         ignored since they are set by iBridges:
         FORCE_FLAG_KW, RESC_NAME_KW, NUM_THREADS_KW, REG_CHKSUM_KW, VERIFY_CHKSUM_KW.
-    metadata:
-        If not None, the location to get the metadata from or store it to.
     progress_bar:
         Whether to display a progress bar.
+    **kwargs:
+        Extra keyword arguments for initializing the transfer manager. For example,
+        n_workers, threads_per_transfer, parallel_method. See
+        :class:`ibridges.transfer_manager.TransferManager`.
 
     Raises
     ------
@@ -334,6 +316,7 @@ def sync(
     """
     _param_checks(source, target)
 
+
     if isinstance(source, IrodsPath):
         session = source.session
         if not source.collection_exists():
@@ -351,30 +334,23 @@ def sync(
     else:
         raise TypeError("Either source or target must be an IrodsPath")
 
+    tm = TransferManager(session, progress_bar=progress_bar, **kwargs)
+
+
     if isinstance(source, IrodsPath):
-        if isinstance(metadata, dict):
-            raise ValueError("Cannot use dictionary type for metadata download.")
-        ops = _down_sync_operations(
-            source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
-            overwrite=True
+        _down_sync_operations(
+            tm, source, Path(target), copy_empty_folders=copy_empty_folders, depth=max_level,
+            overwrite=True, resc_name=resc_name, options=options, on_error=on_error,
         )
-        if metadata is not None:
-            new_ops = create_meta_archive(source, metadata, dry_run=True)
-            ops.meta_download.extend(new_ops.meta_download)
     else:
-        ops = _up_sync_operations(
-            Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
-            depth=max_level, overwrite=True)
-        if metadata is not None:
-            add_meta_from_archive(metadata, IrodsPath(session, target), dry_run=True,
-                               ops=ops)
+        _up_sync_operations(
+            tm, Path(source), IrodsPath(session, target), copy_empty_folders=copy_empty_folders,
+            depth=max_level, overwrite=True, resc_name=resc_name, options=options)
 
-    ops.resc_name = resc_name
-    ops.options = options
     if not dry_run:
-        ops.execute(session, on_error=on_error, progress_bar=progress_bar)
+        tm.execute()
 
-    return ops
+    return tm
 
 
 def _param_checks(source, target):
@@ -420,77 +396,73 @@ def _transfer_needed(source: Union[IrodsPath, Path],
     return True
 
 
-def _down_sync_operations(isource_path: IrodsPath, ldest_path: Path,
-                          overwrite: bool,
-                          on_error: str = "fail",
-                          copy_empty_folders: bool = True, depth: Optional[int] = None
-                          ) -> Operations:
-    ops = Operations()
+def _down_sync_operations(
+        tm: TransferManager,
+        isource_path: IrodsPath, ldest_path: Path,
+        overwrite: bool,
+        on_error: str = "fail",
+        copy_empty_folders: bool = True, depth: Optional[int] = None,
+        options: Optional[dict] = None, resc_name: str = "") -> TransferManager:
     for ipath in isource_path.walk(depth=depth):
         lpath = ldest_path.joinpath(*ipath.relative_to(isource_path).parts)
+        tm.add(CreateDirectoryOperation(lpath.parent))
         if ipath.dataobject_exists():
-            if lpath.is_file():
-                if _transfer_needed(ipath, lpath, overwrite, on_error):
-                    ops.add_download(ipath, lpath)
-                else:
-                    ops.download_unchanged += 1
-            else:
-                ops.add_download(ipath, lpath)
-            if not lpath.parent.exists():
-                ops.add_create_dir(lpath.parent)
+            tm.add(DownloadOperation(ipath, lpath, overwrite, on_error,
+                                     resc_name=resc_name, options=options))
         elif ipath.collection_exists() and copy_empty_folders:
-            if not lpath.exists():
-                ops.add_create_dir(lpath)
-    return ops
+            tm.add(CreateDirectoryOperation(lpath))
+    return tm
 
 
-def _up_sync_operations(lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
-                        overwrite: bool,
-                        copy_empty_folders: bool = True, depth: Optional[int] = None,
-                        on_error: str = "fail") -> Operations:
-    ops = Operations()
-    session = idest_path.session
-    try:
-        remote_ipaths = {str(ipath): ipath for ipath in idest_path.walk()}
-    except irods.exception.CollectionDoesNotExist:
-        remote_ipaths = {}
+def _up_sync_operations(
+        tm: TransferManager,
+        lsource_path: Path, idest_path: IrodsPath,  # pylint: disable=too-many-branches
+        overwrite: bool,
+        copy_empty_folders: bool = True, depth: Optional[int] = None,
+        on_error: str = "fail",
+        options: Optional[dict] = None, resc_name: str = "") -> TransferManager:
     for root, folders, files in os.walk(lsource_path):
         root_part = Path(root).relative_to(lsource_path)
         if depth is not None and len(root_part.parts) > depth:
             continue
         source = idest_path.joinpath(*root_part.parts)
+        tm.add(CreateCollectionOperation(source))
+        if copy_empty_folders:
+            for fold in folders:
+                lpath = lsource_path / root_part / fold
+                tm.add(CreateCollectionOperation(source / fold))
         for cur_file in files:
             ipath = source / cur_file
             lpath = lsource_path / root_part / cur_file
-
-            # Ignore symlinks
-            if lpath.is_symlink():
-                warnings.warn(f"Ignoring symlink {lpath}.")
-                continue
-            if str(ipath) in remote_ipaths:
-                ipath = remote_ipaths[str(ipath)]
-                if _transfer_needed(lpath, ipath, overwrite, on_error):
-                    ops.add_upload(lpath, ipath)
-                else:
-                    ops.upload_unchanged += 1
-            else:
-                ipath = CachedIrodsPath(session, None, False, None, str(ipath))
-                ops.add_upload(lpath, ipath)
-        if copy_empty_folders:
-            for fold in folders:
-                # Ignore folder symlinks
-                lpath = lsource_path / root_part / fold
-                if lpath.is_symlink():
-                    warnings.warn(f"Ignoring symlink {lpath}.")
-                    continue
-                if str(source / fold) not in remote_ipaths:
-                    ops.add_create_coll(source / fold)
-        if str(source) not in remote_ipaths:
-            ops.add_create_coll(source)
-    return ops
+            tm.add(UploadOperation(lpath, ipath, overwrite=overwrite, on_error=on_error,
+                                   resc_name=resc_name, options=options))
+    return tm
 
 
-def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
+def _empty_metadict(root_ipath: IrodsPath, recursive: bool = True) -> dict:
+    """Create an empty dictionary for metadata archival.
+
+    Parameters
+    ----------
+    root_ipath
+        IrodsPath that points to the root collection or dataobject.
+    recursive, optional
+        Whether the dictionary is built recursively, by default True
+
+    Returns
+    -------
+        A dictionary for containing metadata with no items.
+
+    """
+    return {
+        "ibridges_metadata_version": "1.0",
+        "recursive": recursive,
+        "root_path": str(root_ipath),
+        "items": [],
+    }
+
+
+def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path, None],
                         dry_run: bool = False):
     """Create a local archive file for the metadata.
 
@@ -534,15 +506,31 @@ def create_meta_archive(ipath: IrodsPath, meta_fp: Union[str, Path],
         meta_items = list(ipath.walk())
         base_path = ipath
 
-    ops = Operations()
-    ops.add_meta_download(meta_fp, base_path, meta_items)
     if not dry_run:
-        ops.execute_meta_download()
-    return ops
+        meta_dict = _empty_metadict(base_path)
+        for cur_ipath in meta_items:
+            if cur_ipath.collection_exists():
+                item_type = "collection"
+            elif cur_ipath.dataobject_exists():
+                item_type = "data object"
+            else:
+                item_type = "unknown"
+            new_metadata = {
+                "rel_path": str(cur_ipath.relative_to(base_path)),
+                "type": item_type,
+            }
+            new_metadata.update(cur_ipath.meta.to_dict())
+            meta_dict["items"].append(new_metadata)
+
+        if meta_fp is not None:
+            with open(meta_fp, "w", encoding="utf-8") as handle:
+                json.dump(meta_dict, handle, indent=4)
+
+    return meta_items
 
 
 def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
-                       dry_run: bool = False, ops: Optional[Operations] = None) -> Operations:
+                          dry_run: bool = False) -> list[tuple[IrodsPath, dict]]:
     """Add metadata for collections and data objects from a metadata archive file.
 
     The currently supported format for the archive is a utf-8 encoded JSON file with the metadata
@@ -599,24 +587,17 @@ def add_meta_from_archive(meta_fp: Union[str, Path, dict], ipath: IrodsPath,
                             f"applying metadata to path {ipath}.") from exc
 
     applied_metadata = []
-    if ops is None:
-        ops = Operations()
-    uploads = [str(x[1]) for x in ops.upload]
     for item_data in meta_dict["items"]:
         new_path = root_path / item_data.get("rel_path", "")
         try:
             new_path.relative_to(ipath)
         except ValueError:
             continue
-        if not (new_path.exists() or str(new_path) in ops.create_collection
-                or str(new_path) in uploads):
+        if not new_path.exists():
             continue
-        applied_metadata.append(new_path)
-        if isinstance(meta_fp, dict):
-            ops.add_meta_upload(new_path, "__dictionary__", item_data)
-        else:
-            ops.add_meta_upload(new_path, meta_fp, item_data)
+        applied_metadata.append((new_path, item_data))
 
     if not dry_run:
-        ops.execute_meta_upload()
-    return ops
+        for cur_ipath, metadata in applied_metadata:
+            cur_ipath.meta.from_dict(metadata)
+    return applied_metadata
