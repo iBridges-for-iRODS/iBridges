@@ -127,8 +127,6 @@ def test_format_tickets_table():
 
 
 # Recipient side, with an anonymous session
-# ---------------------------------------------------------------------------
-
 
 def test_ticket_access_lists_collection(read_ticket, anonymous_session, collection):
     access = TicketAccess(anonymous_session, read_ticket, irods_path=collection.path)
