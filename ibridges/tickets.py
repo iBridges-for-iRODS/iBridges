@@ -21,12 +21,14 @@ def _id_to_path(session: Session, itemid: str) -> str:
 
     Returns '' if the identifier does not exist (or is not visible) any longer.
     """
+    # Try if the itemid leads to a data ibject
     data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
     data_query = data_query.filter(icat.DATA_ID == itemid)
 
     if len(list(data_query)) > 0:
         res = next(data_query.get_results())
         return list(res.values())[0] + "/" + list(res.values())[1]
+    # Try if the itemid leads to a collection
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.COLL_ID == itemid)
     if len(list(coll_query)) > 0:
