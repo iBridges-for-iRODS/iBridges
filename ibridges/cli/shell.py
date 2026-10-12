@@ -82,7 +82,6 @@ class IBridgesShell(cmd.Cmd):
                 print(f"Error: {err}")
                 self.session.close()
                 sys.exit(1)
-        self.commands = {}
         for command_class in get_all_shell_commands():
             for name in command_class.names:
                 self.commands[name] = command_class
