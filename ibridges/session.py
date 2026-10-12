@@ -134,7 +134,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         self._password = password
         self._irods_env: dict = irods_env
         self._irods_env_path = irods_env_path
-        self._anonymous_options: dict = dict(anonymous_options or {})
+        self._anonymous_options = anonymous_options
         self.irods_session = self.connect()
         if irods_home is not None:
             self.home = irods_home
