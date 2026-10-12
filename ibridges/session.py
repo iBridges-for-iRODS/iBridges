@@ -74,7 +74,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         Current working directory, by default the home directory.
     anonymous_options:
         Only used if the user name is "anonymous". Dictionary with keyword arguments
-        for :meth:`authenticate_anonymous`: "host", "port", "user_name", "zone_name"
+        for :meth:`_authenticate_anonymous`: "host", "port", "user_name", "zone_name"
         and "ssl_settings". Anything not given is taken from the iRODS environment.
         The SSL settings come from the environment only; without any, no SSL settings
         are used. To use the defaults, pass DEFAULT_ANONYMOUS_SSL_SETTINGS
@@ -276,7 +276,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
         if network is False:
             raise ConnectionError(f"No internet connection to {irods_host} and port {irods_port}")
         if is_anonymous:
-            return self.authenticate_anonymous(**self._anonymous_options)
+            return self._authenticate_anonymous(**self._anonymous_options)
         # authentication with irods environment and password
         if self._password is None or self._password == "":
             # use cached password of .irodsA built into prc
@@ -298,7 +298,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
             self.irods_session.cleanup()
             self.irods_session = None
 
-    def authenticate_anonymous(
+    def _authenticate_anonymous(
         self,
         *,
         host: Optional[str] = None,
