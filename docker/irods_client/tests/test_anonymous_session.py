@@ -96,7 +96,7 @@ def test_missing_connection_parameters(monkeypatch):
         _connect(monkeypatch, env)
 
 
-# Integration test Against the test server
+# Integration test against the test server
 
 
 def test_anonymous_env_settings(anonymous_irods_env, irods_env):
