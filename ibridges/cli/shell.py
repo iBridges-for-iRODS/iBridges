@@ -51,7 +51,7 @@ class IBridgesShell(cmd.Cmd):
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self, with_ticket=None):
+    def __init__(self, with_ticket: Optional[tuple[str, str]]=None):
         """Initialize the shell creating the session.
 
         Parameters
