@@ -12,6 +12,8 @@ try:
 except ImportError:
     from importlib.metadata import entry_points  # type: ignore
 
+from typing import Optional
+
 from ibridges.authenticate import cli_auth
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload

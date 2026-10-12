@@ -60,8 +60,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
     used to authenticate.
 
     For anonymous environments (irods_user_name is "anonymous") no password is
-    needed; use the `anonymous_options` keyword argument to override connection
-    or SSL settings, see :class:`ibridges.Session`.
+    needed.
 
     Parameters
     ----------
@@ -76,8 +75,7 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
         Parser to relay the error messages to. By default, errors are raised as
         ValueError's.
     kwargs:
-        Extra keyword arguments for the session such as home, password and
-        anonymous_options.
+        Extra keyword arguments for the session such as home, password..
 
 
     Returns
@@ -108,7 +106,6 @@ def non_interactive_auth(*args, ienv_path_or_alias: Optional[str] = None,
 def interactive_auth(
     password: Optional[str] = None, irods_env_path: Union[None, str, Path] = None,
     irodsa_backup: Optional[str] = None, reauthenticate: bool = False,
-    anonymous_options: Optional[dict] = None,
     **kwargs
 ) -> Session:
     """Interactive authentication with iRODS server.
@@ -134,10 +131,6 @@ def interactive_auth(
     reauthenticate:
         If reauthenticate is set to True, then cached passwords will be ignored and a new password
         can be submitted.
-    anonymous_options:
-        Only used for anonymous users. Dictionary with overrides for the anonymous session:
-        "host", "port", "user_name", "zone_name" and "ssl_settings".
-        See :meth:`ibridges.Session.authenticate_anonymous`.
     kwargs:
         Extra parameters for the interactive auth. Mainly used for the cwd parameter.
 
