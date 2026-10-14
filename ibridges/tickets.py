@@ -16,25 +16,25 @@ from ibridges.session import Session
 TicketData = namedtuple("TicketData", ["name", "type", "path", "expiration_date"])
 
 
-def _id_to_path(session: Session, itemid: str) -> str:
+def _id_to_path(session: Session, itemid: str) -> Optional[IrodsPath]:
     """Get an iRODS path from a given an iRODS item id.
 
-    Returns '' if the identifier does not exist (or is not visible) any longer.
+    Returns None if the identifier does not exist (or is not visible) any longer.
     """
-    # Try if the itemid leads to a data ibject
+    # Try if the itemid leads to a data object
     data_query = session.irods_session.query(icat.COLL_NAME, icat.DATA_NAME)
     data_query = data_query.filter(icat.DATA_ID == itemid)
 
     if len(list(data_query)) > 0:
         res = next(data_query.get_results())
-        return list(res.values())[0] + "/" + list(res.values())[1]
+        return IrodsPath(session, *res.values())
     # Try if the itemid leads to a collection
     coll_query = session.irods_session.query(icat.COLL_NAME)
     coll_query = coll_query.filter(icat.COLL_ID == itemid)
     if len(list(coll_query)) > 0:
         res = next(coll_query.get_results())
-        return list(res.values())[0]
-    return ""
+        return IrodsPath(session, *res.values())
+    return None
 
 
 class Tickets:
@@ -250,10 +250,7 @@ class Tickets:
                 TicketData(
                     row[TicketQuery.Ticket.string],
                     row[TicketQuery.Ticket.type],
-                    IrodsPath(
-                        self.session,
-                        _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id])),
-                    ),
+                    _id_to_path(self.session, str(row[TicketQuery.Ticket.object_id])),
                     time_stamp,
                 )
             )
@@ -314,7 +311,10 @@ class TicketAccess:
         """Supply the ticket to the session."""
         self.session = session
         self.ticket_str = ticket_str
-        self._path: Optional[str] = str(irods_path) if irods_path is not None else None
+        if irods_path is not None:
+            self._path = IrodsPath(session, str(irods_path))
+        else:
+            irods_path = None
         self._ticket = irods.ticket.Ticket(session.irods_session, ticket_str)
         if supply:
             self.supply()
@@ -328,7 +328,7 @@ class TicketAccess:
         self._ticket.supply()
 
     @property
-    def path(self) -> IrodsPath:
+    def path(self) -> Optional[IrodsPath]:
         """Path of the collection or data object that the ticket gives access to.
 
         Raises
@@ -339,9 +339,9 @@ class TicketAccess:
         """
         if self._path is None:
             self._path = self._lookup_path()
-        return IrodsPath(self.session, self._path)
+        return self._path
 
-    def _lookup_path(self) -> str:
+    def _lookup_path(self) -> IrodsPath:
         try:
             rows = self.session.irods_session.query(TicketQuery.Ticket.object_id).filter(
                 TicketQuery.Ticket.string == self.ticket_str
