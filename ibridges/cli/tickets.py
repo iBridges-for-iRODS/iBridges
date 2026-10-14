@@ -1,7 +1,5 @@
 """Subcommands for tickets operations."""
 
-"""Subcommands for tickets operations."""
-
 import argparse
 from datetime import date
 
