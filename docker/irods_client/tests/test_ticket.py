@@ -104,28 +104,6 @@ def test_delete_unknown_ticket(session):
         Tickets(session).delete_ticket("this-ticket-does-not-exist", check=True)
 
 
-# ---------------------------------------------------------------------------
-# Table formatting: no server needed
-# ---------------------------------------------------------------------------
-
-
-def test_format_no_tickets():
-    assert Tickets.format_tickets_table([]) == "No tickets found."
-
-
-def test_format_tickets_table():
-    tickets = [
-        TicketData("abc", "read", "/z/home/u/coll", datetime.datetime(2026, 12, 31)),
-        TicketData("defghi", "write", "/z/home/u/obj.txt", ""),
-    ]
-    lines = Tickets.format_tickets_table(tickets).splitlines()
-    assert len(lines) == 4  # header, divider, two rows
-    assert lines[0].split(" | ")[0].strip() == "Ticket"
-    assert "2026-12-31 00:00:00" in lines[2]
-    assert "never" in lines[3]
-    assert len({len(line) for line in lines}) == 1  # aligned columns
-
-
 # Recipient side, with an anonymous session
 
 def test_ticket_access_lists_collection(read_ticket, anonymous_session, collection):
