@@ -25,27 +25,6 @@ from ibridges.util import open_irodsa
 
 APP_NAME = "ibridges"
 
-# SSL/encryption settings that can be passed explicitly to an anonymous session,
-# e.g. anonymous_options={"ssl_settings": DEFAULT_ANONYMOUS_SSL_SETTINGS}.
-# They are NOT applied automatically.
-DEFAULT_ANONYMOUS_SSL_SETTINGS = {
-    "irods_client_server_negotiation": "request_server_negotiation",
-    "irods_client_server_policy": "CS_NEG_REQUIRE",
-    "irods_default_resource": "irodsResc",
-    "irods_encryption_algorithm": "AES-256-CBC",
-    "irods_encryption_key_size": 32,
-    "irods_encryption_num_hash_rounds": 16,
-    "irods_encryption_salt_size": 8,
-}
-
-# Environment keys that are passed on to the anonymous session, if present.
-_SSL_ENV_PREFIXES = (
-    "irods_ssl_",
-    "irods_encryption_",
-    "irods_client_server_",
-)
-
-
 class Session:  # pylint: disable=too-many-instance-attributes
     """Session to connect and perform operations on the iRODS server.
 
@@ -72,13 +51,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
         /{zone}/home/{username}.
     cwd:
         Current working directory, by default the home directory.
-    anonymous_options:
-        Only used if the user name is "anonymous". Dictionary with keyword arguments
-        for :meth:`_authenticate_anonymous`: "host", "port", "user_name", "zone_name"
-        and "ssl_settings". Anything not given is taken from the iRODS environment.
-        The SSL settings come from the environment only; without any, no SSL settings
-        are used. To use the defaults, pass DEFAULT_ANONYMOUS_SSL_SETTINGS
-        as "ssl_settings".
 
     Raises
     ------
@@ -97,10 +69,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
     >>> with Session("irods_environment.json") as session:
     >>>     # Do operations with the session here.
     >>>     # The session will be automatically closed on finish/error.
-    >>> session = Session(
-    >>>     {"irods_user_name": "anonymous", "irods_host": "host", "irods_port": 1247,
-    >>>      "irods_zone_name": "zone"},
-    >>>     anonymous_options={"ssl_settings": {"irods_encryption_algorithm": "AES-128-CBC"}},
     >>> )
 
     """  # noqa: D403
