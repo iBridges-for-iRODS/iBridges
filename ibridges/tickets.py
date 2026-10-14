@@ -314,7 +314,7 @@ class TicketAccess:
         if irods_path is not None:
             self._path = IrodsPath(session, str(irods_path))
         else:
-            irods_path = None
+            self._path = None
         self._ticket = irods.ticket.Ticket(session.irods_session, ticket_str)
         if supply:
             self.supply()
@@ -328,7 +328,7 @@ class TicketAccess:
         self._ticket.supply()
 
     @property
-    def path(self) -> Optional[IrodsPath]:
+    def path(self) -> IrodsPath:
         """Path of the collection or data object that the ticket gives access to.
 
         Raises
@@ -337,24 +337,23 @@ class TicketAccess:
             If the path was not supplied and cannot be found using the ticket.
 
         """
-        if self._path is None:
-            self._path = self._lookup_path()
-        return self._path
+        if self._path is not None:
+            return self._path
 
-    def _lookup_path(self) -> IrodsPath:
+        error_msg = (
+            "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
+        )
         try:
             rows = self.session.irods_session.query(TicketQuery.Ticket.object_id).filter(
                 TicketQuery.Ticket.string == self.ticket_str
             )
             item_ids = [str(row[TicketQuery.Ticket.object_id]) for row in rows]
         except Exception as error:
-            raise ValueError(
-                "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
-            ) from error
+            raise ValueError(error_msg) from error
+
         for item_id in item_ids:
             path = _id_to_path(self.session, item_id)
             if path:
+                self._path = path
                 return path
-        raise ValueError(
-            "Could not look up the path for this ticket, please supply 'irods_path' explicitly."
-        )
+        raise ValueError(error_msg)
