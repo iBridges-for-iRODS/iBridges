@@ -66,15 +66,16 @@ class IBridgesShell(cmd.Cmd):
 
         """
         # Autocomplete is not available on windows.
-        try:
-            import readline  # pylint: disable=import-outside-toplevel
+        if sys.platform != "win32": # fix for mypy
+            try:
+                import readline  # pylint: disable=import-outside-toplevel
 
-            readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
-            if IBSHELL_HISTORY_FILE.is_file():
-                readline.read_history_file(IBSHELL_HISTORY_FILE)
-            readline.set_history_length(1000)
-        except ImportError:
-            pass
+                readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
+                if IBSHELL_HISTORY_FILE.is_file():
+                    readline.read_history_file(IBSHELL_HISTORY_FILE)
+                readline.set_history_length(1000)
+            except ImportError:
+                pass
         self.session = cli_auth(None)
         self.commands = {}
         if with_ticket is not None:
