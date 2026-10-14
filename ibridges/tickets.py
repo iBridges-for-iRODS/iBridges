@@ -311,10 +311,9 @@ class TicketAccess:
         """Supply the ticket to the session."""
         self.session = session
         self.ticket_str = ticket_str
+        self._path = None
         if irods_path is not None:
             self._path = IrodsPath(session, str(irods_path))
-        else:
-            self._path = None
         self._ticket = irods.ticket.Ticket(session.irods_session, ticket_str)
         if supply:
             self.supply()
