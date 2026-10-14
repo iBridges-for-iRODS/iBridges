@@ -185,8 +185,7 @@ the environment file (keys starting with ``irods_ssl_``, ``irods_encryption_``
 or ``irods_client_server_``) or that you pass explicitly. If there are none,
 the session connects without SSL settings.
 
-If your server requires SSL, add the settings to the environment file, for
-example:
+If your server requires SSL, add the settings to the environment file, for example:
 
 .. code-block:: json
 
@@ -235,18 +234,6 @@ collection.
 
 The ticket is supplied to the session when the
 :class:`~ibridges.tickets.TicketAccess` object is created.
-
-If the server requires SSL and the environment does not contain the settings,
-pass them when creating the session:
-
-.. code-block:: python
-
-    from ibridges.session import DEFAULT_ANONYMOUS_SSL_SETTINGS
-
-    session = Session(
-        env,
-        anonymous_options={"ssl_settings": DEFAULT_ANONYMOUS_SSL_SETTINGS},
-    )
 
 Instead of an environment dictionary, you can also use an environment file
 with :func:`~ibridges.authenticate.interactive_auth`. For anonymous users this
