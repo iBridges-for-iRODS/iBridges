@@ -31,7 +31,7 @@ To create a read-only ticket:
 
 .. code-block:: console
 
-    $ ibridges ticket create irods:/zone/home/research-project/shared-data
+    $ ibridges ticket-create irods:/zone/home/research-project/shared-data
 
 Example output:
 
@@ -50,7 +50,7 @@ For example, to make a ticket valid until 31 December 2026:
 
 .. code-block:: console
 
-    $ ibridges ticket create \
+    $ ibridges ticket-create \
         irods:/zone/home/research-project/shared-data \
         --date 2026-12-31
 
@@ -72,7 +72,7 @@ To allow uploads or modifications, create a write ticket:
 
 .. code-block:: console
 
-    $ ibridges ticket create \
+    $ ibridges ticket-create \
         irods:/zone/home/research-project/incoming \
         --mode write
 
@@ -86,7 +86,7 @@ To view all tickets that belong to your account:
 
 .. code-block:: console
 
-    $ ibridges ticket list
+    $ ibridges ticket-list
 
 Example output:
 
@@ -107,7 +107,7 @@ Once a ticket is no longer needed, it can be removed.
 
 .. code-block:: console
 
-    $ ibridges ticket delete kpIwGA1UZN0LFnM
+    $ ibridges ticket-delete kpIwGA1UZN0LFnM
 
 Deleting the ticket immediately revokes access for future users of that
 ticket. If the ticket does not exist, an error is shown.
@@ -160,16 +160,16 @@ Type ``quit`` to leave the shell. The ticket is then gone with the session.
 .. note::
 
     A single ``ibridges`` command on the command line ends its session when it
-    is done, and the ticket ends with it. Running ``ticket supply``
+    is done, and the ticket ends with it. Running ``ticket-supply``
     and then ``ibridges ls`` in a separate command therefore does not work.
-    First open the shell and then use ``ticket supply``, or use the shell command with
+    First open the shell and then use ``ticket-supply``, or use the shell command with
     the extra option ``--with-ticket``.
 
 You can also supply a ticket from inside a running shell:
 
 .. code-block:: text
 
-    ibshell:home> ticket supply kpIwGA1UZN0LFnM /demoZone/home/research-project/shared-data
+    ibshell:home> ticket-supply kpIwGA1UZN0LFnM /demoZone/home/research-project/shared-data
 
 .. note::
 
