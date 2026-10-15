@@ -104,7 +104,7 @@ def test_delete_unknown_ticket(session):
         Tickets(session).delete_ticket("this-ticket-does-not-exist", check=True)
 
 
-# Recipient side, with an anonymous session
+# Using a ticket with an anonymous session
 
 def test_ticket_access_lists_collection(read_ticket, anonymous_session, collection):
     access = TicketAccess(anonymous_session, read_ticket, irods_path=collection.path)
@@ -133,7 +133,7 @@ def test_ticket_access_path_lookup(read_ticket, anonymous_session, collection):
 def test_ticket_access_lookup_unknown_ticket(anonymous_session):
     access = TicketAccess(anonymous_session, "this-ticket-does-not-exist", supply=False)
     with pytest.raises(ValueError):
-        _ = access.path
+        access.path
 
 
 def test_no_access_without_ticket(read_ticket, anonymous_session, collection):
