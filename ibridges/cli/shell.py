@@ -1,5 +1,7 @@
 """Module with implementation of ibridges shell command."""
 
+from __future__ import annotations
+
 import cmd
 import os
 import subprocess
@@ -12,12 +14,17 @@ try:
 except ImportError:
     from importlib.metadata import entry_points  # type: ignore
 
+from typing import Optional
+
 from ibridges.authenticate import cli_auth
 from ibridges.cli.data_operations import CliDownload, CliMakeCollection, CliRm, CliSync, CliUpload
 from ibridges.cli.meta import CliMetaAdd, CliMetaDel, CliMetaDownload, CliMetaList, CliMetaUpload
 from ibridges.cli.navigation import CliCd, CliGui, CliList, CliPwd, CliSearch, CliTree, CliVersion
 from ibridges.cli.permission import CliACLEdit
+from ibridges.cli.tickets import CliTicketCreate, CliTicketDelete, CliTicketList, CliTicketSupply
+from ibridges.cli.util import parse_remote
 from ibridges.path import IrodsPath
+from ibridges.tickets import TicketAccess
 
 ALL_BUILTIN_COMMANDS = [
     CliList,
@@ -38,6 +45,10 @@ ALL_BUILTIN_COMMANDS = [
     CliGui,
     CliVersion,
     CliACLEdit,
+    CliTicketCreate,
+    CliTicketDelete,
+    CliTicketList,
+    CliTicketSupply,
 ]
 IBSHELL_HISTORY_FILE = Path.home() / ".ibridges" / ".shell_history"
 
@@ -47,24 +58,50 @@ class IBridgesShell(cmd.Cmd):
 
     identchars = cmd.Cmd.identchars + "-"
 
-    def __init__(self):
-        """Initialize the shell creating the session."""
-        # Autocomplete is not available on windows.
-        try:
-            import readline  # pylint: disable=import-outside-toplevel
+    def __init__(self, with_ticket: Optional[tuple[str, str]]=None):
+        """Initialize the shell creating the session.
 
-            readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
-            if IBSHELL_HISTORY_FILE.is_file():
-                readline.read_history_file(IBSHELL_HISTORY_FILE)
-            readline.set_history_length(1000)
-        except ImportError:
-            pass
+        Parameters
+        ----------
+        with_ticket, optional
+            Tuple (ticket_str, remote_path). If given, the ticket is supplied
+            to the session and the shell starts in that collection.
+
+        """
+        # Autocomplete is not available on windows.
+        if sys.platform != "win32": # fix for mypy
+            try:
+                import readline  # pylint: disable=import-outside-toplevel
+
+                readline.set_completer_delims(readline.get_completer_delims().replace("-", ""))
+                if IBSHELL_HISTORY_FILE.is_file():
+                    readline.read_history_file(IBSHELL_HISTORY_FILE)
+                readline.set_history_length(1000)
+            except ImportError:
+                pass
         self.session = cli_auth(None)
         self.commands = {}
+        if with_ticket is not None:
+            try:
+                self._supply_ticket(*with_ticket)
+            except Exception as err:  # pylint: disable=broad-exception-caught
+                print(f"Error: {err}")
+                self.session.close()
+                sys.exit(1)
         for command_class in get_all_shell_commands():
             for name in command_class.names:
                 self.commands[name] = command_class
         super().__init__()
+
+    def _supply_ticket(self, ticket_str, remote_path):
+        """Supply the ticket and go to its collection, raise ValueError if that fails."""
+        ipath = parse_remote(remote_path, self.session)
+        path = TicketAccess(self.session, ticket_str, irods_path=str(ipath), supply=True).path
+        if not path.exists():
+            raise ValueError(
+                f"Path {path} does not exist or the ticket does not give access to it."
+            )
+        self.session.cwd = str(path if path.collection_exists() else path.parent)
 
     def do_shell(self, arg):
         """Run commands in the bash/zsh shell directly for local operations."""
