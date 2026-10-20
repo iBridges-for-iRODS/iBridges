@@ -207,7 +207,8 @@ def _prepare_args(args, add_last_space=False, unescape=True):
                 split_args[-1] += args[cur_pos : cur_pos + 2]
             cur_pos += 1
         elif args[cur_pos] == " " and cur_quote is None:
-            split_args.append("")
+            if split_args[-1] != "":  # collapse leading spaces
+                split_args.append("")
         elif args[cur_pos] in ["'", '"'] and cur_quote is None:
             cur_quote = args[cur_pos]
         elif args[cur_pos] == cur_quote:
