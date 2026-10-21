@@ -29,6 +29,7 @@ We provide extensive tutorials on how to work with data in iRODS. Please consult
    quickstart
    ibridges_python
    cli
+   tickets
    faq
 
 

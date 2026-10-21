@@ -25,7 +25,6 @@ from ibridges.util import open_irodsa
 
 APP_NAME = "ibridges"
 
-
 class Session:  # pylint: disable=too-many-instance-attributes
     """Session to connect and perform operations on the iRODS server.
 
@@ -50,6 +49,8 @@ class Session:  # pylint: disable=too-many-instance-attributes
         Override the home directory of irods. Otherwise attempt to retrive the value
         from the irods environment dictionary. If it is not there either, then use
         /{zone}/home/{username}.
+    cwd:
+        Current working directory, by default the home directory.
 
     Raises
     ------
@@ -68,6 +69,7 @@ class Session:  # pylint: disable=too-many-instance-attributes
     >>> with Session("irods_environment.json") as session:
     >>>     # Do operations with the session here.
     >>>     # The session will be automatically closed on finish/error.
+    >>> )
 
     """  # noqa: D403
 
@@ -172,7 +174,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
     def cwd(self, value: str):
         self._cwd = str(value)
 
-    # Authentication workflow methods
     def has_valid_irods_session(self) -> bool:
         """Check if the iRODS session is valid.
 
@@ -230,18 +231,14 @@ class Session:  # pylint: disable=too-many-instance-attributes
         """
         irods_host = self._irods_env.get("irods_host", None)
         irods_port = self._irods_env.get("irods_port", None)
+        user = self._irods_env.get("irods_user_name", "")
+        is_anonymous = user == "anonymous"
         network = self.network_check(irods_host, irods_port)
         if network is False:
             raise ConnectionError(f"No internet connection to {irods_host} and port {irods_port}")
-        user = self._irods_env.get("irods_user_name", "")
-        if user == "anonymous":
-            # TODOx: implement and test for SSL enabled iRODS
-            # self.irods_session = iRODSSession(user='anonymous',
-            #                        password='',
-            #                        zone=zone,
-            #                        port=1247,
-            #                        host=host)
-            raise NotImplementedError
+        if is_anonymous:
+            # Anonymous login uses user "anonymous" and password ""
+            return self.authenticate_using_password()
         # authentication with irods environment and password
         if self._password is None or self._password == "":
             # use cached password of .irodsA built into prc
@@ -249,7 +246,6 @@ class Session:  # pylint: disable=too-many-instance-attributes
             return self.authenticate_using_auth_file()
 
         # irods environment and given password
-        # print("Auth with password")
         return self.authenticate_using_password()
 
     def close(self):
