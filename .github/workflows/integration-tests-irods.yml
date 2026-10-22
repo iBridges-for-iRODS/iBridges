@@ -25,9 +25,6 @@ jobs:
        }}
     steps:
       - uses: actions/checkout@v5
-      - name: Install dependencies
-        run: |
-          sudo apt install -y docker-compose
-      - run: docker-compose build
-      - name: Run tests using docker-compose
-        run: docker-compose up --no-build --exit-code-from irods-client
+      - run: docker compose build
+      - name: Run tests using docker compose
+        run: docker compose up --no-build --exit-code-from irods-client
