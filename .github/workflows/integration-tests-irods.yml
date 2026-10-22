@@ -22,9 +22,10 @@ jobs:
             ( github.event_name == 'push' ||
               github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
             )
-       }}
+       }
     steps:
       - uses: actions/checkout@v5
-      - run: docker compose build
+      - name: Build images
+        run: docker compose build
       - name: Run tests using docker compose
         run: docker compose up --no-build --exit-code-from irods-client
