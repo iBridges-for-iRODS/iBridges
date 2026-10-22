@@ -16,11 +16,11 @@ on:
 
 
 env:
-  YODA_BRANCH: release-2.0
+  YODA_BRANCH: release-2.1
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
     if: |
       ${{ ! contains(github.event.head_commit.message, '#nointegrationtests') &&
             ( github.event_name == 'push' ||
@@ -29,12 +29,12 @@ jobs:
        }}
     steps:
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.9
+        python-version: 3.12
 
     - name: Install API test dependencies
       run: |
@@ -76,7 +76,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git config remote.origin.fetch  "+refs/heads/*:refs/remotes/origin/*" && git pull'
-        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout "release-2.0"'
+        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout "release-2.1"'
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git status'
         docker exec portal.yoda sh -c 'set -x ; touch /var/www/yoda/*.wsgi'
 
