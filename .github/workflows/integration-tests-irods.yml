@@ -24,7 +24,7 @@ jobs:
             )
        }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
           sudo apt install -y docker-compose
