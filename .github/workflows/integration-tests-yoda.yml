@@ -27,7 +27,7 @@ jobs:
        github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name)
     steps:
 
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -36,7 +36,7 @@ jobs:
 
     - name: Install API test dependencies
       run: |
-        pip3 install pytest
+        pip3 install pytest tomli
         pip3 install ./
     - name: Provide docker-compose shim for Compose v2
       run: |
@@ -54,7 +54,7 @@ jobs:
     - name: Start Dockerized Yoda
       run: |
         cd yoda/docker/compose
-        docker-compose pull
+        docker compose pull
         ../up.sh -d
 
     - name: Wait until Dockerized setup is ready
@@ -77,7 +77,7 @@ jobs:
       run: |
         cd yoda/docker/compose
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git config remote.origin.fetch  "+refs/heads/*:refs/remotes/origin/*" && git pull'
-        docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git checkout "release-2.0"'
+        docker exec portal.yoda sh -c "set -x ; cd /var/www/yoda && git checkout \"$YODA_BRANCH\""
         docker exec portal.yoda sh -c 'set -x ; cd /var/www/yoda && git status'
         docker exec portal.yoda sh -c 'set -x ; touch /var/www/yoda/*.wsgi'
 
