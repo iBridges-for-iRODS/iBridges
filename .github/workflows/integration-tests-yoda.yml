@@ -40,7 +40,7 @@ jobs:
       run: |
         pip3 install --user pytest
         pip3 install --user ./
-        sudo apt install -y docker-compose
+        sudo apt install -y docker compose
 
     - name: Clone Yoda repo for Docker Setup
       run: |
@@ -53,7 +53,7 @@ jobs:
     - name: Start Dockerized Yoda
       run: |
         cd yoda/docker/compose
-        docker-compose pull
+        docker compose pull
         ../up.sh -d
 
     - name: Wait until Dockerized setup is ready
