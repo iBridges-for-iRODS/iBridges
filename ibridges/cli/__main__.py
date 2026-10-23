@@ -86,8 +86,6 @@ class ModuleGroupedHelpFormatter(argparse.RawTextHelpFormatter):
             ]
             header.extend(lines)
             footer = f"""
-    The iBridges CLI does not implement the complete iBridges API. For example, there
-    are no commands to modify the access rights to data.
 
     Example usage:
 
