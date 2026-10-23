@@ -21,26 +21,27 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    if: |
-      ${{ ! contains(github.event.head_commit.message, '#nointegrationtests') &&
-            ( github.event_name == 'push' ||
-              github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name
-            )
-       }}
+    if: >-
+      !contains(github.event.head_commit.message, '#nointegrationtests') &&
+      (github.event_name == 'push' ||
+       github.event.pull_request.head.repo.full_name == github.event.pull_request.base.repo.full_name)
     steps:
 
     - uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
-        python-version: 3.9
+        python-version: "3.12"
 
     - name: Install API test dependencies
       run: |
-        pip3 install --user pytest
-        pip3 install --user ./
-        sudo apt install -y docker-compose
+        pip3 install pytest
+        pip3 install ./
+    - name: Provide docker-compose shim for Compose v2
+      run: |
+        printf '#!/bin/sh\nexec docker compose "$@"\n' | sudo tee /usr/local/bin/docker-compose > /dev/null
+        sudo chmod +x /usr/local/bin/docker-compose
 
     - name: Clone Yoda repo for Docker Setup
       run: |
