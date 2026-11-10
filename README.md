@@ -8,7 +8,7 @@ iBridges is a library for scientific programmers who are working with data in iR
 ![](https://readthedocs.org/projects/ibridges/badge/?version=latest&style=flat-default)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12583187.svg)](https://doi.org/10.5281/zenodo.12583187)
 
-
+[![fair-software.eu](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 [![FAIR checklist badge](https://fairsoftwarechecklist.net/badge.svg)](https://fairsoftwarechecklist.net/v0.2?f=31&a=31112&i=21322&r=132)
 
 
