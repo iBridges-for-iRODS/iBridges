@@ -17,8 +17,17 @@ class NotADataObjectError(DoesNotExistError):
 class DataObjectExistsError(DoesNotExistError):
     """When the data object already exists."""
 
+class CollectionExistsError(DoesNotExistError):
+    """When a collection already exists."""
+
 class ObjectTransferFailedError(Exception):
     """When a data object could not be transferred to local."""
 
 class FileTransferFailedError(Exception):
     """When a file could not be transferred to iRODS."""
+
+class SkipOperation(ValueError):  # noqa: N818
+    """Signal that the operation has been skipped."""
+
+class EmptyQueue(ValueError):  # noqa: N818
+    """Signal that queue is empty."""

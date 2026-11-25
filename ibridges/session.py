@@ -24,6 +24,9 @@ from ibridges import icat_columns as icat
 from ibridges.util import open_irodsa
 
 APP_NAME = "ibridges"
+N_PROCESSES = 8
+
+
 
 class Session:  # pylint: disable=too-many-instance-attributes
     """Session to connect and perform operations on the iRODS server.
@@ -114,6 +117,11 @@ class Session:  # pylint: disable=too-many-instance-attributes
         self._cwd = self.home
         if cwd is not None:
             self.cwd = cwd
+
+    @property
+    def copy_param(self):
+        """Create a recipe for new sessions to be created."""
+        return [Session, self._irods_env, self._password, self.home, self.cwd]
 
     def __enter__(self):
         """Connect to the iRODS server if not already connected."""
