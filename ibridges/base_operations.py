@@ -32,7 +32,7 @@ from ibridges.vfs import VirtualFileSystem
 
 def _transfer_needed(source: Union[IrodsPath, Path],
                      dest: Union[IrodsPath, Path],
-                     overwrite: bool, on_error: str):
+                     overwrite: bool, on_error: str) -> bool:
     if isinstance(source, IrodsPath):
         # Ensure that if the source is remote, the dest should be local.
         if not isinstance(dest, Path):
