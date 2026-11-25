@@ -7,14 +7,11 @@ from threading import Thread
 
 from tqdm import tqdm
 
-from ibridges.base_operations import (
-    BaseOperation,
-    DependencyGraph,
-    EmptyQueue,
-    SkipOperation,
-    VirtualFileSystem,
-)
+from ibridges.base_operations import BaseOperation
+from ibridges.depgraph import DependencyGraph
+from ibridges.exception import EmptyQueue, SkipOperation
 from ibridges.session import Session
+from ibridges.vfs import VirtualFileSystem
 
 
 class TransferManager():  # pylint: disable=too-many-instance-attributes
@@ -66,8 +63,8 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         """
         if isinstance(op, TransferManager):
             other_tm = op
-            for op in other_tm.dep_graph.operations.values():
-                self.add(op)
+            for cur_op in other_tm.dep_graph.operations.values():
+                self.add(cur_op)
             return
         if not isinstance(op, BaseOperation):
             raise ValueError(f"{op} is not an operation!")
@@ -75,7 +72,7 @@ class TransferManager():  # pylint: disable=too-many-instance-attributes
         try:
             deps = op.add_to_vfs(self.local_vfs, self.remote_vfs, len(self.dep_graph.operations))
         except SkipOperation:
-            deps = None
+            deps = []
             skip = True
 
         self.dep_graph.add(op, deps, skip=skip)

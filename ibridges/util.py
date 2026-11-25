@@ -6,9 +6,10 @@ import base64
 import contextlib
 import os
 from collections.abc import Sequence
+from enum import Enum
 from hashlib import md5, sha256
 from pathlib import Path
-from typing import Union
+from typing import NamedTuple, Union
 
 import irods
 
@@ -21,6 +22,43 @@ try:
     from importlib_metadata import entry_points
 except ImportError:
     from importlib.metadata import entry_points  # type: ignore
+
+
+class PathType(Enum):
+    """Enum signifiying which type of path it is.
+
+    For iRODS, FILE -> data object and DIR -> collection.
+    """
+
+    MISSING = 0
+    FILE = 1
+    DIR = 2
+    OBJECT = 1
+    COLLECTION = 2
+
+
+class PathOperation(Enum):
+    """Type of path operation.
+
+    There are 3 different operations: CREATE is an operation where the path already exists,
+    is being created or modified, REQUIRE is set by an
+    operation that reads the path, but doesn't change it, while DELETE is set when
+    the path is deleted.
+
+    Keeping track of the state and operations of the path allows the scheduler to
+    schedule the operation in the right order.
+    """
+
+    CREATE = 1
+    REQUIRE = 2
+    DELETE = 3
+
+class PathUpdate(NamedTuple):
+    """Tuple that contains information on the virtual mutation of a path."""
+
+    operation: PathOperation
+    path_type: PathType
+    op_id: int | None
 
 
 def get_dataobject(session, path: Union[str, IrodsPath]) -> irods.data_object.iRODSDataObject:
