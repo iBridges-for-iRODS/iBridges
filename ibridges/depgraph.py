@@ -43,7 +43,6 @@ class DependencyGraph():
             self.skipped_operation.append(op)
             return
 
-        # assert depends_on is not None
         op_id = len(self.operations)
         self.operations[op_id] = op
         self.depends_on[op_id] = depends_on
